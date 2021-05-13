@@ -43,9 +43,9 @@ const DEFAULT_PREFS = {
   // displays
   fontFitWindowWidth: false,
   fontFace: "MingLiu,SymMingLiu,monospace",
-  fontSize: 20,
+  fontSize: 999,
   termSize: { cols: 80, rows: 24 },
-  termSizeMode: "fixed-term-size",
+  termSizeMode: "max-font-size",
   bbsMargin: 0
 };
 
