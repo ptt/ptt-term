@@ -559,14 +559,14 @@ App.prototype.antiIdle = function() {
 };
 
 App.prototype.updateTabIcon = function(aStatus) {
-  var icon = require('../icon/logo.png');
+  var icon = require('Icon/logo.png');
   switch (aStatus) {
     case 'connect':
-      icon = require('../icon/logo_connect.png');
+      icon = require('Icon/logo_connect.png');
       this.setInputAreaFocus();
       break;
     case 'disconnect':
-      icon = require('../icon/logo_disconnect.png');
+      icon = require('Icon/logo_disconnect.png');
       break;
     default:
       break;
