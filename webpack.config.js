@@ -66,6 +66,8 @@ module.exports = {
       'process.env.DEFAULT_SITE': JSON.stringify(PRODUCTION_MODE ? 'wsstelnet://ws.ptt.cc/bbs' : 'wstelnet://localhost:8080/bbs'),
       'process.env.ALLOW_SITE_IN_QUERY': JSON.stringify(process.env.ALLOW_SITE_IN_QUERY === 'yes'),
       'process.env.DEVELOPER_MODE': JSON.stringify(DEVELOPER_MODE),
+      'process.env.GITHUB_REPOSITORY_OWNER': JSON.stringify(process.env.GITHUB_REPOSITORY_OWNER || 'ccns'),
+      'process.env.GITHUB_REPOSITORY': JSON.stringify(process.env.GITHUB_REPOSITORY || 'ccns/PttChrome'),
     }),
     new MiniCssExtractPlugin({
       filename: '[name].[chunkhash].css',

@@ -139,6 +139,14 @@ const enhance = compose(
           "robertabcd/PttChrome",
           "https://github.com/robertabcd/PttChrome"
         ),
+        link_github_current_owner: link(
+          process.env.GITHUB_REPOSITORY_OWNER,
+          "https://github.com/" + process.env.GITHUB_REPOSITORY_OWNER
+        ),
+        link_current_PttChrome: link(
+          process.env.GITHUB_REPOSITORY,
+          "https://github.com/" + process.env.GITHUB_REPOSITORY
+        ),
         link_iamchucky_PttChrome: link(
           "iamchucky/PttChrome",
           "https://github.com/iamchucky/PttChrome"

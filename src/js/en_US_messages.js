@@ -204,14 +204,15 @@ export const en_US = {
     "message": "An open source BBS client"
   },
   "about_description": {
-    "message": "Originally written by #link_github_iamchucky#. This is a modified version by #link_github_robertabcd#. It supports connecting over Websocket, and works on most browsers.",
+    "message": "Originally written by #link_github_iamchucky#. This is a modified version by #link_github_robertabcd#. It supports connecting over Websocket, and works on most browsers. This fork is maintained by #link_github_current_owner#.",
   },
   "about_version_title": {
     "message": "Version"
   },
   "about_version_content": {
     "message": [
-      "This version: #link_robertabcd_PttChrome#, #link_GPL20#.",
+      "This version: #link_current_PttChrome#, #link_GPL20#.",
+      "Upstream version: #link_robertabcd_PttChrome#, #link_GPL20#.",
       "Original version: webapp12 6/2/2015, #link_iamchucky_PttChrome#, #link_GPL20#."
     ]
   },

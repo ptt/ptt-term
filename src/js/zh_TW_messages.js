@@ -201,14 +201,15 @@
     "message": "開放原始碼的 BBS 瀏覽軟體",
   },
   "about_description": {
-    "message": "原作者為 #link_github_iamchucky#。此版本是由 #link_github_robertabcd# 修改，使用 Websocket 加密連線，並支援大多數瀏覽器。",
+    "message": "原作者為 #link_github_iamchucky#。此版本是由 #link_github_robertabcd# 修改，使用 Websocket 加密連線，並支援大多數瀏覽器。本分支由 #link_github_current_owner# 維護。",
   },
   "about_version_title": {
     "message": "版本"
   },
   "about_version_content": {
     "message": [
-      "此版本：#link_robertabcd_PttChrome#, #link_GPL20#.",
+      "此版本：#link_current_PttChrome#, #link_GPL20#.",
+      "上游版本：#link_robertabcd_PttChrome#, #link_GPL20#.",
       "原版本：webapp12 6/2/2015, #link_iamchucky_PttChrome#, #link_GPL20#."
     ]
   },
