@@ -11,6 +11,8 @@ const WebpackCdnPlugin = require('webpack-cdn-plugin');
 const DEVELOPER_MODE = process.env.NODE_ENV === 'development'
 const PRODUCTION_MODE = process.env.NODE_ENV !== 'development'
 
+process.env.NODE_ENV = process.env.NODE_ENV || 'production'
+
 module.exports = {
   entry: {
     'pttchrome': './src/entry.js',
@@ -103,12 +105,12 @@ module.exports = {
         {
           name: 'react',
           var: 'React',
-          path: 'umd/react.production.min.js',
+          path: `umd/react.${process.env.NODE_ENV}${PRODUCTION_MODE ? '.min' : ''}.js`,
         },
         {
           name: 'react-dom',
           var: 'ReactDOM',
-          path: 'umd/react-dom.production.min.js',
+          path: `umd/react-dom.${process.env.NODE_ENV}${PRODUCTION_MODE ? '.min' : ''}.js`,
         },
       ],
     })
