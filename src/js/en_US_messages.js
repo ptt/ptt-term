@@ -209,11 +209,11 @@ export const en_US = {
   "about_version_title": {
     "message": "Version"
   },
-  "about_version_current": {
-    "message": "This version: #link_robertabcd_PttChrome#, #link_GPL20#."
-  },
-  "about_version_original": {
-    "message": "Original version: webapp12 6/2/2015, #link_iamchucky_PttChrome#, #link_GPL20#."
+  "about_version_content": {
+    "message": [
+      "This version: #link_robertabcd_PttChrome#, #link_GPL20#.",
+      "Original version: webapp12 6/2/2015, #link_iamchucky_PttChrome#, #link_GPL20#."
+    ]
   },
   "about_new_title": {
     "message": "What's new"

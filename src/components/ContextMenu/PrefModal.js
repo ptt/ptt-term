@@ -81,16 +81,22 @@ const normalizeSec = value => {
   return sec > 1 ? sec : 1;
 };
 
+const replaceMsg = (msg, replacements) => {
+  return msg.split(/#(\S+)#/gi).map((it, index) => {
+    if (index % 2 === 1 && it in replacements) {
+      return replacements[it];
+    } else {
+      return it;
+    }
+  });
+};
+
 const replaceI18n = (id, replacements) => {
-  return i18n(id)
-    .split(/#(\S+)#/gi)
-    .map((it, index) => {
-      if (index % 2 === 1 && it in replacements) {
-        return replacements[it];
-      } else {
-        return it;
-      }
-    });
+  const msg = i18n(id);
+  if (msg.map && msg.map.call) {
+    return msg.map(it => replaceMsg(it, replacements));
+  }
+  return replaceMsg(msg, replacements);
 };
 
 const link = (text, url) => (
@@ -577,12 +583,11 @@ export const PrefModal = ({
                 <div>
                   <legend>{i18n("about_version_title")}</legend>
                   <ul>
-                    <li>
-                      {replaceI18n("about_version_current", replacements)}
-                    </li>
-                    <li>
-                      {replaceI18n("about_version_original", replacements)}
-                    </li>
+                    {replaceI18n("about_version_content", replacements).map(
+                      (text, index) => (
+                        <li key={index}>{text}</li>
+                      )
+                    )}
                   </ul>
                 </div>
                 <div>
