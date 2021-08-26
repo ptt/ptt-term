@@ -589,7 +589,13 @@ export const PrefModal = ({
                   <p>{replaceI18n("about_description", replacements)}</p>
                 </div>
                 <div>
-                  <legend>{i18n("about_version_title")}</legend>
+                  <legend>
+                    {i18n("about_version_title")} - {PTTCHROME.NAME} v
+                    {PTTCHROME.VERSION}
+                    {process.env.DEVELOPER_MODE
+                      ? ` (${i18n("alert_developerModeHeader")})`
+                      : ""}
+                  </legend>
                   <ul>
                     {replaceI18n("about_version_content", replacements).map(
                       (text, index) => (
