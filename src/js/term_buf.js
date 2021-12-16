@@ -1068,7 +1068,7 @@ TermBuf.prototype = {
           //SetCursor(m_ExitCursor);m_CursorState=1;
         } else if ( tcol >= cols-16 ) {            //m_pTermData->m_ColsPerPage-16
           this.clearHighlight();
-          if ( trow > 12 )
+          if ( trow > (lastRowNum + 1) / 2 )
             this.mouseCursor = 3;
           else
             this.mouseCursor = 2;
@@ -1097,7 +1097,7 @@ TermBuf.prototype = {
           //SetCursor(m_ExitCursor);m_CursorState=1;
         } else if ( tcol >= cols-16 ) {            //m_pTermData->m_ColsPerPage-16
           this.clearHighlight();
-          if ( trow > 12 )
+          if ( trow >  (lastRowNum + 1) / 2 )
             this.mouseCursor = 3;
           else
             this.mouseCursor = 2;
