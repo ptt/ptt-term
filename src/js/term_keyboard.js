@@ -111,6 +111,7 @@ export class TermKeyboard {
         case 'r':
         case 't':
         case 'w':
+        case 'a':
           // Ctrl+key
           return this._sendCharCode(e.key.toUpperCase().charCodeAt(0) - 64);
       }
