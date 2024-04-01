@@ -727,10 +727,10 @@ TermView.prototype = {
       this.titleTimer = null;
     }
     this.titleTimer = setTimer(true, function() {
-      if (document.title == app.connectedUrl.site) {
+      if (document.title == this.buf.title) {
         document.title = title + ' ' + app.waterball.message;
       } else {
-        document.title = app.connectedUrl.site;
+        document.title = this.buf.title;
       }
     }, 1500);
     var options = {

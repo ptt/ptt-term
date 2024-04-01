@@ -115,7 +115,7 @@ export const App = function() {
     if (self.view.titleTimer) {
       self.view.titleTimer.cancel();
       self.view.titleTimer = null;
-      document.title = self.connectedUrl.site;
+      self.view.buf.setTitle();
       self.view.notif.close();
     }
   }, false);
@@ -234,6 +234,7 @@ App.prototype.onConnect = function() {
   console.info("pttchrome onConnect");
   this.connectState = 1;
   this.updateTabIcon('connect');
+  this.view.buf.setTitle({conn: this.connectedUrl.site}),
   this.idleTime = 0;
   var self = this;
   this.timerEverySec = setTimer(true, function() {

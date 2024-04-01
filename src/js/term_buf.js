@@ -257,6 +257,10 @@ export function TermBuf(cols, rows) {
     //this.keyWordLine[rows]=false;
   }
   this.BBSWin = document.getElementById('BBSWindow');
+  this.titleBase = process.env.PTTCHROME_PAGE_TITLE;
+  this.titleSite = null;
+  this.titleConn = null;
+  document.title = this.title = this.titleBase;
 }
 
 TermBuf.prototype = {
@@ -1201,6 +1205,23 @@ TermBuf.prototype = {
   clearHighlight: function(){
     this.nowHighlight = -1;
     this.mouseCursor = 0;
+  },
+
+  setTitle: function(part) {
+    if (part.site !== undefined) {
+      this.titleSite = part.site;
+    }
+    if (part.conn !== undefined) {
+      this.titleConn = part.conn;
+    }
+    let title = this.titleBase;
+    if (this.titleSite) {
+      title += ' - ' + this.titleSite;
+    }
+    if (this.titleConn) {
+      title += ' - ' + this.titleConn;
+    }
+    document.title = this.title = title;
   }
 };
 

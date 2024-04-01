@@ -1,5 +1,7 @@
 // Parser for ANSI escape sequence
 
+import { b2u } from './string_util';
+
 export function AnsiParser(termbuf) {
   this.termbuf = termbuf;
   this.state = AnsiParser.STATE_TEXT;
@@ -10,6 +12,7 @@ AnsiParser.STATE_TEXT = 0;
 AnsiParser.STATE_ESC = 1;
 AnsiParser.STATE_CSI = 2;
 AnsiParser.STATE_C1 = 3;
+AnsiParser.STATE_OSC = 4;
 
 AnsiParser.prototype.feed = function(data) {
   var term = this.termbuf;
@@ -217,6 +220,49 @@ AnsiParser.prototype.feed = function(data) {
         this.esc += ch;
       }
       break;
+    case AnsiParser.STATE_OSC:
+      if (ch == '\\' && this.esc[this.esc.length - 1] == '\x1b') {
+        // ST = ESC \
+        this.esc.pop();
+        ch = '\x07';
+      }
+      if (ch == '\x07') {
+        var params=this.esc.split(';');
+        var firstChar = '';
+        if (params[0] && (params[0].charAt(0)<'0' || params[0].charAt(0)>'9')) {
+          if (firstChar) { // unknown OSC
+            //dump('unknown OSC: ' + this.esc + ch + '\n');
+            this.state = AnsiParser.STATE_TEXT;
+            this.esc = '';
+            break;
+          }
+        }
+        for (var j=0; j<params.length - 1; ++j) {
+          if ( params[j] )
+            params[j] = parseInt(params[j], 10);
+          else
+            params[j] = 0;
+        }
+        switch (params[0]) {
+        case 2:
+          if (params[1] == '?')
+            ; // elicits a response; not implemented
+          else {
+            let title = params[1];
+            if (this.termbuf.view.charset != 'UTF-8')
+              title = b2u(title);
+            this.termbuf.setTitle({site: title});
+          }
+          break;
+        default:
+          //dump('unknown OSC: ' + this.esc + ch + '\n');
+        }
+        this.state = AnsiParser.STATE_TEXT;
+        this.esc = '';
+      } else {
+        this.esc += ch;
+      }
+      break;
     case AnsiParser.STATE_C1:
       var C1_End = true;
       var C1_Char = [' ', '#', '%', '(', ')', '*', '+', '-', '.', '/'];
@@ -269,6 +315,8 @@ AnsiParser.prototype.feed = function(data) {
     case AnsiParser.STATE_ESC:
       if (ch == '[')
         this.state=AnsiParser.STATE_CSI;
+      else if (ch == ']')
+        this.state=AnsiParser.STATE_OSC;
       else {
         this.state=AnsiParser.STATE_C1;
         --i;
