@@ -22,6 +22,10 @@ on:
         type: string
         required: false
         default: 'PTT Terminal'
+      THEME:
+        type: string
+        required: false
+        default: 'ptt.cc'
       DYNAMIC_TITLE:
         type: string
         required: false
@@ -48,8 +52,8 @@ jobs:
               echo "$CNAME" > dist/CNAME
         env:
           CNAME: ${{ inputs.CNAME }}
-          PTTCHROME_THEME: 'ptt-term'
-          PTTCHROME_PAGE_TITLE: ${{ inputs.PAGE_TITLE || 'PTT Terminal' }}
+          PTTCHROME_THEME: ${{ inputs.THEME || 'pttchrome' }}
+          PTTCHROME_PAGE_TITLE: ${{ inputs.PAGE_TITLE || 'PttChrome' }}
           PTTCHROME_DYNAMIC_TITLE: ${{ inputs.DYNAMIC_TITLE || 'true' }}
           DEFAULT_SITE: ${{ inputs.DEFAULT_SITE }}
           ALLOW_SITE_IN_QUERY: "yes"

@@ -13,6 +13,7 @@ jobs:
         site:
           - CNAME: 'term.ptt.cc'
             TARGET_REPO: 'ptt/term.ptt.cc'
+            THEME: 'ptt.cc'
             PAGE_TITLE: '批踢踢實業坊'
             DYNAMIC_TITLE: 'false'
             DEFAULT_SITE: 'wsstelnet://ws.ptt.cc/bbs'
@@ -20,6 +21,7 @@ jobs:
             DEV_PROXY_HEADER: 'https://term.ptt.cc'
           - CNAME: 'term.ptt2.cc'
             TARGET_REPO: 'ptt/term.ptt2.cc'
+            THEME: 'ptt2.cc'
             PAGE_TITLE: '批踢踢兔'
             DYNAMIC_TITLE: 'false'
             DEFAULT_SITE: 'wsstelnet://ws.ptt2.cc/bbs'
@@ -27,6 +29,7 @@ jobs:
             DEV_PROXY_HEADER: 'https://term.ptt2.cc'
     uses: ./.github/workflows/deploy-ghpage.yml
     with:
+      THEME: ${{ matrix.site.THEME }}
       TARGET_REPO: ${{ matrix.site.TARGET_REPO }}
       CNAME: ${{ matrix.site.CNAME }}
       PAGE_TITLE: ${{ matrix.site.PAGE_TITLE }}
