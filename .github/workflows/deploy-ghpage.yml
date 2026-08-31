@@ -1,0 +1,58 @@
+name: Deploy static site
+
+on:
+  workflow_call:
+    inputs:
+      TARGET_REPO:
+        type: string
+        required: true
+      CNAME:
+        type: string
+        required: true
+      DEFAULT_SITE:
+        type: string
+        required: true
+      DEV_PROXY_TARGET:
+        type: string
+        required: true
+      DEV_PROXY_HEADER:
+        type: string
+        required: true
+      BRANCH:
+        type: string
+        required: false
+        default: 'gh-pages'
+    secrets:
+      deploy-token:
+        required: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+      - name: Install and Build
+        run: |
+              yarn
+              yarn build
+              echo "$CNAME" > dist/CNAME
+        env:
+          CNAME: ${{ inputs.CNAME }}
+          PTTCHROME_THEME: 'ptt-term'
+          PTTCHROME_PAGE_TITLE: 'PTT Terminal'
+          DEFAULT_SITE: ${{ inputs.DEFAULT_SITE }}
+          ALLOW_SITE_IN_QUERY: "yes"
+          DEV_PROXY_TARGET: ${{ inputs.DEV_PROXY_TARGET }}
+          DEV_PROXY_HEADER: ${{ inputs.DEV_PROXY_HEADER }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          GITHUB_REPOSITORY: ${{ inputs.TARGET_REPO }}
+          NODE_OPTIONS: '--openssl-legacy-provider'
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: dist
+          repository-name: ${{ inputs.TARGET_REPO }}
+          branch: ${{ inputs.BRANCH }}
+          token: ${{ secrets.deploy-token }}

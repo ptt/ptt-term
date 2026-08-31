@@ -1,0 +1,32 @@
+name: Deploy to GitHub Pages
+on:
+  push:
+    branches:
+      - prod
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    strategy:
+      fail-fast: false
+      matrix:
+        site:
+          - CNAME: 'term.ptt.cc'
+            TARGET_REPO: 'ptt/term.ptt.cc'
+            DEFAULT_SITE: 'wsstelnet://ws.ptt.cc/bbs'
+            DEV_PROXY_TARGET: 'https://ws.ptt.cc'
+            DEV_PROXY_HEADER: 'https://term.ptt.cc'
+          - CNAME: 'term.ptt2.cc'
+            TARGET_REPO: 'ptt/term.ptt2.cc'
+            DEFAULT_SITE: 'wsstelnet://ws.ptt2.cc/bbs'
+            DEV_PROXY_TARGET: 'https://ws.ptt2.cc'
+            DEV_PROXY_HEADER: 'https://term.ptt2.cc'
+    uses: ./.github/workflows/deploy-ghpage.yml
+    with:
+      TARGET_REPO: ${{ matrix.site.TARGET_REPO }}
+      CNAME: ${{ matrix.site.CNAME }}
+      DEFAULT_SITE: ${{ matrix.site.DEFAULT_SITE }}
+      DEV_PROXY_TARGET: ${{ matrix.site.DEV_PROXY_TARGET }}
+      DEV_PROXY_HEADER: ${{ matrix.site.DEV_PROXY_HEADER }}
+    secrets:
+      deploy-token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
