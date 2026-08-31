@@ -260,6 +260,7 @@ export function TermBuf(cols, rows) {
   this.titleBase = process.env.PTTCHROME_PAGE_TITLE;
   this.titleSite = null;
   this.titleConn = null;
+  this.dynamicTitle = (process.env.PTTCHROME_DYNAMIC_TITLE !== false);
   document.title = this.title = this.titleBase;
 }
 
@@ -1208,18 +1209,22 @@ TermBuf.prototype = {
   },
 
   setTitle: function(part) {
-    if (part.site !== undefined) {
-      this.titleSite = part.site;
-    }
-    if (part.conn !== undefined) {
-      this.titleConn = part.conn;
+    if (part) {
+      if (part.site !== undefined) {
+        this.titleSite = part.site;
+      }
+      if (part.conn !== undefined) {
+        this.titleConn = part.conn;
+      }
     }
     let title = this.titleBase;
-    if (this.titleSite) {
-      title += ' - ' + this.titleSite;
-    }
-    if (this.titleConn) {
-      title += ' - ' + this.titleConn;
+    if (this.dynamicTitle) {
+      if (this.titleSite) {
+        title += ' - ' + this.titleSite;
+      }
+      if (this.titleConn) {
+        title += ' - ' + this.titleConn;
+      }
     }
     document.title = this.title = title;
   }

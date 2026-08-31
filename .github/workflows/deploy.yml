@@ -13,11 +13,15 @@ jobs:
         site:
           - CNAME: 'term.ptt.cc'
             TARGET_REPO: 'ptt/term.ptt.cc'
+            PAGE_TITLE: '批踢踢實業坊'
+            DYNAMIC_TITLE: 'false'
             DEFAULT_SITE: 'wsstelnet://ws.ptt.cc/bbs'
             DEV_PROXY_TARGET: 'https://ws.ptt.cc'
             DEV_PROXY_HEADER: 'https://term.ptt.cc'
           - CNAME: 'term.ptt2.cc'
             TARGET_REPO: 'ptt/term.ptt2.cc'
+            PAGE_TITLE: '批踢踢兔'
+            DYNAMIC_TITLE: 'false'
             DEFAULT_SITE: 'wsstelnet://ws.ptt2.cc/bbs'
             DEV_PROXY_TARGET: 'https://ws.ptt2.cc'
             DEV_PROXY_HEADER: 'https://term.ptt2.cc'
@@ -25,6 +29,8 @@ jobs:
     with:
       TARGET_REPO: ${{ matrix.site.TARGET_REPO }}
       CNAME: ${{ matrix.site.CNAME }}
+      PAGE_TITLE: ${{ matrix.site.PAGE_TITLE }}
+      DYNAMIC_TITLE: ${{ matrix.site.DYNAMIC_TITLE }}
       DEFAULT_SITE: ${{ matrix.site.DEFAULT_SITE }}
       DEV_PROXY_TARGET: ${{ matrix.site.DEV_PROXY_TARGET }}
       DEV_PROXY_HEADER: ${{ matrix.site.DEV_PROXY_HEADER }}

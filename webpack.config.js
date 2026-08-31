@@ -73,6 +73,7 @@ module.exports = {
   plugins: [
     new webpack.DefinePlugin({
       'process.env.PTTCHROME_PAGE_TITLE': JSON.stringify(process.env.PTTCHROME_PAGE_TITLE || 'PttChrome'),
+      'process.env.PTTCHROME_DYNAMIC_TITLE': JSON.stringify(process.env.PTTCHROME_DYNAMIC_TITLE !== 'false'),
       'process.env.DEFAULT_SITE': JSON.stringify(PRODUCTION_MODE ? process.env.DEFAULT_SITE || 'wsstelnet://ws.ptt.cc/bbs' : 'wstelnet://localhost:8080/bbs'),
       'process.env.ALLOW_SITE_IN_QUERY': JSON.stringify(process.env.ALLOW_SITE_IN_QUERY === 'yes'),
       'process.env.DEVELOPER_MODE': JSON.stringify(DEVELOPER_MODE),
