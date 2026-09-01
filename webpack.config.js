@@ -79,8 +79,8 @@ module.exports = {
       'process.env.DEVELOPER_MODE': JSON.stringify(DEVELOPER_MODE),
       'PTTCHROME.NAME': JSON.stringify(process.env.npm_package_name),
       'PTTCHROME.VERSION': JSON.stringify(process.env.npm_package_version),
-      'PTTCHROME.GITHUB_REPOSITORY_OWNER': JSON.stringify(process.env.GITHUB_REPOSITORY_OWNER || 'ccns'),
-      'PTTCHROME.GITHUB_REPOSITORY': JSON.stringify(process.env.GITHUB_REPOSITORY || 'ccns/PttChrome'),
+      'PTTCHROME.GITHUB_REPOSITORY_OWNER': JSON.stringify(process.env.GITHUB_REPOSITORY_OWNER || 'ptt'),
+      'PTTCHROME.GITHUB_REPOSITORY': JSON.stringify(process.env.GITHUB_REPOSITORY || 'ptt/ptt-term'),
     }),
     new MiniCssExtractPlugin({
       filename: '[name].[chunkhash].css',
