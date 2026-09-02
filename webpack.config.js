@@ -1,9 +1,6 @@
 const path = require('path');
 const webpack = require('webpack');
-const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
-const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CssUrlRelativePlugin = require('css-url-relative-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const HtmlWebpackHarddiskPlugin = require('html-webpack-harddisk-plugin');
 const WebpackCdnPlugin = require('webpack-cdn-plugin');
@@ -78,9 +75,6 @@ module.exports = {
     }], 'resolve')]
   },
   devtool: 'source-map',
-  optimization: {
-    minimizer: [new OptimizeCSSAssetsPlugin({})],
-  },
   plugins: [
     new webpack.DefinePlugin({
       'process.env.PTTCHROME_PAGE_TITLE': JSON.stringify(process.env.PTTCHROME_PAGE_TITLE || 'PttChrome'),
@@ -98,7 +92,6 @@ module.exports = {
       filename: '[name].[chunkhash].css',
       chunkFilename: '[id].css',
     }),
-    new CssUrlRelativePlugin(),
     new HtmlWebpackPlugin({
       alwaysWriteToDisk: DEVELOPER_MODE,
       minify: {
@@ -143,12 +136,7 @@ module.exports = {
         },
       ],
     })
-  ].concat(PRODUCTION_MODE ? [
-    new UglifyJSPlugin({
-      sourceMap: true,
-      parallel: true
-    }),
-  ] : [
+  ].concat(PRODUCTION_MODE ? [] : [
     new HtmlWebpackHarddiskPlugin()
   ]),
   devServer: {
