@@ -3,8 +3,9 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "daily"
-    target-branch: "prod"
-    labels:
-      - "npm"
-      - "dependencies"
+      interval: "monthly"
+    target-branch: "dev"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
