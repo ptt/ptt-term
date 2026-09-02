@@ -21,18 +21,15 @@ on:
       PAGE_TITLE:
         type: string
         required: false
-        default: 'PTT Terminal'
       PAGE_DESCRIPTION:
         type: string
         required: false
       THEME:
         type: string
         required: false
-        default: 'ptt.cc'
       DYNAMIC_TITLE:
         type: string
         required: false
-        default: 'true'
       BRANCH:
         type: string
         required: false
@@ -55,10 +52,10 @@ jobs:
               echo "$CNAME" > dist/CNAME
         env:
           CNAME: ${{ inputs.CNAME }}
-          PTTCHROME_THEME: ${{ inputs.THEME || 'pttchrome' }}
-          PTTCHROME_PAGE_TITLE: ${{ inputs.PAGE_TITLE || 'PttChrome' }}
+          PTTCHROME_THEME: ${{ inputs.THEME }}
+          PTTCHROME_PAGE_TITLE: ${{ inputs.PAGE_TITLE }}
           PTTCHROME_PAGE_DESCRIPTION: ${{ inputs.PAGE_DESCRIPTION }}
-          PTTCHROME_DYNAMIC_TITLE: ${{ inputs.DYNAMIC_TITLE || 'true' }}
+          PTTCHROME_DYNAMIC_TITLE: ${{ inputs.DYNAMIC_TITLE }}
           DEFAULT_SITE: ${{ inputs.DEFAULT_SITE }}
           ALLOW_SITE_IN_QUERY: "yes"
           DEV_PROXY_TARGET: ${{ inputs.DEV_PROXY_TARGET }}
