@@ -1,5 +1,8 @@
 name: Deploy static site
 
+permissions:
+  contents: read
+
 on:
   workflow_call:
     inputs:
