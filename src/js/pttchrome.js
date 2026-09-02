@@ -342,7 +342,7 @@ App.prototype.switchToEasyReadingMode = function(doSwitch) {
     this.onDisableLiveHelperModalState();
     // clear the deep cloned copy of lines
     this.buf.pageLines = [];
-    if (this.buf.pageState == 3) this.view.conn.send('\x1b[D\x1b[C'); //this.view.conn.send('qr');
+    if (this.buf.pageState == 3 && this.view.conn) this.view.conn.send('\x1b[D\x1b[C'); //this.view.conn.send('qr');
   } else {
     this.view.mainContainer.style.paddingBottom = '';
     this.view.lastRowIndex = 22;
@@ -352,7 +352,8 @@ App.prototype.switchToEasyReadingMode = function(doSwitch) {
     this.buf.pageLines = [];
   }
   // request the full screen
-  this.view.conn.send(unescapeStr('^L'));
+  if (this.view.conn)
+    this.view.conn.send(unescapeStr('^L'));
 };
 
 App.prototype.doCopy = function(str) {
@@ -484,7 +485,7 @@ App.prototype.incrementCountToUpdatePushthread = function(interval) {
 
   if (++this.pushthreadAutoUpdateCount >= this.maxPushthreadAutoUpdateCount) {
     this.pushthreadAutoUpdateCount = 0;
-    if (this.buf.pageState == 3 || this.buf.pageState == 2) {
+    if ((this.buf.pageState == 3 || this.buf.pageState == 2) && this.view.conn) {
       //this.view.conn.send('qrG');
       this.view.conn.send('\x1b[D\x1b[C\x1b[4~');
     }
