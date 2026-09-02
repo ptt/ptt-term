@@ -36,7 +36,7 @@ module.exports = {
         use: [MiniCssExtractPlugin.loader, 'css-loader'],
       },
       {
-        test: /\.(bin|bmp|png|woff)$/,
+        test: /\.(bin|svg|bmp|png|woff)$/,
         oneOf: [
           {
             resourceQuery: /inline/,
