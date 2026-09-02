@@ -66,6 +66,9 @@ module.exports = {
     ]
   },
   resolve: {
+    fallback: {
+      querystring: false
+    },
     plugins: [new AliasPlugin('described-resolve', [{
       name: 'Icon',
       alias: [
