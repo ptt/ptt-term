@@ -16,7 +16,7 @@
   "devDependencies": {
     "@babel/core": "^7.19.6",
     "@babel/preset-env": "^7.16.5",
-    "@babel/preset-react": "^7.16.5",
+    "@babel/preset-react": "^7.29.7",
     "@webpack-cli/serve": "^1.5.2",
     "babel-loader": "^8.2.3",
     "cross-env": "^7.0.3",
