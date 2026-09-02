@@ -22,6 +22,9 @@ on:
         type: string
         required: false
         default: 'PTT Terminal'
+      PAGE_DESCRIPTION:
+        type: string
+        required: false
       THEME:
         type: string
         required: false
@@ -54,6 +57,7 @@ jobs:
           CNAME: ${{ inputs.CNAME }}
           PTTCHROME_THEME: ${{ inputs.THEME || 'pttchrome' }}
           PTTCHROME_PAGE_TITLE: ${{ inputs.PAGE_TITLE || 'PttChrome' }}
+          PTTCHROME_PAGE_DESCRIPTION: ${{ inputs.PAGE_DESCRIPTION }}
           PTTCHROME_DYNAMIC_TITLE: ${{ inputs.DYNAMIC_TITLE || 'true' }}
           DEFAULT_SITE: ${{ inputs.DEFAULT_SITE }}
           ALLOW_SITE_IN_QUERY: "yes"
