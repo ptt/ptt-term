@@ -44,7 +44,7 @@ module.exports = {
         ],
       },
       {
-        test: /\.(bin|bmp|png|woff)$/,
+        test: /\.(bin|svg|bmp|png|woff)$/,
         oneOf: [
           {
             resourceQuery: /inline/,
