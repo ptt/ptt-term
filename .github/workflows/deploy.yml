@@ -5,6 +5,9 @@ on:
       - prod
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     strategy:
