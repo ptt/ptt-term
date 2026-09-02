@@ -64,7 +64,7 @@ jobs:
           DEV_PROXY_TARGET: ${{ inputs.DEV_PROXY_TARGET }}
           DEV_PROXY_HEADER: ${{ inputs.DEV_PROXY_HEADER }}
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
-          GITHUB_REPOSITORY: ${{ inputs.TARGET_REPO }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
           NODE_OPTIONS: '--openssl-legacy-provider'
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
