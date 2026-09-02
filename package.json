@@ -67,6 +67,6 @@
     "build": "webpack",
     "prestart": "npm run clean",
     "start": "webpack serve --mode development",
-    "prepare": "husky install"
+    "prepare": "husky"
   }
 }
