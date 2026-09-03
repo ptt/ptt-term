@@ -1,5 +1,9 @@
 # ptt-term
 
+[![Deploy to GitHub Pages](../../actions/workflows/deploy.yml/badge.svg?branch=dev)](../../actions/workflows/deploy.yml)
+[![CodeQL](../../actions/workflows/dynamic/github-code-scanning/codeql/badge.svg)](../../actions/workflows/dynamic/github-code-scanning/codeql)
+[![Dependabot Updates](../../actions/workflows/dynamic/dependabot/dependabot-updates/badge.svg)](../../actions/workflows/dynamic/dependabot/dependabot-updates)
+
 An HTML5-based web client for connecting to ANSI terminal-based BBS sites.
 This repository contains the source code running behind
 [term.ptt.cc](https://term.ptt.cc/) and [term.ptt2.cc](https://term.ptt2.cc/).
