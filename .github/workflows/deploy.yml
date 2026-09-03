@@ -45,4 +45,4 @@ jobs:
       DEV_PROXY_HEADER: ${{ matrix.site.DEV_PROXY_HEADER }}
       BRANCH: ${{ matrix.site.BRANCH }}
     secrets:
-      deploy-token: ${{ secrets[matrix.secrets-id.deploy-token] || secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+      deploy-token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}

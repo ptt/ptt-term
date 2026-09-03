@@ -1,9 +1,7 @@
 const path = require('path');
 const webpack = require('webpack');
-const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
-const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CssUrlRelativePlugin = require('css-url-relative-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const HtmlWebpackHarddiskPlugin = require('html-webpack-harddisk-plugin');
 const WebpackCdnPlugin = require('webpack-cdn-plugin');
@@ -20,9 +18,9 @@ module.exports = {
   },
   output: {
     path: path.join(__dirname, 'dist/assets/'),
-    publicPath: 'assets/',
+    publicPath: '/assets/',
     pathinfo: DEVELOPER_MODE,
-    filename: `[name]${ PRODUCTION_MODE ? '.[chunkhash]' : '' }.js`
+    filename: `[name]${ PRODUCTION_MODE ? '.[contenthash]' : '' }.js`
   },
   module: {
     rules: [
@@ -48,18 +46,13 @@ module.exports = {
         oneOf: [
           {
             resourceQuery: /inline/,
-            use: 'url-loader'
+            type: 'asset/inline',
           },
           {
-            use: [
-              {
-                loader: 'file-loader',
-                options: {
-                  name: '[name].[hash].[ext]',
-                  esModule: false,
-                }
-              }
-            ]
+            type: 'asset/resource',
+            generator: {
+              filename: '[name].[hash][ext]',
+            },
           }
         ]
       }
@@ -76,7 +69,8 @@ module.exports = {
   },
   devtool: 'source-map',
   optimization: {
-    minimizer: [new OptimizeCSSAssetsPlugin({})],
+    // '...' keeps webpack's built-in terser for JS alongside the CSS minimizer.
+    minimizer: ['...', new CssMinimizerPlugin()],
   },
   plugins: [
     new webpack.DefinePlugin({
@@ -92,10 +86,9 @@ module.exports = {
       'PTTCHROME.GITHUB_REPOSITORY': JSON.stringify(process.env.GITHUB_REPOSITORY || 'ptt/ptt-term'),
     }),
     new MiniCssExtractPlugin({
-      filename: '[name].[chunkhash].css',
+      filename: '[name].[contenthash].css',
       chunkFilename: '[id].css',
     }),
-    new CssUrlRelativePlugin(),
     new HtmlWebpackPlugin({
       alwaysWriteToDisk: DEVELOPER_MODE,
       minify: {
@@ -129,27 +122,30 @@ module.exports = {
         {
           name: 'react',
           var: 'React',
+          version: '16.14.0',
           path: `umd/react.${process.env.NODE_ENV}${PRODUCTION_MODE ? '.min' : ''}.js`,
         },
         {
           name: 'react-dom',
           var: 'ReactDOM',
+          version: '16.14.0',
           path: `umd/react-dom.${process.env.NODE_ENV}${PRODUCTION_MODE ? '.min' : ''}.js`,
         },
       ],
     })
-  ].concat(PRODUCTION_MODE ? [
-    new UglifyJSPlugin({
-      sourceMap: true,
-      parallel: true
-    }),
-  ] : [
+  ].concat(PRODUCTION_MODE ? [] : [
     new HtmlWebpackHarddiskPlugin()
   ]),
   devServer: {
-    contentBase: path.join(__dirname, './dist'),
-    proxy: {
-      '/bbs': {
+    static: {
+      directory: path.resolve(__dirname, 'dist'),
+    },
+    devMiddleware: {
+      publicPath: '/assets/',
+    },
+    proxy: [
+      {
+        context: ['/bbs'],
         target: process.env.DEV_PROXY_TARGET || 'https://ws.ptt.cc',
         secure: true,
         ws: true,
@@ -159,6 +155,6 @@ module.exports = {
           proxyReq.setHeader('origin', process.env.DEV_PROXY_HEADER || 'https://term.ptt.cc');
         }
       }
-    }
+    ]
   }
 };
