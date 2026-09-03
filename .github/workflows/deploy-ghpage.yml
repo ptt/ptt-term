@@ -46,8 +46,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+        uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
       - name: Install and Build
         run: |
               yarn
@@ -65,7 +65,6 @@ jobs:
           DEV_PROXY_HEADER: ${{ inputs.DEV_PROXY_HEADER }}
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          NODE_OPTIONS: '--openssl-legacy-provider'
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
