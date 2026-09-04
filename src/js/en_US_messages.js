@@ -1,10 +1,10 @@
 export const en_US = {
   "appName": {
-    "message": "PttChrome",
+    "message": "PTT Term",
     "description": "The title of the application, displayed in the web store."
   },
   "appDesc": {
-    "message": "A GNU/GPL telnet client extension specifically designed for BBS browsing.",
+    "message": "An HTML5 terminal client specifically designed for BBS browsing.",
     "description":"The description of the application, displayed in the web store."
   },
 
@@ -216,7 +216,7 @@ export const en_US = {
     "message": "An open source BBS client"
   },
   "about_description": {
-    "message": "Originally written by #link_github_iamchucky#. This is a modified version by #link_github_robertabcd#. It supports connecting over Websocket, and works on most browsers. This fork is maintained by #link_github_current_owner#.",
+    "message": "Based on PttChrome, a Chrome extension created by #link_github_iamchucky# then modified by #link_github_robertabcd# to be an HTML5 webpage client that supports Websocket and works on most browsers. This version is forked and maintained by #link_github_current_owner#.",
   },
   "about_version_title": {
     "message": "Version"
@@ -233,8 +233,9 @@ export const en_US = {
   },
   "about_new_content": {
     "message": [
-      'Add Websocket connection support.',
-      'Partially rewrote using React.'
+      'Websocket connection.',
+      'Canvas rendering mode.',
+      'ASCII Art visualization.'
     ]
   },
 
