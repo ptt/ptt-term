@@ -96,7 +96,10 @@ const normalizeSec = (value) => {
 const replaceMsg = (msg, replacements) => {
   return msg.split(/#(\S+)#/gi).map((it, index) => {
     if (index % 2 === 1 && it in replacements) {
-      return replacements[it];
+      const rep = replacements[it];
+      return React.isValidElement(rep)
+        ? React.cloneElement(rep, { key: `${it}-${index}` })
+        : rep;
     } else {
       return it;
     }
