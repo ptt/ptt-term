@@ -4,7 +4,7 @@
     "description": "The title of the application, displayed in the web store."
   },
   "appDesc": {
-    "message": "專為 BBS 瀏覽設計，採 GNU/GPL 授權的 telnet 連線程式套件",
+    "message": "使用 HTML5 技術，專為 BBS 瀏覽設計的終端機連線程式套件",
     "description":"The description of the application, displayed in the web store."
   },
 
@@ -100,7 +100,7 @@
     "message": "防閒置間隔 (秒)"
   },
   "options_lineWrap": {
-    "message": "自動換行, 當貼上的字長於"
+    "message": "超過此長度自動換行 (字元)"
   },
   "options_advanced": {
     "message": "進階"
@@ -231,7 +231,8 @@
   "about_new_content": {
     "message": [
       '加入 Websocket 連線',
-      '部分使用 React 重構'
+      '新增 Canvas 渲染模式',
+      '平滑化 ASCII Art'
     ]
   },
 

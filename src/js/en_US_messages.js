@@ -4,7 +4,7 @@ export const en_US = {
     "description": "The title of the application, displayed in the web store."
   },
   "appDesc": {
-    "message": "A GNU/GPL telnet client extension specifically designed for BBS browsing.",
+    "message": "An HTML5 terminal client specifically designed for BBS browsing.",
     "description":"The description of the application, displayed in the web store."
   },
 
@@ -234,7 +234,8 @@ export const en_US = {
   "about_new_content": {
     "message": [
       'Add Websocket connection support.',
-      'Partially rewrote using React.'
+      'Add Canvas rendering mode.',
+      'Improved ASCII art visualization.'
     ]
   },
 
