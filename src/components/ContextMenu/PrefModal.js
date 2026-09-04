@@ -690,7 +690,8 @@ export const PrefModal = ({
               <Tab.Pane eventKey="about">
                 <div>
                   <legend>
-                    PttChrome<small> - {i18n("about_appName_subtitle")}</small>
+                    {i18n("appName")}
+                    <small> - {i18n("about_appName_subtitle")}</small>
                     <button
                       type="button"
                       className="close"
