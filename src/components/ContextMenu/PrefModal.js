@@ -29,9 +29,9 @@ const DEFAULT_PREFS = {
   copyOnSelect: false,
   antiIdleTime: 0,
   lineWrap: 78,
-  useCanvasEngine: false,
+  useCanvasEngine: true,
   showFps: false,
-  smoothAnsi: false,
+  smoothAnsi: true,
 
   // mouse browsing
   useMouseBrowsing: false,

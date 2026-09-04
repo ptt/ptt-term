@@ -26,9 +26,9 @@ export function TermView() {
   this.mouseWheelFunction3 = 3;
   //this.highlightFG = 7;
   this.fontFitWindowWidth = false;
-  this.useCanvasEngine = false;
+  this.useCanvasEngine = true;
   this.showFps = false;
-  this.smoothAnsi = false;
+  this.smoothAnsi = true;
   this.fpsMeter = new FpsMeter();
   //new pref - end
 
