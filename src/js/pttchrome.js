@@ -17,7 +17,7 @@ import ContextMenu from '../components/ContextMenu';
 
 function noop() {}
 
-const ANTI_IDLE_STR = '\x1b\x1b';
+const ANTI_IDLE_STR = '\x00'; // Also consider IAC NOP='\xff\xf1';
 
 export const App = function() {
 
