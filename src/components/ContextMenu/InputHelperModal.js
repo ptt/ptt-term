@@ -692,7 +692,7 @@ export const InputHelperModal = ({
       <Modal.Title>{i18n("inputHelperTitle")}</Modal.Title>
     </Modal.Header>
     <Modal.Body>
-      <Tab.Container defaultActiveKey="colors">
+      <Tab.Container id="input-helper-tabs" defaultActiveKey="colors">
         <Row className="clearfix">
           <Col sm={12}>
             <Nav bsStyle="tabs">
