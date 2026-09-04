@@ -134,9 +134,16 @@ export const DropdownMenu = ({
     <MenuItem divider />
     {selEnabled && (
       <React.Fragment>
-        <MenuItem className="DropdownMenu__Item--quickSearch">
-          {i18n("cmenu_quickSearch")}{" "}
-          <span style={{ float: "right" }}>&#9658;</span>
+        <li role="presentation" className="DropdownMenu__Item--quickSearch">
+          <a
+            role="menuitem"
+            tabIndex="-1"
+            href="#"
+            onClick={e => e.preventDefault()}
+          >
+            {i18n("cmenu_quickSearch")}{" "}
+            <span style={{ float: "right" }}>&#9658;</span>
+          </a>
           <ul
             className={cx(
               "dropdown-menu",
@@ -159,7 +166,7 @@ export const DropdownMenu = ({
               </MenuItem>
             ))}
           </ul>
-        </MenuItem>
+        </li>
         <MenuItem divider />
       </React.Fragment>
     )}
