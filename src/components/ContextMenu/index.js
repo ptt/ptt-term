@@ -240,8 +240,9 @@ const enhance = compose(
       return onPrefSaveImpl(pttchrome, values);
     },
     onPrefReset: (state, { pttchrome }) => values => {
+      pttchrome.onValuesPrefChange(values);
       pttchrome.view.redraw(true);
-      return onPrefSaveImpl(pttchrome, values);
+      pttchrome.switchToEasyReadingMode(pttchrome.view.useEasyReadingMode);
     }
   }),
   withProps(({ pttchrome, liveHelperEnabled, onLiveHelperChange }) => {

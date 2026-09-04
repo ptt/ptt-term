@@ -1,6 +1,6 @@
 import cx from "classnames";
 import React from "react";
-import { compose, withStateHandlers, withHandlers } from "recompose";
+import { compose, withStateHandlers, withHandlers, lifecycle } from "recompose";
 import {
   Modal,
   Tab,
@@ -14,7 +14,7 @@ import {
   ControlLabel,
   FormControl,
   OverlayTrigger,
-  Popover
+  Popover,
 } from "react-bootstrap";
 import { i18n } from "../../js/i18n";
 import "./PrefModal.css";
@@ -46,37 +46,47 @@ const DEFAULT_PREFS = {
   fontSize: 999,
   termSize: { cols: 80, rows: 24 },
   termSizeMode: "max-font-size",
-  bbsMargin: 0
+  bbsMargin: 0,
 };
 
 const PREF_STORAGE_KEY = "pttchrome.pref.v1";
 
+export const getDefaultPrefs = () => ({
+  ...DEFAULT_PREFS,
+  termSize: { ...DEFAULT_PREFS.termSize },
+});
+
 export const readValuesWithDefault = () => {
   try {
+    const saved = JSON.parse(
+      window.localStorage.getItem(PREF_STORAGE_KEY)
+    ).values;
     return {
-      ...DEFAULT_PREFS,
-      ...JSON.parse(window.localStorage.getItem(PREF_STORAGE_KEY)).values
+      ...getDefaultPrefs(),
+      ...saved,
+      termSize: {
+        ...DEFAULT_PREFS.termSize,
+        ...(saved && saved.termSize),
+      },
     };
   } catch (e) {
-    return {
-      ...DEFAULT_PREFS
-    };
+    return getDefaultPrefs();
   }
 };
 
-const writeValues = values => {
+const writeValues = (values) => {
   try {
     window.localStorage.setItem(
       PREF_STORAGE_KEY,
       JSON.stringify({
-        values
+        values,
       })
     );
   } catch (e) {}
   return values;
 };
 
-const normalizeSec = value => {
+const normalizeSec = (value) => {
   const sec = parseInt(value, 10);
   return sec > 1 ? sec : 1;
 };
@@ -94,7 +104,7 @@ const replaceMsg = (msg, replacements) => {
 const replaceI18n = (id, replacements) => {
   const msg = i18n(id);
   if (msg.map && msg.map.call) {
-    return msg.map(it => replaceMsg(it, replacements));
+    return msg.map((it) => replaceMsg(it, replacements));
   }
   return replaceMsg(msg, replacements);
 };
@@ -112,12 +122,12 @@ const changeNestedValue = (obj, key, newValue) => {
     let subKey = key.substring(i + 1);
     return {
       ...obj,
-      [parentKey]: changeNestedValue(obj[parentKey], subKey, newValue)
+      [parentKey]: changeNestedValue(obj[parentKey], subKey, newValue),
     };
   }
   return {
     ...obj,
-    [key]: newValue
+    [key]: newValue,
   };
 };
 
@@ -154,37 +164,62 @@ const enhance = compose(
         link_GPL20: link(
           "General Public License v2.0",
           "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html"
-        )
-      }
+        ),
+      },
     }),
     {
-      onCloseClick: ({ values }, { onSave }) => () =>
-        onSave(writeValues(values)),
+      onCloseClick:
+        ({ values }, { onSave }) =>
+        () =>
+          onSave(writeValues(values)),
 
-      onResetClick: (state, { onReset }) => () =>
-        onReset(
-          writeValues({
-            ...DEFAULT_PREFS
-          })
-        ),
+      onResetClick:
+        (state, { onReset }) =>
+        () => {
+          const defaultValues = getDefaultPrefs();
+          writeValues(defaultValues);
+          if (onReset) {
+            onReset(defaultValues);
+          }
+          return {
+            values: defaultValues,
+          };
+        },
 
-      onNavSelect: () => activeKey => ({
-        navActiveKey: activeKey
+      onSyncValues: () => () => ({
+        values: readValuesWithDefault(),
       }),
 
-      onCheckboxChange: ({ values }) => ({ target: { name, checked } }) => ({
-        values: changeNestedValue(values, name, !!checked)
+      onNavSelect: () => (activeKey) => ({
+        navActiveKey: activeKey,
       }),
 
-      onNumberInputChange: ({ values }) => ({ target: { name, value } }) => ({
-        values: changeNestedValue(values, name, parseInt(value, 10))
-      }),
+      onCheckboxChange:
+        ({ values }) =>
+        ({ target: { name, checked } }) => ({
+          values: changeNestedValue(values, name, !!checked),
+        }),
 
-      onTextInputChange: ({ values }) => ({ target: { name, value } }) => ({
-        values: changeNestedValue(values, name, value)
-      })
+      onNumberInputChange:
+        ({ values }) =>
+        ({ target: { name, value } }) => ({
+          values: changeNestedValue(values, name, parseInt(value, 10)),
+        }),
+
+      onTextInputChange:
+        ({ values }) =>
+        ({ target: { name, value } }) => ({
+          values: changeNestedValue(values, name, value),
+        }),
     }
-  )
+  ),
+  lifecycle({
+    componentDidUpdate(prevProps) {
+      if (!prevProps.show && this.props.show) {
+        this.props.onSyncValues();
+      }
+    },
+  })
 );
 
 export const PrefModal = ({
@@ -198,7 +233,7 @@ export const PrefModal = ({
   onCheckboxChange,
   onNumberInputChange,
   onTextInputChange,
-  replacements
+  replacements,
 }) => (
   <Modal show={show} onHide={onCloseClick} className="PrefModal">
     <Modal.Body>
@@ -476,7 +511,7 @@ export const PrefModal = ({
                       {[
                         "options_none",
                         "options_enterKey",
-                        "options_rightKey"
+                        "options_rightKey",
                       ].map((key, index) => (
                         <option key={key} value={index}>
                           {i18n(key)}
@@ -498,7 +533,7 @@ export const PrefModal = ({
                         "options_none",
                         "options_enterKey",
                         "options_leftKey",
-                        "options_doPaste"
+                        "options_doPaste",
                       ].map((key, index) => (
                         <option key={key} value={index}>
                           {i18n(key)}
@@ -520,7 +555,7 @@ export const PrefModal = ({
                         "options_none",
                         "options_upDown",
                         "options_pageUpDown",
-                        "options_threadLastNext"
+                        "options_threadLastNext",
                       ].map((key, index) => (
                         <option key={key} value={index}>
                           {i18n(key)}
@@ -534,15 +569,15 @@ export const PrefModal = ({
                     </ControlLabel>
                     <FormControl
                       componentClass="select"
-                      name="options_mouseWheelFunction2"
-                      value={values.options_mouseWheelFunction2}
+                      name="mouseWheelFunction2"
+                      value={values.mouseWheelFunction2}
                       onChange={onNumberInputChange}
                     >
                       {[
                         "options_none",
                         "options_upDown",
                         "options_pageUpDown",
-                        "options_threadLastNext"
+                        "options_threadLastNext",
                       ].map((key, index) => (
                         <option key={key} value={index}>
                           {i18n(key)}
@@ -556,15 +591,15 @@ export const PrefModal = ({
                     </ControlLabel>
                     <FormControl
                       componentClass="select"
-                      name="options_mouseWheelFunction3"
-                      value={values.options_mouseWheelFunction3}
+                      name="mouseWheelFunction3"
+                      value={values.mouseWheelFunction3}
                       onChange={onNumberInputChange}
                     >
                       {[
                         "options_none",
                         "options_upDown",
                         "options_pageUpDown",
-                        "options_threadLastNext"
+                        "options_threadLastNext",
                       ].map((key, index) => (
                         <option key={key} value={index}>
                           {i18n(key)}
