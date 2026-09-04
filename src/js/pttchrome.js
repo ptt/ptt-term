@@ -912,6 +912,10 @@ App.prototype.onPrefChange = function(name, value) {
     case 'showFps':
       this.view.setShowFps(!!value);
       break;
+    case 'smoothAnsi':
+      this.view.smoothAnsi = !!value;
+      this.view.redraw(true);
+      break;
     default:
       break;
     }

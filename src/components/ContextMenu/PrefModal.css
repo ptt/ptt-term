@@ -69,3 +69,8 @@
   -moz-appearance: none;
   appearance: none;
 }
+
+.PrefModal__Grid__Col--right__SubCheckbox {
+  margin-left: 20px;
+}
+
