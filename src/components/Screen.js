@@ -20,6 +20,10 @@ export class Screen extends React.Component {
     this.isMouseDown = false;
     this.dragStarted = false;
     this.startPos = { col: 0, row: 0 };
+    this.textBuckets = Array.from({ length: 17 }, () => []);
+    this.metricsCache = new Map();
+    this.lastFontKey = "";
+    this.lastAppliedFont = "";
   }
 
   state = {
@@ -40,6 +44,8 @@ export class Screen extends React.Component {
       }
       if (typeof document !== "undefined" && document.fonts && document.fonts.ready) {
         document.fonts.ready.then(() => {
+          this.metricsCache.clear();
+          this.lastAppliedFont = "";
           this.draw();
         });
       }
@@ -79,12 +85,26 @@ export class Screen extends React.Component {
   }
 
   setCurrentHighlighted = currentHighlighted => {
-    this.setState({ currentHighlighted }, () => {
-      if (this.props.useCanvas) {
-        this.draw();
-      }
-    });
+    this.setState({ currentHighlighted });
   };
+
+  getCharMetrics(ctx, text, isDBCS, chw) {
+    const key = isDBCS ? text + "\x01" : text;
+    let scale = this.metricsCache.get(key);
+    if (scale !== undefined) return scale;
+
+    if (this.metricsCache.size > 20000) {
+      this.metricsCache.clear();
+    }
+    const textWidth = ctx.measureText(text).width;
+    const targetWidth = isDBCS ? chw * 2 : chw;
+    scale =
+      textWidth > 0 && Math.abs(textWidth - targetWidth) > 0.5
+        ? targetWidth / textWidth
+        : 1;
+    this.metricsCache.set(key, scale);
+    return scale;
+  }
 
   getCols() {
     return (
@@ -200,7 +220,6 @@ export class Screen extends React.Component {
         selEnd: { col: cols - 1, row: rows - 1 }
       },
       () => {
-        this.draw();
         if (typeof this.props.setInputAreaFocus === "function") {
           this.props.setInputAreaFocus();
         }
@@ -237,7 +256,6 @@ export class Screen extends React.Component {
             selEnd: { col: ec, row: pos.row }
           },
           () => {
-            this.draw();
             if (typeof this.props.setInputAreaFocus === "function") {
               this.props.setInputAreaFocus();
             }
@@ -253,7 +271,6 @@ export class Screen extends React.Component {
           selEnd: { col: cols - 1, row: pos.row }
         },
         () => {
-          this.draw();
           if (typeof this.props.setInputAreaFocus === "function") {
             this.props.setInputAreaFocus();
           }
@@ -275,9 +292,10 @@ export class Screen extends React.Component {
         this.dragStarted = true;
       }
       if (this.dragStarted) {
-        this.setState({ selEnd: pos }, () => {
-          this.draw();
-        });
+        const selEnd = this.state.selEnd;
+        if (!selEnd || selEnd.col !== pos.col || selEnd.row !== pos.row) {
+          this.setState({ selEnd: pos });
+        }
       }
     }
   };
@@ -289,11 +307,8 @@ export class Screen extends React.Component {
       this.props.setInputAreaFocus();
     }
     if (!this.dragStarted) {
-      this.setState({ selStart: null, selEnd: null }, () => {
-        this.draw();
-      });
+      this.setState({ selStart: null, selEnd: null });
     } else {
-      this.draw();
       if (this.props.copyOnSelect && typeof this.props.doCopy === "function") {
         const text = this.getSelectedText();
         if (text) {
@@ -410,12 +425,30 @@ export class Screen extends React.Component {
     const targetWidth = Math.round(width * dpr);
     const targetHeight = Math.round(height * dpr);
 
-    if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+    const canvasResized =
+      canvas.width !== targetWidth || canvas.height !== targetHeight;
+    if (canvasResized) {
       canvas.width = targetWidth;
       canvas.height = targetHeight;
     }
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const fontFace = this.props.fontFace || "MingLiu, monospace";
+    const fontString = `${chh}px ${fontFace}`;
+    const fontKey = `${chh}px ${fontFace}:${chw}`;
+
+    if (this.lastFontKey !== fontKey) {
+      this.metricsCache.clear();
+      this.lastFontKey = fontKey;
+    }
+
+    if (canvasResized || this.lastAppliedFont !== fontString) {
+      ctx.font = fontString;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      this.lastAppliedFont = fontString;
+    }
 
     const isBlinkActive =
       typeof document !== "undefined" &&
@@ -432,16 +465,15 @@ export class Screen extends React.Component {
         this.props.highlightBG !== undefined ? this.props.highlightBG : 2
       ] || "#008000";
 
-    const fontFace = this.props.fontFace || "MingLiu, monospace";
-    ctx.font = `${chh}px ${fontFace}`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+    const textBuckets = this.textBuckets;
+    for (let i = 0; i < 17; ++i) {
+      textBuckets[i].length = 0;
+    }
 
-    const lines = this.props.lines;
     const bgRuns = [];
-    const textItems = [];
     const underlineItems = [];
 
+    const lines = this.props.lines;
     if (lines) {
       const isCharsetUtf8 = this.props.charset === "UTF-8";
 
@@ -465,7 +497,7 @@ export class Screen extends React.Component {
           if (bg === runBg) {
             runLength++;
           } else {
-            if (runBg !== null) {
+            if (runBg !== null && runBg !== "#000000") {
               bgRuns.push({
                 bg: runBg,
                 x: runStartCol * chw,
@@ -480,7 +512,7 @@ export class Screen extends React.Component {
           }
         }
 
-        if (runBg !== null) {
+        if (runBg !== null && runBg !== "#000000") {
           bgRuns.push({
             bg: runBg,
             x: runStartCol * chw,
@@ -501,40 +533,41 @@ export class Screen extends React.Component {
               const isLeadBlink = ch.blink && !isBlinkActive;
               const isTrailBlink = trailCh.blink && !isBlinkActive;
               if (!isLeadBlink || !isTrailBlink) {
-                const leadFg =
+                const leadFgIndex =
                   typeof ch.isPartOfURL === "function" && ch.isPartOfURL()
-                    ? "#ff00ff"
-                    : termColors[ch.getFg()];
-                const trailFg =
+                    ? 16
+                    : ch.getFg() !== undefined
+                    ? ch.getFg()
+                    : 7;
+                const trailFgIndex =
                   typeof trailCh.isPartOfURL === "function" && trailCh.isPartOfURL()
-                    ? "#ff00ff"
-                    : termColors[trailCh.getFg()];
+                    ? 16
+                    : trailCh.getFg() !== undefined
+                    ? trailCh.getFg()
+                    : 7;
 
-                if (leadFg === trailFg && !isLeadBlink && !isTrailBlink) {
-                  textItems.push({
+                if (leadFgIndex === trailFgIndex && !isLeadBlink && !isTrailBlink) {
+                  textBuckets[leadFgIndex].push({
                     text: u,
                     x: c * chw + chw,
                     y: y + chh / 2,
-                    fg: leadFg,
                     isDBCS: true
                   });
                 } else {
                   if (!isLeadBlink) {
-                    textItems.push({
+                    textBuckets[leadFgIndex].push({
                       text: u,
                       x: c * chw + chw,
                       y: y + chh / 2,
-                      fg: leadFg,
                       isDBCS: true,
                       clip: { x: c * chw, y, w: chw, h: chh }
                     });
                   }
                   if (!isTrailBlink) {
-                    textItems.push({
+                    textBuckets[trailFgIndex].push({
                       text: u,
                       x: c * chw + chw,
                       y: y + chh / 2,
-                      fg: trailFg,
                       isDBCS: true,
                       clip: { x: (c + 1) * chw, y, w: chw, h: chh }
                     });
@@ -543,7 +576,7 @@ export class Screen extends React.Component {
 
                 if (ch.underLine) {
                   underlineItems.push({
-                    fg: leadFg,
+                    fgIndex: leadFgIndex,
                     x: c * chw,
                     y: y + chh - 2,
                     w: chw,
@@ -552,7 +585,7 @@ export class Screen extends React.Component {
                 }
                 if (trailCh.underLine) {
                   underlineItems.push({
-                    fg: trailFg,
+                    fgIndex: trailFgIndex,
                     x: (c + 1) * chw,
                     y: y + chh - 2,
                     w: chw,
@@ -569,20 +602,21 @@ export class Screen extends React.Component {
             const trailCh = line[c + 1];
             const isBlink = (ch.blink || trailCh.blink) && !isBlinkActive;
             if (!isBlink) {
-              const fg =
+              const fgIndex =
                 typeof ch.isPartOfURL === "function" && ch.isPartOfURL()
-                  ? "#ff00ff"
-                  : termColors[ch.getFg()];
-              textItems.push({
+                  ? 16
+                  : ch.getFg() !== undefined
+                  ? ch.getFg()
+                  : 7;
+              textBuckets[fgIndex].push({
                 text: ch.ch,
                 x: c * chw + chw,
                 y: y + chh / 2,
-                fg,
                 isDBCS: true
               });
               if (ch.underLine || trailCh.underLine) {
                 underlineItems.push({
-                  fg,
+                  fgIndex,
                   x: c * chw,
                   y: y + chh - 2,
                   w: chw * 2,
@@ -596,23 +630,24 @@ export class Screen extends React.Component {
 
           if (ch.blink && !isBlinkActive) continue;
           const charStr = ch.ch;
-          let fg = termColors[ch.getFg()];
-          if (typeof ch.isPartOfURL === "function" && ch.isPartOfURL()) {
-            fg = "#ff00ff";
-          }
+          const fgIndex =
+            typeof ch.isPartOfURL === "function" && ch.isPartOfURL()
+              ? 16
+              : ch.getFg() !== undefined
+              ? ch.getFg()
+              : 7;
           if (charStr && charStr !== " " && charStr !== "\x00") {
-            textItems.push({
+            textBuckets[fgIndex].push({
               text: charStr,
               x: c * chw + chw / 2,
               y: y + chh / 2,
-              fg,
               isDBCS: false
             });
           }
 
           if (ch.underLine) {
             underlineItems.push({
-              fg,
+              fgIndex,
               x: c * chw,
               y: y + chh - 2,
               w: chw,
@@ -626,11 +661,12 @@ export class Screen extends React.Component {
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, width, height);
 
-    bgRuns.sort((a, b) => (a.bg < b.bg ? -1 : a.bg > b.bg ? 1 : 0));
+    if (bgRuns.length > 1) {
+      bgRuns.sort((a, b) => (a.bg < b.bg ? -1 : a.bg > b.bg ? 1 : 0));
+    }
     let lastBg = null;
     for (let i = 0; i < bgRuns.length; ++i) {
       const run = bgRuns[i];
-      if (run.bg === "#000000") continue;
       if (run.bg !== lastBg) {
         ctx.fillStyle = run.bg;
         lastBg = run.bg;
@@ -638,62 +674,52 @@ export class Screen extends React.Component {
       ctx.fillRect(run.x, run.y, run.w, run.h);
     }
 
-    textItems.sort((a, b) => (a.fg < b.fg ? -1 : a.fg > b.fg ? 1 : 0));
-    let lastFg = null;
-    for (let i = 0; i < textItems.length; ++i) {
-      const item = textItems[i];
-      if (item.fg !== lastFg) {
-        ctx.fillStyle = item.fg;
-        lastFg = item.fg;
-      }
-      if (item.clip) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(item.clip.x, item.clip.y, item.clip.w, item.clip.h);
-        ctx.clip();
-      }
-      if (item.isDBCS) {
-        const textWidth = ctx.measureText(item.text).width;
-        const targetWidth = chw * 2;
-        if (textWidth > 0 && Math.abs(textWidth - targetWidth) > 0.5) {
+    for (let cIdx = 0; cIdx < 17; ++cIdx) {
+      const bucket = textBuckets[cIdx];
+      if (bucket.length === 0) continue;
+      ctx.fillStyle = cIdx === 16 ? "#ff00ff" : termColors[cIdx];
+      for (let i = 0; i < bucket.length; ++i) {
+        const item = bucket[i];
+        if (item.clip) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(item.clip.x, item.clip.y, item.clip.w, item.clip.h);
+          ctx.clip();
+        }
+        const scale = this.getCharMetrics(ctx, item.text, item.isDBCS, chw);
+        if (scale === 1) {
+          ctx.fillText(item.text, item.x, item.y);
+        } else {
           ctx.save();
           ctx.translate(item.x, item.y);
-          ctx.scale(targetWidth / textWidth, 1);
+          ctx.scale(scale, 1);
           ctx.fillText(item.text, 0, 0);
           ctx.restore();
-        } else {
-          ctx.fillText(item.text, item.x, item.y);
         }
-      } else {
-        const textWidth = ctx.measureText(item.text).width;
-        if (textWidth > 0 && Math.abs(textWidth - chw) > 0.5) {
-          ctx.save();
-          ctx.translate(item.x, item.y);
-          ctx.scale(chw / textWidth, 1);
-          ctx.fillText(item.text, 0, 0);
+        if (item.clip) {
           ctx.restore();
-        } else {
-          ctx.fillText(item.text, item.x, item.y);
         }
-      }
-      if (item.clip) {
-        ctx.restore();
       }
     }
 
-    for (let i = 0; i < underlineItems.length; ++i) {
-      const u = underlineItems[i];
-      if (u.fg !== lastFg) {
-        ctx.fillStyle = u.fg;
-        lastFg = u.fg;
+    if (underlineItems.length > 0) {
+      if (underlineItems.length > 1) {
+        underlineItems.sort((a, b) => a.fgIndex - b.fgIndex);
       }
-      ctx.fillRect(u.x, u.y, u.w, u.h);
+      let lastUnderlineFg = -1;
+      for (let i = 0; i < underlineItems.length; ++i) {
+        const u = underlineItems[i];
+        if (u.fgIndex !== lastUnderlineFg) {
+          ctx.fillStyle = u.fgIndex === 16 ? "#ff00ff" : termColors[u.fgIndex];
+          lastUnderlineFg = u.fgIndex;
+        }
+        ctx.fillRect(u.x, u.y, u.w, u.h);
+      }
     }
 
     const sel = this.getNormalizedSelection();
     if (sel) {
       const { start, end } = sel;
-      ctx.save();
       ctx.fillStyle = "rgba(100, 150, 255, 0.4)";
       for (let row = start.row; row <= end.row; ++row) {
         const sc = row === start.row ? start.col : 0;
@@ -702,7 +728,6 @@ export class Screen extends React.Component {
           ctx.fillRect(sc * chw, row * chh, (ec - sc + 1) * chw, chh);
         }
       }
-      ctx.restore();
     }
 
     if (t0 > 0 && this.props.fpsMeter) {
