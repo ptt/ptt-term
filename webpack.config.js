@@ -76,7 +76,7 @@ module.exports = {
       'process.env.PTTCHROME_PAGE_DESCRIPTION': JSON.stringify(process.env.PTTCHROME_PAGE_DESCRIPTION || 'A web client for connecting to the ANSI based terminals.'),
       'process.env.PTTCHROME_DYNAMIC_TITLE': JSON.stringify(process.env.PTTCHROME_DYNAMIC_TITLE !== 'false'),
       'process.env.DEFAULT_SITE': JSON.stringify(PRODUCTION_MODE ? process.env.DEFAULT_SITE || 'wsstelnet://ws.ptt.cc/bbs' : 'wstelnet://localhost:8080/bbs'),
-      'process.env.ALLOW_SITE_IN_QUERY': JSON.stringify(process.env.ALLOW_SITE_IN_QUERY === 'yes'),
+      'process.env.ALLOW_SITE_IN_QUERY': JSON.stringify(DEVELOPER_MODE || process.env.ALLOW_SITE_IN_QUERY === 'yes'),
       'process.env.DEVELOPER_MODE': JSON.stringify(DEVELOPER_MODE),
       'PTTCHROME.NAME': JSON.stringify(process.env.npm_package_name),
       'PTTCHROME.VERSION': JSON.stringify(process.env.npm_package_version),

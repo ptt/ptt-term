@@ -65,6 +65,8 @@
     "clean": "rimraf dist/assets dist/index.html",
     "prebuild": "npm run clean",
     "build": "webpack",
+    "prebuild:dev": "npm run clean",
+    "build:dev": "webpack --node-env=development",
     "prestart": "npm run clean",
     "start": "webpack serve --node-env=development",
     "prepare": "husky install"
