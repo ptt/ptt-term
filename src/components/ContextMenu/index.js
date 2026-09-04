@@ -77,10 +77,14 @@ const enhance = compose(
       }
       pttchrome.contextMenuShown = true;
       // just in case the selection get de-selected
-      if (window.getSelection().isCollapsed) {
+      const selColRow =
+        pttchrome.view && typeof pttchrome.view.getSelectionColRow === "function"
+          ? pttchrome.view.getSelectionColRow()
+          : null;
+      if (!selColRow) {
         pttchrome.lastSelection = null;
       } else {
-        pttchrome.lastSelection = pttchrome.view.getSelectionColRow();
+        pttchrome.lastSelection = selColRow;
       }
 
       const target = $(event.target);
@@ -95,12 +99,20 @@ const enhance = compose(
       }
 
       // replace the &nbsp;
-      const selectedText = window
-        .getSelection()
-        .toString()
-        .replace(/\u00a0/g, " ");
+      let selectedText = "";
+      if (
+        pttchrome.view &&
+        typeof pttchrome.view.getSelectedText === "function"
+      ) {
+        selectedText = pttchrome.view.getSelectedText();
+      } else if (!window.getSelection().isCollapsed) {
+        selectedText = window
+          .getSelection()
+          .toString()
+          .replace(/\u00a0/g, " ");
+      }
       const urlEnabled = !!contextOnUrl;
-      const normalEnabled = !urlEnabled && window.getSelection().isCollapsed;
+      const normalEnabled = !urlEnabled && !selectedText;
       const selEnabled = !normalEnabled;
 
       return {
@@ -119,6 +131,7 @@ const enhance = compose(
     onHide: (state, { pttchrome }) => () => {
       if (state.open) {
         pttchrome.contextMenuShown = false;
+        pttchrome.setInputAreaFocus();
         return initialState;
       }
     },
@@ -127,6 +140,7 @@ const enhance = compose(
       menuHandlerByEventKey[eventKey](pttchrome, state);
       event.stopPropagation();
       pttchrome.contextMenuShown = false;
+      pttchrome.setInputAreaFocus();
       return initialState;
     },
 
@@ -179,9 +193,11 @@ const enhance = compose(
       pttchrome.conn.send("\x15[m");
     },
     onInputHelperCmdSend: (state, { pttchrome }) => cmd => {
-      if (!window.getSelection().isCollapsed && pttchrome.buf.pageState == 6) {
-        // something selected
-        var sel = pttchrome.view.getSelectionColRow();
+      const sel =
+        pttchrome.view && typeof pttchrome.view.getSelectionColRow === "function"
+          ? pttchrome.view.getSelectionColRow()
+          : null;
+      if (sel && pttchrome.buf.pageState == 6) {
         var y = pttchrome.buf.cur_y;
         var selCmd = "";
         // move cursor to end and send reset code

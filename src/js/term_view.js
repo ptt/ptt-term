@@ -25,6 +25,7 @@ export function TermView() {
   this.mouseWheelFunction3 = 3;
   //this.highlightFG = 7;
   this.fontFitWindowWidth = false;
+  this.useCanvasEngine = false;
   //new pref - end
 
   this.bbsViewMargin = 0;
@@ -286,7 +287,22 @@ TermView.prototype = {
           this.chh,
           /* showsLinkPreview */false,
           this.enablePicPreview,
-          this.mainDisplay
+          this.mainDisplay,
+          {
+            useCanvas: this.useCanvasEngine,
+            cols: this.buf.cols,
+            rows: this.buf.rows,
+            chw: this.chw,
+            chh: this.chh,
+            fontFace: this.fontFace,
+            highlightBG: this.highlightBG,
+            nowHighlight: this.buf.nowHighlight,
+            buf: this.buf,
+            charset: this.charset,
+            copyOnSelect: this.bbscore ? this.bbscore.copyOnSelect : false,
+            doCopy: this.bbscore ? this.bbscore.doCopy.bind(this.bbscore) : null,
+            setInputAreaFocus: this.bbscore ? this.bbscore.setInputAreaFocus.bind(this.bbscore) : null
+          }
         )
         this.setHighlightedRow(this.buf.nowHighlight)
       }
@@ -371,10 +387,10 @@ TermView.prototype = {
     } else if (e.ctrlKey && !e.altKey && !e.shiftKey) {
       switch (e.key.toLowerCase()) {
         case 'c':
-          if (!window.getSelection().isCollapsed) { //^C , do copy
-            var selectedText = window.getSelection().toString().replace(/\u00a0/g, " ");
+          var selectedText = this.getSelectedText();
+          if (selectedText) { //^C , do copy
             this.bbscore.doCopy(selectedText);
-            stop = true
+            stop = true;
           }
           break;
         case 'a':
@@ -707,12 +723,37 @@ TermView.prototype = {
     };
   },
 
+  getSelectedText: function() {
+    if (this.useCanvasEngine && this.componentScreen && typeof this.componentScreen.getSelectedText === 'function') {
+      return this.componentScreen.getSelectedText();
+    }
+    if (!window.getSelection().isCollapsed) {
+      return window.getSelection().toString().replace(/\u00a0/g, " ");
+    }
+    return '';
+  },
+
   getSelectionColRow: function() {
+    if (this.useCanvasEngine && this.componentScreen && typeof this.componentScreen.getSelectionColRow === 'function') {
+      var sel = this.componentScreen.getSelectionColRow();
+      if (sel)
+        return sel;
+    }
+    if (window.getSelection().isCollapsed || window.getSelection().rangeCount === 0)
+      return null;
     let r = window.getSelection().getRangeAt(0);
     return {
       start: this.countCol(r.startContainer, r.startOffset),
       end: this.countCol(r.endContainer, r.endOffset)
     };
+  },
+
+  selectAll: function() {
+    if (this.useCanvasEngine && this.componentScreen && typeof this.componentScreen.selectAll === 'function') {
+      this.componentScreen.selectAll();
+      return;
+    }
+    window.getSelection().selectAllChildren(this.mainDisplay);
   },
 
   showWaterballNotification: function() {

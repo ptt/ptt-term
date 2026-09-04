@@ -424,6 +424,15 @@ App.prototype.onDOMCopy = function(e) {
     e.preventDefault();
     console.log('copied: ', this.strToCopy);
     this.strToCopy = null;
+  } else if (this.view && typeof this.view.getSelectedText === 'function') {
+    var text = this.view.getSelectedText();
+    if (text) {
+      if (text.indexOf('\x1b') < 0) {
+        text = text.replace(/\r\n/g, '\r').replace(/\n/g, '\r').replace(/ +\r/g, '\r');
+      }
+      e.clipboardData.setData('text', text);
+      e.preventDefault();
+    }
   }
 };
 
@@ -484,7 +493,7 @@ App.prototype.onSymFont = function(content) {
 };
 
 App.prototype.doSelectAll = function() {
-  window.getSelection().selectAllChildren(this.view.mainDisplay);
+  this.view.selectAll();
 };
 
 App.prototype.doSearchGoogle = function(searchTerm) {
@@ -895,6 +904,10 @@ App.prototype.onPrefChange = function(name, value) {
       var margin = value;
       this.view.bbsViewMargin = margin;
       this.onWindowResize();
+      break;
+    case 'useCanvasEngine':
+      this.view.useCanvasEngine = !!value;
+      this.view.redraw(true);
       break;
     default:
       break;

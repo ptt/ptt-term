@@ -29,6 +29,7 @@ const DEFAULT_PREFS = {
   copyOnSelect: false,
   antiIdleTime: 0,
   lineWrap: 78,
+  useCanvasEngine: false,
 
   // mouse browsing
   useMouseBrowsing: false,
