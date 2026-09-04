@@ -22,7 +22,7 @@ export function getQueryVariable(variable) {
   for (var i=0;i<vars.length;i++) {
     var pair = vars[i].split("=");
     if (pair[0] == variable) {
-      return decodeURIComponent(pair[1]);
+      return pair.length > 1 && pair[1] ? decodeURIComponent(pair[1]) : null;
     }
   }
   return null;
