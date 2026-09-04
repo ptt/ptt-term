@@ -244,6 +244,15 @@ export const PrefModal = ({
             <h3>{i18n("menu_settings")}</h3>
             <Nav bsStyle="pills" stacked>
               <NavItem eventKey="general">{i18n("options_general")}</NavItem>
+              <NavItem eventKey="appearance">
+                {i18n("options_appearance")}
+              </NavItem>
+              <NavItem eventKey="mouseBrowsing">
+                {i18n("options_mouseBrowsing")}
+              </NavItem>
+              <NavItem eventKey="advanced">
+                {i18n("options_advanced")}
+              </NavItem>
               <NavItem eventKey="about">{i18n("options_about")}</NavItem>
             </Nav>
             <Button
@@ -331,8 +340,19 @@ export const PrefModal = ({
                     />
                   </FormGroup>
                 </fieldset>
+              </Tab.Pane>
+              <Tab.Pane eventKey="appearance">
                 <fieldset className="PrefModal__Grid__Col--right__Fieldset">
-                  <legend>{i18n("options_appearance")}</legend>
+                  <legend>
+                    {i18n("options_appearance")}
+                    <button
+                      type="button"
+                      className="close"
+                      onClick={onCloseClick}
+                    >
+                      &times;
+                    </button>
+                  </legend>
                   <FormGroup controlId="fontFace">
                     <ControlLabel>{i18n("options_fontFace")}</ControlLabel>
                     <OverlayTrigger
@@ -458,8 +478,19 @@ export const PrefModal = ({
                     }
                   })()}
                 </fieldset>
+              </Tab.Pane>
+              <Tab.Pane eventKey="mouseBrowsing">
                 <fieldset className="PrefModal__Grid__Col--right__Fieldset">
-                  <legend>{i18n("options_mouseBrowsing")}</legend>
+                  <legend>
+                    {i18n("options_mouseBrowsing")}
+                    <button
+                      type="button"
+                      className="close"
+                      onClick={onCloseClick}
+                    >
+                      &times;
+                    </button>
+                  </legend>
                   <Checkbox
                     name="useMouseBrowsing"
                     checked={values.useMouseBrowsing}
@@ -609,8 +640,19 @@ export const PrefModal = ({
                     </FormControl>
                   </FormGroup>
                 </fieldset>
+              </Tab.Pane>
+              <Tab.Pane eventKey="advanced">
                 <fieldset className="PrefModal__Grid__Col--right__Fieldset">
-                  <legend>{i18n("options_advanced")}</legend>
+                  <legend>
+                    {i18n("options_advanced")}
+                    <button
+                      type="button"
+                      className="close"
+                      onClick={onCloseClick}
+                    >
+                      &times;
+                    </button>
+                  </legend>
                   <Checkbox
                     name="useCanvasEngine"
                     checked={values.useCanvasEngine}
