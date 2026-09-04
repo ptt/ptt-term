@@ -699,14 +699,14 @@ export const InputHelperModal = ({
               <NavItem eventKey="colors">{i18n("colorTitle")}</NavItem>
               <NavDropdown eventKey="symbols" title={i18n("symTitle")}>
                 {Object.keys(SYMBOLS).map(group => (
-                  <MenuItem eventKey={`symbols.${group}`}>
+                  <MenuItem key={group} eventKey={`symbols.${group}`}>
                     {i18n(`symTitle_${group}`)}
                   </MenuItem>
                 ))}
               </NavDropdown>
               <NavDropdown eventKey="emoticons" title={i18n("emoTitle")}>
                 {Object.keys(EMOTICONS).map(group => (
-                  <MenuItem eventKey={`emoticons.${group}`}>
+                  <MenuItem key={group} eventKey={`emoticons.${group}`}>
                     {i18n(`emoTitle_${group}`)}
                   </MenuItem>
                 ))}
@@ -868,7 +868,7 @@ export const InputHelperModal = ({
                 </Row>
               </Tab.Pane>
               {Object.keys(SYMBOLS).map(group => (
-                <Tab.Pane eventKey={`symbols.${group}`}>
+                <Tab.Pane key={group} eventKey={`symbols.${group}`}>
                   <ul className="InputHelperModal__SymbolList">
                     {SYMBOLS[group].map((it, index) => (
                       <li key={index} onClick={onSymEmoClick}>
@@ -879,7 +879,7 @@ export const InputHelperModal = ({
                 </Tab.Pane>
               ))}
               {Object.keys(EMOTICONS).map(group => (
-                <Tab.Pane eventKey={`emoticons.${group}`}>
+                <Tab.Pane key={group} eventKey={`emoticons.${group}`}>
                   <ul className="InputHelperModal__EmoticonList">
                     {EMOTICONS[group].map((it, index) => (
                       <li key={index} onClick={onSymEmoClick}>
