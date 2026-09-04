@@ -89,6 +89,7 @@ export class Screen extends React.Component {
     this.metricsCache = new Map();
     this.lastFontKey = "";
     this.lastAppliedFont = "";
+    this.hasBlink = false;
   }
 
   state = {
@@ -107,6 +108,9 @@ export class Screen extends React.Component {
         window.addEventListener("mouseup", this.handleGlobalMouseUp);
         window.addEventListener("mousemove", this.handleGlobalMouseMove);
       }
+      if (typeof document !== "undefined") {
+        document.addEventListener("pttchrome-blink", this.handleBlink);
+      }
       if (typeof document !== "undefined" && document.fonts && document.fonts.ready) {
         document.fonts.ready.then(() => {
           this.metricsCache.clear();
@@ -121,6 +125,9 @@ export class Screen extends React.Component {
     if (typeof window !== "undefined") {
       window.removeEventListener("mouseup", this.handleGlobalMouseUp);
       window.removeEventListener("mousemove", this.handleGlobalMouseMove);
+    }
+    if (typeof document !== "undefined") {
+      document.removeEventListener("pttchrome-blink", this.handleBlink);
     }
   }
 
@@ -139,6 +146,9 @@ export class Screen extends React.Component {
           window.addEventListener("mouseup", this.handleGlobalMouseUp);
           window.addEventListener("mousemove", this.handleGlobalMouseMove);
         }
+        if (typeof document !== "undefined") {
+          document.addEventListener("pttchrome-blink", this.handleBlink);
+        }
       }
       this.draw();
     } else if (prevProps.useCanvas) {
@@ -146,8 +156,21 @@ export class Screen extends React.Component {
         window.removeEventListener("mouseup", this.handleGlobalMouseUp);
         window.removeEventListener("mousemove", this.handleGlobalMouseMove);
       }
+      if (typeof document !== "undefined") {
+        document.removeEventListener("pttchrome-blink", this.handleBlink);
+      }
     }
   }
+
+  handleBlink = () => {
+    if (this.props.useCanvas && this.hasBlink) {
+      this.draw();
+    }
+  };
+
+  onBlink = () => {
+    this.handleBlink();
+  };
 
   setCurrentHighlighted = currentHighlighted => {
     this.setState({ currentHighlighted });
@@ -851,7 +874,7 @@ export class Screen extends React.Component {
       this.lastAppliedFont = fontString;
     }
 
-    const isBlinkActive =
+    const isBlinkHidden =
       typeof document !== "undefined" &&
       document.body.classList.contains("blink--active");
 
@@ -892,6 +915,7 @@ export class Screen extends React.Component {
     const lines = this.props.lines;
     if (lines) {
       const isCharsetUtf8 = this.props.charset === "UTF-8";
+      let hasBlink = false;
 
       for (let r = 0; r < rows && r < lines.length; ++r) {
         const line = lines[r];
@@ -946,9 +970,12 @@ export class Screen extends React.Component {
             const trailCh = line[c + 1];
             const u = b2u(ch.ch + trailCh.ch);
             if (u && u.length === 1 && !isBadDBCS(u)) {
-              const isLeadBlink = ch.blink && !isBlinkActive;
-              const isTrailBlink = trailCh.blink && !isBlinkActive;
-              if (!isLeadBlink || !isTrailBlink) {
+              if (ch.blink || trailCh.blink) {
+                hasBlink = true;
+              }
+              const isLeadHidden = ch.blink && isBlinkHidden;
+              const isTrailHidden = trailCh.blink && isBlinkHidden;
+              if (!isLeadHidden || !isTrailHidden) {
                 const leadFgIndex =
                   typeof ch.isPartOfURL === "function" && ch.isPartOfURL()
                     ? 16
@@ -962,7 +989,7 @@ export class Screen extends React.Component {
                     ? trailCh.getFg()
                     : 7;
 
-                if (leadFgIndex === trailFgIndex && !isLeadBlink && !isTrailBlink) {
+                if (leadFgIndex === trailFgIndex && !isLeadHidden && !isTrailHidden) {
                   if (smoothAnsi && ANSI_BLOCK_SET.has(u)) {
                     const blockItem = {
                       type: u,
@@ -986,7 +1013,7 @@ export class Screen extends React.Component {
                     });
                   }
                 } else {
-                  if (!isLeadBlink) {
+                  if (!isLeadHidden) {
                     textBuckets[leadFgIndex].push({
                       text: u,
                       x: c * chw + chw,
@@ -995,7 +1022,7 @@ export class Screen extends React.Component {
                       clip: { x: c * chw, y, w: chw, h: chh }
                     });
                   }
-                  if (!isTrailBlink) {
+                  if (!isTrailHidden) {
                     textBuckets[trailFgIndex].push({
                       text: u,
                       x: c * chw + chw,
@@ -1006,7 +1033,7 @@ export class Screen extends React.Component {
                   }
                 }
 
-                if (ch.underLine) {
+                if (ch.underLine && !isLeadHidden) {
                   underlineItems.push({
                     fgIndex: leadFgIndex,
                     x: c * chw,
@@ -1015,7 +1042,7 @@ export class Screen extends React.Component {
                     h: 1
                   });
                 }
-                if (trailCh.underLine) {
+                if (trailCh.underLine && !isTrailHidden) {
                   underlineItems.push({
                     fgIndex: trailFgIndex,
                     x: (c + 1) * chw,
@@ -1032,8 +1059,11 @@ export class Screen extends React.Component {
 
           if (isCharsetUtf8 && c + 1 < cols && line[c + 1] && line[c + 1].ch === "" && ch.ch && ch.ch !== "") {
             const trailCh = line[c + 1];
-            const isBlink = (ch.blink || trailCh.blink) && !isBlinkActive;
-            if (!isBlink) {
+            if (ch.blink || trailCh.blink) {
+              hasBlink = true;
+            }
+            const isHidden = (ch.blink || trailCh.blink) && isBlinkHidden;
+            if (!isHidden) {
               const fgIndex =
                 typeof ch.isPartOfURL === "function" && ch.isPartOfURL()
                   ? 16
@@ -1076,7 +1106,10 @@ export class Screen extends React.Component {
             continue;
           }
 
-          if (ch.blink && !isBlinkActive) continue;
+          if (ch.blink) {
+            hasBlink = true;
+          }
+          if (ch.blink && isBlinkHidden) continue;
           const charStr = ch.ch;
           const fgIndex =
             typeof ch.isPartOfURL === "function" && ch.isPartOfURL()
@@ -1119,6 +1152,9 @@ export class Screen extends React.Component {
           }
         }
       }
+      this.hasBlink = hasBlink;
+    } else {
+      this.hasBlink = false;
     }
 
     ctx.fillStyle = "#000000";
