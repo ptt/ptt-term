@@ -30,6 +30,7 @@ const DEFAULT_PREFS = {
   antiIdleTime: 0,
   lineWrap: 78,
   useCanvasEngine: false,
+  showFps: false,
 
   // mouse browsing
   useMouseBrowsing: false,
@@ -659,6 +660,13 @@ export const PrefModal = ({
                     onChange={onCheckboxChange}
                   >
                     {i18n("options_useCanvasEngine")}
+                  </Checkbox>
+                  <Checkbox
+                    name="showFps"
+                    checked={values.showFps}
+                    onChange={onCheckboxChange}
+                  >
+                    {i18n("options_showFps")}
                   </Checkbox>
                 </fieldset>
               </Tab.Pane>

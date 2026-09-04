@@ -108,6 +108,9 @@ export const en_US = {
   "options_useCanvasEngine": {
     "message": "Render by HTML5 Canvas"
   },
+  "options_showFps": {
+    "message": "Show FPS"
+  },
   "options_reset": {
     "message": "Restore defaults"
   },

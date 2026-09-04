@@ -379,6 +379,12 @@ export class Screen extends React.Component {
   }
 
   draw() {
+    const t0 =
+      this.props.fpsMeter &&
+      this.props.fpsMeter.enabled &&
+      typeof performance !== "undefined"
+        ? performance.now()
+        : 0;
     const canvas = this.canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -688,6 +694,10 @@ export class Screen extends React.Component {
         }
       }
       ctx.restore();
+    }
+
+    if (t0 > 0 && this.props.fpsMeter) {
+      this.props.fpsMeter.recordFrame(performance.now() - t0, true);
     }
   }
 

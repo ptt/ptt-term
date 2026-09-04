@@ -909,6 +909,9 @@ App.prototype.onPrefChange = function(name, value) {
       this.view.useCanvasEngine = !!value;
       this.view.redraw(true);
       break;
+    case 'showFps':
+      this.view.setShowFps(!!value);
+      break;
     default:
       break;
     }

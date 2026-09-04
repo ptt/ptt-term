@@ -108,6 +108,9 @@
   "options_useCanvasEngine": {
     "message": "以 HTML5 Canvas 技術繪製畫面"
   },
+  "options_showFps": {
+    "message": "顯示FPS"
+  },
   "options_reset": {
     "message": "設回預設值"
   },

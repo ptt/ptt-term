@@ -6,6 +6,7 @@ import { renderRowHtml, renderScreen } from './term_ui';
 import { i18n } from './i18n';
 import { setTimer } from './util';
 import { wrapText, u2b, parseStatusRow } from './string_util';
+import { FpsMeter } from './fps_meter';
 
 const ENTER_CHAR = '\r';
 const ESC_CHAR = '\x15'; // Ctrl-U
@@ -26,6 +27,8 @@ export function TermView() {
   //this.highlightFG = 7;
   this.fontFitWindowWidth = false;
   this.useCanvasEngine = false;
+  this.showFps = false;
+  this.fpsMeter = new FpsMeter();
   //new pref - end
 
   this.bbsViewMargin = 0;
@@ -233,6 +236,13 @@ TermView.prototype = {
     document.getElementById('cursor').style.setProperty('font-family', this.fontFace, 'important');
   },
 
+  setShowFps: function(show) {
+    this.showFps = !!show;
+    if (this.fpsMeter) {
+      this.fpsMeter.setEnabled(this.showFps);
+    }
+  },
+
   update: function() {
     this.redraw(false);
   },
@@ -282,6 +292,9 @@ TermView.prototype = {
           this.populateEasyReadingPage();
         }
       } else {
+        var t0 = (this.showFps && this.fpsMeter && this.fpsMeter.enabled && typeof performance !== 'undefined')
+          ? performance.now()
+          : 0;
         this.componentScreen = renderScreen(
           /* For Screen#componentWillReceiveProps */lines.slice(),
           this.chh,
@@ -301,10 +314,14 @@ TermView.prototype = {
             charset: this.charset,
             copyOnSelect: this.bbscore ? this.bbscore.copyOnSelect : false,
             doCopy: this.bbscore ? this.bbscore.doCopy.bind(this.bbscore) : null,
-            setInputAreaFocus: this.bbscore ? this.bbscore.setInputAreaFocus.bind(this.bbscore) : null
+            setInputAreaFocus: this.bbscore ? this.bbscore.setInputAreaFocus.bind(this.bbscore) : null,
+            fpsMeter: this.fpsMeter
           }
         )
         this.setHighlightedRow(this.buf.nowHighlight)
+        if (t0 > 0 && !this.useCanvasEngine && this.fpsMeter) {
+          this.fpsMeter.recordFrame(performance.now() - t0, false);
+        }
       }
       this.buf.prevPageState = this.buf.pageState;
     }
