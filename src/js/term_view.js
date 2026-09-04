@@ -296,7 +296,7 @@ TermView.prototype = {
           ? performance.now()
           : 0;
         this.componentScreen = renderScreen(
-          /* For Screen#componentWillReceiveProps */lines.slice(),
+          /* For Screen#componentDidUpdate */lines.slice(),
           this.chh,
           /* showsLinkPreview */false,
           this.enablePicPreview,

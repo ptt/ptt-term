@@ -54,6 +54,14 @@ export class Screen extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
+    if (this.props.lines !== prevProps.lines && this.state.currentImagePreview) {
+      this.setState({
+        currentImagePreview: undefined,
+        left: undefined,
+        top: undefined
+      });
+    }
+
     if (this.props.useCanvas) {
       if (!prevProps.useCanvas) {
         if (typeof window !== "undefined") {
@@ -295,12 +303,6 @@ export class Screen extends React.Component {
     }
   };
 
-  componentWillReceiveProps(nextProps) {
-    if (this.props.lines !== nextProps.lines) {
-      this.setState({ currentImagePreview: undefined });
-    }
-  }
-
   handleMouseMove = ({ clientX, clientY }) => {
     if (this.state.currentImagePreview) {
       this.setState({
@@ -310,18 +312,25 @@ export class Screen extends React.Component {
     }
   };
 
-  handleHyperLinkMouseOver = ({ currentTarget: { href } }) => {
-    if (this.props.enableLinkHoverPreview) {
+  handleHyperLinkMouseOver = e => {
+    if (this.props.enableLinkHoverPreview && e && e.currentTarget) {
+      const href = e.currentTarget.href;
       this.setState({
         currentImagePreview: of(href)
           .then(resolveSrcToImageUrl)
-          .then(resolveWithImageDOM)
+          .then(resolveWithImageDOM),
+        left: e.clientX,
+        top: e.clientY
       });
     }
   };
 
   handleHyperLinkMouseOut = () => {
-    this.setState({ currentImagePreview: undefined });
+    this.setState({
+      currentImagePreview: undefined,
+      left: undefined,
+      top: undefined
+    });
   };
 
   renderLinkOverlays() {
