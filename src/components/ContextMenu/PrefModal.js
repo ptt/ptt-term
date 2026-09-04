@@ -31,6 +31,7 @@ const DEFAULT_PREFS = {
   lineWrap: 78,
   useCanvasEngine: false,
   showFps: false,
+  smoothAnsi: false,
 
   // mouse browsing
   useMouseBrowsing: false,
@@ -667,6 +668,15 @@ export const PrefModal = ({
                     onChange={onCheckboxChange}
                   >
                     {i18n("options_useCanvasEngine")}
+                  </Checkbox>
+                  <Checkbox
+                    className="PrefModal__Grid__Col--right__SubCheckbox"
+                    name="smoothAnsi"
+                    checked={values.smoothAnsi}
+                    disabled={!values.useCanvasEngine}
+                    onChange={onCheckboxChange}
+                  >
+                    {i18n("options_smoothAnsi")}
                   </Checkbox>
                   <Checkbox
                     name="showFps"

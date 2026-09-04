@@ -111,6 +111,9 @@ export const en_US = {
   "options_showFps": {
     "message": "Show FPS"
   },
+  "options_smoothAnsi": {
+    "message": "Smooth ANSI ASCII Art (Canvas mode)"
+  },
   "options_reset": {
     "message": "Restore defaults"
   },
