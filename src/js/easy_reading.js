@@ -34,7 +34,7 @@ export function EasyReading(core, view, termBuf) {
 };
 
 EasyReading.prototype._onChanged = function(e) {
-  console.log("page state: " + this._termBuf.prevPageState + "->" + this._termBuf.pageState);
+  console.debug("page state: " + this._termBuf.prevPageState + "->" + this._termBuf.pageState);
   const values = readValuesWithDefault()
   // make sure to come back to easy reading mode
   if (this._termBuf.prevPageState == 2 &&
@@ -65,7 +65,7 @@ EasyReading.prototype._onChanged = function(e) {
     this.startedEasyReading = false;
   }
   if (this.startedEasyReading) {
-    console.log('easy reading cursor pos: ' + this._termBuf.cur_y + ':' + this._termBuf.cur_x);
+    console.debug('easy reading cursor pos: ' + this._termBuf.cur_y + ':' + this._termBuf.cur_x);
     if (this._termBuf.cur_y == lastRowNum && this._termBuf.cur_x == lastColNum) {
       if (this.ignoreOneUpdate) {
         this.ignoreOneUpdate = false;
@@ -115,9 +115,9 @@ EasyReading.prototype._onChanged = function(e) {
 };
 
 EasyReading.prototype._onViewUpdated = function(e) {
-  console.log('view update');
+  console.debug('view update');
   if (this.sendCommandAfterUpdate) {
-    console.log("send:" + this.sendCommandAfterUpdate);
+    console.debug("send:" + this.sendCommandAfterUpdate);
     if (this.sendCommandAfterUpdate != 'skipOne') {
       this._send(this.sendCommandAfterUpdate);
     }
@@ -126,7 +126,7 @@ EasyReading.prototype._onViewUpdated = function(e) {
 };
 
 EasyReading.prototype.leaveCurrentPost = function() {
-  console.log('leave curent post');
+  console.debug('leave current post');
   if (!this.easyReadingReachedPageEnd) {
     this.ignoreOneUpdate = true;
   }
@@ -134,7 +134,7 @@ EasyReading.prototype.leaveCurrentPost = function() {
 };
 
 EasyReading.prototype.stopEasyReading = function() {
-  console.log('stop easy reading');
+  console.debug('stop easy reading');
   this.sendCommandAfterUpdate = 'skipOne';
 };
 

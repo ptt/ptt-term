@@ -298,7 +298,7 @@ TermView.prototype = {
   },
 
   setHighlightedRow: function(row) {
-    console.log(`setHighlightedRow: ${row}, this.buf.highlightCursor:${ this.buf.highlightCursor}`);
+    console.debug(`setHighlightedRow: ${row}, this.buf.highlightCursor:${ this.buf.highlightCursor}`);
     if (this.buf.highlightCursor) {
       this.componentScreen.setCurrentHighlighted(row)
     }
