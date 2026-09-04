@@ -102,6 +102,12 @@
   "options_lineWrap": {
     "message": "自動換行, 當貼上的字長於"
   },
+  "options_advanced": {
+    "message": "進階"
+  },
+  "options_useCanvasEngine": {
+    "message": "以 HTML5 Canvas 技術繪製畫面"
+  },
   "options_reset": {
     "message": "設回預設值"
   },

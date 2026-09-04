@@ -609,6 +609,16 @@ export const PrefModal = ({
                     </FormControl>
                   </FormGroup>
                 </fieldset>
+                <fieldset className="PrefModal__Grid__Col--right__Fieldset">
+                  <legend>{i18n("options_advanced")}</legend>
+                  <Checkbox
+                    name="useCanvasEngine"
+                    checked={values.useCanvasEngine}
+                    onChange={onCheckboxChange}
+                  >
+                    {i18n("options_useCanvasEngine")}
+                  </Checkbox>
+                </fieldset>
               </Tab.Pane>
               <Tab.Pane eventKey="about">
                 <div>

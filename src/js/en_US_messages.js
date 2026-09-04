@@ -102,6 +102,12 @@ export const en_US = {
   "options_lineWrap": {
     "message": "Wrap line for pasting text longer than"
   },
+  "options_advanced": {
+    "message": "Advanced"
+  },
+  "options_useCanvasEngine": {
+    "message": "Render by HTML5 Canvas"
+  },
   "options_reset": {
     "message": "Restore defaults"
   },
