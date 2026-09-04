@@ -242,7 +242,11 @@ export const PrefModal = ({
 }) => (
   <Modal show={show} onHide={onCloseClick} className="PrefModal">
     <Modal.Body>
-      <Tab.Container activeKey={navActiveKey} onSelect={onNavSelect}>
+      <Tab.Container
+        id="pref-modal-tabs"
+        activeKey={navActiveKey}
+        onSelect={onNavSelect}
+      >
         <div className="PrefModal__Grid">
           <div className="PrefModal__Grid__Col--left">
             <h3>{i18n("menu_settings")}</h3>
