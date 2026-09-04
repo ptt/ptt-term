@@ -202,6 +202,12 @@ TermView.prototype = {
     //   else this.update();
   },
 
+  onBlinkToggle: function() {
+    if (this.useCanvasEngine && this.componentScreen && this.componentScreen.onBlink) {
+      this.componentScreen.onBlink();
+    }
+  },
+
   setBuf: function(buf) {
     this.buf=buf;
   },

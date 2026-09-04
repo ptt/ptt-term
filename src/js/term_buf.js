@@ -822,7 +822,13 @@ TermBuf.prototype = {
     if (this.view.blinkOn) {
       this.view.blinkOn = false;
 
-      document.body.classList.toggle('blink--active')
+      document.body.classList.toggle('blink--active');
+      if (typeof document !== 'undefined') {
+        document.dispatchEvent(new CustomEvent('pttchrome-blink'));
+      }
+      if (this.view && this.view.onBlinkToggle) {
+        this.view.onBlinkToggle();
+      }
     }
   },
 
