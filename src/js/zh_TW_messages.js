@@ -1,10 +1,10 @@
 ﻿export const zh_TW = {
   "appName": {
-    "message": "PttChrome",
+    "message": "PTT Term",
     "description": "The title of the application, displayed in the web store."
   },
   "appDesc": {
-    "message": "專為 BBS 瀏覽設計，採 GNU/GPL 授權的 telnet 連線程式套件",
+    "message": "使用 HTML5 技術，專為 BBS 瀏覽設計的終端機連線程式套件",
     "description":"The description of the application, displayed in the web store."
   },
 
@@ -100,7 +100,7 @@
     "message": "防閒置間隔 (秒)"
   },
   "options_lineWrap": {
-    "message": "自動換行, 當貼上的字長於"
+    "message": "超過此長度自動換行 (字元)"
   },
   "options_advanced": {
     "message": "進階"
@@ -213,7 +213,7 @@
     "message": "開放原始碼的 BBS 瀏覽軟體",
   },
   "about_description": {
-    "message": "原作者為 #link_github_iamchucky#。此版本是由 #link_github_robertabcd# 修改，使用 Websocket 加密連線，並支援大多數瀏覽器。本分支由 #link_github_current_owner# 維護。",
+    "message": "修改自 PttChrome 套件，原始作者為 #link_github_iamchucky#，後續版本由 #link_github_robertabcd# 修改為HTML5 Websocket網頁，並支援大多數瀏覽器。 本分支版本由 #link_github_current_owner# 維護。",
   },
   "about_version_title": {
     "message": "版本"
@@ -230,8 +230,9 @@
   },
   "about_new_content": {
     "message": [
-      '加入 Websocket 連線',
-      '部分使用 React 重構'
+      'Websocket 連線',
+      'Canvas 渲染模式',
+      '平滑化 ASCII Art'
     ]
   },
 
