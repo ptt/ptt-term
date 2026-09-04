@@ -79,19 +79,24 @@ export class ImagePreviewer extends React.PureComponent {
 
 const getTop = (top, height) => {
   const pageHeight = $(window).height();
+  const safeTop = typeof top === "number" && !isNaN(top) ? top : 20;
+  const safeHeight = typeof height === "number" && !isNaN(height) ? height : 0;
 
   // opening image would pass the bottom of the page
-  if (top + height / 2 > pageHeight - 20) {
-    if (height / 2 < top) {
-      return pageHeight - 20 - height;
+  if (safeTop + safeHeight / 2 > pageHeight - 20) {
+    if (safeHeight / 2 < safeTop) {
+      return pageHeight - 20 - safeHeight;
     }
-  } else if (top - 20 > height / 2) {
-    return top - height / 2;
+  } else if (safeTop - 20 > safeHeight / 2) {
+    return safeTop - safeHeight / 2;
   }
   return 20;
 };
 
 ImagePreviewer.OnHover = ({ left, top, value, error }) => {
+  const safeLeft = typeof left === "number" && !isNaN(left) ? left + 20 : 20;
+  const safeTop = typeof top === "number" && !isNaN(top) ? top : 20;
+
   if (error) {
     return false;
   } else if (value) {
@@ -101,8 +106,8 @@ ImagePreviewer.OnHover = ({ left, top, value, error }) => {
         style={{
           display: "block",
           position: "absolute",
-          left: left + 20,
-          top: getTop(top, value.height),
+          left: safeLeft,
+          top: getTop(safeTop, value.height),
           maxHeight: "80%",
           maxWidth: "90%",
           zIndex: 2
@@ -115,8 +120,8 @@ ImagePreviewer.OnHover = ({ left, top, value, error }) => {
         className="glyphicon glyphicon-refresh glyphicon-refresh-animate"
         style={{
           position: "absolute",
-          left: left + 20,
-          top: top,
+          left: safeLeft,
+          top: safeTop,
           zIndex: 2
         }}
       />
