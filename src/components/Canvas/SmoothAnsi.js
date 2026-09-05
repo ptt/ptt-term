@@ -1,3 +1,5 @@
+import { b2u, isDBCSLead } from "../../js/string_util";
+
 export const LOWER_BLOCK_MAP = {
   "\uff3f": 0.03, // ＿ fullwidth low line
   "\u02cd": 0.07, // ˍ modifier letter low line
@@ -9,12 +11,14 @@ export const LOWER_BLOCK_MAP = {
   "\u2586": 6 / 8, // ▆ lower 3/4
   "\u2587": 7 / 8, // ▇ lower 7/8
   "\u2588": 1.0, // █ full block
+  "\u25a0": 1.0, // ■ black square
 };
 
 export const UPPER_BLOCK_MAP = {
   "\u2594": 1 / 8, // ▔ upper 1/8
   "\u2580": 4 / 8, // ▀ upper 1/2
   "\u2588": 1.0, // █ full block
+  "\u25a0": 1.0, // ■ black square
 };
 
 export const LEFT_BLOCK_MAP = {
@@ -26,10 +30,12 @@ export const LEFT_BLOCK_MAP = {
   "\u258a": 6 / 8, // ▊ left 3/4
   "\u2589": 7 / 8, // ▉ left 7/8
   "\u2588": 1.0, // █ full block
+  "\u25a0": 1.0, // ■ black square
 };
 
 export const ANSI_BLOCK_SET = new Set([
   "\u2588", // █ full block
+  "\u25a0", // ■ black square
   "\u2584", // ▄ lower half block
   "\u2580", // ▀ upper half block
   "\u258c", // ▌ left half block
@@ -69,8 +75,16 @@ export function hasAnsiBlock(lines, dirtyRows) {
     if (!line) continue;
     for (let c = 0; c < line.length; ++c) {
       const ch = line[c];
-      if (ch && ch.ch && ANSI_BLOCK_SET.has(ch.ch)) {
+      if (!ch || !ch.ch) continue;
+      if (ANSI_BLOCK_SET.has(ch.ch)) {
         return true;
+      }
+      if (isDBCSLead(ch.ch) && c + 1 < line.length && line[c + 1]) {
+        const u = b2u(ch.ch + line[c + 1].ch);
+        if (u && ANSI_BLOCK_SET.has(u)) {
+          return true;
+        }
+        c++;
       }
     }
   }
@@ -81,7 +95,7 @@ export class SmoothAnsi {
   static drawBlock(ctx, item, grid, cols, rows, chw, chh) {
     const { type, x, y, w, h } = item;
 
-    if (type === "\u2588") {
+    if (type === "\u2588" || type === "\u25a0") {
       if (this.drawLowerBlockRamp(ctx, item, grid, cols, rows, chw, chh)) {
         return;
       }
@@ -178,7 +192,7 @@ export class SmoothAnsi {
     const leftH = isSameLeft ? LOWER_BLOCK_MAP[leftCell.type] : null;
     const rightH = isSameRight ? LOWER_BLOCK_MAP[rightCell.type] : null;
 
-    if (type === "\u2588") {
+    if (type === "\u2588" || type === "\u25a0") {
       const touchesLowerRamp =
         (leftH !== null && leftH < 1.0) || (rightH !== null && rightH < 1.0);
       if (!touchesLowerRamp) return false;
@@ -249,7 +263,7 @@ export class SmoothAnsi {
     const leftH = isSameLeft ? UPPER_BLOCK_MAP[leftCell.type] : null;
     const rightH = isSameRight ? UPPER_BLOCK_MAP[rightCell.type] : null;
 
-    if (type === "\u2588") {
+    if (type === "\u2588" || type === "\u25a0") {
       const touchesUpperRamp =
         (leftH !== null && leftH < 1.0) || (rightH !== null && rightH < 1.0);
       if (!touchesUpperRamp) return false;
@@ -317,7 +331,7 @@ export class SmoothAnsi {
     const topW = isSameTop ? LEFT_BLOCK_MAP[topCell.type] : null;
     const bottomW = isSameBottom ? LEFT_BLOCK_MAP[bottomCell.type] : null;
 
-    if (type === "\u2588") {
+    if (type === "\u2588" || type === "\u25a0") {
       const touchesLeftRamp =
         (topW !== null && topW < 1.0) || (bottomW !== null && bottomW < 1.0);
       if (!touchesLeftRamp) return false;
