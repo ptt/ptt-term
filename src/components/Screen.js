@@ -87,6 +87,10 @@ export class Screen extends React.Component {
     this.ansiBlockBuckets = Array.from({ length: 17 }, () => []);
     this.bgBuckets = Array.from({ length: 17 }, () => []);
     this.underlineBuckets = Array.from({ length: 17 }, () => []);
+    this.textPool = [];
+    this.textPoolIndex = 0;
+    this.blockPool = [];
+    this.blockPoolIndex = 0;
     this.blockGrid = null;
     this.metricsCache = new Map();
     this.lastFontKey = "";
@@ -177,6 +181,41 @@ export class Screen extends React.Component {
   setCurrentHighlighted = currentHighlighted => {
     this.setState({ currentHighlighted });
   };
+
+  getTextItem(text, x, y, isDBCS, clip = null) {
+    let item = this.textPool[this.textPoolIndex];
+    if (!item) {
+      item = { text, x, y, isDBCS, clip };
+      this.textPool[this.textPoolIndex] = item;
+    } else {
+      item.text = text;
+      item.x = x;
+      item.y = y;
+      item.isDBCS = isDBCS;
+      item.clip = clip;
+    }
+    this.textPoolIndex++;
+    return item;
+  }
+
+  getBlockItem(type, r, c, x, y, w, h, fgIndex) {
+    let item = this.blockPool[this.blockPoolIndex];
+    if (!item) {
+      item = { type, r, c, x, y, w, h, fgIndex };
+      this.blockPool[this.blockPoolIndex] = item;
+    } else {
+      item.type = type;
+      item.r = r;
+      item.c = c;
+      item.x = x;
+      item.y = y;
+      item.w = w;
+      item.h = h;
+      item.fgIndex = fgIndex;
+    }
+    this.blockPoolIndex++;
+    return item;
+  }
 
   getCharMetrics(ctx, text, isDBCS, chw) {
     const key = isDBCS ? text + "\x01" : text;
@@ -891,6 +930,9 @@ export class Screen extends React.Component {
         this.props.highlightBG !== undefined ? this.props.highlightBG : 2
       ] || "#008000";
 
+    this.textPoolIndex = 0;
+    this.blockPoolIndex = 0;
+
     const textBuckets = this.textBuckets;
     const bgBuckets = this.bgBuckets;
     const underlineBuckets = this.underlineBuckets;
@@ -982,45 +1024,44 @@ export class Screen extends React.Component {
 
                 if (leadFgIndex === trailFgIndex && !isLeadHidden && !isTrailHidden) {
                   if (smoothAnsi && ANSI_BLOCK_SET.has(u)) {
-                    const blockItem = {
-                      type: u,
+                    const blockItem = this.getBlockItem(
+                      u,
                       r,
                       c,
-                      x: c * chw,
+                      c * chw,
                       y,
-                      w: chw * 2,
-                      h: chh,
-                      fgIndex: leadFgIndex
-                    };
+                      chw * 2,
+                      chh,
+                      leadFgIndex
+                    );
                     ansiBlockBuckets[leadFgIndex].push(blockItem);
                     blockGrid[r * cols + c] = blockItem;
                     blockGrid[r * cols + c + 1] = blockItem;
                   } else {
-                    textBuckets[leadFgIndex].push({
-                      text: u,
-                      x: c * chw + chw,
-                      y: y + chh / 2,
-                      isDBCS: true
-                    });
+                    textBuckets[leadFgIndex].push(
+                      this.getTextItem(u, c * chw + chw, y + chh / 2, true)
+                    );
                   }
                 } else {
                   if (!isLeadHidden) {
-                    textBuckets[leadFgIndex].push({
-                      text: u,
-                      x: c * chw + chw,
-                      y: y + chh / 2,
-                      isDBCS: true,
-                      clip: { x: c * chw, y, w: chw, h: chh }
-                    });
+                    textBuckets[leadFgIndex].push(
+                      this.getTextItem(u, c * chw + chw, y + chh / 2, true, {
+                        x: c * chw,
+                        y,
+                        w: chw,
+                        h: chh
+                      })
+                    );
                   }
                   if (!isTrailHidden) {
-                    textBuckets[trailFgIndex].push({
-                      text: u,
-                      x: c * chw + chw,
-                      y: y + chh / 2,
-                      isDBCS: true,
-                      clip: { x: (c + 1) * chw, y, w: chw, h: chh }
-                    });
+                    textBuckets[trailFgIndex].push(
+                      this.getTextItem(u, c * chw + chw, y + chh / 2, true, {
+                        x: (c + 1) * chw,
+                        y,
+                        w: chw,
+                        h: chh
+                      })
+                    );
                   }
                 }
 
@@ -1050,26 +1091,23 @@ export class Screen extends React.Component {
                   ? ch.getFg()
                   : 7;
               if (smoothAnsi && ANSI_BLOCK_SET.has(ch.ch)) {
-                const blockItem = {
-                  type: ch.ch,
+                const blockItem = this.getBlockItem(
+                  ch.ch,
                   r,
                   c,
-                  x: c * chw,
+                  c * chw,
                   y,
-                  w: chw * 2,
-                  h: chh,
+                  chw * 2,
+                  chh,
                   fgIndex
-                };
+                );
                 ansiBlockBuckets[fgIndex].push(blockItem);
                 blockGrid[r * cols + c] = blockItem;
                 blockGrid[r * cols + c + 1] = blockItem;
               } else {
-                textBuckets[fgIndex].push({
-                  text: ch.ch,
-                  x: c * chw + chw,
-                  y: y + chh / 2,
-                  isDBCS: true
-                });
+                textBuckets[fgIndex].push(
+                  this.getTextItem(ch.ch, c * chw + chw, y + chh / 2, true)
+                );
               }
               if (ch.underLine || trailCh.underLine) {
                 underlineBuckets[fgIndex].push(c * chw, y + chh - 2, chw * 2, 1);
@@ -1092,25 +1130,22 @@ export class Screen extends React.Component {
               : 7;
           if (charStr && charStr !== " " && charStr !== "\x00") {
             if (smoothAnsi && ANSI_BLOCK_SET.has(charStr)) {
-              const blockItem = {
-                type: charStr,
+              const blockItem = this.getBlockItem(
+                charStr,
                 r,
                 c,
-                x: c * chw,
+                c * chw,
                 y,
-                w: chw,
-                h: chh,
+                chw,
+                chh,
                 fgIndex
-              };
+              );
               ansiBlockBuckets[fgIndex].push(blockItem);
               blockGrid[r * cols + c] = blockItem;
             } else {
-              textBuckets[fgIndex].push({
-                text: charStr,
-                x: c * chw + chw / 2,
-                y: y + chh / 2,
-                isDBCS: false
-              });
+              textBuckets[fgIndex].push(
+                this.getTextItem(charStr, c * chw + chw / 2, y + chh / 2, false)
+              );
             }
           }
 
