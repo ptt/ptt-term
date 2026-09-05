@@ -18,24 +18,45 @@ export class Maple3Profile extends BaseProfile {
 
   parseReadingStatus(rowText, termBuf) {
     // e.g.
-    // 瀏覽 P.1(59%)  (h)求助 [PgUp][PgDn][0][$]移動 (/n)搜尋 (C)暫存 ←(q)結束
-    // 瀏覽 P.1/3(59%) ...
-    let match = rowText.match(/ 瀏覽 P\.(\d{1,3})(?:\/(\d{1,3}))?\( *(\d{1,3})%\).*?←\(q\)結束/);
-    if (!match) {
-      return null;
+    //  瀏覽 P.1(59%)  (h)求助 [PgUp][PgDn][0][$]移動 (/n)搜尋 (C)暫存 ←(q)結束
+    //  瀏覽 P.1/3(59%) ...
+    // Robust match: look for 瀏覽 P.<page>(<percent>%) anywhere on the line
+    let match = rowText.match(/瀏覽\s*P\.(\d{1,3})(?:\/(\d{1,3}))?\s*\(\s*(\d{1,3})%\)/);
+    if (match) {
+      let pageIndex = parseInt(match[1], 10);
+      let pageTotal = match[2] ? parseInt(match[2], 10) : undefined;
+      let pagePercent = parseInt(match[3], 10);
+      return {
+        pageIndex: pageIndex,
+        pageTotal: pageTotal,
+        pagePercent: pagePercent,
+        rowIndexStart: null,
+        rowIndexEnd: null,
+        isEnd: pagePercent === 100 || (pageTotal !== undefined && pageIndex === pageTotal),
+      };
     }
-    return {
-      pageIndex: parseInt(match[1], 10),
-      pageTotal: match[2] ? parseInt(match[2], 10) : undefined,
-      pagePercent: parseInt(match[3], 10),
-      rowIndexStart: null,
-      rowIndexEnd: null,
-    };
+
+    // Article end prompt: e.g. 文章選讀  (y)回應 (=\[]<>-+;'`)相關主題 (/?)搜尋標題 (aA)搜尋作者
+    if (/文章選讀/.test(rowText)) {
+      // console.log('[Maple3Profile] Matched article end reading status:', rowText);
+      return {
+        pageIndex: 999,
+        pageTotal: 999,
+        pagePercent: 100,
+        rowIndexStart: null,
+        rowIndexEnd: null,
+        isEnd: true,
+      };
+    }
+
+    return null;
   }
 
   isArticleEnd(lastRowText, termBuf, statusResult) {
-    // e.g. 文章選讀  (y)回應 (=\[]<>-+;'`)相關主題 (/?)搜尋標題 (aA)搜尋作者 q)結束
-    if (/ 文章選讀\s+.*?q\)結束/.test(lastRowText)) {
+    if (statusResult && statusResult.isEnd) {
+      return true;
+    }
+    if (/文章選讀/.test(lastRowText)) {
       return true;
     }
     if (statusResult && statusResult.pageIndex && statusResult.pageTotal) {
@@ -51,10 +72,54 @@ export class Maple3Profile extends BaseProfile {
   }
 
   getPagingSlice(termBuf, statusResult, actualRowIndex) {
-    // In Maple 3, each page turn displays the next full screen of rows without line repetition.
+    let lastRowNum = this.getLastRowNum(termBuf);
+    let pageLines = termBuf.pageLines || [];
+    let isEnd = this.isArticleEnd(termBuf.getRowText(lastRowNum, 0, termBuf.cols), termBuf, statusResult);
+    let beginIndex = 0;
+
+    if (pageLines.length > 0) {
+      if (!isEnd) {
+        // In the middle of an article, Maple 3 space scroll always advances by PAGE_SCROLL (22 lines),
+        // leaving exactly 1 line of overlap at row 0.
+        beginIndex = 1;
+      } else {
+        // At the end of an article, Maple 3 hits EOF and may have scrolled fewer than PAGE_SCROLL lines.
+        // Find the maximum overlap k between screen[0 .. k-1] and pageLines[N - k .. N - 1].
+        let maxK = Math.min(lastRowNum, pageLines.length);
+        for (let k = maxK; k >= 1; --k) {
+          let match = true;
+          for (let j = 0; j < k; ++j) {
+            let screenRow = termBuf.lines[k - 1 - j];
+            let pageRow = pageLines[pageLines.length - 1 - j];
+            if (!this._isLineContentEqual(screenRow, pageRow)) {
+              match = false;
+              break;
+            }
+          }
+          if (match) {
+            beginIndex = k;
+            break;
+          }
+        }
+      }
+    }
+
     return {
-      beginIndex: 0,
-      atLastPage: false,
+      beginIndex: beginIndex,
+      atLastPage: isEnd,
     };
+  }
+
+  _isLineContentEqual(lineA, lineB) {
+    if (!lineA || !lineB) return false;
+    let textA = '';
+    for (let i = 0; i < lineA.length; ++i) {
+      textA += (lineA[i] && lineA[i].ch) ? lineA[i].ch : ' ';
+    }
+    let textB = '';
+    for (let i = 0; i < lineB.length; ++i) {
+      textB += (lineB[i] && lineB[i].ch) ? lineB[i].ch : ' ';
+    }
+    return textA.trimEnd() === textB.trimEnd();
   }
 }

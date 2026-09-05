@@ -1012,6 +1012,10 @@ TermBuf.prototype = {
       return;
     }
 
+    if (lastRowText.trim()) {
+      console.debug('[setPageState] profile=' + profile.name + ', state=' + this.pageState + ', lastRow=' + JSON.stringify(lastRowText));
+    }
+
     if (profile.isPassScreen(this)) {
       //console.log('pageState = 5 (PASS)');
       this.pageState = 5; // some ansi drawing screen to pass

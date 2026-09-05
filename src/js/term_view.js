@@ -827,6 +827,19 @@ TermView.prototype = {
       var profile = this.buf.siteProfile;
       var result = profile.parseReadingStatus(lastRowText, this.buf);
       if (result) {
+        if (result.pageIndex && result.pageIndex === this._lastEasyReadingPageIndex && !result.isEnd) {
+          return;
+        }
+        if (result.isEnd && this._easyReadingAppendedEnd) {
+          return;
+        }
+        if (result.isEnd) {
+          this._easyReadingAppendedEnd = true;
+        }
+        if (result.pageIndex) {
+          this._lastEasyReadingPageIndex = result.pageIndex;
+        }
+
         var paging = profile.getPagingSlice(this.buf, result, this.actualRowIndex);
         var beginIndex = paging.beginIndex;
         var atLastPage = paging.atLastPage;
@@ -850,6 +863,8 @@ TermView.prototype = {
     } else {
       this.actualRowIndex = 0;
       this.buf.pageWrappedLines = [];
+      this._lastEasyReadingPageIndex = 1;
+      this._easyReadingAppendedEnd = false;
       if (this.buf.pageState == 3) {
         var lastRowText = this.buf.getRowText(this.buf.rows-1, 0, this.buf.cols);
         for (var i = 0; i < this.buf.rows-1; ++i) {
@@ -869,7 +884,7 @@ TermView.prototype = {
         this.lastRowDiv.style.display = 'block';
         this.replyRowDiv.style.display = 'none';
         // deep clone lines for selection (getRowText and get ansi color)
-        this.buf.pageLines = this.buf.pageLines.concat(JSON.parse(JSON.stringify(this.buf.lines.slice(0, -1))));
+        this.buf.pageLines = JSON.parse(JSON.stringify(this.buf.lines.slice(0, -1)));
       } else {
         this.hideEasyReading();
       }
