@@ -532,9 +532,11 @@ export class CanvasRenderer {
         const bucket = ansiBlockBuckets[cIdx];
         if (bucket.length === 0) continue;
         ctx.fillStyle = cIdx === 16 ? "#ff00ff" : termColors[cIdx];
+        ctx.beginPath();
         for (let i = 0; i < bucket.length; ++i) {
           SmoothAnsi.drawBlock(ctx, bucket[i], blockGrid, cols, rows, chw, chh);
         }
+        ctx.fill();
       }
     }
 

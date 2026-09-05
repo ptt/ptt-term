@@ -91,7 +91,7 @@ export class SmoothAnsi {
       if (this.drawLeftBlockRamp(ctx, item, grid, cols, rows, chw, chh)) {
         return;
       }
-      ctx.fillRect(x, y, w, h);
+      ctx.rect(x, y, w, h);
       return;
     }
 
@@ -112,11 +112,11 @@ export class SmoothAnsi {
 
     switch (type) {
       case "\u2590": // ▐ right half block
-        ctx.fillRect(x + w / 2, y, w / 2, h);
+        ctx.rect(x + w / 2, y, w / 2, h);
         break;
 
       case "\u2595": // ▕ right 1/8 block
-        ctx.fillRect(x + (w * 7) / 8, y, w / 8, h);
+        ctx.rect(x + (w * 7) / 8, y, w / 8, h);
         break;
 
       case "\u25e2": // ◢ lower right triangle
@@ -136,25 +136,21 @@ export class SmoothAnsi {
         break;
 
       case "\u25b2": // ▲ up triangle
-        ctx.beginPath();
         ctx.moveTo(x + w / 2, y);
         ctx.lineTo(x + w, y + h);
         ctx.lineTo(x, y + h);
         ctx.closePath();
-        ctx.fill();
         break;
 
       case "\u25bc": // ▼ down triangle
-        ctx.beginPath();
         ctx.moveTo(x, y);
         ctx.lineTo(x + w, y);
         ctx.lineTo(x + w / 2, y + h);
         ctx.closePath();
-        ctx.fill();
         break;
 
       default:
-        ctx.fillRect(x, y, w, h);
+        ctx.rect(x, y, w, h);
         break;
     }
   }
@@ -214,23 +210,19 @@ export class SmoothAnsi {
 
     const xR = isSameRight ? x + w + 0.5 : x + w;
 
-    ctx.beginPath();
-    ctx.moveTo(x, y + h);
-    ctx.lineTo(xR, y + h);
-    ctx.lineTo(xR, y + h - hR * h);
-
     const isPeak =
       leftH !== null && rightH !== null && curH > leftH && curH > rightH;
     const isValley =
       leftH !== null && rightH !== null && curH < leftH && curH < rightH;
 
+    ctx.moveTo(x, y + h - hL * h);
     if (isPeak || isValley) {
       ctx.lineTo(x + w / 2, y + h - curH * h);
     }
-
-    ctx.lineTo(x, y + h - hL * h);
+    ctx.lineTo(xR, y + h - hR * h);
+    ctx.lineTo(xR, y + h);
+    ctx.lineTo(x, y + h);
     ctx.closePath();
-    ctx.fill();
     return true;
   }
 
@@ -287,7 +279,6 @@ export class SmoothAnsi {
 
     const xR = isSameRight ? x + w + 0.5 : x + w;
 
-    ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(xR, y);
     ctx.lineTo(xR, y + hR * h);
@@ -303,7 +294,6 @@ export class SmoothAnsi {
 
     ctx.lineTo(x, y + hL * h);
     ctx.closePath();
-    ctx.fill();
     return true;
   }
 
@@ -354,7 +344,6 @@ export class SmoothAnsi {
 
     const yB = isSameBottom ? y + h + 0.5 : y + h;
 
-    ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(x + wT * w, y);
 
@@ -370,48 +359,39 @@ export class SmoothAnsi {
     ctx.lineTo(x + wB * w, yB);
     ctx.lineTo(x, yB);
     ctx.closePath();
-    ctx.fill();
     return true;
   }
 
   static drawTriangleLowerRight(ctx, item) {
     const { x, y, w, h } = item;
-    ctx.beginPath();
     ctx.moveTo(x + w, y);
     ctx.lineTo(x + w, y + h);
     ctx.lineTo(x, y + h);
     ctx.closePath();
-    ctx.fill();
   }
 
   static drawTriangleLowerLeft(ctx, item) {
     const { x, y, w, h } = item;
-    ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(x + w, y + h);
     ctx.lineTo(x, y + h);
     ctx.closePath();
-    ctx.fill();
   }
 
   static drawTriangleUpperRight(ctx, item) {
     const { x, y, w, h } = item;
-    ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(x + w, y);
     ctx.lineTo(x + w, y + h);
     ctx.closePath();
-    ctx.fill();
   }
 
   static drawTriangleUpperLeft(ctx, item) {
     const { x, y, w, h } = item;
-    ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(x + w, y);
     ctx.lineTo(x, y + h);
     ctx.closePath();
-    ctx.fill();
   }
 }
 
