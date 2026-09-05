@@ -683,10 +683,12 @@ TermView.prototype = {
     fontSizePx = Math.floor((fontSizePx + 1) / 2) * 2;
     let width = this.bbsWidth ? this.bbsWidth : this.innerBounds.width;
     let height = this.bbsHeight ? this.bbsHeight : this.innerBounds.height;
-    return {
-      cols: Math.max(80, Math.min(200, Math.floor(2 * (width - 10) / fontSizePx))),
-      rows: Math.max(24, Math.min(100, Math.floor(height / fontSizePx)))
-    };
+    let cols = Math.max(80, Math.min(200, Math.floor(2 * (width - 10) / fontSizePx)));
+    let rows = Math.max(24, Math.min(100, Math.floor(height / fontSizePx)));
+    if (this.buf && this.buf.siteProfile && this.buf.siteProfile.clampTermSize) {
+      return this.buf.siteProfile.clampTermSize(cols, rows);
+    }
+    return { cols, rows };
   },
 
   calcFontSizeFromTerm: function(termCols, termRows) {
@@ -821,10 +823,11 @@ TermView.prototype = {
   },
 
   populateEasyReadingPage: function() {
+    var profile = this.buf.siteProfile;
+    let lastRowNum = profile.getLastRowNum(this.buf);
     if (this.buf.pageState == 3 && this.buf.prevPageState == 3) {
       this.showEasyReading();
-      var lastRowText = this.buf.getRowText(this.buf.rows-1, 0, this.buf.cols);
-      var profile = this.buf.siteProfile;
+      var lastRowText = this.buf.getRowText(lastRowNum, 0, this.buf.cols);
       var result = profile.parseReadingStatus(lastRowText, this.buf);
       if (result) {
         if (result.pageIndex && result.pageIndex === this._lastEasyReadingPageIndex && !result.isEnd) {
@@ -844,7 +847,7 @@ TermView.prototype = {
         var beginIndex = paging.beginIndex;
         var atLastPage = paging.atLastPage;
 
-        for (var i = beginIndex; i < this.buf.rows-1; ++i) {
+        for (var i = beginIndex; i < lastRowNum; ++i) {
           if (i > 0 && this.buf.isTextWrappedRow(i-1)) {
             this.buf.pageWrappedLines[this.actualRowIndex] += 1;
             // if the second row is the wrapped line from first row 
@@ -855,9 +858,9 @@ TermView.prototype = {
             this.buf.pageWrappedLines[++this.actualRowIndex] = 1;
           }
         }
-        this.appendRows(this.buf.lines.slice(beginIndex, -1), true);
+        this.appendRows(this.buf.lines.slice(beginIndex, lastRowNum), true);
         // deep clone lines for selection (getRowText and get ansi color)
-        this.buf.pageLines = this.buf.pageLines.concat(JSON.parse(JSON.stringify(this.buf.lines.slice(beginIndex, -1))));
+        this.buf.pageLines = this.buf.pageLines.concat(JSON.parse(JSON.stringify(this.buf.lines.slice(beginIndex, lastRowNum))));
       }
       this.buf.prevPageState = 3;
     } else {
@@ -866,8 +869,8 @@ TermView.prototype = {
       this._lastEasyReadingPageIndex = 1;
       this._easyReadingAppendedEnd = false;
       if (this.buf.pageState == 3) {
-        var lastRowText = this.buf.getRowText(this.buf.rows-1, 0, this.buf.cols);
-        for (var i = 0; i < this.buf.rows-1; ++i) {
+        var lastRowText = this.buf.getRowText(lastRowNum, 0, this.buf.cols);
+        for (var i = 0; i < lastRowNum; ++i) {
           if (i == 4 || i > 0 && this.buf.isTextWrappedRow(i-1)) { // row with i == 4 and the i == 3 is the wrapped line
             this.buf.pageWrappedLines[this.actualRowIndex] += 1;
           } else {
@@ -879,12 +882,12 @@ TermView.prototype = {
         if (this.easyReadingContent) {
           this.easyReadingContent.scrollTop = 0;
         }
-        this.appendRows(this.buf.lines.slice(0, -1), true);
+        this.appendRows(this.buf.lines.slice(0, lastRowNum), true);
         this.lastRowDiv.innerHTML = this.lastRowDivContent;
         this.lastRowDiv.style.display = 'block';
         this.replyRowDiv.style.display = 'none';
         // deep clone lines for selection (getRowText and get ansi color)
-        this.buf.pageLines = JSON.parse(JSON.stringify(this.buf.lines.slice(0, -1)));
+        this.buf.pageLines = JSON.parse(JSON.stringify(this.buf.lines.slice(0, lastRowNum)));
       } else {
         this.hideEasyReading();
       }

@@ -3,6 +3,8 @@ import { BaseProfile } from './base_profile';
 export class Maple3Profile extends BaseProfile {
   constructor() {
     super('maple3');
+    this.fixed_last_row = 23;
+    this.max_rows = 24;
   }
 
   isListScreen(termBuf) {
@@ -66,8 +68,8 @@ export class Maple3Profile extends BaseProfile {
   }
 
   isCursorParked(termBuf) {
-    let lastRowNum = termBuf.rows - 1;
-    // Maple 3 parks cursor on row 23 after rendering bottom prompt
+    let lastRowNum = this.getLastRowNum(termBuf);
+    // Maple 3 parks cursor on lastRowNum (row 23) after rendering bottom prompt
     return termBuf.cur_y == lastRowNum;
   }
 

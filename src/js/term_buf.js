@@ -269,6 +269,12 @@ export function TermBuf(cols, rows) {
 TermBuf.prototype = {
 
   resize: function(cols, rows) {
+    if (this.siteProfile && this.siteProfile.clampTermSize) {
+      const clamped = this.siteProfile.clampTermSize(cols, rows);
+      cols = clamped.cols;
+      rows = clamped.rows;
+    }
+    console.log(`[TermBuf.resize] Resizing buffer to ${cols}x${rows}`);
     this.cols = cols;
     this.rows = rows;
     this.lineChangeds.length = rows;
@@ -988,10 +994,10 @@ TermBuf.prototype = {
   },
 
   setPageState: function() {
-    let lastRowNum = this.rows - 1;
+    const profile = this.siteProfile;
+    let lastRowNum = profile.getLastRowNum(this);
     let cols = this.cols;
     var lastRowText = this.getRowText(lastRowNum, 0, cols);
-    const profile = this.siteProfile;
     if (profile.isEditingScreen(this)) {
       this.pageState = 6;
       return;

@@ -1,6 +1,42 @@
 export class BaseProfile {
   constructor(name = 'base') {
     this.name = name;
+    this.fixed_last_row = null;
+    this.max_rows = null;
+    this.max_cols = null;
+  }
+
+  /**
+   * Clamp terminal size to profile limits if specified.
+   * @param {number} cols 
+   * @param {number} rows 
+   * @returns {{ cols: number, rows: number }}
+   */
+  clampTermSize(cols, rows) {
+    let clampedCols = cols;
+    let clampedRows = rows;
+    if (this.max_rows !== null && this.max_rows !== undefined && rows > this.max_rows) {
+      clampedRows = this.max_rows;
+    }
+    if (this.max_cols !== null && this.max_cols !== undefined && cols > this.max_cols) {
+      clampedCols = this.max_cols;
+    }
+    if (clampedCols !== cols || clampedRows !== rows) {
+      console.log(`[Profile:${this.name}] Clamped terminal size from ${cols}x${rows} to ${clampedCols}x${clampedRows}`);
+    }
+    return { cols: clampedCols, rows: clampedRows };
+  }
+
+  /**
+   * Get the effective status/last row number for this BBS.
+   * @param {TermBuf} termBuf 
+   * @returns {number} 0-based row index
+   */
+  getLastRowNum(termBuf) {
+    if (this.fixed_last_row !== null && this.fixed_last_row !== undefined) {
+      return Math.min(this.fixed_last_row, termBuf.rows - 1);
+    }
+    return termBuf.rows - 1;
   }
 
   /**

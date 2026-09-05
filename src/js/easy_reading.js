@@ -51,8 +51,9 @@ EasyReading.prototype._onChanged = function(e) {
   if (!this._enabled)
     return;
 
+  const profile = this._termBuf.siteProfile;
   let lastColNum = this._termBuf.cols - 1;
-  let lastRowNum = this._termBuf.rows - 1;
+  let lastRowNum = profile.getLastRowNum(this._termBuf);
   var lastRowText = this._termBuf.getRowText(lastRowNum, 0, this._termBuf.cols);
   // dealing with page state jump to 0 because last row wasn't updated fully 
   if (this._termBuf.pageState == 3) {
@@ -66,7 +67,6 @@ EasyReading.prototype._onChanged = function(e) {
   }
   if (this.startedEasyReading) {
     console.debug('easy reading cursor pos: ' + this._termBuf.cur_y + ':' + this._termBuf.cur_x);
-    const profile = this._termBuf.siteProfile;
     const isParked = profile.isCursorParked(this._termBuf);
 
     if (isParked) {

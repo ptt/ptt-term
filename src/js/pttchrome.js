@@ -559,6 +559,17 @@ App.prototype.onWindowResize = function() {
 };
 
 App.prototype.setTermSize = function(cols, rows) {
+  const profile = this.buf ? this.buf.siteProfile : null;
+  const requestedCols = cols;
+  const requestedRows = rows;
+  if (profile && profile.clampTermSize) {
+    const clamped = profile.clampTermSize(cols, rows);
+    cols = clamped.cols;
+    rows = clamped.rows;
+  }
+
+  console.log(`[setTermSize] decided size: ${cols}x${rows} (requested: ${requestedCols}x${requestedRows}, current: ${this.buf ? this.buf.cols : '?'}x${this.buf ? this.buf.rows : '?'}, profile: ${profile ? profile.name : 'none'})`);
+
   if (this.buf.cols == cols && this.buf.rows == rows) {
     return;
   }
