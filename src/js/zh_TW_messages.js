@@ -1,4 +1,4 @@
-﻿export const zh_TW = {
+export const zh_TW = {
   "appName": {
     "message": "PTT Term",
     "description": "The title of the application, displayed in the web store."
@@ -122,9 +122,6 @@
   },
   "options_bbsMargin": {
     "message": "BBS 周圍邊距 (像素)"
-  },
-  "options_fontSize": {
-    "message": "BBS 字體大小"
   },
   "options_termSize": {
     "message": "BBS 終端機大小"

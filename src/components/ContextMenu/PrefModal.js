@@ -46,7 +46,8 @@ const DEFAULT_PREFS = {
   // displays
   fontFitWindowWidth: false,
   fontFace: "MingLiu,SymMingLiu,monospace",
-  fontSize: 999,
+  fontSize: 24,
+  maxFontSize: 999,
   termSize: { cols: 80, rows: 24 },
   termSizeMode: "max-font-size",
   bbsMargin: 0,
@@ -78,6 +79,17 @@ export const readValuesWithDefault = () => {
       saved.smoothAnsiArt === undefined
     ) {
       prefs.smoothAnsiArt = saved.smoothAnsi;
+    }
+    if (saved) {
+      if (saved.maxFontSize === undefined) {
+        prefs.maxFontSize =
+          saved.termSizeMode === "max-font-size" && saved.fontSize
+            ? saved.fontSize
+            : DEFAULT_PREFS.maxFontSize;
+      }
+      if (saved.fontSize === 999 || saved.fontSize === undefined) {
+        prefs.fontSize = DEFAULT_PREFS.fontSize;
+      }
     }
     return prefs;
   } catch (e) {
@@ -478,14 +490,14 @@ export const PrefModal = ({
                         );
                       case "max-font-size":
                         return (
-                          <FormGroup controlId="fontSize">
+                          <FormGroup controlId="maxFontSize">
                             <ControlLabel>
                               {i18n("options_fontSizeMax")}
                             </ControlLabel>
                             <FormControl
-                              name="fontSize"
+                              name="maxFontSize"
                               type="number"
-                              value={values.fontSize}
+                              value={values.maxFontSize}
                               onChange={onNumberInputChange}
                             />
                           </FormGroup>

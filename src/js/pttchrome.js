@@ -789,7 +789,7 @@ App.prototype.onValuesPrefChange = function(values) {
       case 'fixed-font-size':
         this.view.fontFitWindowWidth = false;
 
-        let fontSize = values.fontSize;
+        let fontSize = values.fontSize || 24;
         this.resizer = () => {
           let size = this.view.calcTermSizeFromFont(fontSize);
           this.setTermSize(size.cols, size.rows);
@@ -803,7 +803,10 @@ App.prototype.onValuesPrefChange = function(values) {
       case 'max-font-size':
         this.view.fontFitWindowWidth = false;
 
-        let maxFontSize = values.fontSize;
+        let maxFontSize =
+          values.maxFontSize !== undefined
+            ? values.maxFontSize
+            : values.fontSize || 999;
         let minSize = {cols: 80, rows: 24};
         this.resizer = () => {
           let scaledFontSize = this.view.calcFontSizeFromTerm(minSize.cols, minSize.rows);
