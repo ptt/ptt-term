@@ -1,6 +1,7 @@
 import $ from "jquery";
 import cx from "classnames";
 import React from "react";
+import ReactDOM from "react-dom";
 import { compose, withStateHandlers, withProps, lifecycle } from "recompose";
 import { MenuItem } from "react-bootstrap";
 import { i18n } from "../../js/i18n";
@@ -75,6 +76,10 @@ const enhance = compose(
         CmdHandler.setAttribute("doDOMMouseScroll", "0");
         return;
       }
+      if (pttchrome.inputAreaFocusTimer) {
+        pttchrome.inputAreaFocusTimer.cancel();
+        pttchrome.inputAreaFocusTimer = null;
+      }
       pttchrome.contextMenuShown = true;
       // just in case the selection get de-selected
       const selColRow =
@@ -116,7 +121,7 @@ const enhance = compose(
       const selEnabled = !normalEnabled;
 
       return {
-        open,
+        open: true,
         pageX: event.pageX,
         pageY: event.pageY,
         contextOnUrl,
@@ -283,7 +288,9 @@ const enhance = compose(
   lifecycle({
     componentDidMount() {
       this.contextMenuHandler = event => {
-        this.props.onContextMenu(event);
+        ReactDOM.unstable_batchedUpdates(() => {
+          this.props.onContextMenu(event);
+        });
       };
       document
         .getElementById("BBSWindow")
@@ -322,11 +329,14 @@ const enhance = compose(
       window.removeEventListener("keyup", this.hotKeyUpHandler, false);
       window.removeEventListener("touchstart", this.touchStartHandler, false);
       window.removeEventListener("click", this.clickHandler, false);
-      document.BBSWindow.removeEventListener(
-        "keyup",
-        this.contextMenuHandler,
-        false
-      );
+      const bbsWindow = document.getElementById("BBSWindow");
+      if (bbsWindow) {
+        bbsWindow.removeEventListener(
+          "contextmenu",
+          this.contextMenuHandler,
+          true
+        );
+      }
     }
   })
 );

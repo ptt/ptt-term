@@ -345,10 +345,19 @@ App.prototype.setDblclickTimer = function() {
 };
 
 App.prototype.setInputAreaFocus = function() {
-  if (this.modalShown || (this.touch && this.touch.touchStarted))
+  if (this.modalShown || this.contextMenuShown || (this.touch && this.touch.touchStarted))
+    return;
+  if (document.activeElement === this.inputArea)
     return;
   //this.DocInputArea.disabled="";
   this.inputArea.focus();
+};
+
+App.prototype.isSelectionCollapsed = function() {
+  if (this.view && this.view.useCanvasEngine && !this.view.useEasyReadingMode) {
+    return !this.view.getSelectionColRow();
+  }
+  return window.getSelection().isCollapsed;
 };
 
 // FIXME: Injected when enabled. See: src/components/ContextMenu/index.js
@@ -934,7 +943,7 @@ App.prototype.checkClass = function(cn) {
 };
 
 App.prototype.mouse_click = function(e) {
-  if (this.modalShown)
+  if (this.modalShown || this.contextMenuShown)
     return;
   var skipMouseClick = (this.CmdHandler.getAttribute('SkipMouseClick') == '1');
   this.CmdHandler.setAttribute('SkipMouseClick','0');
@@ -944,7 +953,7 @@ App.prototype.mouse_click = function(e) {
     if ($(e.target).is('a') || $(e.target).parent().is('a')) {
       return;
     }
-    if (window.getSelection().isCollapsed) { //no anything be select
+    if (this.isSelectionCollapsed()) { //no anything be select
       if (this.buf.useMouseBrowsing) {
         var doMouseCommand = true;
         if (e.target.className)
@@ -1001,7 +1010,7 @@ App.prototype.middleMouse_down = function(e) {
 };
 
 App.prototype.mouse_down = function(e) {
-  if (this.modalShown)
+  if (this.modalShown || this.contextMenuShown)
     return;
   //0=left button, 1=middle button, 2=right button
   if (e.button === 0) {
@@ -1015,7 +1024,7 @@ App.prototype.mouse_down = function(e) {
     }
     this.mouseLeftButtonDown = true;
     //this.setInputAreaFocus();
-    if (!(window.getSelection().isCollapsed))
+    if (!this.isSelectionCollapsed())
       this.CmdHandler.setAttribute('SkipMouseClick','1');
 
     var onbbsarea = true;
@@ -1031,7 +1040,7 @@ App.prototype.mouse_down = function(e) {
 };
 
 App.prototype.mouse_up = function(e) {
-  if (this.modalShown)
+  if (this.modalShown || this.contextMenuShown)
     return;
   //0=left button, 1=middle button, 2=right button
   if (e.button === 0) {
@@ -1041,44 +1050,46 @@ App.prototype.mouse_up = function(e) {
     this.mouseRightButtonDown = false;
   }
 
-  if (e.button === 0 || e.button == 2) { //left or right button
-    if (window.getSelection().isCollapsed) { //no anything be select
+  if (e.button === 0) { //left button
+    if (this.isSelectionCollapsed()) { //no anything be select
       if (this.buf.useMouseBrowsing)
         this.onMouse_move(e.clientX, e.clientY);
 
       this.setInputAreaFocus();
-      if (e.button === 0) {
-        var preventDefault = true;
-        if (e.target.className)
-          if (this.checkClass(e.target.className))
-            preventDefault = false;
-        if (e.target.tagName)
-          if (e.target.tagName.indexOf("menuitem") >= 0 )
-            preventDefault = false;
-        if (preventDefault)
-          e.preventDefault();
-      }
+      var preventDefault = true;
+      if (e.target.className)
+        if (this.checkClass(e.target.className))
+          preventDefault = false;
+      if (e.target.tagName)
+        if (e.target.tagName.indexOf("menuitem") >= 0 )
+          preventDefault = false;
+      if (preventDefault)
+        e.preventDefault();
     } else { //something has be select
-      if (this.copyOnSelect) {
-        this.doCopy(window.getSelection().toString().replace(/\u00a0/g, " "));
+      if (this.copyOnSelect && (!this.view || !this.view.useCanvasEngine || this.view.useEasyReadingMode)) {
+        this.doCopy(this.view ? this.view.getSelectedText() : window.getSelection().toString().replace(/\u00a0/g, " "));
       }
     }
+    var _this = this;
+    this.inputAreaFocusTimer = setTimer(false, function() {
+      if (_this.inputAreaFocusTimer) {
+        _this.inputAreaFocusTimer.cancel();
+        _this.inputAreaFocusTimer = null;
+      }
+      if (!_this.contextMenuShown && _this.isSelectionCollapsed())
+        _this.setInputAreaFocus();
+    }, 10);
+  } else if (e.button == 2) {
+    // right button: opens context menu, do not steal focus or set focus timer
   } else {
     this.setInputAreaFocus();
     e.preventDefault();
   }
-  var _this = this;
-  this.inputAreaFocusTimer = setTimer(false, function() {
-    clearTimeout(_this.inputAreaFocusTimer);
-    _this.inputAreaFocusTimer = null;
-    if (window.getSelection().isCollapsed)
-      _this.setInputAreaFocus();
-  }, 10);
 };
 
 App.prototype.mouse_move = function(e) {
   if (this.buf.useMouseBrowsing) {
-    if (window.getSelection().isCollapsed) {
+    if (this.isSelectionCollapsed()) {
       if(!this.mouseLeftButtonDown)
         this.onMouse_move(e.clientX, e.clientY);
     } else
@@ -1088,13 +1099,13 @@ App.prototype.mouse_move = function(e) {
 };
 
 App.prototype.mouse_over = function(e) {
-  if (this.modalShown)
+  if (this.modalShown || this.contextMenuShown)
     return;
 
   this.curX = e.clientX;
   this.curY = e.clientY;
 
-  if(window.getSelection().isCollapsed && !this.mouseLeftButtonDown)
+  if (this.isSelectionCollapsed() && !this.mouseLeftButtonDown)
     this.setInputAreaFocus();
 };
 
