@@ -755,6 +755,12 @@ TermView.prototype = {
   },
 
   getSelectedText: function() {
+    if (this.isEasyReadingActive()) {
+      if (!window.getSelection().isCollapsed) {
+        return window.getSelection().toString().replace(/\u00a0/g, " ");
+      }
+      return '';
+    }
     if (this.useCanvasEngine && this.componentScreen && typeof this.componentScreen.getSelectedText === 'function') {
       return this.componentScreen.getSelectedText();
     }
@@ -765,6 +771,9 @@ TermView.prototype = {
   },
 
   getSelectionColRow: function() {
+    if (this.isEasyReadingActive()) {
+      return null;
+    }
     if (this.useCanvasEngine && this.componentScreen && typeof this.componentScreen.getSelectionColRow === 'function') {
       var sel = this.componentScreen.getSelectionColRow();
       if (sel)

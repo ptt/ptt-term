@@ -136,7 +136,9 @@ const enhance = compose(
     onHide: (state, { pttchrome }) => () => {
       if (state.open) {
         pttchrome.contextMenuShown = false;
-        pttchrome.setInputAreaFocus();
+        if (!pttchrome.view || !pttchrome.view.isEasyReadingActive()) {
+          pttchrome.setInputAreaFocus();
+        }
         return initialState;
       }
     },
@@ -145,7 +147,9 @@ const enhance = compose(
       menuHandlerByEventKey[eventKey](pttchrome, state);
       event.stopPropagation();
       pttchrome.contextMenuShown = false;
-      pttchrome.setInputAreaFocus();
+      if (!pttchrome.view || !pttchrome.view.isEasyReadingActive()) {
+        pttchrome.setInputAreaFocus();
+      }
       return initialState;
     },
 
