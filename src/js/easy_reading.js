@@ -146,6 +146,9 @@ EasyReading.prototype._onViewUpdated = function(e) {
 
 EasyReading.prototype.leaveCurrentPost = function() {
   console.debug('leave current post');
+  if (this._core && typeof this._core.suppressInertialWheel === 'function') {
+    this._core.suppressInertialWheel();
+  }
   if (!this.easyReadingReachedPageEnd) {
     this.ignoreOneUpdate = true;
   }
@@ -155,6 +158,9 @@ EasyReading.prototype.leaveCurrentPost = function() {
 EasyReading.prototype.stopEasyReading = function() {
   console.debug('stop easy reading');
   this.sendCommandAfterUpdate = 'skipOne';
+  if (this._core && typeof this._core.suppressInertialWheel === 'function') {
+    this._core.suppressInertialWheel();
+  }
 };
 
 EasyReading.prototype._send = function(data) {
@@ -240,16 +246,14 @@ EasyReading.prototype._onKeyDownProcessUI = function(e) {
   if (!e.ctrlKey && !e.altKey) {
     switch (e.key) {
       case 'Backspace':
-        stop = this._scrollBy(-this._turnPageLines);
-        if (!stop)
-          this.leaveCurrentPost();
+        this._scrollBy(-this._turnPageLines);
+        stop = true;
         break;
       case 'ArrowRight':
       case ' ':
       case 't':
-        stop = this._scrollBy(this._turnPageLines);
-        if (!stop)
-          this.leaveCurrentPost();
+        this._scrollBy(this._turnPageLines);
+        stop = true;
         break;
       case 'PageUp':
         this._scrollBy(-this._turnPageLines);
@@ -266,17 +270,16 @@ EasyReading.prototype._onKeyDownProcessUI = function(e) {
         break;
       case 'ArrowLeft':
         this.stopEasyReading();
+        this.hide();
         break;
       case 'ArrowUp':
-        stop = this._scrollBy(-1);
-        if (!stop)
-          this.leaveCurrentPost();
+        this._scrollBy(-1);
+        stop = true;
         break;
       case 'Enter':
       case 'ArrowDown':
-        stop = this._scrollBy(1);
-        if (!stop)
-          this.leaveCurrentPost();
+        this._scrollBy(1);
+        stop = true;
         break;
       case 'k':
         this._scrollBy(-1);
@@ -289,12 +292,14 @@ EasyReading.prototype._onKeyDownProcessUI = function(e) {
       case 'Home':
       case '0':
       case 'g':
-        stop = this._scrollTop();
+        this._scrollTop();
+        stop = true;
         break;
       case 'End':
       case '$':
       case 'G':
-        stop = this._scrollEnd();
+        this._scrollEnd();
+        stop = true;
         break;
       case 'Tab':
         stop = true;
@@ -311,9 +316,8 @@ EasyReading.prototype._onKeyDownProcessUI = function(e) {
         stop = true;
         break;
       case 'h':
-        stop = this._scrollBy(-this._turnPageLines);
-        if (!stop)
-          this.leaveCurrentPost();
+        this._scrollBy(-this._turnPageLines);
+        stop = true;
         break;
     }
   }
@@ -330,6 +334,7 @@ EasyReading.prototype._onMouseClick = function(e) {
     case 0:
     case 1: // Arrow Left
       this.stopEasyReading();
+      this.hide();
       break;
     case 2: // Page Up
       this._scrollBy(-this._turnPageLines);

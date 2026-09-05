@@ -41,6 +41,12 @@ export const App = function() {
   this.easyReading = new EasyReading(this, this.view, this.buf);
   this.lastEasyReadingWheelTime = 0;
   this.lastEasyReadingHideTime = 0;
+  this.suppressWheelUntil = 0;
+  this.suppressWheelContinuous = false;
+  this.suppressWheelStartedAt = 0;
+  this.wheelDeltaYAccum = 0;
+  this.lastWheelEventTime = 0;
+  this.lastWheelCmdTime = 0;
 
   //new pref - start
   this.antiIdleTime = 0;
@@ -108,11 +114,11 @@ export const App = function() {
   if ('onwheel' in window) {
     window.addEventListener('wheel', function(e) {
       self.mouse_scroll(e);
-    }, true);
+    }, { capture: true, passive: false });
   } else {
     window.addEventListener('mousewheel', function(e) {
       self.mouse_scroll(e);
-    }, true);
+    }, { capture: true, passive: false });
   }
 
   window.addEventListener('focus', function(e) {
@@ -1131,36 +1137,110 @@ App.prototype.mouse_over = function(e) {
     this.setInputAreaFocus();
 };
 
+App.prototype.suppressInertialWheel = function(durationMs) {
+  var now = Date.now();
+  var duration = durationMs || ((this.lastEasyReadingWheelTime && (now - this.lastEasyReadingWheelTime < 1000)) ? 1200 : 300);
+  this.suppressWheelUntil = Math.max(this.suppressWheelUntil || 0, now + duration);
+  this.suppressWheelContinuous = true;
+  this.suppressWheelStartedAt = now;
+  this.wheelDeltaYAccum = 0;
+};
+
 App.prototype.mouse_scroll = function(e) {
   if (this.modalShown) 
     return;
 
   var now = Date.now();
-  var isOverlayTarget = !!(this.view && this.view.easyReadingOverlay && e.target &&
-    (e.target === this.view.easyReadingOverlay || this.view.easyReadingOverlay.contains(e.target)));
 
-  // if in easyreading, use it like webpage
-  if (this.view.isEasyReadingActive()) {
+  // 1. If currently in Easy Reading, allow native browser scrolling within overlay
+  if (this.view && this.view.isEasyReadingActive()) {
     this.lastEasyReadingWheelTime = now;
     return;
   }
 
-  // If the wheel event targeted the easy reading overlay (even if just hidden),
-  // or if we recently scrolled in easy reading (momentum / inertial scroll decay
-  // continuing after exiting easy reading), swallow the event so it doesn't leak
-  // to BBS terminal commands (e.g. scrolling endlessly in article list).
-  var recentlyScrolled = this.lastEasyReadingWheelTime && (now - this.lastEasyReadingWheelTime < 500);
-  var recentlyExitedWhileScrolling = this.lastEasyReadingHideTime && (now - this.lastEasyReadingHideTime < 400) &&
-    this.lastEasyReadingWheelTime && (this.lastEasyReadingHideTime - this.lastEasyReadingWheelTime < 500);
+  // 2. Target check: if event target is still the easyReadingOverlay (e.g. while fading/hiding)
+  var isOverlayTarget = !!(this.view && this.view.easyReadingOverlay && e.target &&
+    (e.target === this.view.easyReadingOverlay || this.view.easyReadingOverlay.contains(e.target)));
 
-  if (isOverlayTarget || recentlyScrolled || recentlyExitedWhileScrolling) {
-    this.lastEasyReadingWheelTime = now;
+  // 3. Suppression check (after exiting easy reading or explicit suppression)
+  // Trackpad inertia can coast for 1-2 seconds after swiping.
+  var recentlyScrolledInEasyReading = this.lastEasyReadingWheelTime && (now - this.lastEasyReadingWheelTime < 1000);
+  var recentlyExited = this.lastEasyReadingHideTime && (now - this.lastEasyReadingHideTime < 600);
+  var isSuppressed = isOverlayTarget ||
+                     (this.suppressWheelUntil && now < this.suppressWheelUntil) ||
+                     recentlyScrolledInEasyReading ||
+                     recentlyExited;
+
+  if (isSuppressed) {
+    // If events are continuing continuously (< 200ms between events),
+    // inertia is still coasting. Extend suppression window (capped at 2500ms total).
+    if (this.lastWheelEventTime && (now - this.lastWheelEventTime < 200)) {
+      if (!this.suppressWheelStartedAt) {
+        this.suppressWheelStartedAt = now;
+      }
+      if (now - this.suppressWheelStartedAt < 2500) {
+        this.suppressWheelUntil = Math.max(this.suppressWheelUntil || 0, now + 350);
+      }
+    }
+    this.lastWheelEventTime = now;
+    this.wheelDeltaYAccum = 0;
     e.stopPropagation();
     e.preventDefault();
     return;
   }
 
+  // Suppression period ended
+  this.suppressWheelUntil = 0;
+  this.suppressWheelContinuous = false;
+  this.suppressWheelStartedAt = 0;
   this.lastEasyReadingWheelTime = 0;
+
+  // 4. Normal BBS Terminal Wheel Handling with Pixel Accumulation & Throttling
+  var deltaY = e.deltaY;
+  if (typeof deltaY === 'undefined') {
+    deltaY = -e.wheelDelta;
+  } else if (e.deltaMode === 1) { // DOM_DELTA_LINE
+    deltaY *= 30;
+  } else if (e.deltaMode === 2) { // DOM_DELTA_PAGE
+    deltaY *= 300;
+  }
+
+  // Reset accumulation if scrolling paused > 200ms or reversed direction
+  if (this.lastWheelEventTime && (now - this.lastWheelEventTime > 200)) {
+    this.wheelDeltaYAccum = 0;
+  }
+  if ((this.wheelDeltaYAccum > 0 && deltaY < 0) || (this.wheelDeltaYAccum < 0 && deltaY > 0)) {
+    this.wheelDeltaYAccum = 0;
+  }
+
+  this.lastWheelEventTime = now;
+  this.wheelDeltaYAccum = (this.wheelDeltaYAccum || 0) + deltaY;
+
+  // Threshold in pixels before triggering 1 BBS step
+  var threshold = Math.max(35, (this.view && this.view.chh) ? this.view.chh : 35);
+
+  if (Math.abs(this.wheelDeltaYAccum) < threshold) {
+    e.stopPropagation();
+    e.preventDefault();
+    return;
+  }
+
+  // Rate limit BBS commands: at least 60ms between commands to avoid telnet buffer queueing
+  if (this.lastWheelCmdTime && (now - this.lastWheelCmdTime < 60)) {
+    e.stopPropagation();
+    e.preventDefault();
+    return;
+  }
+
+  var isScrollUp = this.wheelDeltaYAccum < 0;
+
+  // Reset accumulation for discrete mouse clicks (|deltaY| >= 100), or consume threshold
+  if (Math.abs(deltaY) >= 100) {
+    this.wheelDeltaYAccum = 0;
+  } else {
+    this.wheelDeltaYAccum -= (isScrollUp ? -threshold : threshold);
+  }
+  this.lastWheelCmdTime = now;
 
   // scroll = up/down
   // hold right mouse key + scroll = page up/down
@@ -1168,7 +1248,7 @@ App.prototype.mouse_scroll = function(e) {
   var mouseWheelActionsUp = [ 'none', 'doArrowUp', 'doPageUp', 'previousThread' ];
   var mouseWheelActionsDown = [ 'none', 'doArrowDown', 'doPageDown', 'nextThread' ];
 
-  if (e.deltaY < 0 || e.wheelDelta > 0) { // scrolling up
+  if (isScrollUp) {
     if (this.mouseRightButtonDown) {
       var action = mouseWheelActionsUp[this.view.mouseWheelFunction2];
       this.setBBSCmd(action);
@@ -1179,7 +1259,7 @@ App.prototype.mouse_scroll = function(e) {
       var action = mouseWheelActionsUp[this.view.mouseWheelFunction1];
       this.setBBSCmd(action);
     }
-  } else { // scrolling down
+  } else {
     if (this.mouseRightButtonDown) {
       var action = mouseWheelActionsDown[this.view.mouseWheelFunction2];
       this.setBBSCmd(action);
@@ -1191,7 +1271,6 @@ App.prototype.mouse_scroll = function(e) {
       this.setBBSCmd(action);
     }
   }
-  
 
   e.stopPropagation();
   e.preventDefault();

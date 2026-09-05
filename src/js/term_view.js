@@ -842,13 +842,14 @@ TermView.prototype = {
       var lastRowText = this.buf.getRowText(lastRowNum, 0, this.buf.cols);
       var result = profile.parseReadingStatus(lastRowText, this.buf);
       if (result) {
-        if (result.pageIndex && result.pageIndex === this._lastEasyReadingPageIndex && !result.isEnd) {
+        var isEnd = result.isEnd || profile.isArticleEnd(lastRowText, this.buf, result);
+        if (result.pageIndex && result.pageIndex === this._lastEasyReadingPageIndex && !isEnd) {
           return;
         }
-        if (result.isEnd && this._easyReadingAppendedEnd) {
+        if (isEnd && this._easyReadingAppendedEnd) {
           return;
         }
-        if (result.isEnd) {
+        if (isEnd) {
           this._easyReadingAppendedEnd = true;
         }
         if (result.pageIndex) {
@@ -882,6 +883,8 @@ TermView.prototype = {
       this._easyReadingAppendedEnd = false;
       if (this.buf.pageState == 3) {
         var lastRowText = this.buf.getRowText(lastRowNum, 0, this.buf.cols);
+        var statusResult = profile.parseReadingStatus(lastRowText, this.buf);
+        var isEnd = profile.isArticleEnd(lastRowText, this.buf, statusResult);
         for (var i = 0; i < lastRowNum; ++i) {
           if (i == 4 || i > 0 && this.buf.isTextWrappedRow(i-1)) { // row with i == 4 and the i == 3 is the wrapped line
             this.buf.pageWrappedLines[this.actualRowIndex] += 1;
@@ -895,6 +898,9 @@ TermView.prototype = {
           this.easyReadingContent.scrollTop = 0;
         }
         this.appendRows(this.buf.lines.slice(0, lastRowNum), true);
+        if (isEnd) {
+          this._easyReadingAppendedEnd = true;
+        }
         var spaces = ' ';
         this.lastRowDiv.style.backgroundColor = '';
         this.lastRowDiv.innerHTML = profile.getEasyReadingPrompt(spaces);
@@ -943,6 +949,9 @@ TermView.prototype = {
     }
     if (this.bbscore) {
       this.bbscore.lastEasyReadingHideTime = Date.now();
+      if (typeof this.bbscore.suppressInertialWheel === 'function') {
+        this.bbscore.suppressInertialWheel();
+      }
     }
     this.clearRows();
     if (this.lastRowDiv) {

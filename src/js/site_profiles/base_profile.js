@@ -135,6 +135,16 @@ export class BaseProfile {
    * @returns {boolean} True if handled and should stop event propagation.
    */
   handleEasyReadingKeyDown(easyReading, e) {
+    if (!e.ctrlKey && !e.altKey) {
+      switch (e.key) {
+        case 'q':
+        case 'Q':
+          easyReading.stopEasyReading();
+          easyReading.hide();
+          easyReading.send('\x1b[D');
+          return true;
+      }
+    }
     return false;
   }
 

@@ -54,7 +54,11 @@ export class PttProfile extends BaseProfile {
   }
 
   parseReadingStatus(rowText, termBuf) {
-    return parseStatusRow(rowText);
+    let result = parseStatusRow(rowText);
+    if (result && this.isArticleEnd(rowText, termBuf, result)) {
+      result.isEnd = true;
+    }
+    return result;
   }
 
   isArticleEnd(lastRowText, termBuf, statusResult) {

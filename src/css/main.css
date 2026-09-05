@@ -153,7 +153,26 @@ a:link,a:visited,a:active,a:hover {
   user-select: text;
   padding: 0 8px;
   box-sizing: border-box;
+  overscroll-behavior: contain;
 }
+
+#easyReadingContent::-webkit-scrollbar {
+  width: 8px;
+}
+
+#easyReadingContent::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+#easyReadingContent::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+}
+
+#easyReadingContent::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
 
 #easyReadingFooter {
   position: absolute;

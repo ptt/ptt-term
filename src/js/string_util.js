@@ -134,12 +134,14 @@ export function parseStatusRow(str) {
   var result = regex.exec(str);
 
   if (result && result.length === 6) {
+    var pagePercent = parseInt(result[3]);
     return {
       pageIndex:     parseInt(result[1]),
       pageTotal:     parseInt(result[2]),
-      pagePercent:   parseInt(result[3]),
+      pagePercent:   pagePercent,
       rowIndexStart: parseInt(result[4]),
-      rowIndexEnd:   parseInt(result[5])
+      rowIndexEnd:   parseInt(result[5]),
+      isEnd:         pagePercent === 100
     };
   }
 
