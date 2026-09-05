@@ -93,7 +93,7 @@ export function hasAnsiBlock(lines, dirtyRows) {
 
 export class SmoothAnsi {
   static drawBlock(ctx, item, grid, cols, rows, chw, chh) {
-    const { type, x, y, w, h } = item;
+    const { type, r, c, x, y, w, h, fgIndex } = item;
 
     if (type === "\u2588" || type === "\u25a0") {
       if (this.drawLowerBlockRamp(ctx, item, grid, cols, rows, chw, chh)) {
@@ -105,7 +105,13 @@ export class SmoothAnsi {
       if (this.drawLeftBlockRamp(ctx, item, grid, cols, rows, chw, chh)) {
         return;
       }
-      ctx.rect(x, y, w, h);
+      const stepCol = w > chw ? 2 : 1;
+      const rightCol = c + stepCol;
+      const rightCell =
+        rightCol < cols && grid ? grid[r * cols + rightCol] : null;
+      const isSameRight = rightCell && rightCell.fgIndex === fgIndex;
+      const xR = isSameRight ? x + w + 0.5 : x + w;
+      ctx.rect(x, y, xR - x, h);
       return;
     }
 
@@ -163,9 +169,16 @@ export class SmoothAnsi {
         ctx.closePath();
         break;
 
-      default:
-        ctx.rect(x, y, w, h);
+      default: {
+        const stepCol = w > chw ? 2 : 1;
+        const rightCol = c + stepCol;
+        const rightCell =
+          rightCol < cols && grid ? grid[r * cols + rightCol] : null;
+        const isSameRight = rightCell && rightCell.fgIndex === fgIndex;
+        const xR = isSameRight ? x + w + 0.5 : x + w;
+        ctx.rect(x, y, xR - x, h);
         break;
+      }
     }
   }
 
@@ -377,33 +390,61 @@ export class SmoothAnsi {
   }
 
   static drawTriangleLowerRight(ctx, item, grid, cols, rows, chw, chh) {
-    const { x, y, w, h } = item;
-    ctx.moveTo(x + w, y);
-    ctx.lineTo(x + w, y + h);
+    const { x, y, w, h, r, c, fgIndex } = item;
+    const stepCol = w > chw ? 2 : 1;
+    const rightCol = c + stepCol;
+    const rightCell =
+      rightCol < cols && grid ? grid[r * cols + rightCol] : null;
+    const isSameRight = rightCell && rightCell.fgIndex === fgIndex;
+    const xR = isSameRight ? x + w + 0.5 : x + w;
+
+    ctx.moveTo(xR, y);
+    ctx.lineTo(xR, y + h);
     ctx.lineTo(x, y + h);
     ctx.closePath();
   }
 
   static drawTriangleLowerLeft(ctx, item, grid, cols, rows, chw, chh) {
-    const { x, y, w, h } = item;
+    const { x, y, w, h, r, c, fgIndex } = item;
+    const stepCol = w > chw ? 2 : 1;
+    const rightCol = c + stepCol;
+    const rightCell =
+      rightCol < cols && grid ? grid[r * cols + rightCol] : null;
+    const isSameRight = rightCell && rightCell.fgIndex === fgIndex;
+    const xR = isSameRight ? x + w + 0.5 : x + w;
+
     ctx.moveTo(x, y);
-    ctx.lineTo(x + w, y + h);
+    ctx.lineTo(xR, y + h);
     ctx.lineTo(x, y + h);
     ctx.closePath();
   }
 
   static drawTriangleUpperRight(ctx, item, grid, cols, rows, chw, chh) {
-    const { x, y, w, h } = item;
+    const { x, y, w, h, r, c, fgIndex } = item;
+    const stepCol = w > chw ? 2 : 1;
+    const rightCol = c + stepCol;
+    const rightCell =
+      rightCol < cols && grid ? grid[r * cols + rightCol] : null;
+    const isSameRight = rightCell && rightCell.fgIndex === fgIndex;
+    const xR = isSameRight ? x + w + 0.5 : x + w;
+
     ctx.moveTo(x, y);
-    ctx.lineTo(x + w, y);
-    ctx.lineTo(x + w, y + h);
+    ctx.lineTo(xR, y);
+    ctx.lineTo(xR, y + h);
     ctx.closePath();
   }
 
   static drawTriangleUpperLeft(ctx, item, grid, cols, rows, chw, chh) {
-    const { x, y, w, h } = item;
+    const { x, y, w, h, r, c, fgIndex } = item;
+    const stepCol = w > chw ? 2 : 1;
+    const rightCol = c + stepCol;
+    const rightCell =
+      rightCol < cols && grid ? grid[r * cols + rightCol] : null;
+    const isSameRight = rightCell && rightCell.fgIndex === fgIndex;
+    const xR = isSameRight ? x + w + 0.5 : x + w;
+
     ctx.moveTo(x, y);
-    ctx.lineTo(x + w, y);
+    ctx.lineTo(xR, y);
     ctx.lineTo(x, y + h);
     ctx.closePath();
   }
