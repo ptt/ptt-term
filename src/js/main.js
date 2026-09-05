@@ -1,4 +1,4 @@
-﻿import { App } from './pttchrome';
+import { App } from './pttchrome';
 import { setupI18n } from './i18n';
 import { getQueryVariable } from './util';
 import { readValuesWithDefault } from '../components/ContextMenu/PrefModal';
@@ -22,9 +22,13 @@ function startApp() {
     })) : Promise.resolve()
   ).then(() => {
     // connect.
-    app.connect(
-      process.env.ALLOW_SITE_IN_QUERY && getQueryVariable('site')
-      || process.env.DEFAULT_SITE);
+    const allowOverride = process.env.ALLOW_OVERRIDE_FROM_QUERY;
+    const siteUrl = (allowOverride && getQueryVariable('site'))
+      || process.env.DEFAULT_SITE;
+    const profileName = (allowOverride && getQueryVariable('profile'))
+      || process.env.DEFAULT_PROFILE
+      || 'auto';
+    app.connect(siteUrl, profileName);
     // TODO: Call onSymFont for font data when it's implemented.
     console.log("load pref from storage");
     app.onValuesPrefChange(readValuesWithDefault());

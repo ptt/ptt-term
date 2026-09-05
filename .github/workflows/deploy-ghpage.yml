@@ -33,6 +33,10 @@ on:
       DYNAMIC_TITLE:
         type: string
         required: false
+      DEFAULT_PROFILE:
+        type: string
+        required: false
+        default: 'auto'
       BRANCH:
         type: string
         required: false
@@ -60,7 +64,8 @@ jobs:
           PTTCHROME_PAGE_DESCRIPTION: ${{ inputs.PAGE_DESCRIPTION }}
           PTTCHROME_DYNAMIC_TITLE: ${{ inputs.DYNAMIC_TITLE }}
           DEFAULT_SITE: ${{ inputs.DEFAULT_SITE }}
-          ALLOW_SITE_IN_QUERY: "yes"
+          DEFAULT_PROFILE: ${{ inputs.DEFAULT_PROFILE }}
+          ALLOW_OVERRIDE_FROM_QUERY: "yes"
           DEV_PROXY_TARGET: ${{ inputs.DEV_PROXY_TARGET }}
           DEV_PROXY_HEADER: ${{ inputs.DEV_PROXY_HEADER }}
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}

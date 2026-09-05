@@ -14,6 +14,7 @@ import { setTimer } from './util';
 import PasteShortcutAlert from '../components/PasteShortcutAlert';
 import ConnectionAlert from '../components/ConnectionAlert';
 import ContextMenu from '../components/ContextMenu';
+import { getSiteProfile } from './site_profiles';
 
 function noop() {}
 
@@ -28,6 +29,8 @@ export const App = function() {
 
   this.view = new TermView();
   this.buf = new TermBuf(80, 24);
+  this.siteProfile = getSiteProfile(process.env.DEFAULT_PROFILE || 'auto');
+  this.buf.siteProfile = this.siteProfile;
   this.buf.setView(this.view);
   //this.buf.severNotifyStr=this.getLM('messageNotify');
   //this.buf.PTTZSTR1=this.getLM('PTTZArea1');
@@ -166,9 +169,9 @@ App.prototype.isConnected = function() {
   return this.connectState == 1 && !!this.conn;
 };
 
-App.prototype.connect = function(url) {
+App.prototype.connect = function(url, profileName) {
   this.connectState = 0;
-  console.debug('connect: ' + url);
+  console.log('connect: ' + url + ', profile: ' + profileName);
 
   var parsed = this._parseURLSimple(url);
   if (!parsed) {
@@ -185,12 +188,19 @@ App.prototype.connect = function(url) {
       console.log('unsupport connect url protocol: ' + parsed.protocol);
       return;
   }
+
+  this.siteProfile = getSiteProfile(profileName || process.env.DEFAULT_PROFILE || 'auto');
+  if (this.buf) {
+    this.buf.siteProfile = this.siteProfile;
+  }
+
   this._setupWebsocketConn(ws_url);
   this.connectedUrl = {
     url: url,
     site: parsed.hostname,
     host: parsed.host,
     port: parsed.port,
+    profile: this.siteProfile.name,
     easyReadingSupported: true
   };
 };
