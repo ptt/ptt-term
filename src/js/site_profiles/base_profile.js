@@ -127,4 +127,41 @@ export class BaseProfile {
       atLastPage: false,
     };
   }
+
+  /**
+   * Handle site-specific keydown event in easy reading mode.
+   * @param {EasyReading} easyReading 
+   * @param {KeyboardEvent} e 
+   * @returns {boolean} True if handled and should stop event propagation.
+   */
+  handleEasyReadingKeyDown(easyReading, e) {
+    return false;
+  }
+
+  /**
+   * Navigate to the previous post from within an article.
+   * @param {EasyReading} easyReading 
+   * @returns {boolean}
+   */
+  navigatePrevPost(easyReading) {
+    return false;
+  }
+
+  /**
+   * Navigate to the next post from within an article.
+   * @param {EasyReading} easyReading 
+   * @returns {boolean}
+   */
+  navigateNextPost(easyReading) {
+    return false;
+  }
+
+  /**
+   * Get bottom prompt HTML for easy reading mode.
+   * @param {string} spaces
+   * @returns {string} HTML string
+   */
+  getEasyReadingPrompt(spaces = '') {
+    return '<span align="left"><span class="q0 b7">' + spaces + '</span><span class="q1 b7">[好讀模式]</span><span class="q0 b7"> 滾輪/上下鍵捲動，</span><span class="q1 b7">(Esc)</span><span class="q0 b7">回到終端機 </span><span class="q1 b7">(←/q)</span><span class="q0 b7">離開</span></span>';
+  }
 }

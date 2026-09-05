@@ -93,4 +93,43 @@ export class PttProfile extends BaseProfile {
     }
     return { beginIndex, atLastPage };
   }
+
+  getEasyReadingPrompt(spaces = '') {
+    return '<span align="left"><span class="q0 b7">' + spaces + '</span><span class="q1 b7">[好讀模式]</span><span class="q0 b7"> 滾輪/上下鍵捲動，</span><span class="q1 b7">(y)</span><span class="q0 b7">回應 </span><span class="q1 b7">(X%)</span><span class="q0 b7">推文 </span><span class="q1 b7">(Esc)</span><span class="q0 b7">回到終端機 </span><span class="q1 b7">(←/q)</span><span class="q0 b7">離開</span></span>';
+  }
+
+  handleEasyReadingKeyDown(easyReading, e) {
+    if (!e.ctrlKey && !e.altKey) {
+      switch (e.key) {
+        case 'q':
+        case 'Q':
+          easyReading.stopEasyReading();
+          easyReading.hide();
+          easyReading.send('\x1b[D');
+          return true;
+      }
+      if ("abf=+-[]ABF".indexOf(e.key) >= 0) {
+        easyReading.leaveCurrentPost();
+        return false;
+      }
+      if ("123456789hops;,./\\H#OP:<>".indexOf(e.key) >= 0) {
+        return true;
+      }
+    } else if (e.ctrlKey && !e.altKey) {
+      if ("@^_?".indexOf(e.key) >= 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  navigatePrevPost(easyReading) {
+    easyReading.send('\x1b[D\x1b[A\x1b[C');
+    return true;
+  }
+
+  navigateNextPost(easyReading) {
+    easyReading.send('\x1b[D\x1b[B\x1b[C');
+    return true;
+  }
 }

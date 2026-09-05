@@ -122,8 +122,8 @@ export function TermView() {
 
   var lastRowDiv = document.createElement('div');
   lastRowDiv.setAttribute('id', 'easyReadingLastRow');
-  let spaces = ' '.repeat(80-25);  // TODO: Find a way to update this.
-  this.lastRowDivContent = '<span align="left"><span class="q0 b7">' + spaces + '</span><span class="q1 b7">(y)</span><span class="q0 b7">回應</span><span class="q1 b7">(X%)</span><span class="q0 b7">推文</span><span class="q1 b7">(←)</span><span class="q0 b7">離開 </span> </span>';
+  let spaces = ' ';
+  this.lastRowDivContent = '<span align="left"><span class="q0 b7">' + spaces + '</span><span class="q1 b7">[好讀模式]</span><span class="q0 b7"> 滾輪/上下鍵捲動，</span><span class="q1 b7">(Esc)</span><span class="q0 b7">回到終端機 </span><span class="q1 b7">(←/q)</span><span class="q0 b7">離開</span></span>';
   lastRowDiv.innerHTML = this.lastRowDivContent;
   this.lastRowDiv = lastRowDiv;
   easyReadingFooter.appendChild(lastRowDiv);
@@ -883,7 +883,9 @@ TermView.prototype = {
           this.easyReadingContent.scrollTop = 0;
         }
         this.appendRows(this.buf.lines.slice(0, lastRowNum), true);
-        this.lastRowDiv.innerHTML = this.lastRowDivContent;
+        var spaces = ' ';
+        this.lastRowDiv.style.backgroundColor = '';
+        this.lastRowDiv.innerHTML = profile.getEasyReadingPrompt(spaces);
         this.lastRowDiv.style.display = 'block';
         this.replyRowDiv.style.display = 'none';
         // deep clone lines for selection (getRowText and get ansi color)
@@ -932,6 +934,7 @@ TermView.prototype = {
     }
     this.clearRows();
     if (this.lastRowDiv) {
+      this.lastRowDiv.style.backgroundColor = '';
       this.lastRowDiv.style.display = 'none';
     }
     if (this.replyRowDiv) {
@@ -954,6 +957,7 @@ TermView.prototype = {
     el.style = "background-color:black;";
     this.renderSingleRow(el, row);
     this.setSingleChild(this.lastRowDiv.childNodes[0] || this.lastRowDiv, el);
+    this.lastRowDiv.style.backgroundColor = 'black';
     this.lastRowDiv.style.display = 'block';
   },
 

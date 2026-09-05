@@ -148,6 +148,14 @@ EasyReading.prototype._send = function(data) {
   this._view.conn.send(data);
 };
 
+EasyReading.prototype.send = function(data) {
+  this._send(data);
+};
+
+EasyReading.prototype.hide = function() {
+  this._view.hideEasyReading();
+};
+
 EasyReading.prototype._onKeyDown = function(e) {
   if (!this._enabled || !this.startedEasyReading)
     return;
@@ -156,24 +164,25 @@ EasyReading.prototype._onKeyDown = function(e) {
   if (e.defaultPrevented)
     return;
 
+  const profile = this._termBuf.siteProfile;
   var stop = false;
   if (!e.ctrlKey && !e.altKey) {
     switch (e.key) {
       case 'Backspace':
       case 'ArrowUp':
-        this._send('\x1b[D\x1b[A\x1b[C');
-        stop = true;
+        if (profile.navigatePrevPost(this))
+          stop = true;
         break;
       case 'ArrowDown':
-        this._send('\x1b[D\x1b[B\x1b[C');
-        stop = true;
+        if (profile.navigateNextPost(this))
+          stop = true;
         break;
     }
   } else if (e.ctrlKey && !e.altKey) {
     switch (e.key) {
       case 'h':
-        this._send('\x1b[D\x1b[A\x1b[C');
-        stop = true;
+        if (profile.navigatePrevPost(this))
+          stop = true;
         break;
     }
   }
@@ -208,6 +217,12 @@ EasyReading.prototype._scrollTop = function() {
 };
 
 EasyReading.prototype._onKeyDownProcessUI = function(e) {
+  const profile = this._termBuf.siteProfile;
+  if (profile.handleEasyReadingKeyDown && profile.handleEasyReadingKeyDown(this, e)) {
+    e.preventDefault();
+    return;
+  }
+
   var stop = false;
   if (!e.ctrlKey && !e.altKey) {
     switch (e.key) {
@@ -229,6 +244,11 @@ EasyReading.prototype._onKeyDownProcessUI = function(e) {
         break;
       case 'PageDown':
         this._scrollBy(this._turnPageLines);
+        stop = true;
+        break;
+      case 'Escape':
+        // Temporarily hide easy reading overlay to reveal the underlying terminal screen
+        this._view.hideEasyReading();
         stop = true;
         break;
       case 'ArrowLeft':
@@ -266,15 +286,6 @@ EasyReading.prototype._onKeyDownProcessUI = function(e) {
       case 'Tab':
         stop = true;
         break;
-      default:
-        if ("abf=+-[]ABF".indexOf(e.key) >= 0) {
-          this.leaveCurrentPost();
-          break;
-        }
-        if ("123456789hops;,./\\H#OP:<>".indexOf(e.key) >= 0) {
-          stop = true;
-          break;
-        }
     }
   } else if (e.ctrlKey && !e.altKey) {
     switch (e.key) {
@@ -291,11 +302,6 @@ EasyReading.prototype._onKeyDownProcessUI = function(e) {
         if (!stop)
           this.leaveCurrentPost();
         break;
-      default:
-        if ("@^_?".indexOf(e.key) >= 0) {
-          stop = true;
-          break;
-        }
     }
   }
   if (stop)

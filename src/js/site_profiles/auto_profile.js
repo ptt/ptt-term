@@ -97,4 +97,20 @@ export class AutoProfile extends BaseProfile {
   getPagingSlice(termBuf, statusResult, actualRowIndex) {
     return this.getActiveProfile().getPagingSlice(termBuf, statusResult, actualRowIndex);
   }
+
+  getEasyReadingPrompt(spaces = '') {
+    return this.getActiveProfile().getEasyReadingPrompt(spaces);
+  }
+
+  handleEasyReadingKeyDown(easyReading, e) {
+    return this.getActiveProfile().handleEasyReadingKeyDown(easyReading, e);
+  }
+
+  navigatePrevPost(easyReading) {
+    return this.getActiveProfile().navigatePrevPost(easyReading);
+  }
+
+  navigateNextPost(easyReading) {
+    return this.getActiveProfile().navigateNextPost(easyReading);
+  }
 }

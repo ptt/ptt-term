@@ -132,7 +132,7 @@ a:link,a:visited,a:active,a:hover {
   width: 100%;
   height: 100%;
   z-index: 10;
-  background-color: black;
+  background-color: #242424;
   display: none;
 }
 
@@ -155,11 +155,30 @@ a:link,a:visited,a:active,a:hover {
   right: 0;
   height: 1.2em;
   overflow: hidden;
-  background-color: black;
+  background-color: #b8b8b8;
   z-index: 11;
 }
 
-#easyReadingLastRow, #easyReadingReplyRow {
+#easyReadingLastRow {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1.2em;
+  display: none;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+  background-color: #b8b8b8;
+}
+
+#easyReadingLastRow .b7,
+#easyReadingLastRow .b7::before,
+#easyReadingLastRow .rb7::after {
+  background-color: #b8b8b8;
+}
+
+#easyReadingReplyRow {
   position: absolute;
   bottom: 0;
   left: 0;
