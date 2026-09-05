@@ -5,7 +5,7 @@ import { termColors, termInvColors } from './term_buf';
 import { renderRowHtml, renderScreen } from './term_ui';
 import { i18n } from './i18n';
 import { setTimer } from './util';
-import { wrapText, u2b, parseStatusRow } from './string_util';
+import { wrapText, u2b } from './string_util';
 import { FpsMeter } from './fps_meter';
 
 const ENTER_CHAR = '\r';
@@ -824,29 +824,12 @@ TermView.prototype = {
     if (this.buf.pageState == 3 && this.buf.prevPageState == 3) {
       this.showEasyReading();
       var lastRowText = this.buf.getRowText(this.buf.rows-1, 0, this.buf.cols);
-      var result = parseStatusRow(lastRowText);
+      var profile = this.buf.siteProfile;
+      var result = profile.parseReadingStatus(lastRowText, this.buf);
       if (result) {
-        // row index start with 4 or below will cause duplicated first row of next page
-        // 2015-07-04: better way is to view the row 3 and row 4 as one wrapped line
-        /*
-        if (result.rowIndexStart < 5) {
-          result.rowIndexStart -= 1;
-        }
-        */
-        var rowOffset = this.buf.pageLines.length-1;
-        var beginIndex = 1;
-        var atLastPage = false;
-        if ((result.pageIndex == result.pageTotal && result.pagePercent == 100) || 
-            result.rowIndexStart != this.actualRowIndex) { // at last page
-          atLastPage = result.rowIndexStart != this.actualRowIndex;
-          // find num of rows between actualRowIndex and rowIndexStart
-          var numRows = 0;
-          for (var i = result.rowIndexStart; i < this.actualRowIndex + 1; ++i) {
-            numRows += this.buf.pageWrappedLines[i];
-          }
-          beginIndex = numRows;
-          rowOffset -= beginIndex-1;
-        }
+        var paging = profile.getPagingSlice(this.buf, result, this.actualRowIndex);
+        var beginIndex = paging.beginIndex;
+        var atLastPage = paging.atLastPage;
 
         for (var i = beginIndex; i < this.buf.rows-1; ++i) {
           if (i > 0 && this.buf.isTextWrappedRow(i-1)) {

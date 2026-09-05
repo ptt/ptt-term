@@ -1,8 +1,7 @@
 import {
   parseReplyText,
   parsePushInitText,
-  parseReqNotMetText,
-  parseStatusRow
+  parseReqNotMetText
 } from './string_util';
 import { readValuesWithDefault } from '../components/ContextMenu/PrefModal';
 
@@ -37,8 +36,9 @@ EasyReading.prototype._onChanged = function(e) {
   console.debug("page state: " + this._termBuf.prevPageState + "->" + this._termBuf.pageState);
   const values = readValuesWithDefault()
   // make sure to come back to easy reading mode
-  if (this._termBuf.prevPageState == 2 &&
-      this._termBuf.pageState == 3 &&
+  const isEnteringReading = (this._termBuf.prevPageState == 2 || this._termBuf.prevPageState == 0) &&
+      this._termBuf.pageState == 3;
+  if (isEnteringReading &&
       !this._enabled && 
       values.enableEasyReading &&
       this._core.connectedUrl.easyReadingSupported)
@@ -66,15 +66,19 @@ EasyReading.prototype._onChanged = function(e) {
   }
   if (this.startedEasyReading) {
     console.debug('easy reading cursor pos: ' + this._termBuf.cur_y + ':' + this._termBuf.cur_x);
-    if (this._termBuf.cur_y == lastRowNum && this._termBuf.cur_x == lastColNum) {
+    const profile = this._termBuf.siteProfile;
+    const isParked = profile.isCursorParked(this._termBuf);
+
+    if (isParked) {
       if (this.ignoreOneUpdate) {
         this.ignoreOneUpdate = false;
         return;
       }
-      var result = parseStatusRow(lastRowText);
+      var result = profile.parseReadingStatus(lastRowText, this._termBuf);
       if (result) {
-        var lastRowFirstCh = this._termBuf.lines[lastRowNum][0];
-        if (lastRowFirstCh.getBg() == 4 && lastRowFirstCh.getFg() == 7) {
+        var isEnd = profile.isArticleEnd(lastRowText, this._termBuf, result);
+
+        if (isEnd) {
           this.easyReadingReachedPageEnd = true;
         } else {
           this.easyReadingReachedPageEnd = false;
@@ -83,6 +87,8 @@ EasyReading.prototype._onChanged = function(e) {
             this.sendCommandAfterUpdate = '\x1b[6~';
           }
         }
+      } else if (profile.isArticleEnd(lastRowText, this._termBuf, null)) {
+        this.easyReadingReachedPageEnd = true;
       } else if (!this.easyReadingShowPushInitText) { // only if not showing last row text
         this._termBuf.pageState = 5;
         this.startedEasyReading = false;
