@@ -260,34 +260,17 @@ TermView.prototype = {
     var cols = this.buf.cols;
     var rows = this.buf.rows;
     var lineChangeds = this.buf.lineChangeds;
-    var changedLineHtmlStr = '';
     var changedLineHtmlStrs = [];
     var changedRows = [];
 
     var lines = this.buf.lines;
     for (var row = 0; row < rows; ++row) {
-      var chh = this.chh;
-      this.curRow = row;
-      // resets color
-      var line = lines[row];
-      var lineChanged = lineChangeds[row];
-      if (lineChanged === false && !force)
+      if (lineChangeds[row] === false && !force)
         continue;
-      var lineUpdated = false;
-      var chw = this.chw;
 
-      for (this.curCol = 0; this.curCol < cols; ++this.curCol) {
-        // always check all because it's hard to know about openSpan when jump update
-        // TODO: maybe set ch.needUpdate false?
-        lineUpdated = true;
-      }
-
-      if (lineUpdated) {
-        lineUpdated = false;
-        changedLineHtmlStrs.push(line);
-        changedRows.push(row);
-        lineChangeds[row] = false;
-      }
+      changedLineHtmlStrs.push(lines[row]);
+      changedRows.push(row);
+      lineChangeds[row] = false;
     }
     if (changedLineHtmlStrs.length > 0) {
       if (this.useEasyReadingMode) {
