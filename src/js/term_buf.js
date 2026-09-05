@@ -2,7 +2,8 @@
 
 import { Event } from './event';
 import { ColorState } from './term_ui';
-import { u2b, b2u, parseStatusRow, parseListRow } from './string_util';
+import { u2b, b2u } from './string_util';
+import { getSiteProfile } from './site_profiles';
 
 export const termColors = [
   // dark
@@ -237,6 +238,7 @@ export function TermBuf(cols, rows) {
   this.easyReadingShowReplyText = false;
   this.easyReadingShowPushInitText = false;
   this.prevPageState = 0;
+  this.siteProfile = getSiteProfile(process.env.DEFAULT_PROFILE || 'auto');
 
   this.lines = new Array(rows);
 
@@ -988,39 +990,32 @@ TermBuf.prototype = {
   setPageState: function() {
     let lastRowNum = this.rows - 1;
     let cols = this.cols;
-    //this.pageState = 0; //NORMAL
     var lastRowText = this.getRowText(lastRowNum, 0, cols);
-    if (lastRowText.indexOf('請按任意鍵繼續') > 0 || lastRowText.indexOf('請按 空白鍵 繼續') > 0) {
-      //console.log('pageState = 5 (PASS)');
-      this.pageState = 5; // some ansi drawing screen to pass
-      return;
-    }
-    if (lastRowText.indexOf(' 編輯文章  (^Z/F1)說明 (^P/^G)插入符號/範本 (^X/^Q)離開') === 0) {
+    const profile = this.siteProfile;
+    if (profile.isEditingScreen(this)) {
       this.pageState = 6;
       return;
     }
-    if (parseStatusRow(lastRowText)) {
+
+    if (profile.parseReadingStatus(lastRowText, this)) {
       this.pageState = 3; // READING
       return;
     }
 
-    var firstRowText = this.getRowText(0, 0, cols);
+    if (profile.isMenuScreen(this)) {
+      this.pageState = 1; // MENU
+      return;
+    }
 
-    if ( this.isUnicolor(0, 0, 29) && this.isUnicolor(0, cols-20, cols-10) ) {
-      var main = firstRowText.indexOf('【主功能表】');
-      var classList = firstRowText.indexOf('【分類看板】');
-      var archiveList = firstRowText.indexOf('【精華文章】');
-      if (main === 0 || classList === 0 || archiveList === 0 ||
-        parseListRow(lastRowText)) {
-        //console.log('pageState = 1 (MENU)');
-        this.pageState = 1; // MENU
-      } else if (this.isUnicolor(2, 0, cols-10) && !this.isLineEmpty(1) && (this.cur_x < 19 || this.cur_y == lastRowNum)) {
-        //console.log('pageState = 2 (LIST)');
-        this.pageState = 2; // LIST
-      }
-    } else if ( this.isUnicolor(lastRowNum, 28, 53) && this.cur_y == lastRowNum && this.cur_x == cols-1) {
+    if (profile.isListScreen(this)) {
+      this.pageState = 2; // LIST
+      return;
+    }
+
+    if (profile.isPassScreen(this)) {
       //console.log('pageState = 5 (PASS)');
       this.pageState = 5; // some ansi drawing screen to pass
+      return;
     }
     if (this.pageState != 1 && this.isLineEmpty(lastRowNum)) {
       //console.log('pageState = 0 (NORMAL)');

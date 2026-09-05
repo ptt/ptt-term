@@ -53,6 +53,16 @@ export class AutoProfile extends BaseProfile {
     return this.getActiveProfile().isMenuScreen(termBuf);
   }
 
+  isPassScreen(termBuf) {
+    this.detect(termBuf);
+    return this.getActiveProfile().isPassScreen(termBuf);
+  }
+
+  isEditingScreen(termBuf) {
+    this.detect(termBuf);
+    return this.getActiveProfile().isEditingScreen(termBuf);
+  }
+
   parseReadingStatus(rowText, termBuf) {
     this.detect(termBuf);
     return this.getActiveProfile().parseReadingStatus(rowText, termBuf);

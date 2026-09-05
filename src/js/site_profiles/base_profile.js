@@ -22,6 +22,30 @@ export class BaseProfile {
   }
 
   /**
+   * Determine if current terminal screen represents a pass/prompt screen (pageState = 5).
+   * @param {TermBuf} termBuf 
+   * @returns {boolean}
+   */
+  isPassScreen(termBuf) {
+    let lastRowNum = this.getLastRowNum ? this.getLastRowNum(termBuf) : (termBuf.rows - 1);
+    let cols = termBuf.cols;
+    let lastRowText = termBuf.getRowText(lastRowNum, 0, cols);
+    if (lastRowText.indexOf('請按任意鍵繼續') >= 0 || lastRowText.indexOf('請按 空白鍵 繼續') >= 0) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Determine if current terminal screen represents an article editing screen (pageState = 6).
+   * @param {TermBuf} termBuf 
+   * @returns {boolean}
+   */
+  isEditingScreen(termBuf) {
+    return false;
+  }
+
+  /**
    * Parse reading status row (usually the bottom row of an article).
    * @param {string} rowText 
    * @param {TermBuf} termBuf 
