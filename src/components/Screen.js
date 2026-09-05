@@ -85,6 +85,8 @@ export class Screen extends React.Component {
     this.startPos = { col: 0, row: 0 };
     this.textBuckets = Array.from({ length: 17 }, () => []);
     this.ansiBlockBuckets = Array.from({ length: 17 }, () => []);
+    this.bgBuckets = Array.from({ length: 17 }, () => []);
+    this.underlineBuckets = Array.from({ length: 17 }, () => []);
     this.blockGrid = null;
     this.metricsCache = new Map();
     this.lastFontKey = "";
@@ -890,8 +892,12 @@ export class Screen extends React.Component {
       ] || "#008000";
 
     const textBuckets = this.textBuckets;
+    const bgBuckets = this.bgBuckets;
+    const underlineBuckets = this.underlineBuckets;
     for (let i = 0; i < 17; ++i) {
       textBuckets[i].length = 0;
+      bgBuckets[i].length = 0;
+      underlineBuckets[i].length = 0;
     }
 
     const smoothAnsi = !!this.props.smoothAnsi;
@@ -909,9 +915,6 @@ export class Screen extends React.Component {
       blockGrid = this.blockGrid;
     }
 
-    const bgRuns = [];
-    const underlineItems = [];
-
     const lines = this.props.lines;
     if (lines) {
       const isCharsetUtf8 = this.props.charset === "UTF-8";
@@ -923,43 +926,31 @@ export class Screen extends React.Component {
         const isLineHighlighted = r === currentHl;
         const y = r * chh;
 
-        let runBg = null;
+        let runBgIdx = 0;
         let runStartCol = 0;
         let runLength = 0;
 
         for (let c = 0; c < cols; ++c) {
           const ch = line[c];
-          let bg = ch ? termColors[ch.getBg()] : termColors[0];
-          if (isLineHighlighted && ch && ch.getBg() === 0) {
-            bg = hlColor;
+          let bgIdx = ch ? ch.getBg() : 0;
+          if (isLineHighlighted && bgIdx === 0) {
+            bgIdx = 16;
           }
 
-          if (bg === runBg) {
+          if (bgIdx === runBgIdx) {
             runLength++;
           } else {
-            if (runBg !== null && runBg !== "#000000") {
-              bgRuns.push({
-                bg: runBg,
-                x: runStartCol * chw,
-                y,
-                w: runLength * chw,
-                h: chh
-              });
+            if (runBgIdx !== 0) {
+              bgBuckets[runBgIdx].push(runStartCol * chw, y, runLength * chw);
             }
-            runBg = bg;
+            runBgIdx = bgIdx;
             runStartCol = c;
             runLength = 1;
           }
         }
 
-        if (runBg !== null && runBg !== "#000000") {
-          bgRuns.push({
-            bg: runBg,
-            x: runStartCol * chw,
-            y,
-            w: runLength * chw,
-            h: chh
-          });
+        if (runBgIdx !== 0) {
+          bgBuckets[runBgIdx].push(runStartCol * chw, y, runLength * chw);
         }
 
         for (let c = 0; c < cols; ++c) {
@@ -1034,22 +1025,10 @@ export class Screen extends React.Component {
                 }
 
                 if (ch.underLine && !isLeadHidden) {
-                  underlineItems.push({
-                    fgIndex: leadFgIndex,
-                    x: c * chw,
-                    y: y + chh - 2,
-                    w: chw,
-                    h: 1
-                  });
+                  underlineBuckets[leadFgIndex].push(c * chw, y + chh - 2, chw, 1);
                 }
                 if (trailCh.underLine && !isTrailHidden) {
-                  underlineItems.push({
-                    fgIndex: trailFgIndex,
-                    x: (c + 1) * chw,
-                    y: y + chh - 2,
-                    w: chw,
-                    h: 1
-                  });
+                  underlineBuckets[trailFgIndex].push((c + 1) * chw, y + chh - 2, chw, 1);
                 }
               }
               c++;
@@ -1093,13 +1072,7 @@ export class Screen extends React.Component {
                 });
               }
               if (ch.underLine || trailCh.underLine) {
-                underlineItems.push({
-                  fgIndex,
-                  x: c * chw,
-                  y: y + chh - 2,
-                  w: chw * 2,
-                  h: 1
-                });
+                underlineBuckets[fgIndex].push(c * chw, y + chh - 2, chw * 2, 1);
               }
             }
             c++;
@@ -1142,13 +1115,7 @@ export class Screen extends React.Component {
           }
 
           if (ch.underLine) {
-            underlineItems.push({
-              fgIndex,
-              x: c * chw,
-              y: y + chh - 2,
-              w: chw,
-              h: 1
-            });
+            underlineBuckets[fgIndex].push(c * chw, y + chh - 2, chw, 1);
           }
         }
       }
@@ -1160,17 +1127,13 @@ export class Screen extends React.Component {
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, width, height);
 
-    if (bgRuns.length > 1) {
-      bgRuns.sort((a, b) => (a.bg < b.bg ? -1 : a.bg > b.bg ? 1 : 0));
-    }
-    let lastBg = null;
-    for (let i = 0; i < bgRuns.length; ++i) {
-      const run = bgRuns[i];
-      if (run.bg !== lastBg) {
-        ctx.fillStyle = run.bg;
-        lastBg = run.bg;
+    for (let bgIdx = 1; bgIdx < 17; ++bgIdx) {
+      const runs = bgBuckets[bgIdx];
+      if (runs.length === 0) continue;
+      ctx.fillStyle = bgIdx === 16 ? hlColor : termColors[bgIdx];
+      for (let i = 0; i < runs.length; i += 3) {
+        ctx.fillRect(runs[i], runs[i + 1], runs[i + 2], chh);
       }
-      ctx.fillRect(run.x, run.y, run.w, run.h);
     }
 
     if (smoothAnsi) {
@@ -1210,18 +1173,12 @@ export class Screen extends React.Component {
       }
     }
 
-    if (underlineItems.length > 0) {
-      if (underlineItems.length > 1) {
-        underlineItems.sort((a, b) => a.fgIndex - b.fgIndex);
-      }
-      let lastUnderlineFg = -1;
-      for (let i = 0; i < underlineItems.length; ++i) {
-        const u = underlineItems[i];
-        if (u.fgIndex !== lastUnderlineFg) {
-          ctx.fillStyle = u.fgIndex === 16 ? "#ff00ff" : termColors[u.fgIndex];
-          lastUnderlineFg = u.fgIndex;
-        }
-        ctx.fillRect(u.x, u.y, u.w, u.h);
+    for (let uIdx = 0; uIdx < 17; ++uIdx) {
+      const uRuns = underlineBuckets[uIdx];
+      if (uRuns.length === 0) continue;
+      ctx.fillStyle = uIdx === 16 ? "#ff00ff" : termColors[uIdx];
+      for (let i = 0; i < uRuns.length; i += 4) {
+        ctx.fillRect(uRuns[i], uRuns[i + 1], uRuns[i + 2], uRuns[i + 3]);
       }
     }
 
