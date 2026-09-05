@@ -176,24 +176,28 @@ EasyReading.prototype._onKeyDown = function(e) {
 };
 
 EasyReading.prototype._scrollBy = function(lines) {
-  var cont = this._view.mainDisplay;
-  if (lines < 0 && cont.scrollTop == 0)
+  var cont = this._view.easyReadingContent;
+  if (!cont)
     return false;
-  if (lines > 0 && cont.scrollTop >=
-    this._view.mainContainer.clientHeight -
-      this._view.chh * this._termBuf.rows)
+  if (lines < 0 && cont.scrollTop <= 0)
+    return false;
+  if (lines > 0 && cont.scrollTop >= cont.scrollHeight - cont.clientHeight)
     return false;
   cont.scrollTop += this._view.chh * lines;
   return true;
 };
 
 EasyReading.prototype._scrollEnd = function() {
-  this._view.mainDisplay.scrollTop = this._view.mainContainer.clientHeight;
+  if (!this._view.easyReadingContent)
+    return false;
+  this._view.easyReadingContent.scrollTop = this._view.easyReadingContent.scrollHeight;
   return true;
 };
 
 EasyReading.prototype._scrollTop = function() {
-  this._view.mainDisplay.scrollTop = 0;
+  if (!this._view.easyReadingContent)
+    return false;
+  this._view.easyReadingContent.scrollTop = 0;
   return true;
 };
 

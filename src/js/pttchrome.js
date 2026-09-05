@@ -36,6 +36,8 @@ export const App = function() {
   this.view.setCore(this);
   this.parser = new AnsiParser(this.buf);
   this.easyReading = new EasyReading(this, this.view, this.buf);
+  this.lastEasyReadingWheelTime = 0;
+  this.lastEasyReadingHideTime = 0;
 
   //new pref - start
   this.antiIdleTime = 0;
@@ -354,7 +356,7 @@ App.prototype.setInputAreaFocus = function() {
 };
 
 App.prototype.isSelectionCollapsed = function() {
-  if (this.view && this.view.useCanvasEngine && !this.view.useEasyReadingMode) {
+  if (this.view && this.view.useCanvasEngine && !this.view.isEasyReadingActive()) {
     return !this.view.getSelectionColRow();
   }
   return window.getSelection().isCollapsed;
@@ -373,12 +375,7 @@ App.prototype.switchToEasyReadingMode = function(doSwitch) {
     this.buf.pageLines = [];
     if (this.buf.pageState == 3 && this.view.conn) this.view.conn.send('\x1b[D\x1b[C'); //this.view.conn.send('qr');
   } else {
-    this.view.mainContainer.style.paddingBottom = '';
-    this.view.lastRowIndex = 22;
-    this.view.lastRowDiv.style.display = '';
-    this.view.replyRowDiv.style.display = '';
-    // clear the deep cloned copy of lines
-    this.buf.pageLines = [];
+    this.view.hideEasyReading();
   }
   // request the full screen
   if (this.view.conn)
@@ -401,7 +398,7 @@ App.prototype.doCopyAnsi = function() {
 
   var selection = this.lastSelection;
   var pageLines = null;
-  if (this.view.useEasyReadingMode && this.buf.pageState == 3) {
+  if (this.view.isEasyReadingActive() && this.buf.pageState == 3) {
     pageLines = this.buf.pageLines;
   }
 
@@ -1070,7 +1067,7 @@ App.prototype.mouse_up = function(e) {
       if (preventDefault)
         e.preventDefault();
     } else { //something has be select
-      if (this.copyOnSelect && (!this.view || !this.view.useCanvasEngine || this.view.useEasyReadingMode)) {
+      if (this.copyOnSelect && (!this.view || !this.view.useCanvasEngine || this.view.isEasyReadingActive())) {
         this.doCopy(this.view ? this.view.getSelectedText() : window.getSelection().toString().replace(/\u00a0/g, " "));
       }
     }
@@ -1116,10 +1113,33 @@ App.prototype.mouse_over = function(e) {
 App.prototype.mouse_scroll = function(e) {
   if (this.modalShown) 
     return;
+
+  var now = Date.now();
+  var isOverlayTarget = !!(this.view && this.view.easyReadingOverlay && e.target &&
+    (e.target === this.view.easyReadingOverlay || this.view.easyReadingOverlay.contains(e.target)));
+
   // if in easyreading, use it like webpage
-  if (this.view.useEasyReadingMode && this.buf.pageState == 3) {
+  if (this.view.isEasyReadingActive()) {
+    this.lastEasyReadingWheelTime = now;
     return;
   }
+
+  // If the wheel event targeted the easy reading overlay (even if just hidden),
+  // or if we recently scrolled in easy reading (momentum / inertial scroll decay
+  // continuing after exiting easy reading), swallow the event so it doesn't leak
+  // to BBS terminal commands (e.g. scrolling endlessly in article list).
+  var recentlyScrolled = this.lastEasyReadingWheelTime && (now - this.lastEasyReadingWheelTime < 500);
+  var recentlyExitedWhileScrolling = this.lastEasyReadingHideTime && (now - this.lastEasyReadingHideTime < 400) &&
+    this.lastEasyReadingWheelTime && (this.lastEasyReadingHideTime - this.lastEasyReadingWheelTime < 500);
+
+  if (isOverlayTarget || recentlyScrolled || recentlyExitedWhileScrolling) {
+    this.lastEasyReadingWheelTime = now;
+    e.stopPropagation();
+    e.preventDefault();
+    return;
+  }
+
+  this.lastEasyReadingWheelTime = 0;
 
   // scroll = up/down
   // hold right mouse key + scroll = page up/down
@@ -1167,45 +1187,41 @@ App.prototype.mouse_scroll = function(e) {
 App.prototype.setBBSCmd = function setBBSCmd(cmd) {
   switch (cmd) {
     case "doArrowUp":
-      if (this.view.useEasyReadingMode && this.buf.startedEasyReading) {
-        if (this.view.mainDisplay.scrollTop === 0) {
+      if (this.view.isEasyReadingActive()) {
+        if (!this.easyReading._scrollBy(-1)) {
           this.easyReading.leaveCurrentPost();
           this.conn.send('\x1b[D\x1b[A\x1b[C');
-        } else {
-          this.view.mainDisplay.scrollTop -= this.view.chh;
         }
       } else {
         this.conn.send('\x1b[A');
       }
       break;
     case "doArrowDown":
-      if (this.view.useEasyReadingMode && this.buf.startedEasyReading) {
-        if (this.view.mainDisplay.scrollTop >= this.view.mainContainer.clientHeight - this.view.chh * this.buf.rows) {
+      if (this.view.isEasyReadingActive()) {
+        if (!this.easyReading._scrollBy(1)) {
           this.easyReading.leaveCurrentPost();
           this.conn.send('\x1b[B');
-        } else {
-          this.view.mainDisplay.scrollTop += this.view.chh;
         }
       } else {
         this.conn.send('\x1b[B');
       }
       break;
     case "doPageUp":
-      if (this.view.useEasyReadingMode && this.buf.startedEasyReading) {
-        this.view.mainDisplay.scrollTop -= this.view.chh * this.easyReading._turnPageLines;
+      if (this.view.isEasyReadingActive()) {
+        this.easyReading._scrollBy(-this.easyReading._turnPageLines);
       } else {
         this.conn.send('\x1b[5~');
       }
       break;
     case "doPageDown":
-      if (this.view.useEasyReadingMode && this.buf.startedEasyReading) {
-        this.view.mainDisplay.scrollTop += this.view.chh * this.easyReading._turnPageLines;
+      if (this.view.isEasyReadingActive()) {
+        this.easyReading._scrollBy(this.easyReading._turnPageLines);
       } else {
         this.conn.send('\x1b[6~');
       }
       break;
     case "previousThread":
-      if (this.view.useEasyReadingMode && this.buf.startedEasyReading) {
+      if (this.view.isEasyReadingActive()) {
         this.easyReading.leaveCurrentPost();
         this.conn.send('[');
       } else if (this.buf.pageState==2 || this.buf.pageState==3 || this.buf.pageState==4) {
@@ -1213,7 +1229,7 @@ App.prototype.setBBSCmd = function setBBSCmd(cmd) {
       }
       break;
     case "nextThread":
-      if (this.view.useEasyReadingMode && this.buf.startedEasyReading) {
+      if (this.view.isEasyReadingActive()) {
         this.easyReading.leaveCurrentPost();
         this.conn.send(']');
       } else if (this.buf.pageState==2 || this.buf.pageState==3 || this.buf.pageState==4) {
@@ -1221,24 +1237,20 @@ App.prototype.setBBSCmd = function setBBSCmd(cmd) {
       }
       break;
     case "doEnter":
-      if (this.view.useEasyReadingMode && this.buf.startedEasyReading) {
-        if (this.view.mainDisplay.scrollTop >= this.view.mainContainer.clientHeight - this.view.chh * this.buf.rows) {
+      if (this.view.isEasyReadingActive()) {
+        if (!this.easyReading._scrollBy(1)) {
           this.easyReading.leaveCurrentPost();
           this.conn.send('\r');
-        } else {
-          this.view.mainDisplay.scrollTop += this.view.chh;
         }
       } else {
         this.conn.send('\r');
       }
       break;
     case "doRight":
-      if (this.view.useEasyReadingMode && this.buf.startedEasyReading) {
-        if (this.view.mainDisplay.scrollTop >= this.view.mainContainer.clientHeight - this.view.chh * this.buf.rows) {
+      if (this.view.isEasyReadingActive()) {
+        if (!this.easyReading._scrollBy(this.easyReading._turnPageLines)) {
           this.easyReading.leaveCurrentPost();
           this.conn.send('\x1b[C');
-        } else {
-          this.view.mainDisplay.scrollTop += this.view.chh * this.easyReading._turnPageLines;
         }
       } else {
         this.conn.send('\x1b[C');
@@ -1247,7 +1259,7 @@ App.prototype.setBBSCmd = function setBBSCmd(cmd) {
     default:
       break;
   }
-}
+};
 
 App.prototype.setupContextMenus = function() {
   ReactDOM.render(

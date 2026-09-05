@@ -814,6 +814,10 @@ TermView.prototype = {
     if (this.easyReadingOverlay) {
       this.easyReadingOverlay.style.display = 'block';
     }
+    if (this.bbscore) {
+      this.bbscore.lastEasyReadingWheelTime = 0;
+      this.bbscore.lastEasyReadingHideTime = 0;
+    }
   },
 
   populateEasyReadingPage: function() {
@@ -921,6 +925,9 @@ TermView.prototype = {
   hideEasyReading: function() {
     if (this.easyReadingOverlay) {
       this.easyReadingOverlay.style.display = 'none';
+    }
+    if (this.bbscore) {
+      this.bbscore.lastEasyReadingHideTime = Date.now();
     }
     this.clearRows();
     if (this.lastRowDiv) {
