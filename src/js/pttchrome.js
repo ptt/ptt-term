@@ -922,7 +922,8 @@ App.prototype.onPrefChange = function(name, value) {
       this.view.setShowFps(!!value);
       break;
     case 'smoothAnsi':
-      this.view.smoothAnsi = !!value;
+    case 'smoothAnsiArt':
+      this.view.smoothAnsiArt = !!value;
       this.view.redraw(true);
       break;
     default:

@@ -28,7 +28,7 @@ export function TermView() {
   this.fontFitWindowWidth = false;
   this.useCanvasEngine = true;
   this.showFps = false;
-  this.smoothAnsi = true;
+  this.smoothAnsiArt = true;
   this.fpsMeter = new FpsMeter();
   //new pref - end
 
@@ -306,7 +306,7 @@ TermView.prototype = {
             doCopy: this.bbscore ? this.bbscore.doCopy.bind(this.bbscore) : null,
             setInputAreaFocus: this.bbscore ? this.bbscore.setInputAreaFocus.bind(this.bbscore) : null,
             fpsMeter: this.fpsMeter,
-            smoothAnsi: this.smoothAnsi,
+            smoothAnsiArt: this.smoothAnsiArt,
             changedRows: changedRows
           }
         )

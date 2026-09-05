@@ -1,6 +1,6 @@
 import { termColors } from "../../js/term_buf";
 import { b2u, isDBCSLead } from "../../js/string_util";
-import { SmoothAnsi, ANSI_BLOCK_SET, hasAnsiBlock } from "./SmoothAnsi";
+import { SmoothAnsiArt, ANSI_BLOCK_SET, hasAnsiArt } from "./SmoothAnsiArt";
 import { isBadDBCS, CanvasSelection } from "./CanvasSelection";
 
 // URL underline color matches DOM mode's background-image (src/icon/http.bmp, RGB #ff6600)
@@ -145,7 +145,7 @@ export class CanvasRenderer {
 
     let dirtyRows = this.dirtyRows;
     if (dirtyRows && dirtyRows.length > 0 && dirtyRows.length <= 6) {
-      if (options.smoothAnsi && hasAnsiBlock(options.lines, dirtyRows)) {
+      if (options.smoothAnsiArt && hasAnsiArt(options.lines, dirtyRows)) {
         dirtyRows = null;
       }
     } else {
@@ -245,10 +245,10 @@ export class CanvasRenderer {
     }
     urlUnderlineRuns.length = 0;
 
-    const smoothAnsi = !!options.smoothAnsi && !dirtyRows;
+    const smoothAnsiArt = !!options.smoothAnsiArt && !dirtyRows;
     const ansiBlockBuckets = this.ansiBlockBuckets;
     let blockGrid = null;
-    if (smoothAnsi) {
+    if (smoothAnsiArt) {
       for (let i = 0; i < 16; ++i) {
         ansiBlockBuckets[i].length = 0;
       }
@@ -364,7 +364,7 @@ export class CanvasRenderer {
                   !isLeadHidden &&
                   !isTrailHidden
                 ) {
-                  if (smoothAnsi && ANSI_BLOCK_SET.has(u)) {
+                  if (smoothAnsiArt && ANSI_BLOCK_SET.has(u)) {
                     const blockItem = this.getBlockItem(
                       u,
                       r,
@@ -443,7 +443,7 @@ export class CanvasRenderer {
             const isHidden = (ch.blink || trailCh.blink) && isBlinkHidden;
             if (!isHidden) {
               const fgIndex = ch.getFg() !== undefined ? ch.getFg() : 7;
-              if (smoothAnsi && ANSI_BLOCK_SET.has(ch.ch)) {
+              if (smoothAnsiArt && ANSI_BLOCK_SET.has(ch.ch)) {
                 const blockItem = this.getBlockItem(
                   ch.ch,
                   r,
@@ -482,7 +482,7 @@ export class CanvasRenderer {
           const charStr = ch.ch;
           const fgIndex = ch.getFg() !== undefined ? ch.getFg() : 7;
           if (charStr && charStr !== " " && charStr !== "\x00") {
-            if (smoothAnsi && ANSI_BLOCK_SET.has(charStr)) {
+            if (smoothAnsiArt && ANSI_BLOCK_SET.has(charStr)) {
               const blockItem = this.getBlockItem(
                 charStr,
                 r,
@@ -544,14 +544,14 @@ export class CanvasRenderer {
       }
     }
 
-    if (smoothAnsi) {
+    if (smoothAnsiArt) {
       for (let cIdx = 0; cIdx < 16; ++cIdx) {
         const bucket = ansiBlockBuckets[cIdx];
         if (bucket.length === 0) continue;
         ctx.fillStyle = termColors[cIdx];
         ctx.beginPath();
         for (let i = 0; i < bucket.length; ++i) {
-          SmoothAnsi.drawBlock(ctx, bucket[i], blockGrid, cols, rows, chw, chh);
+          SmoothAnsiArt.drawBlock(ctx, bucket[i], blockGrid, cols, rows, chw, chh);
         }
         ctx.fill();
       }

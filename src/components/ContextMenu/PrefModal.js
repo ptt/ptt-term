@@ -31,7 +31,7 @@ const DEFAULT_PREFS = {
   lineWrap: 78,
   useCanvasEngine: true,
   showFps: false,
-  smoothAnsi: true,
+  smoothAnsiArt: true,
 
   // mouse browsing
   useMouseBrowsing: false,
@@ -64,7 +64,7 @@ export const readValuesWithDefault = () => {
     const saved = JSON.parse(
       window.localStorage.getItem(PREF_STORAGE_KEY)
     ).values;
-    return {
+    const prefs = {
       ...getDefaultPrefs(),
       ...saved,
       termSize: {
@@ -72,6 +72,14 @@ export const readValuesWithDefault = () => {
         ...(saved && saved.termSize),
       },
     };
+    if (
+      saved &&
+      saved.smoothAnsi !== undefined &&
+      saved.smoothAnsiArt === undefined
+    ) {
+      prefs.smoothAnsiArt = saved.smoothAnsi;
+    }
+    return prefs;
   } catch (e) {
     return getDefaultPrefs();
   }
@@ -671,12 +679,12 @@ export const PrefModal = ({
                   </Checkbox>
                   <Checkbox
                     className="PrefModal__Grid__Col--right__SubCheckbox"
-                    name="smoothAnsi"
-                    checked={values.smoothAnsi}
+                    name="smoothAnsiArt"
+                    checked={values.smoothAnsiArt}
                     disabled={!values.useCanvasEngine}
                     onChange={onCheckboxChange}
                   >
-                    {i18n("options_smoothAnsi")}
+                    {i18n("options_smoothAnsiArt")}
                   </Checkbox>
                   <Checkbox
                     name="showFps"

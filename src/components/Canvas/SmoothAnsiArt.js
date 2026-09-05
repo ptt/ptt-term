@@ -67,7 +67,7 @@ export const ANSI_BLOCK_SET = new Set([
   "\u2595", // ▕ right 1/8
 ]);
 
-export function hasAnsiBlock(lines, dirtyRows) {
+export function hasAnsiArt(lines, dirtyRows) {
   if (!dirtyRows || !lines) return false;
   for (let i = 0; i < dirtyRows.length; ++i) {
     const r = dirtyRows[i];
@@ -91,7 +91,9 @@ export function hasAnsiBlock(lines, dirtyRows) {
   return false;
 }
 
-export class SmoothAnsi {
+export const hasAnsiBlock = hasAnsiArt;
+
+export class SmoothAnsiArt {
   static drawBlock(ctx, item, grid, cols, rows, chw, chh) {
     const { type, r, c, x, y, w, h, fgIndex } = item;
 
@@ -450,4 +452,4 @@ export class SmoothAnsi {
   }
 }
 
-export default SmoothAnsi;
+export default SmoothAnsiArt;

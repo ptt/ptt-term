@@ -72,7 +72,7 @@ export class CanvasScreen extends React.Component {
     const layoutOrStyleChanged =
       this.props.nowHighlight !== prevProps.nowHighlight ||
       this.props.highlightBG !== prevProps.highlightBG ||
-      this.props.smoothAnsi !== prevProps.smoothAnsi ||
+      this.props.smoothAnsiArt !== prevProps.smoothAnsiArt ||
       this.props.fontFace !== prevProps.fontFace ||
       this.props.chw !== prevProps.chw ||
       this.props.chh !== prevProps.chh ||
@@ -362,7 +362,7 @@ export class CanvasScreen extends React.Component {
       currentHighlighted: this.state.currentHighlighted,
       nowHighlight: this.props.nowHighlight,
       highlightBG: this.props.highlightBG,
-      smoothAnsi: this.props.smoothAnsi,
+      smoothAnsiArt: this.props.smoothAnsiArt,
       fontFace: this.props.fontFace,
       fpsMeter: this.props.fpsMeter,
       selStart: this.state.selStart,

@@ -111,8 +111,8 @@
   "options_showFps": {
     "message": "顯示FPS"
   },
-  "options_smoothAnsi": {
-    "message": "平滑化 ANSI ASCII 藝術 (Canvas 模式)"
+  "options_smoothAnsiArt": {
+    "message": "平滑化 ANSI 藝術 (需要 Canvas 模式)"
   },
   "options_reset": {
     "message": "設回預設值"
