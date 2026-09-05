@@ -99,6 +99,8 @@ export class Screen extends React.Component {
     this.bufferCanvas =
       typeof document !== "undefined" ? document.createElement("canvas") : null;
     this.contentDirty = true;
+    this.dirtyRows = null;
+    this.hasDrawnBefore = false;
   }
 
   state = {
@@ -125,6 +127,7 @@ export class Screen extends React.Component {
           this.metricsCache.clear();
           this.lastAppliedFont = "";
           this.contentDirty = true;
+          this.dirtyRows = null;
           this.draw();
         });
       }
@@ -150,8 +153,7 @@ export class Screen extends React.Component {
       });
     }
 
-    if (
-      this.props.lines !== prevProps.lines ||
+    const layoutOrStyleChanged =
       this.props.nowHighlight !== prevProps.nowHighlight ||
       this.props.highlightBG !== prevProps.highlightBG ||
       this.props.smoothAnsi !== prevProps.smoothAnsi ||
@@ -161,9 +163,21 @@ export class Screen extends React.Component {
       this.props.cols !== prevProps.cols ||
       this.props.rows !== prevProps.rows ||
       this.props.charset !== prevProps.charset ||
-      (prevState && this.state.currentHighlighted !== prevState.currentHighlighted)
+      (prevState && this.state.currentHighlighted !== prevState.currentHighlighted);
+
+    if (layoutOrStyleChanged) {
+      this.contentDirty = true;
+      this.dirtyRows = null;
+    } else if (
+      this.props.lines !== prevProps.lines ||
+      this.props.changedRows !== prevProps.changedRows
     ) {
       this.contentDirty = true;
+      if (Array.isArray(this.props.changedRows)) {
+        this.dirtyRows = this.props.changedRows;
+      } else {
+        this.dirtyRows = null;
+      }
     }
 
     if (this.props.useCanvas) {
@@ -191,6 +205,7 @@ export class Screen extends React.Component {
   handleBlink = () => {
     if (this.props.useCanvas && this.hasBlink) {
       this.contentDirty = true;
+      this.dirtyRows = null;
       this.draw();
     }
   };
@@ -938,6 +953,36 @@ export class Screen extends React.Component {
 
     const bctx = this.bufferCanvas ? this.bufferCanvas.getContext("2d") : ctx;
 
+    if (canvasResized || bufferResized || !this.hasDrawnBefore) {
+      this.dirtyRows = null;
+    }
+
+    let dirtyRows = this.dirtyRows;
+    if (dirtyRows && dirtyRows.length > 0 && dirtyRows.length <= 6) {
+      if (this.props.smoothAnsi) {
+        let hasAnsiBlock = false;
+        const lines = this.props.lines;
+        for (let i = 0; i < dirtyRows.length; ++i) {
+          const r = dirtyRows[i];
+          const line = lines && lines[r];
+          if (!line) continue;
+          for (let c = 0; c < line.length; ++c) {
+            const ch = line[c];
+            if (ch && ch.ch && ANSI_BLOCK_SET.has(ch.ch)) {
+              hasAnsiBlock = true;
+              break;
+            }
+          }
+          if (hasAnsiBlock) break;
+        }
+        if (hasAnsiBlock) {
+          dirtyRows = null;
+        }
+      }
+    } else {
+      dirtyRows = null;
+    }
+
     if (this.contentDirty || !this.bufferCanvas) {
       this.drawContent(
         bctx,
@@ -948,9 +993,12 @@ export class Screen extends React.Component {
         width,
         height,
         dpr,
-        bufferResized || canvasResized
+        bufferResized || canvasResized,
+        dirtyRows
       );
       this.contentDirty = false;
+      this.dirtyRows = null;
+      this.hasDrawnBefore = true;
     }
 
     if (this.bufferCanvas) {
@@ -977,7 +1025,18 @@ export class Screen extends React.Component {
     }
   }
 
-  drawContent(ctx, cols, rows, chw, chh, width, height, dpr, contextResized) {
+  drawContent(
+    ctx,
+    cols,
+    rows,
+    chw,
+    chh,
+    width,
+    height,
+    dpr,
+    contextResized,
+    dirtyRows = null
+  ) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const fontFace = this.props.fontFace || "MingLiu, monospace";
@@ -1023,7 +1082,7 @@ export class Screen extends React.Component {
       underlineBuckets[i].length = 0;
     }
 
-    const smoothAnsi = !!this.props.smoothAnsi;
+    const smoothAnsi = !!this.props.smoothAnsi && !dirtyRows;
     const ansiBlockBuckets = this.ansiBlockBuckets;
     let blockGrid = null;
     if (smoothAnsi) {
@@ -1039,11 +1098,20 @@ export class Screen extends React.Component {
     }
 
     const lines = this.props.lines;
+    const targetRows = dirtyRows || null;
+    const rowCount = targetRows
+      ? targetRows.length
+      : lines
+      ? Math.min(rows, lines.length)
+      : 0;
+
     if (lines) {
       const isCharsetUtf8 = this.props.charset === "UTF-8";
       let hasBlink = false;
 
-      for (let r = 0; r < rows && r < lines.length; ++r) {
+      for (let idx = 0; idx < rowCount; ++idx) {
+        const r = targetRows ? targetRows[idx] : idx;
+        if (r < 0 || r >= rows || r >= lines.length) continue;
         const line = lines[r];
         if (!line) continue;
         const isLineHighlighted = r === currentHl;
@@ -1235,13 +1303,33 @@ export class Screen extends React.Component {
           }
         }
       }
-      this.hasBlink = hasBlink;
+      if (!targetRows) {
+        this.hasBlink = hasBlink;
+      } else if (hasBlink) {
+        this.hasBlink = true;
+      }
     } else {
       this.hasBlink = false;
     }
 
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0, 0, width, height);
+    if (targetRows) {
+      ctx.save();
+      ctx.beginPath();
+      for (let i = 0; i < targetRows.length; ++i) {
+        const r = targetRows[i];
+        ctx.rect(0, r * chh, width, chh);
+      }
+      ctx.clip();
+
+      ctx.fillStyle = "#000000";
+      for (let i = 0; i < targetRows.length; ++i) {
+        const r = targetRows[i];
+        ctx.fillRect(0, r * chh, width, chh);
+      }
+    } else {
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, width, height);
+    }
 
     for (let bgIdx = 1; bgIdx < 17; ++bgIdx) {
       const runs = bgBuckets[bgIdx];
@@ -1296,6 +1384,10 @@ export class Screen extends React.Component {
       for (let i = 0; i < uRuns.length; i += 4) {
         ctx.fillRect(uRuns[i], uRuns[i + 1], uRuns[i + 2], uRuns[i + 3]);
       }
+    }
+
+    if (targetRows) {
+      ctx.restore();
     }
   }
 

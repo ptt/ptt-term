@@ -323,7 +323,8 @@ TermView.prototype = {
             doCopy: this.bbscore ? this.bbscore.doCopy.bind(this.bbscore) : null,
             setInputAreaFocus: this.bbscore ? this.bbscore.setInputAreaFocus.bind(this.bbscore) : null,
             fpsMeter: this.fpsMeter,
-            smoothAnsi: this.smoothAnsi
+            smoothAnsi: this.smoothAnsi,
+            changedRows: changedRows
           }
         )
         this.setHighlightedRow(this.buf.nowHighlight)
