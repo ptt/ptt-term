@@ -96,6 +96,9 @@ export class Screen extends React.Component {
     this.lastFontKey = "";
     this.lastAppliedFont = "";
     this.hasBlink = false;
+    this.bufferCanvas =
+      typeof document !== "undefined" ? document.createElement("canvas") : null;
+    this.contentDirty = true;
   }
 
   state = {
@@ -121,6 +124,7 @@ export class Screen extends React.Component {
         document.fonts.ready.then(() => {
           this.metricsCache.clear();
           this.lastAppliedFont = "";
+          this.contentDirty = true;
           this.draw();
         });
       }
@@ -137,13 +141,29 @@ export class Screen extends React.Component {
     }
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps, prevState) {
     if (this.props.lines !== prevProps.lines && this.state.currentImagePreview) {
       this.setState({
         currentImagePreview: undefined,
         left: undefined,
         top: undefined
       });
+    }
+
+    if (
+      this.props.lines !== prevProps.lines ||
+      this.props.nowHighlight !== prevProps.nowHighlight ||
+      this.props.highlightBG !== prevProps.highlightBG ||
+      this.props.smoothAnsi !== prevProps.smoothAnsi ||
+      this.props.fontFace !== prevProps.fontFace ||
+      this.props.chw !== prevProps.chw ||
+      this.props.chh !== prevProps.chh ||
+      this.props.cols !== prevProps.cols ||
+      this.props.rows !== prevProps.rows ||
+      this.props.charset !== prevProps.charset ||
+      (prevState && this.state.currentHighlighted !== prevState.currentHighlighted)
+    ) {
+      this.contentDirty = true;
     }
 
     if (this.props.useCanvas) {
@@ -170,6 +190,7 @@ export class Screen extends React.Component {
 
   handleBlink = () => {
     if (this.props.useCanvas && this.hasBlink) {
+      this.contentDirty = true;
       this.draw();
     }
   };
@@ -895,8 +916,68 @@ export class Screen extends React.Component {
     if (canvasResized) {
       canvas.width = targetWidth;
       canvas.height = targetHeight;
+      this.contentDirty = true;
     }
 
+    if (!this.bufferCanvas && typeof document !== "undefined") {
+      this.bufferCanvas = document.createElement("canvas");
+    }
+
+    let bufferResized = false;
+    if (this.bufferCanvas) {
+      if (
+        this.bufferCanvas.width !== targetWidth ||
+        this.bufferCanvas.height !== targetHeight
+      ) {
+        this.bufferCanvas.width = targetWidth;
+        this.bufferCanvas.height = targetHeight;
+        this.contentDirty = true;
+        bufferResized = true;
+      }
+    }
+
+    const bctx = this.bufferCanvas ? this.bufferCanvas.getContext("2d") : ctx;
+
+    if (this.contentDirty || !this.bufferCanvas) {
+      this.drawContent(
+        bctx,
+        cols,
+        rows,
+        chw,
+        chh,
+        width,
+        height,
+        dpr,
+        bufferResized || canvasResized
+      );
+      this.contentDirty = false;
+    }
+
+    if (this.bufferCanvas) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(this.bufferCanvas, 0, 0);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const sel = this.getNormalizedSelection();
+    if (sel) {
+      const { start, end } = sel;
+      ctx.fillStyle = "rgba(100, 150, 255, 0.4)";
+      for (let row = start.row; row <= end.row; ++row) {
+        const sc = row === start.row ? start.col : 0;
+        const ec = row === end.row ? end.col : cols - 1;
+        if (sc <= ec) {
+          ctx.fillRect(sc * chw, row * chh, (ec - sc + 1) * chw, chh);
+        }
+      }
+    }
+
+    if (t0 > 0 && this.props.fpsMeter) {
+      this.props.fpsMeter.recordFrame(performance.now() - t0, true);
+    }
+  }
+
+  drawContent(ctx, cols, rows, chw, chh, width, height, dpr, contextResized) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const fontFace = this.props.fontFace || "MingLiu, monospace";
@@ -908,7 +989,7 @@ export class Screen extends React.Component {
       this.lastFontKey = fontKey;
     }
 
-    if (canvasResized || this.lastAppliedFont !== fontString) {
+    if (contextResized || this.lastAppliedFont !== fontString) {
       ctx.font = fontString;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -1215,23 +1296,6 @@ export class Screen extends React.Component {
       for (let i = 0; i < uRuns.length; i += 4) {
         ctx.fillRect(uRuns[i], uRuns[i + 1], uRuns[i + 2], uRuns[i + 3]);
       }
-    }
-
-    const sel = this.getNormalizedSelection();
-    if (sel) {
-      const { start, end } = sel;
-      ctx.fillStyle = "rgba(100, 150, 255, 0.4)";
-      for (let row = start.row; row <= end.row; ++row) {
-        const sc = row === start.row ? start.col : 0;
-        const ec = row === end.row ? end.col : cols - 1;
-        if (sc <= ec) {
-          ctx.fillRect(sc * chw, row * chh, (ec - sc + 1) * chw, chh);
-        }
-      }
-    }
-
-    if (t0 > 0 && this.props.fpsMeter) {
-      this.props.fpsMeter.recordFrame(performance.now() - t0, true);
     }
   }
 
