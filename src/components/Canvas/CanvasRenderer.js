@@ -3,12 +3,16 @@ import { b2u, isDBCSLead } from "../../js/string_util";
 import { SmoothAnsi, ANSI_BLOCK_SET, hasAnsiBlock } from "./SmoothAnsi";
 import { isBadDBCS, CanvasSelection } from "./CanvasSelection";
 
+// URL underline color matches DOM mode's background-image (src/icon/http.bmp, RGB #ff6600)
+const URL_UNDERLINE_COLOR = "#ff6600";
+
 export class CanvasRenderer {
   constructor() {
-    this.textBuckets = Array.from({ length: 17 }, () => []);
-    this.ansiBlockBuckets = Array.from({ length: 17 }, () => []);
+    this.textBuckets = Array.from({ length: 16 }, () => []);
+    this.ansiBlockBuckets = Array.from({ length: 16 }, () => []);
     this.bgBuckets = Array.from({ length: 17 }, () => []);
-    this.underlineBuckets = Array.from({ length: 17 }, () => []);
+    this.underlineBuckets = Array.from({ length: 16 }, () => []);
+    this.urlUnderlineRuns = [];
     this.textPool = [];
     this.textPoolIndex = 0;
     this.blockPool = [];
@@ -231,17 +235,21 @@ export class CanvasRenderer {
     const textBuckets = this.textBuckets;
     const bgBuckets = this.bgBuckets;
     const underlineBuckets = this.underlineBuckets;
-    for (let i = 0; i < 17; ++i) {
+    const urlUnderlineRuns = this.urlUnderlineRuns;
+    for (let i = 0; i < 16; ++i) {
       textBuckets[i].length = 0;
-      bgBuckets[i].length = 0;
       underlineBuckets[i].length = 0;
     }
+    for (let i = 0; i < 17; ++i) {
+      bgBuckets[i].length = 0;
+    }
+    urlUnderlineRuns.length = 0;
 
     const smoothAnsi = !!options.smoothAnsi && !dirtyRows;
     const ansiBlockBuckets = this.ansiBlockBuckets;
     let blockGrid = null;
     if (smoothAnsi) {
-      for (let i = 0; i < 17; ++i) {
+      for (let i = 0; i < 16; ++i) {
         ansiBlockBuckets[i].length = 0;
       }
       if (!this.blockGrid || this.blockGrid.length !== rows * cols) {
@@ -275,6 +283,8 @@ export class CanvasRenderer {
         let runBgIdx = 0;
         let runStartCol = 0;
         let runLength = 0;
+        let urlStartCol = -1;
+        const urlUnderlineY = y + Math.round((chh - 1) * 0.9);
 
         for (let c = 0; c < cols; ++c) {
           const ch = line[c];
@@ -293,10 +303,37 @@ export class CanvasRenderer {
             runStartCol = c;
             runLength = 1;
           }
+
+          const isUrl = !!(
+            ch &&
+            typeof ch.isPartOfURL === "function" &&
+            ch.isPartOfURL()
+          );
+          if (isUrl) {
+            if (urlStartCol === -1) {
+              urlStartCol = c;
+            }
+          } else if (urlStartCol !== -1) {
+            urlUnderlineRuns.push(
+              urlStartCol * chw,
+              urlUnderlineY,
+              (c - urlStartCol) * chw,
+              1
+            );
+            urlStartCol = -1;
+          }
         }
 
         if (runBgIdx !== 0) {
           bgBuckets[runBgIdx].push(runStartCol * chw, y, runLength * chw);
+        }
+        if (urlStartCol !== -1) {
+          urlUnderlineRuns.push(
+            urlStartCol * chw,
+            urlUnderlineY,
+            (cols - urlStartCol) * chw,
+            1
+          );
         }
 
         for (let c = 0; c < cols; ++c) {
@@ -318,19 +355,9 @@ export class CanvasRenderer {
               const isLeadHidden = ch.blink && isBlinkHidden;
               const isTrailHidden = trailCh.blink && isBlinkHidden;
               if (!isLeadHidden || !isTrailHidden) {
-                const leadFgIndex =
-                  typeof ch.isPartOfURL === "function" && ch.isPartOfURL()
-                    ? 16
-                    : ch.getFg() !== undefined
-                    ? ch.getFg()
-                    : 7;
+                const leadFgIndex = ch.getFg() !== undefined ? ch.getFg() : 7;
                 const trailFgIndex =
-                  typeof trailCh.isPartOfURL === "function" &&
-                  trailCh.isPartOfURL()
-                    ? 16
-                    : trailCh.getFg() !== undefined
-                    ? trailCh.getFg()
-                    : 7;
+                  trailCh.getFg() !== undefined ? trailCh.getFg() : 7;
 
                 if (
                   leadFgIndex === trailFgIndex &&
@@ -415,12 +442,7 @@ export class CanvasRenderer {
             }
             const isHidden = (ch.blink || trailCh.blink) && isBlinkHidden;
             if (!isHidden) {
-              const fgIndex =
-                typeof ch.isPartOfURL === "function" && ch.isPartOfURL()
-                  ? 16
-                  : ch.getFg() !== undefined
-                  ? ch.getFg()
-                  : 7;
+              const fgIndex = ch.getFg() !== undefined ? ch.getFg() : 7;
               if (smoothAnsi && ANSI_BLOCK_SET.has(ch.ch)) {
                 const blockItem = this.getBlockItem(
                   ch.ch,
@@ -458,12 +480,7 @@ export class CanvasRenderer {
           }
           if (ch.blink && isBlinkHidden) continue;
           const charStr = ch.ch;
-          const fgIndex =
-            typeof ch.isPartOfURL === "function" && ch.isPartOfURL()
-              ? 16
-              : ch.getFg() !== undefined
-              ? ch.getFg()
-              : 7;
+          const fgIndex = ch.getFg() !== undefined ? ch.getFg() : 7;
           if (charStr && charStr !== " " && charStr !== "\x00") {
             if (smoothAnsi && ANSI_BLOCK_SET.has(charStr)) {
               const blockItem = this.getBlockItem(
@@ -528,10 +545,10 @@ export class CanvasRenderer {
     }
 
     if (smoothAnsi) {
-      for (let cIdx = 0; cIdx < 17; ++cIdx) {
+      for (let cIdx = 0; cIdx < 16; ++cIdx) {
         const bucket = ansiBlockBuckets[cIdx];
         if (bucket.length === 0) continue;
-        ctx.fillStyle = cIdx === 16 ? "#ff00ff" : termColors[cIdx];
+        ctx.fillStyle = termColors[cIdx];
         ctx.beginPath();
         for (let i = 0; i < bucket.length; ++i) {
           SmoothAnsi.drawBlock(ctx, bucket[i], blockGrid, cols, rows, chw, chh);
@@ -540,10 +557,10 @@ export class CanvasRenderer {
       }
     }
 
-    for (let cIdx = 0; cIdx < 17; ++cIdx) {
+    for (let cIdx = 0; cIdx < 16; ++cIdx) {
       const bucket = textBuckets[cIdx];
       if (bucket.length === 0) continue;
-      ctx.fillStyle = cIdx === 16 ? "#ff00ff" : termColors[cIdx];
+      ctx.fillStyle = termColors[cIdx];
       for (let i = 0; i < bucket.length; ++i) {
         const item = bucket[i];
         if (item.clip) {
@@ -566,12 +583,24 @@ export class CanvasRenderer {
       }
     }
 
-    for (let uIdx = 0; uIdx < 17; ++uIdx) {
+    for (let uIdx = 0; uIdx < 16; ++uIdx) {
       const uRuns = underlineBuckets[uIdx];
       if (uRuns.length === 0) continue;
-      ctx.fillStyle = uIdx === 16 ? "#ff00ff" : termColors[uIdx];
+      ctx.fillStyle = termColors[uIdx];
       for (let i = 0; i < uRuns.length; i += 4) {
         ctx.fillRect(uRuns[i], uRuns[i + 1], uRuns[i + 2], uRuns[i + 3]);
+      }
+    }
+
+    if (urlUnderlineRuns.length > 0) {
+      ctx.fillStyle = URL_UNDERLINE_COLOR;
+      for (let i = 0; i < urlUnderlineRuns.length; i += 4) {
+        ctx.fillRect(
+          urlUnderlineRuns[i],
+          urlUnderlineRuns[i + 1],
+          urlUnderlineRuns[i + 2],
+          urlUnderlineRuns[i + 3]
+        );
       }
     }
 
