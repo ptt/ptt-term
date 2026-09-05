@@ -134,19 +134,19 @@ export class SmoothAnsi {
         break;
 
       case "\u25e2": // ◢ lower right triangle
-        this.drawTriangleLowerRight(ctx, item);
+        this.drawTriangleLowerRight(ctx, item, grid, cols, rows, chw, chh);
         break;
 
       case "\u25e3": // ◣ lower left triangle
-        this.drawTriangleLowerLeft(ctx, item);
+        this.drawTriangleLowerLeft(ctx, item, grid, cols, rows, chw, chh);
         break;
 
       case "\u25e5": // ◥ upper right triangle
-        this.drawTriangleUpperRight(ctx, item);
+        this.drawTriangleUpperRight(ctx, item, grid, cols, rows, chw, chh);
         break;
 
       case "\u25e4": // ◤ upper left triangle
-        this.drawTriangleUpperLeft(ctx, item);
+        this.drawTriangleUpperLeft(ctx, item, grid, cols, rows, chw, chh);
         break;
 
       case "\u25b2": // ▲ up triangle
@@ -376,7 +376,7 @@ export class SmoothAnsi {
     return true;
   }
 
-  static drawTriangleLowerRight(ctx, item) {
+  static drawTriangleLowerRight(ctx, item, grid, cols, rows, chw, chh) {
     const { x, y, w, h } = item;
     ctx.moveTo(x + w, y);
     ctx.lineTo(x + w, y + h);
@@ -384,7 +384,7 @@ export class SmoothAnsi {
     ctx.closePath();
   }
 
-  static drawTriangleLowerLeft(ctx, item) {
+  static drawTriangleLowerLeft(ctx, item, grid, cols, rows, chw, chh) {
     const { x, y, w, h } = item;
     ctx.moveTo(x, y);
     ctx.lineTo(x + w, y + h);
@@ -392,7 +392,7 @@ export class SmoothAnsi {
     ctx.closePath();
   }
 
-  static drawTriangleUpperRight(ctx, item) {
+  static drawTriangleUpperRight(ctx, item, grid, cols, rows, chw, chh) {
     const { x, y, w, h } = item;
     ctx.moveTo(x, y);
     ctx.lineTo(x + w, y);
@@ -400,7 +400,7 @@ export class SmoothAnsi {
     ctx.closePath();
   }
 
-  static drawTriangleUpperLeft(ctx, item) {
+  static drawTriangleUpperLeft(ctx, item, grid, cols, rows, chw, chh) {
     const { x, y, w, h } = item;
     ctx.moveTo(x, y);
     ctx.lineTo(x + w, y);
