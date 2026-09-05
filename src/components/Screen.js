@@ -1200,11 +1200,9 @@ export class Screen extends React.Component {
         if (scale === 1) {
           ctx.fillText(item.text, item.x, item.y);
         } else {
-          ctx.save();
-          ctx.translate(item.x, item.y);
-          ctx.scale(scale, 1);
+          ctx.setTransform(dpr * scale, 0, 0, dpr, dpr * item.x, dpr * item.y);
           ctx.fillText(item.text, 0, 0);
-          ctx.restore();
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         }
         if (item.clip) {
           ctx.restore();
