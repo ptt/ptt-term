@@ -10,7 +10,20 @@ export function EasyReading(core, view, termBuf) {
   this._view = view;
   this._termBuf = termBuf;
 
-  this._turnPageLines = 22;
+  this._customTurnPageLines = 0;
+  Object.defineProperty(this, '_turnPageLines', {
+    get: function() {
+      if (this._customTurnPageLines > 0) return this._customTurnPageLines;
+      if (this._view && this._view.easyReadingContent && this._view.chh) {
+        let lines = Math.floor(this._view.easyReadingContent.clientHeight / this._view.chh) - 1;
+        if (lines > 0) return lines;
+      }
+      return 22;
+    },
+    set: function(val) {
+      this._customTurnPageLines = val;
+    }
+  });
 
   this.easyReadingReachedPageEnd = false;
   this.sendCommandAfterUpdate = '';

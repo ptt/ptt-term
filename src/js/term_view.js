@@ -107,7 +107,12 @@ export function TermView() {
       }
     }
   });
-  mainDisplay.appendChild(easyReadingOverlay);
+  easyReadingOverlay.addEventListener('wheel', (e) => {
+    if (this.easyReadingContent && e.target !== this.easyReadingContent && !this.easyReadingContent.contains(e.target)) {
+      this.easyReadingContent.scrollTop += e.deltaY;
+    }
+  }, { passive: true });
+  this.BBSWin.appendChild(easyReadingOverlay);
   this.easyReadingOverlay = easyReadingOverlay;
 
   var easyReadingContent = document.createElement('div');
@@ -265,6 +270,9 @@ TermView.prototype = {
     this.fontFace = fontFace;
     this.input.style.setProperty('font-family', this.fontFace, 'important');
     this.mainDisplay.style.setProperty('font-family', this.fontFace, 'important');
+    if (this.easyReadingOverlay) {
+      this.easyReadingOverlay.style.setProperty('font-family', this.fontFace, 'important');
+    }
     document.getElementById('cursor').style.setProperty('font-family', this.fontFace, 'important');
   },
 
@@ -461,6 +469,10 @@ TermView.prototype = {
     var mainWidth = (this.chw * this.buf.cols + 10) + 'px';
     this.mainDisplay.style.fontSize = fontSize;
     this.mainDisplay.style.lineHeight = fontSize;
+    if (this.easyReadingOverlay) {
+      this.easyReadingOverlay.style.fontSize = fontSize;
+      this.easyReadingOverlay.style.lineHeight = fontSize;
+    }
     this.bbsCursor.style.fontSize = fontSize;
     this.bbsCursor.style.lineHeight = fontSize;
     this.mainDisplay.style.overflowX = 'hidden';

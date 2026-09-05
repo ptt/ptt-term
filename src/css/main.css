@@ -134,6 +134,11 @@ a:link,a:visited,a:active,a:hover {
   z-index: 10;
   background-color: #242424;
   display: none;
+  font-family: MingLiu, monospace;
+}
+
+#easyReadingOverlay * {
+  font-family: inherit !important;
 }
 
 #easyReadingContent {
@@ -146,6 +151,8 @@ a:link,a:visited,a:active,a:hover {
   overflow-x: hidden;
   -webkit-user-select: text;
   user-select: text;
+  padding: 0 8px;
+  box-sizing: border-box;
 }
 
 #easyReadingFooter {
@@ -157,6 +164,7 @@ a:link,a:visited,a:active,a:hover {
   overflow: hidden;
   background-color: #b8b8b8;
   z-index: 11;
+  box-sizing: border-box;
 }
 
 #easyReadingLastRow {
@@ -170,6 +178,8 @@ a:link,a:visited,a:active,a:hover {
   -webkit-user-select: none;
   user-select: none;
   background-color: #b8b8b8;
+  padding: 0 8px;
+  box-sizing: border-box;
 }
 
 #easyReadingLastRow .b7,
@@ -189,6 +199,8 @@ a:link,a:visited,a:active,a:hover {
   -webkit-user-select: none;
   user-select: none;
   background-color: black;
+  padding: 0 8px;
+  box-sizing: border-box;
 }
 
 #fbSharing {
