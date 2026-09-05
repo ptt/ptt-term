@@ -93,20 +93,47 @@ export function TermView() {
   this.BBSWin.appendChild(mainDisplay);
   this.mainDisplay = mainDisplay;
 
+  var screenContainer = document.createElement('div');
+  screenContainer.setAttribute('id', 'screenContainer');
+  mainDisplay.appendChild(screenContainer);
+  this.screenContainer = screenContainer;
+
+  var easyReadingOverlay = document.createElement('div');
+  easyReadingOverlay.setAttribute('id', 'easyReadingOverlay');
+  easyReadingOverlay.addEventListener('mousedown', (e) => {
+    if (e.target && e.target.tagName !== 'A') {
+      if (this.bbscore && typeof this.bbscore.setInputAreaFocus === 'function') {
+        this.bbscore.setInputAreaFocus();
+      }
+    }
+  });
+  mainDisplay.appendChild(easyReadingOverlay);
+  this.easyReadingOverlay = easyReadingOverlay;
+
+  var easyReadingContent = document.createElement('div');
+  easyReadingContent.setAttribute('id', 'easyReadingContent');
+  easyReadingOverlay.appendChild(easyReadingContent);
+  this.easyReadingContent = easyReadingContent;
+
+  var easyReadingFooter = document.createElement('div');
+  easyReadingFooter.setAttribute('id', 'easyReadingFooter');
+  easyReadingOverlay.appendChild(easyReadingFooter);
+  this.easyReadingFooter = easyReadingFooter;
+
   var lastRowDiv = document.createElement('div');
   lastRowDiv.setAttribute('id', 'easyReadingLastRow');
   let spaces = ' '.repeat(80-25);  // TODO: Find a way to update this.
   this.lastRowDivContent = '<span align="left"><span class="q0 b7">' + spaces + '</span><span class="q1 b7">(y)</span><span class="q0 b7">回應</span><span class="q1 b7">(X%)</span><span class="q0 b7">推文</span><span class="q1 b7">(←)</span><span class="q0 b7">離開 </span> </span>';
   lastRowDiv.innerHTML = this.lastRowDivContent;
   this.lastRowDiv = lastRowDiv;
-  this.BBSWin.appendChild(lastRowDiv);
+  easyReadingFooter.appendChild(lastRowDiv);
 
   var replyRowDiv = document.createElement('div');
   replyRowDiv.setAttribute('id', 'easyReadingReplyRow');
   this.replyRowDivContent = '<span align="left"></span>';
   replyRowDiv.innerHTML = this.replyRowDivContent;
   this.replyRowDiv = replyRowDiv;
-  this.BBSWin.appendChild(replyRowDiv);
+  easyReadingFooter.appendChild(replyRowDiv);
 
   this.mainDisplay.style.border = '0px';
   this.setFontFace('MingLiu,monospace');
@@ -238,8 +265,6 @@ TermView.prototype = {
     this.fontFace = fontFace;
     this.input.style.setProperty('font-family', this.fontFace, 'important');
     this.mainDisplay.style.setProperty('font-family', this.fontFace, 'important');
-    this.lastRowDiv.style.setProperty('font-family', this.fontFace, 'important');
-    this.replyRowDiv.style.setProperty('font-family', this.fontFace, 'important');
     document.getElementById('cursor').style.setProperty('font-family', this.fontFace, 'important');
   },
 
@@ -273,6 +298,39 @@ TermView.prototype = {
       lineChangeds[row] = false;
     }
     if (changedLineHtmlStrs.length > 0) {
+      var t0 = (this.showFps && this.fpsMeter && this.fpsMeter.enabled && typeof performance !== 'undefined')
+        ? performance.now()
+        : 0;
+      this.componentScreen = renderScreen(
+        /* For Screen#componentDidUpdate */lines.slice(),
+        this.chh,
+        /* showsLinkPreview */false,
+        this.enablePicPreview,
+        this.screenContainer,
+        {
+          useCanvas: this.useCanvasEngine,
+          cols: this.buf.cols,
+          rows: this.buf.rows,
+          chw: this.chw,
+          chh: this.chh,
+          fontFace: this.fontFace,
+          highlightBG: this.highlightBG,
+          nowHighlight: this.buf.nowHighlight,
+          buf: this.buf,
+          charset: this.charset,
+          copyOnSelect: this.bbscore ? this.bbscore.copyOnSelect : false,
+          doCopy: this.bbscore ? this.bbscore.doCopy.bind(this.bbscore) : null,
+          setInputAreaFocus: this.bbscore ? this.bbscore.setInputAreaFocus.bind(this.bbscore) : null,
+          fpsMeter: this.fpsMeter,
+          smoothAnsiArt: this.smoothAnsiArt,
+          changedRows: changedRows
+        }
+      );
+      this.setHighlightedRow(this.buf.nowHighlight);
+      if (t0 > 0 && !this.useCanvasEngine && this.fpsMeter) {
+        this.fpsMeter.recordFrame(performance.now() - t0, false);
+      }
+
       if (this.useEasyReadingMode) {
         if (this.buf.startedEasyReading && this.buf.easyReadingShowReplyText) {
           this.updateEasyReadingReplyRow(changedLineHtmlStrs[changedLineHtmlStrs.length-1]);
@@ -281,40 +339,10 @@ TermView.prototype = {
         } else {
           this.populateEasyReadingPage();
         }
-      } else {
-        var t0 = (this.showFps && this.fpsMeter && this.fpsMeter.enabled && typeof performance !== 'undefined')
-          ? performance.now()
-          : 0;
-        this.componentScreen = renderScreen(
-          /* For Screen#componentDidUpdate */lines.slice(),
-          this.chh,
-          /* showsLinkPreview */false,
-          this.enablePicPreview,
-          this.mainDisplay,
-          {
-            useCanvas: this.useCanvasEngine,
-            cols: this.buf.cols,
-            rows: this.buf.rows,
-            chw: this.chw,
-            chh: this.chh,
-            fontFace: this.fontFace,
-            highlightBG: this.highlightBG,
-            nowHighlight: this.buf.nowHighlight,
-            buf: this.buf,
-            charset: this.charset,
-            copyOnSelect: this.bbscore ? this.bbscore.copyOnSelect : false,
-            doCopy: this.bbscore ? this.bbscore.doCopy.bind(this.bbscore) : null,
-            setInputAreaFocus: this.bbscore ? this.bbscore.setInputAreaFocus.bind(this.bbscore) : null,
-            fpsMeter: this.fpsMeter,
-            smoothAnsiArt: this.smoothAnsiArt,
-            changedRows: changedRows
-          }
-        )
-        this.setHighlightedRow(this.buf.nowHighlight)
-        if (t0 > 0 && !this.useCanvasEngine && this.fpsMeter) {
-          this.fpsMeter.recordFrame(performance.now() - t0, false);
-        }
+      } else if (this.isEasyReadingActive()) {
+        this.hideEasyReading();
       }
+
       this.buf.prevPageState = this.buf.pageState;
     }
     //var time = new Date().getTime() - start;
@@ -344,7 +372,7 @@ TermView.prototype = {
       return;
     }
 
-    if (this.useEasyReadingMode && this.buf.startedEasyReading && 
+    if (this.isEasyReadingActive() && 
         !this.buf.easyReadingShowReplyText && !this.buf.easyReadingShowPushInitText &&
         this.easyReadingKeyDownKeyCode == 229 && e.target.value != 'X') { // only use on chinese IME
       e.target.value = '';
@@ -373,7 +401,7 @@ TermView.prototype = {
   },
 
   onKeyDown: function(e) {
-    if (this.useEasyReadingMode && this.buf.startedEasyReading && 
+    if (this.isEasyReadingActive() && 
         !this.buf.easyReadingShowReplyText && !this.buf.easyReadingShowPushInitText) {
       this.easyReadingKeyDownKeyCode = e.keyCode;
       this.bbscore.easyReading._onKeyDown(e);
@@ -436,16 +464,11 @@ TermView.prototype = {
     this.bbsCursor.style.fontSize = fontSize;
     this.bbsCursor.style.lineHeight = fontSize;
     this.mainDisplay.style.overflowX = 'hidden';
-    this.mainDisplay.style.overflowY = 'auto';
+    this.mainDisplay.style.overflowY = 'hidden';
     this.mainDisplay.style.textAlign = 'left';
     this.mainDisplay.style.width = mainWidth;
     this.mainDisplay.style.height = (this.chh * this.buf.rows + 10) + 'px';
 
-    this.lastRowDiv.style.fontSize = fontSize;
-    this.lastRowDiv.style.width = mainWidth;
-
-    this.replyRowDiv.style.fontSize = fontSize;
-    this.replyRowDiv.style.width = mainWidth;
     if (this.chh*this.buf.rows < innerBounds.height)
       this.mainDisplay.style.marginTop = ((innerBounds.height-this.chh*this.buf.rows)/2) + this.bbsViewMargin + 'px';
     else
@@ -467,17 +490,8 @@ TermView.prototype = {
         transOrigin = 'center';
       }
       this.mainDisplay.style.webkitTransformOriginX = transOrigin;
-      this.lastRowDiv.style.webkitTransformOriginX = transOrigin;
-      this.replyRowDiv.style.webkitTransformOriginX = transOrigin;
-      this.lastRowDiv.style.webkitTransformOriginY = '-1100%'; // somehow these are the right value
-      this.replyRowDiv.style.webkitTransformOriginY = '-1010%';
-    } else {
-      this.lastRowDiv.style.webkitTransformOriginY = '';
-      this.replyRowDiv.style.webkitTransformOriginY = '';
     }
     this.mainDisplay.style.webkitTransform = scaleCss;
-    this.lastRowDiv.style.webkitTransform = scaleCss;
-    this.replyRowDiv.style.webkitTransform = scaleCss;
 
     this.firstGridOffset = this.bbscore.getFirstGridOffsets();
 
@@ -493,7 +507,7 @@ TermView.prototype = {
     while (this.dynamicCss.cssRules.length > 0) {
       this.dynamicCss.deleteRule(0);
     }
-    this.dynamicCss.insertRule(rule, this.dynamicCss.cssRules.length);
+    this.dynamicCss.insertRule(rule, 0);
   },
 
   convertMN2XYEx: function(cx, cy) {
@@ -546,17 +560,11 @@ TermView.prototype = {
 
     if (this.scaleX == 1 && this.scaleY == 1) {
       this.bbsCursor.style.webkitTransform = 'none';
-      this.lastRowDiv.style.webkitTransformOriginY = '';
-      this.replyRowDiv.style.webkitTransformOriginY = '';
     } else {
       var scaleCss = 'scale('+this.scaleX+','+this.scaleY+')';
       this.mainDisplay.style.webkitTransform = scaleCss;
-      this.lastRowDiv.style.webkitTransform = scaleCss;
-      this.replyRowDiv.style.webkitTransform = scaleCss;
       this.bbsCursor.style.webkitTransform = scaleCss;
       this.bbsCursor.style.webkitTransformOriginX = 'left';
-      this.lastRowDiv.style.webkitTransformOriginY = '-1100%';
-      this.replyRowDiv.style.webkitTransformOriginY = '-1010%';
     }
 
     this.bbsCursor.style.left = pos[0] + 'px';
@@ -758,11 +766,15 @@ TermView.prototype = {
   },
 
   selectAll: function() {
+    if (this.isEasyReadingActive()) {
+      window.getSelection().selectAllChildren(this.easyReadingContent);
+      return;
+    }
     if (this.useCanvasEngine && this.componentScreen && typeof this.componentScreen.selectAll === 'function') {
       this.componentScreen.selectAll();
       return;
     }
-    window.getSelection().selectAllChildren(this.mainDisplay);
+    window.getSelection().selectAllChildren(this.screenContainer || this.mainDisplay);
   },
 
   showWaterballNotification: function() {
@@ -794,9 +806,19 @@ TermView.prototype = {
     };
   },
 
+  isEasyReadingActive: function() {
+    return !!(this.easyReadingOverlay && this.easyReadingOverlay.style.display !== 'none');
+  },
+
+  showEasyReading: function() {
+    if (this.easyReadingOverlay) {
+      this.easyReadingOverlay.style.display = 'block';
+    }
+  },
+
   populateEasyReadingPage: function() {
     if (this.buf.pageState == 3 && this.buf.prevPageState == 3) {
-      this.mainContainer.style.paddingBottom = '1em';
+      this.showEasyReading();
       var lastRowText = this.buf.getRowText(this.buf.rows-1, 0, this.buf.cols);
       var result = parseStatusRow(lastRowText);
       if (result) {
@@ -839,7 +861,6 @@ TermView.prototype = {
       }
       this.buf.prevPageState = 3;
     } else {
-      this.mainContainer.style.paddingBottom = '';
       this.actualRowIndex = 0;
       this.buf.pageWrappedLines = [];
       if (this.buf.pageState == 3) {
@@ -852,9 +873,14 @@ TermView.prototype = {
           }
         }
         this.clearRows();
+        this.showEasyReading();
+        if (this.easyReadingContent) {
+          this.easyReadingContent.scrollTop = 0;
+        }
         this.appendRows(this.buf.lines.slice(0, -1), true);
         this.lastRowDiv.innerHTML = this.lastRowDivContent;
         this.lastRowDiv.style.display = 'block';
+        this.replyRowDiv.style.display = 'none';
         // deep clone lines for selection (getRowText and get ansi color)
         this.buf.pageLines = this.buf.pageLines.concat(JSON.parse(JSON.stringify(this.buf.lines.slice(0, -1))));
       } else {
@@ -865,18 +891,21 @@ TermView.prototype = {
   },
 
   clearRows: function() {
-    this.mainContainer.innerHTML = '';
+    if (this.easyReadingContent) {
+      this.easyReadingContent.innerHTML = '';
+    }
   },
 
   appendRows: function(lines, showsLinkPreview) {
+    if (!this.easyReadingContent) return;
     for (var i in lines) {
       var line = lines[i];
       var el = document.createElement('span');
       el.setAttribute('type', 'bbsrow');
-      el.setAttribute('srow', this.mainContainer.childNodes.length);
-      this.mainContainer.appendChild(el);
+      el.setAttribute('srow', this.easyReadingContent.childNodes.length);
+      this.easyReadingContent.appendChild(el);
       renderRowHtml(
-        line, this.mainContainer.childNodes.length, this.chh,
+        line, this.easyReadingContent.childNodes.length, this.chh,
         showsLinkPreview, el);
     }
   },
@@ -890,19 +919,25 @@ TermView.prototype = {
   },
 
   hideEasyReading: function() {
-    this.lastRowDiv.style.display = '';
-    this.replyRowDiv.style.display = '';
+    if (this.easyReadingOverlay) {
+      this.easyReadingOverlay.style.display = 'none';
+    }
+    this.clearRows();
+    if (this.lastRowDiv) {
+      this.lastRowDiv.style.display = 'none';
+    }
+    if (this.replyRowDiv) {
+      this.replyRowDiv.style.display = 'none';
+    }
     // clear the deep cloned copy of lines
     this.buf.pageLines = [];
-    this.clearRows();
-    this.appendRows(this.buf.lines, false);
   },
 
   updateEasyReadingReplyRow: function(row) {
     var el = document.createElement('span');
     el.style = "background-color:black;";
     this.renderSingleRow(el, row);
-    this.setSingleChild(this.replyRowDiv.childNodes[0], el);
+    this.setSingleChild(this.replyRowDiv.childNodes[0] || this.replyRowDiv, el);
     this.replyRowDiv.style.display = 'block';
   },
 
@@ -910,7 +945,8 @@ TermView.prototype = {
     var el = document.createElement('span');
     el.style = "background-color:black;";
     this.renderSingleRow(el, row);
-    this.setSingleChild(this.lastRowDiv.childNodes[0], el);
+    this.setSingleChild(this.lastRowDiv.childNodes[0] || this.lastRowDiv, el);
+    this.lastRowDiv.style.display = 'block';
   },
 
   setSingleChild: function(par, child) {

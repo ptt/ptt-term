@@ -78,7 +78,7 @@
   display: block;
 }
 
-.main, #easyReadingLastRow, #easyReadingReplyRow {
+.main {
   font-family: MingLiu, monospace;
   font-size: 26px;
   line-height: 100%;
@@ -88,12 +88,12 @@
   margin-bottom:0px;
   -webkit-user-select: text;
   background-color: black;
+  position: relative;
+  overflow: hidden;
   /* box-shadow: 0 0 60px 50px black; */
 }
 
-.main *,
-#easyReadingLastRow *,
-#easyReadingReplyRow * {
+.main * {
   font-family: inherit!important;
 }
 
@@ -109,6 +109,7 @@ a:link,a:visited,a:active,a:hover {
 
 .main > span, 
 #mainContainer > span, 
+#easyReadingContent > span,
 #easyReadingLastRow > span,
 #easyReadingReplyRow > span {
   display:block;
@@ -116,22 +117,59 @@ a:link,a:visited,a:active,a:hover {
   white-space: pre;
 }
 
+#screenContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#easyReadingOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  background-color: black;
+  display: none;
+}
+
+#easyReadingContent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 1.2em;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+#easyReadingFooter {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1.2em;
+  overflow: hidden;
+  background-color: black;
+  z-index: 11;
+}
+
 #easyReadingLastRow, #easyReadingReplyRow {
-  position: relative;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1.2em;
   display: none;
   overflow: hidden;
   -webkit-user-select: none;
-  z-index: 1;
-  height: 1em;
-  background-color: transparent;
-}
-
-#easyReadingLastRow {
-  margin-top: -1em;
-}
-
-#easyReadingReplyRow {
-  margin-top: -2em;
+  user-select: none;
+  background-color: black;
 }
 
 #fbSharing {
