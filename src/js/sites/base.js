@@ -201,14 +201,57 @@ export class BaseSite {
   }
 
   /**
+   * Get list of site-specific easy reading commands.
+   * @returns {Array<[string, string]>} Array of [key, description] pairs
+   */
+  getEasyReadingCommands() {
+    return [];
+  }
+
+  /**
+   * Get basic bottom prompt HTML for easy reading mode with optional extra commands.
+   * @param {string|Array<[string, string]>} [extra_cmds]
+   * @param {string} [spaces='']
+   * @param {number} [percent=100]
+   * @returns {string} HTML string
+   */
+  getBasicPrompt(extra_cmds = this.getEasyReadingCommands(), spaces = '', percent = 100) {
+    const pctStr = (percent >= 100) ? '100%' : (percent < 10 ? '  ' + percent + '%' : ' ' + percent + '%');
+    const cls = (percent >= 100) ? 'q1' : 'q2';
+    let cmdsStr = '';
+    if (typeof extra_cmds === 'string') {
+      cmdsStr = extra_cmds;
+    } else if (Array.isArray(extra_cmds)) {
+      cmdsStr = extra_cmds
+        .map(cmd => {
+          if (Array.isArray(cmd)) {
+            return '<span class="q1 b7">(' + cmd[0] + ')</span><span class="q0 b7">' + cmd[1] + ' </span>';
+          }
+          if (typeof cmd === 'object' && cmd !== null) {
+            return '<span class="q1 b7">(' + cmd.key + ')</span><span class="q0 b7">' + cmd.label + ' </span>';
+          }
+          return cmd;
+        })
+        .join('');
+    }
+    return '<span align="left">' +
+           '<span class="q1 b7">' + spaces + '[好讀模式] </span>' +
+           '<span class="' + cls + ' b7">(' + pctStr + ') </span>' +
+           '<span class="q0 b7"> 滾輪/上下鍵捲動，</span>' +
+           cmdsStr +
+           '<span class="q1 b7">(Esc)</span><span class="q0 b7">回到終端機 </span>' +
+           '<span class="q1 b7">(←/q)</span><span class="q0 b7">離開</span>' +
+           '</span>';
+  }
+
+  /**
    * Get bottom prompt HTML for easy reading mode.
    * @param {string} spaces
    * @param {number} percent
    * @returns {string} HTML string
    */
   getEasyReadingPrompt(spaces = '', percent = 100) {
-    const pctStr = (percent >= 100) ? '100%' : (percent < 10 ? '  ' + percent + '%' : ' ' + percent + '%');
-    return '<span align="left"><span class="q0 b7">' + spaces + '瀏覽 </span><span class="q1 b7">(' + pctStr + ')</span><span class="q1 b7"> [好讀模式]</span><span class="q0 b7"> 滾輪/上下鍵捲動，</span><span class="q1 b7">(Esc)</span><span class="q0 b7">回到終端機 </span><span class="q1 b7">(←/q)</span><span class="q0 b7">離開</span></span>';
+    return this.getBasicPrompt(this.getEasyReadingCommands(), spaces, percent);
   }
 
   /**

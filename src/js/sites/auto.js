@@ -137,6 +137,14 @@ export class AutoSite extends BaseSite {
     return this.getActiveSite().getPagingSlice(termBuf, statusResult, actualRowIndex);
   }
 
+  getEasyReadingCommands() {
+    return this.getActiveSite().getEasyReadingCommands();
+  }
+
+  getBasicPrompt(extra_cmds, spaces = '', percent = 100) {
+    return this.getActiveSite().getBasicPrompt(extra_cmds, spaces, percent);
+  }
+
   getEasyReadingPrompt(spaces = '', percent = 100) {
     return this.getActiveSite().getEasyReadingPrompt(spaces, percent);
   }
