@@ -707,6 +707,13 @@ App.prototype.clientToPos = function(cX, cY) {
   return {col: col, row: row};
 };
 
+App.prototype._navigateRowAndEnter = function (targetRow) {
+  var diff = this.buf.cur_y - targetRow;
+  var sendstr =
+    (diff > 0 ? '\x1b[A'.repeat(diff) : '\x1b[B'.repeat(-diff)) + '\r';
+  this.conn.send(sendstr);
+};
+
 App.prototype.onMouse_click = function (e) {
   var cX = e.clientX, cY = e.clientY;
   if (!this.conn || !this.conn.isConnected)
@@ -739,34 +746,12 @@ App.prototype.onMouse_click = function (e) {
       break;
     case 6:
       if (this.buf.nowHighlight != -1) {
-        var sendstr = '';
-        if (this.buf.cur_y > this.buf.nowHighlight) {
-          var count = this.buf.cur_y - this.buf.nowHighlight;
-          for (var i = 0; i < count; ++i)
-            sendstr += '\x1b[A'; //Arrow Up
-        } else if (this.buf.cur_y < this.buf.nowHighlight) {
-          var count = this.buf.nowHighlight - this.buf.cur_y;
-          for (var i = 0; i < count; ++i)
-            sendstr += '\x1b[B'; //Arrow Down
-        }
-        sendstr += '\r';
-        this.conn.send(sendstr);
+        this._navigateRowAndEnter(this.buf.nowHighlight);
       }
       break;
     case 7:
       var pos = this.clientToPos(cX, cY);
-      var sendstr = '';
-      if (this.buf.cur_y > pos.row) {
-        var count = this.buf.cur_y - pos.row;
-        for (var i = 0; i < count; ++i)
-          sendstr += '\x1b[A'; //Arrow Up
-      } else if (this.buf.cur_y < pos.row) {
-        var count = pos.row - this.buf.cur_y;
-        for (var i = 0; i < count; ++i)
-          sendstr += '\x1b[B'; //Arrow Down
-      }
-      sendstr += '\r';
-      this.conn.send(sendstr);
+      this._navigateRowAndEnter(pos.row);
       break;
     case 0:
       this.conn.send('\x1b[D'); //Arrow Left
