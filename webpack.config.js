@@ -6,7 +6,6 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssUrlRelativePlugin = require('css-url-relative-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const HtmlWebpackHarddiskPlugin = require('html-webpack-harddisk-plugin');
-const WebpackCdnPlugin = require('webpack-cdn-plugin');
 const AliasPlugin = require('enhanced-resolve/lib/AliasPlugin');
 
 const DEVELOPER_MODE = process.env.NODE_ENV === 'development'
@@ -108,16 +107,6 @@ module.exports = {
       inject: 'head',
       template: './src/dev.html',
       filename: '../index.html'
-    }),
-    new WebpackCdnPlugin({
-      crossOrigin: 'anonymous',
-      modules: [
-        {
-          name: 'bootstrap',
-          style: 'dist/css/bootstrap.min.css',
-          cssOnly: true,
-        },
-      ],
     })
   ].concat(PRODUCTION_MODE ? [
     new UglifyJSPlugin({
