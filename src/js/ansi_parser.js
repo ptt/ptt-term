@@ -1,6 +1,6 @@
 // Parser for ANSI escape sequence
 
-import { b2u } from './string_util';
+import { b2u } from './string_util.js';
 
 export class AnsiParser {
   static STATE_TEXT = 0;

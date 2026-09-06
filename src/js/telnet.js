@@ -1,7 +1,7 @@
 // Handle Telnet Connections according to RFC 854
 
-import { Event } from './event';
-import { u2b, ansiHalfColorConv } from './string_util';
+import { Event } from './event.js';
+import { u2b, ansiHalfColorConv } from './string_util.js';
 
 // Telnet commands
 export const SE = '\xf0';
