@@ -59,6 +59,7 @@
     "build:dev": "webpack --node-env=development",
     "prestart": "npm run clean",
     "start": "webpack serve --node-env=development",
+    "test": "node --test test/*.test.mjs",
     "prepare": "husky install"
   }
 }
