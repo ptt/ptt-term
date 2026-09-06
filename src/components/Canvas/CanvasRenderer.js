@@ -3,7 +3,7 @@ import { b2u, isDBCSLead } from "../../js/string_util";
 import { SmoothAnsiArt, ANSI_BLOCK_SET, hasAnsiArt } from "./SmoothAnsiArt";
 import { isBadDBCS, CanvasSelection } from "./CanvasSelection";
 
-// URL underline color matches DOM mode's background-image (src/icon/http.bmp, RGB #ff6600)
+// URL underline color matches DOM mode's URL underline (#ff6600)
 const URL_UNDERLINE_COLOR = "#ff6600";
 
 export class CanvasRenderer {
