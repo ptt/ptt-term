@@ -25,7 +25,7 @@ const left = (mouseWidth, menuWidth) => {
 
 const normalizeSelectedText = (selectedText) => {
   if (selectedText.length > 15) {
-    return `${selectedText.substr(0, 15)} …`;
+    return `${selectedText.slice(0, 15)} …`;
   }
   return selectedText;
 };

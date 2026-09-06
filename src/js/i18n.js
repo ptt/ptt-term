@@ -21,8 +21,7 @@ export function setupI18n(callback) {
 }
 
 export function getLang() {
-  let langs = navigator.languages ||
-    [navigator.language || navigator.userLanguage || ''];
+  let langs = navigator.languages || [navigator.language || ''];
   for (let lang of langs) {
     lang = lang.toLowerCase().replace('-', '_');
     if (lang in locale) {

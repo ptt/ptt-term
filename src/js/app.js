@@ -74,10 +74,6 @@ export class App {
 
   this.endTurnsOnLiveUpdate = false;
   this.copyOnSelect = false;
-  const version = window.navigator.userAgent.match(/Chrom(e|ium)\/(\d+)\./);
-  if (version && version.length > 2) {
-    this.chromeVersion = parseInt(version[2], 10);
-  }
 
   window.addEventListener('click', (e) => {
     this.mouse_click(e);
@@ -151,8 +147,10 @@ export class App {
   this.setupContextMenus();
   this.contextMenuShown = false;
 
-  // init touch only if chrome is higher than version 36
-  if (this.chromeVersion && this.chromeVersion >= 37) {
+  // init touch controller if device supports touch
+  const hasTouch = typeof window !== 'undefined' &&
+    (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
+  if (hasTouch) {
     this.touch = new TouchController(this);
   }
   }
