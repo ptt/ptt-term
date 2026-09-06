@@ -73,7 +73,7 @@ export class AutoSite extends BaseSite {
       return;
     }
     let cols = termBuf.cols;
-    let lastRowNum = termBuf.rows - 1;
+    let lastRowNum = this.getLastRowNum(termBuf);
     let row1Text = termBuf.getRowText(1, 0, cols);
     let lastRowText = termBuf.getRowText(lastRowNum, 0, cols);
     let row23Text = termBuf.rows > 23 ? termBuf.getRowText(23, 0, cols) : lastRowText;

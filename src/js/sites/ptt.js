@@ -8,7 +8,7 @@ export class PttSite extends BaseSite {
 
   isMenuScreen(termBuf) {
     let cols = termBuf.cols;
-    let lastRowNum = termBuf.rows - 1;
+    let lastRowNum = this.getLastRowNum(termBuf);
     let firstRowText = termBuf.getRowText(0, 0, cols);
     let lastRowText = termBuf.getRowText(lastRowNum, 0, cols);
 
@@ -25,7 +25,7 @@ export class PttSite extends BaseSite {
 
   isListScreen(termBuf) {
     let cols = termBuf.cols;
-    let lastRowNum = termBuf.rows - 1;
+    let lastRowNum = this.getLastRowNum(termBuf);
     if (termBuf.isUnicolor(0, 0, 29) && termBuf.isUnicolor(0, cols - 20, cols - 10)) {
       if (termBuf.isUnicolor(2, 0, cols - 10) && !termBuf.isLineEmpty(1) && (termBuf.cur_x < 19 || termBuf.cur_y == lastRowNum)) {
         return true;
@@ -39,7 +39,7 @@ export class PttSite extends BaseSite {
       return true;
     }
     let cols = termBuf.cols;
-    let lastRowNum = termBuf.rows - 1;
+    let lastRowNum = this.getLastRowNum(termBuf);
     if (termBuf.isUnicolor(lastRowNum, 28, 53) && termBuf.cur_y === lastRowNum && termBuf.cur_x === cols - 1) {
       return true;
     }
@@ -47,7 +47,7 @@ export class PttSite extends BaseSite {
   }
 
   isEditingScreen(termBuf) {
-    let lastRowNum = this.getLastRowNum ? this.getLastRowNum(termBuf) : (termBuf.rows - 1);
+    let lastRowNum = this.getLastRowNum(termBuf);
     let cols = termBuf.cols;
     let lastRowText = termBuf.getRowText(lastRowNum, 0, cols);
     return lastRowText.indexOf(' 編輯文章  (^Z/F1)說明 (^P/^G)插入符號/範本 (^X/^Q)離開') === 0;

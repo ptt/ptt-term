@@ -1074,7 +1074,9 @@ export class TermBuf extends Event {
       this.clearHighlight();
     }
 
-    let lastRowNum = this.rows - 1;
+    let lastRowNum = this.site
+      ? this.site.getLastRowNum(this)
+      : this.rows - 1;
     let cols = this.cols;
 
     switch( this.pageState ) {
@@ -1091,7 +1093,7 @@ export class TermBuf extends Event {
         this.mouseCursor = 2;
       } else if ( trow === 0 ) {
         this.mouseCursor = 4;
-      } else { // if ( trow == 23)
+      } else { // trow == lastRowNum
         this.mouseCursor = 5;
       }
       break;
@@ -1113,7 +1115,7 @@ export class TermBuf extends Event {
           this.mouseCursor = 9;
         else
           this.mouseCursor = 4;
-      } else { // if ( trow == 23)
+      } else { // trow == lastRowNum
         if ( tcol < 2 )
           this.mouseCursor = 12;
         else if ( tcol > cols-5 )
