@@ -83,6 +83,11 @@ export class PttSite extends BaseSite {
     return termBuf.cur_y == lastRowNum && termBuf.cur_x == lastColNum;
   }
 
+  getAntiIdleString() {
+    // TELNET IAC NOP
+    return '\xff\xf1';
+  }
+
   getPagingSlice(termBuf, statusResult, actualRowIndex) {
     let beginIndex = 1;
     let atLastPage = false;

@@ -19,8 +19,6 @@ import { getSite } from './sites';
 
 function noop() {}
 
-const ANTI_IDLE_STR = '\x00'; // Also consider IAC NOP='\xff\xf1';
-
 export class App {
   constructor() {
 
@@ -630,15 +628,22 @@ export class App {
   }
 
   antiIdle() {
-  if (this.antiIdleTime && this.idleTime > this.antiIdleTime) {
-    if (this.connectState == 1) {
-      this.conn.send(ANTI_IDLE_STR);
-      this.idleTime = 0;
+    if (this.antiIdleTime && this.idleTime > this.antiIdleTime) {
+      if (this.connectState == 1) {
+        const site = this.buf ? this.buf.site : this.site;
+        const antiIdleStr =
+          site && typeof site.getAntiIdleString === 'function'
+            ? site.getAntiIdleString()
+            : '\x00';
+        if (antiIdleStr) {
+          this.conn.send(antiIdleStr);
+        }
+        this.idleTime = 0;
+      }
+    } else {
+      if (this.connectState == 1)
+        this.idleTime += 1000;
     }
-  } else {
-    if (this.connectState == 1)
-      this.idleTime += 1000;
-  }
   }
 
   updateTabIcon(aStatus) {

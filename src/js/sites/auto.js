@@ -186,4 +186,8 @@ export class AutoSite extends BaseSite {
   getEditorColorCommand(color, type) {
     return this.getActiveSite().getEditorColorCommand(color, type);
   }
+
+  getAntiIdleString() {
+    return this.getActiveSite().getAntiIdleString();
+  }
 }

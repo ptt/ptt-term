@@ -40,7 +40,7 @@ export class Maple3Site extends BaseSite {
 
     // Article end prompt: e.g. 文章選讀  (y)回應 (=\[]<>-+;'`)相關主題 (/?)搜尋標題 (aA)搜尋作者
     if (/文章選讀/.test(rowText)) {
-      // console.log('[Maple3Profile] Matched article end reading status:', rowText);
+      // console.log('[Maple3Site] Matched article end reading status:', rowText);
       return {
         pageIndex: 999,
         pageTotal: 999,
@@ -62,6 +62,11 @@ export class Maple3Site extends BaseSite {
       return true;
     }
     return super.isArticleEnd(lastRowText, termBuf, statusResult);
+  }
+
+  getAntiIdleString() {
+    // NUL
+    return '\x00';
   }
 
   getPagingSlice(termBuf, statusResult, actualRowIndex) {

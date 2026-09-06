@@ -275,6 +275,14 @@ export class BaseSite {
   }
 
   /**
+   * Get anti-idle string to send periodically to keep connection alive.
+   * @returns {string|null}
+   */
+  getAntiIdleString() {
+    return '\x1b\x1b';
+  }
+
+  /**
    * Called when a Telnet negotiation option is received from the server.
    * @param {string} cmd 'WILL', 'DO', 'WONT', 'DONT'
    * @param {string} opt Option byte
