@@ -1,14 +1,15 @@
 import { WordSegmentBuilder, TwoColorWordBuilder } from "./WordSegmentBuilder";
 import { b2u, isDBCSLead } from "../../js/string_util";
-import { symbolTable } from "../../js/symbol_table";
+import { isBadDBCSCode, isForceWidthCode } from "../../js/symbol_table";
 
 function isBadDBCS(u) {
-  return symbolTable["x" + u.charCodeAt(0).toString(16)] == 3;
+  if (!u || u.length === 0) return true;
+  return isBadDBCSCode(u.charCodeAt(0));
 }
 
 function shouldForceWidth(u) {
-  const code = symbolTable["x" + u.charCodeAt(0).toString(16)];
-  return code == 1 || code == 2;
+  if (!u || u.length === 0) return false;
+  return isForceWidthCode(u.charCodeAt(0));
 }
 
 export class ColorSegmentBuilder {

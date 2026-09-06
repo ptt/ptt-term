@@ -1,9 +1,9 @@
 import { isDBCSLead, b2u } from "../../js/string_util";
-import { symbolTable } from "../../js/symbol_table";
+import { isBadDBCSCode } from "../../js/symbol_table";
 
 export function isBadDBCS(u) {
   if (!u || u.length === 0) return true;
-  return symbolTable["x" + u.charCodeAt(0).toString(16)] == 3;
+  return isBadDBCSCode(u.charCodeAt(0));
 }
 
 export class CanvasSelection {
