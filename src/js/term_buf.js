@@ -356,7 +356,7 @@ TermBuf.prototype = {
         ch2.copyAttr(this.attr);
         ch2.needUpdate=true;
         ++this.cur_x;
-        if (ch2.isLeadByte) // previous state before this function
+        if (ch2.isLeadByte && this.cur_x < cols) // previous state before this function
           line[this.cur_x].needUpdate=true;
         if (this.view.charset == 'UTF-8' && this.isFullWidth(ch) && this.cur_x < cols) {
           ch2 = line[this.cur_x];
