@@ -114,6 +114,9 @@ export const en_US = {
   "options_smoothAnsiArt": {
     "message": "Smooth ANSI Art (need Canvas mode)"
   },
+  "options_captureConnectionLog": {
+    "message": "Capture connection log"
+  },
   "options_reset": {
     "message": "Restore defaults"
   },

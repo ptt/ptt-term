@@ -755,6 +755,11 @@ TermView.prototype = {
   },
 
   getSelectedText: function() {
+    if (this.bbscore && this.bbscore.connLog && this.bbscore.connLog.hasSelection()) {
+      if (!window.getSelection().isCollapsed) {
+        return window.getSelection().toString();
+      }
+    }
     if (this.isEasyReadingActive()) {
       if (!window.getSelection().isCollapsed) {
         return window.getSelection().toString().replace(/\u00a0/g, " ");

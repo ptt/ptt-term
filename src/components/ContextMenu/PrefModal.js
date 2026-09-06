@@ -32,6 +32,7 @@ const DEFAULT_PREFS = {
   useCanvasEngine: true,
   showFps: false,
   smoothAnsiArt: true,
+  captureConnectionLog: false,
 
   // mouse browsing
   useMouseBrowsing: false,
@@ -704,6 +705,13 @@ export const PrefModal = ({
                     onChange={onCheckboxChange}
                   >
                     {i18n("options_showFps")}
+                  </Checkbox>
+                  <Checkbox
+                    name="captureConnectionLog"
+                    checked={values.captureConnectionLog}
+                    onChange={onCheckboxChange}
+                  >
+                    {i18n("options_captureConnectionLog")}
                   </Checkbox>
                 </fieldset>
               </Tab.Pane>

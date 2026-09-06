@@ -114,6 +114,9 @@ export const zh_TW = {
   "options_smoothAnsiArt": {
     "message": "平滑化 ANSI 藝術 (需要 Canvas 模式)"
   },
+  "options_captureConnectionLog": {
+    "message": "記錄連線內容 (Capture connection log)"
+  },
   "options_reset": {
     "message": "設回預設值"
   },

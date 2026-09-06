@@ -7,6 +7,7 @@ import { TermBuf } from './term_buf';
 import { TelnetConnection } from './telnet';
 import { Websocket } from './websocket';
 import { EasyReading } from './easy_reading';
+import { ConnectionLog } from './conn_log';
 import { TouchController } from './touch_controller';
 import { i18n } from './i18n';
 import { unescapeStr, b2u, parseWaterball } from './string_util';
@@ -39,6 +40,7 @@ export const App = function() {
   this.view.setCore(this);
   this.parser = new AnsiParser(this.buf);
   this.easyReading = new EasyReading(this, this.view, this.buf);
+  this.connLog = new ConnectionLog(this);
   this.lastEasyReadingWheelTime = 0;
   this.lastEasyReadingHideTime = 0;
   this.suppressWheelUntil = 0;
@@ -249,6 +251,9 @@ App.prototype._parseURLSimple = function(url) {
 
 App.prototype._setupWebsocketConn = function(url) {
   var wsConn = new Websocket(url);
+  if (this.connLog) {
+    this.connLog.attachSocket(wsConn);
+  }
   this._attachConn(new TelnetConnection(wsConn));
 };
 
@@ -953,6 +958,11 @@ App.prototype.onPrefChange = function(name, value) {
       this.view.smoothAnsiArt = !!value;
       this.view.redraw(true);
       break;
+    case 'captureConnectionLog':
+      if (this.connLog) {
+        this.connLog.setEnabled(!!value);
+      }
+      break;
     default:
       break;
     }
@@ -967,11 +977,14 @@ App.prototype.checkClass = function(cn) {
       cn.indexOf("closePP") >= 0 || cn.indexOf("picturePreview") >= 0 || 
       cn.indexOf("drag") >= 0    || cn.indexOf("floatWindowClientArea") >= 0 || 
       cn.indexOf("WinBtn") >= 0  || cn.indexOf("sBtn") >= 0 || 
-      cn.indexOf("nonspan") >= 0 || cn.indexOf("nomouse_command") >= 0);
+      cn.indexOf("nonspan") >= 0 || cn.indexOf("nomouse_command") >= 0 ||
+      cn.indexOf("conn-log") >= 0);
 };
 
 App.prototype.mouse_click = function(e) {
   if (this.modalShown || this.contextMenuShown)
+    return;
+  if (this.connLog && this.connLog.contains(e.target))
     return;
   var skipMouseClick = (this.CmdHandler.getAttribute('SkipMouseClick') == '1');
   this.CmdHandler.setAttribute('SkipMouseClick','0');
@@ -1020,6 +1033,8 @@ App.prototype.mouse_click = function(e) {
 
 App.prototype.middleMouse_down = function(e) {
   // moved to here because middle click works better with jquery
+  if (this.connLog && this.connLog.contains(e.target))
+    return;
   if (e.button == 1) {
     if ($(e.target).is('a') || $(e.target).parent().is('a')) {
       return;
@@ -1039,6 +1054,8 @@ App.prototype.middleMouse_down = function(e) {
 
 App.prototype.mouse_down = function(e) {
   if (this.modalShown || this.contextMenuShown)
+    return;
+  if (this.connLog && this.connLog.contains(e.target))
     return;
   //0=left button, 1=middle button, 2=right button
   if (e.button === 0) {
@@ -1069,6 +1086,8 @@ App.prototype.mouse_down = function(e) {
 
 App.prototype.mouse_up = function(e) {
   if (this.modalShown || this.contextMenuShown)
+    return;
+  if (this.connLog && this.connLog.contains(e.target))
     return;
   //0=left button, 1=middle button, 2=right button
   if (e.button === 0) {
@@ -1116,6 +1135,8 @@ App.prototype.mouse_up = function(e) {
 };
 
 App.prototype.mouse_move = function(e) {
+  if (this.connLog && this.connLog.contains(e.target))
+    return;
   if (this.buf.useMouseBrowsing) {
     if (this.isSelectionCollapsed()) {
       if(!this.mouseLeftButtonDown)
@@ -1128,6 +1149,8 @@ App.prototype.mouse_move = function(e) {
 
 App.prototype.mouse_over = function(e) {
   if (this.modalShown || this.contextMenuShown)
+    return;
+  if (this.connLog && this.connLog.contains(e.target))
     return;
 
   this.curX = e.clientX;
@@ -1148,6 +1171,8 @@ App.prototype.suppressInertialWheel = function(durationMs) {
 
 App.prototype.mouse_scroll = function(e) {
   if (this.modalShown) 
+    return;
+  if (this.connLog && this.connLog.contains(e.target))
     return;
 
   var now = Date.now();
