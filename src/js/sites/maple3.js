@@ -64,9 +64,8 @@ export class Maple3Site extends BaseSite {
     return super.isArticleEnd(lastRowText, termBuf, statusResult);
   }
 
-  getAntiIdleString() {
-    // NUL
-    return '\x00';
+  sendAntiIdle(conn) {
+    conn.send('\x00');
   }
 
   getPagingSlice(termBuf, statusResult, actualRowIndex) {

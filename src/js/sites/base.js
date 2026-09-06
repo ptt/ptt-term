@@ -275,11 +275,11 @@ export class BaseSite {
   }
 
   /**
-   * Get anti-idle string to send periodically to keep connection alive.
-   * @returns {string|null}
+   * Send anti-idle signal or string across the connection.
+   * @param {TelnetConnection} conn
    */
-  getAntiIdleString() {
-    return '\x1b\x1b';
+  sendAntiIdle(conn) {
+    conn.send('\x1b\x1b');
   }
 
   /**

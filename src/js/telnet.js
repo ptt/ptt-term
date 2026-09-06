@@ -4,33 +4,33 @@ import { Event } from './event';
 import { u2b, ansiHalfColorConv } from './string_util';
 
 // Telnet commands
-const SE = '\xf0';
-const NOP = '\xf1';
-const DATA_MARK = '\xf2';
-const BREAK = '\xf3';
-const INTERRUPT_PROCESS = '\xf4';
-const ABORT_OUTPUT = '\xf5';
-const ARE_YOU_THERE = '\xf6';
-const ERASE_CHARACTER = '\xf7';
-const ERASE_LINE = '\xf8';
-const GO_AHEAD  = '\xf9';
-const SB = '\xfa';
+export const SE = '\xf0';
+export const NOP = '\xf1';
+export const DATA_MARK = '\xf2';
+export const BREAK = '\xf3';
+export const INTERRUPT_PROCESS = '\xf4';
+export const ABORT_OUTPUT = '\xf5';
+export const ARE_YOU_THERE = '\xf6';
+export const ERASE_CHARACTER = '\xf7';
+export const ERASE_LINE = '\xf8';
+export const GO_AHEAD  = '\xf9';
+export const SB = '\xfa';
 
 // Option commands
-const WILL  = '\xfb';
-const WONT  = '\xfc';
-const DO = '\xfd';
-const DONT = '\xfe';
-const IAC = '\xff';
+export const WILL  = '\xfb';
+export const WONT  = '\xfc';
+export const DO = '\xfd';
+export const DONT = '\xfe';
+export const IAC = '\xff';
 
 // Telnet options
-const BINARY = '\x00';
-const ECHO  = '\x01';
-const SUPRESS_GO_AHEAD = '\x03';
-const TERM_TYPE = '\x18';
-const IS = '\x00';
-const SEND = '\x01';
-const NAWS = '\x1f';
+export const BINARY = '\x00';
+export const ECHO  = '\x01';
+export const SUPRESS_GO_AHEAD = '\x03';
+export const TERM_TYPE = '\x18';
+export const IS = '\x00';
+export const SEND = '\x01';
+export const NAWS = '\x1f';
 
 // state
 const STATE_DATA=0;
@@ -101,6 +101,16 @@ export class TelnetConnection extends Event {
           break;
         case SB:
           this.state=STATE_SB;
+          break;
+        case NOP:
+          this.dispatchEvent(new CustomEvent('nop'));
+          this.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'NOP', opt: null } }));
+          this.state = STATE_DATA;
+          break;
+        case IAC:
+          // RFC 854: Escaped IAC byte in data stream
+          data += IAC;
+          this.state = STATE_DATA;
           break;
         default:
           this.state=STATE_DATA;
@@ -206,5 +216,9 @@ export class TelnetConnection extends Event {
     var nawsStr = String.fromCharCode(Math.floor(cols/256), cols%256, Math.floor(rows/256), rows%256).replace(/(\xff)/g,'\xff\xff');
     var rep = IAC + SB + NAWS + nawsStr + IAC + SE;
     this._sendRaw( rep );
+  }
+
+  sendNop() {
+    this._sendRaw(IAC + NOP);
   }
 }

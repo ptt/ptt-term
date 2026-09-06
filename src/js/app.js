@@ -630,14 +630,7 @@ export class App {
   antiIdle() {
     if (this.antiIdleTime && this.idleTime > this.antiIdleTime) {
       if (this.connectState == 1) {
-        const site = this.buf ? this.buf.site : this.site;
-        const antiIdleStr =
-          site && typeof site.getAntiIdleString === 'function'
-            ? site.getAntiIdleString()
-            : '\x00';
-        if (antiIdleStr) {
-          this.conn.send(antiIdleStr);
-        }
+        this.site.sendAntiIdle(this.conn);
         this.idleTime = 0;
       }
     } else {
