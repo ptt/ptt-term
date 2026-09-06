@@ -192,12 +192,6 @@ export class TermView {
     return true;
   };
 
-  addEventListener('keypress', (e) => {
-    if (!shouldAcceptInput() || !keyEventFilter(e))
-      return;
-    this._keyboard.onKeyPress(e);
-  });
-
   addEventListener('keydown', (e) => {
     if (!shouldAcceptInput() || !keyEventFilter(e))
       return;
