@@ -156,11 +156,8 @@ export class ContextMenu extends React.Component {
     event.stopPropagation();
     event.preventDefault();
     const { app } = this.props;
-    const { CmdHandler } = app;
-    const doDOMMouseScroll =
-      CmdHandler.getAttribute("doDOMMouseScroll") === "1";
-    if (doDOMMouseScroll) {
-      CmdHandler.setAttribute("doDOMMouseScroll", "0");
+    if (app.preventContextMenuOnMouseUp) {
+      app.preventContextMenuOnMouseUp = false;
       return;
     }
     if (app.inputAreaFocusTimer) {

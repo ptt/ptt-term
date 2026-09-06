@@ -20,10 +20,9 @@ function noop() {}
 export class App {
   constructor() {
 
-  this.CmdHandler = document.getElementById('cmdHandler');
-  this.CmdHandler.setAttribute('useMouseBrowsing', '1');
-  this.CmdHandler.setAttribute('doDOMMouseScroll','0');
-  this.CmdHandler.setAttribute('SkipMouseClick','0');
+  this.useMouseBrowsing = true;
+  this.preventContextMenuOnMouseUp = false;
+  this.skipMouseClick = false;
 
   this.view = new TermView();
   this.buf = new TermBuf(80, 24);
@@ -325,7 +324,7 @@ export class App {
   this.mbTimer = setTimer(false, () => {
     this.mbTimer.cancel();
     this.mbTimer = null;
-    this.CmdHandler.setAttribute('SkipMouseClick', '0');
+    this.skipMouseClick = false;
   }, 100);
   }
 
@@ -571,13 +570,8 @@ export class App {
   }
 
   switchMouseBrowsing() {
-  if (this.CmdHandler.getAttribute('useMouseBrowsing')=='1') {
-    this.CmdHandler.setAttribute('useMouseBrowsing', '0');
-    this.buf.useMouseBrowsing=false;
-  } else {
-    this.CmdHandler.setAttribute('useMouseBrowsing', '1');
-    this.buf.useMouseBrowsing=true;
-  }
+    this.useMouseBrowsing = !this.useMouseBrowsing;
+    this.buf.useMouseBrowsing = this.useMouseBrowsing;
 
   if (!this.buf.useMouseBrowsing) {
     this.buf.BBSWin.style.cursor = 'auto';
@@ -838,8 +832,8 @@ export class App {
   try {
     switch (name) {
     case 'useMouseBrowsing': {
-      const useMouseBrowsing = value;
-      this.CmdHandler.setAttribute('useMouseBrowsing', useMouseBrowsing?'1':'0');
+      const useMouseBrowsing = !!value;
+      this.useMouseBrowsing = useMouseBrowsing;
       this.buf.useMouseBrowsing = useMouseBrowsing;
 
       if (!this.buf.useMouseBrowsing) {
@@ -961,8 +955,8 @@ export class App {
     return;
   if (this.connLog && this.connLog.contains(e.target))
     return;
-  const skipMouseClick = (this.CmdHandler.getAttribute('SkipMouseClick') == '1');
-  this.CmdHandler.setAttribute('SkipMouseClick','0');
+  const skipMouseClick = this.skipMouseClick;
+  this.skipMouseClick = false;
 
   if (e.button == 2) { //right button
   } else if (e.button === 0) { //left button
@@ -991,11 +985,11 @@ export class App {
         }
       } else if (this.view.leftButtonFunction) {
         if (this.view.leftButtonFunction == 1) {
-          this.setBBSCmd('doEnter', this.CmdHandler);
+          this.setBBSCmd('doEnter');
           e.preventDefault();
           this.setInputAreaFocus();
         } else if (this.view.leftButtonFunction == 2) {
-          this.setBBSCmd('doRight', this.CmdHandler);
+          this.setBBSCmd('doRight');
           e.preventDefault();
           this.setInputAreaFocus();
         }
@@ -1044,7 +1038,7 @@ export class App {
     this.mouseLeftButtonDown = true;
     //this.setInputAreaFocus();
     if (!this.isSelectionCollapsed())
-      this.CmdHandler.setAttribute('SkipMouseClick','1');
+      this.skipMouseClick = true;
 
     let onbbsarea = true;
     if (e.target.className)
@@ -1269,10 +1263,10 @@ export class App {
   e.preventDefault();
 
   if (this.mouseRightButtonDown) //prevent context menu popup
-    this.CmdHandler.setAttribute('doDOMMouseScroll','1');
+    this.preventContextMenuOnMouseUp = true;
   if (this.mouseLeftButtonDown) {
     if (this.buf.useMouseBrowsing) {
-      this.CmdHandler.setAttribute('SkipMouseClick','1');
+      this.skipMouseClick = true;
     }
   }
   }
