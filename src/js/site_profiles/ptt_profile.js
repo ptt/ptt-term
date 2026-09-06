@@ -62,20 +62,17 @@ export class PttProfile extends BaseProfile {
   }
 
   isArticleEnd(lastRowText, termBuf, statusResult) {
-    let lastRowNum = termBuf.rows - 1;
+    let lastRowNum = this.getLastRowNum(termBuf);
     let lastRowFirstCh = termBuf.lines[lastRowNum][0];
     if (lastRowFirstCh && lastRowFirstCh.getBg() == 4 && lastRowFirstCh.getFg() == 7) {
       return true;
     }
-    if (statusResult && statusResult.pageIndex && statusResult.pageTotal) {
-      return statusResult.pageIndex == statusResult.pageTotal && statusResult.pagePercent == 100;
-    }
-    return !!(statusResult && statusResult.pagePercent == 100);
+    return super.isArticleEnd(lastRowText, termBuf, statusResult);
   }
 
   isCursorParked(termBuf) {
     let lastColNum = termBuf.cols - 1;
-    let lastRowNum = termBuf.rows - 1;
+    let lastRowNum = this.getLastRowNum(termBuf);
     return termBuf.cur_y == lastRowNum && termBuf.cur_x == lastColNum;
   }
 

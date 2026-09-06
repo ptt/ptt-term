@@ -111,7 +111,8 @@ export class BaseProfile {
    * @returns {boolean}
    */
   isCursorParked(termBuf) {
-    return termBuf.cur_y === termBuf.rows - 1;
+    let lastRowNum = this.getLastRowNum(termBuf);
+    return termBuf.cur_y === lastRowNum;
   }
 
   /**

@@ -61,16 +61,7 @@ export class Maple3Profile extends BaseProfile {
     if (/文章選讀/.test(lastRowText)) {
       return true;
     }
-    if (statusResult && statusResult.pageIndex && statusResult.pageTotal) {
-      return statusResult.pageIndex == statusResult.pageTotal && statusResult.pagePercent == 100;
-    }
-    return !!(statusResult && statusResult.pagePercent == 100);
-  }
-
-  isCursorParked(termBuf) {
-    let lastRowNum = this.getLastRowNum(termBuf);
-    // Maple 3 parks cursor on lastRowNum (row 23) after rendering bottom prompt
-    return termBuf.cur_y == lastRowNum;
+    return super.isArticleEnd(lastRowText, termBuf, statusResult);
   }
 
   getPagingSlice(termBuf, statusResult, actualRowIndex) {
