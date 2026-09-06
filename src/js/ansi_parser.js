@@ -75,7 +75,7 @@ AnsiParser.prototype.feed = function(data) {
           term.gotoPos(term.cur_x, term.cur_y+(params[0]?params[0]:1));
           break;
         case 'C':
-        case 'e':
+        case 'a':
           term.gotoPos(term.cur_x+(params[0]?params[0]:1), term.cur_y);
           break;
         case 'D':
