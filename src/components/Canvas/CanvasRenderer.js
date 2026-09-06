@@ -75,6 +75,47 @@ export class CanvasRenderer {
     return item;
   }
 
+  tryRegisterSolidBg(
+    blockGrid,
+    cols,
+    r,
+    c,
+    y,
+    chw,
+    chh,
+    fgIndex,
+    bgIndex,
+    charStr,
+    isWide = false,
+    trailBgIndex = bgIndex
+  ) {
+    if (bgIndex === 0) return false;
+    if (isWide && bgIndex !== trailBgIndex) return false;
+    const isSolid =
+      fgIndex === bgIndex ||
+      (isWide
+        ? charStr === "\u3000"
+        : charStr === " " || charStr === "" || charStr === "\x00");
+    if (!isSolid) return false;
+
+    const w = isWide ? chw * 2 : chw;
+    const blockItem = this.getBlockItem(
+      "\u2588",
+      r,
+      c,
+      c * chw,
+      y,
+      w,
+      chh,
+      bgIndex
+    );
+    blockGrid[r * cols + c] = blockItem;
+    if (isWide) {
+      blockGrid[r * cols + c + 1] = blockItem;
+    }
+    return true;
+  }
+
   getCharMetrics(ctx, text, isDBCS, chw) {
     const key = isDBCS ? text + "\x01" : text;
     let scale = this.metricsCache.get(key);
@@ -358,13 +399,34 @@ export class CanvasRenderer {
                 const leadFgIndex = ch.getFg() !== undefined ? ch.getFg() : 7;
                 const trailFgIndex =
                   trailCh.getFg() !== undefined ? trailCh.getFg() : 7;
+                const leadBgIndex = ch.getBg() !== undefined ? ch.getBg() : 0;
+                const trailBgIndex =
+                  trailCh.getBg() !== undefined ? trailCh.getBg() : 0;
 
                 if (
                   leadFgIndex === trailFgIndex &&
                   !isLeadHidden &&
                   !isTrailHidden
                 ) {
-                  if (smoothAnsiArt && ANSI_BLOCK_SET.has(u)) {
+                  if (
+                    smoothAnsiArt &&
+                    this.tryRegisterSolidBg(
+                      blockGrid,
+                      cols,
+                      r,
+                      c,
+                      y,
+                      chw,
+                      chh,
+                      leadFgIndex,
+                      leadBgIndex,
+                      u,
+                      true,
+                      trailBgIndex
+                    )
+                  ) {
+                    // Solid background block registered in blockGrid
+                  } else if (smoothAnsiArt && ANSI_BLOCK_SET.has(u)) {
                     const blockItem = this.getBlockItem(
                       u,
                       r,
@@ -443,7 +505,28 @@ export class CanvasRenderer {
             const isHidden = (ch.blink || trailCh.blink) && isBlinkHidden;
             if (!isHidden) {
               const fgIndex = ch.getFg() !== undefined ? ch.getFg() : 7;
-              if (smoothAnsiArt && ANSI_BLOCK_SET.has(ch.ch)) {
+              const leadBgIndex = ch.getBg() !== undefined ? ch.getBg() : 0;
+              const trailBgIndex =
+                trailCh.getBg() !== undefined ? trailCh.getBg() : 0;
+              if (
+                smoothAnsiArt &&
+                this.tryRegisterSolidBg(
+                  blockGrid,
+                  cols,
+                  r,
+                  c,
+                  y,
+                  chw,
+                  chh,
+                  fgIndex,
+                  leadBgIndex,
+                  ch.ch,
+                  true,
+                  trailBgIndex
+                )
+              ) {
+                // Solid background block registered in blockGrid
+              } else if (smoothAnsiArt && ANSI_BLOCK_SET.has(ch.ch)) {
                 const blockItem = this.getBlockItem(
                   ch.ch,
                   r,
@@ -481,7 +564,26 @@ export class CanvasRenderer {
           if (ch.blink && isBlinkHidden) continue;
           const charStr = ch.ch;
           const fgIndex = ch.getFg() !== undefined ? ch.getFg() : 7;
-          if (charStr && charStr !== " " && charStr !== "\x00") {
+          const bgIndex = ch.getBg() !== undefined ? ch.getBg() : 0;
+
+          if (
+            smoothAnsiArt &&
+            this.tryRegisterSolidBg(
+              blockGrid,
+              cols,
+              r,
+              c,
+              y,
+              chw,
+              chh,
+              fgIndex,
+              bgIndex,
+              charStr,
+              false
+            )
+          ) {
+            // Solid background block registered in blockGrid
+          } else if (charStr && charStr !== " " && charStr !== "\x00") {
             if (smoothAnsiArt && ANSI_BLOCK_SET.has(charStr)) {
               const blockItem = this.getBlockItem(
                 charStr,
