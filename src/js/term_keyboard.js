@@ -22,13 +22,13 @@ const KeyMap = {
   'Left': '\x1b[D'
 };
 let CtrlShiftMap = {
-  '@': 50,
-  '^': 54,
-  '_': 109,
-  '?': 127,
-  '[': 219,
-  '\\': 220,
-  ']': 221
+  '@': 0,    // NUL
+  '[': 27,   // ESC
+  '\\': 28,  // FS
+  ']': 29,   // GS
+  '^': 30,   // RS
+  '_': 31,   // US
+  '?': 127   // DEL
 };
 // A -> 1
 for (let i = 97; i <= 122; i++) {
@@ -101,7 +101,7 @@ export class TermKeyboard {
       // Use lowercase no even capslock's on.
       let key = e.key.length == 1 ? e.key.toLowerCase() : e.key;
       let mappedCode = CtrlShiftMap[key];
-      if (mappedCode) {
+      if (mappedCode !== undefined) {
         return this._sendCharCode(mappedCode);
       }
     } else if (!e.ctrlKey && e.altKey && !e.shiftKey) {
