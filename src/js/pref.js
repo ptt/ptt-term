@@ -23,7 +23,7 @@ export const DEFAULT_PREFS = {
 
   // displays
   fontFitWindowWidth: false,
-  fontFace: "MingLiu,SymMingLiu,monospace",
+  fontFace: "MingLiu,SymMingLiu,'Noto Sans Mono CJK TC','PingFang TC',monospace",
   fontSize: 24,
   maxFontSize: 999,
   termSize: { cols: 80, rows: 24 },

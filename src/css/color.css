@@ -1,8 +1,7 @@
 .y:not(.o), .y::before, .y::after
 {
- background-image: url(Icon/http.bmp?inline);
- background-repeat: repeat-x;
- background-position: 0% 90%;
+  text-decoration: underline #ff6600 !important;
+  text-underline-offset: 2px;
 }
 
 .blink--active .qq, .blink--active .qq::before, .blink--active .rqq::after{color:RGBA(0,0,0,0);}
