@@ -536,8 +536,8 @@ export class TermBuf extends Event {
             }
             const urlTemp2 = urlTemp.toLowerCase();
             line[uri[0]].startOfURL = true;
-            if (urlTemp2.substr(0,6) == 'pid://') {
-              line[uri[0]].fullurl='http://www.pixiv.net/member_illust.php?mode=big&illust_id='+urlTemp2.substr(6,15);
+            if (urlTemp2.startsWith('pid://')) {
+              line[uri[0]].fullurl = 'https://www.pixiv.net/artworks/' + urlTemp2.slice(6);
             } else {
               line[uri[0]].fullurl = u;
             }
@@ -1140,7 +1140,7 @@ export class TermBuf extends Event {
     if (reset ? (thisBg != DeBg) : (preBg != thisBg))
       text += '4' + thisBg + ';';
     if (!text) return '';
-    else return ('\x1b[' + text.substr(0,text.length-1) + 'm');
+    else return ('\x1b[' + text.slice(0, -1) + 'm');
   }
 
   /**
@@ -1179,7 +1179,7 @@ export class TermBuf extends Event {
     const rowText = this.getRowText(row, 0, this.cols);
     const slashIndex = rowText.lastIndexOf('\\');
     if (slashIndex > 0 ) {
-      const col = u2b(rowText.substr(0, slashIndex)).length;
+      const col = u2b(rowText.slice(0, slashIndex)).length;
       if (col != 77 && col != 78) return false;
       // check the color
       const line = this.lines[row];
