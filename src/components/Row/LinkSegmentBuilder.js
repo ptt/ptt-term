@@ -1,7 +1,7 @@
 import cx from "classnames";
 import HyperLink from "./HyperLink";
 import ColorSegmentBuilder from "./ColorSegmentBuilder";
-import ImagePreviewer, { of, resolveSrcToImageUrl } from "../ImagePreviewer";
+import ImagePreviewer, { resolveSrcToImageUrl } from "../ImagePreviewer";
 
 export class LinkSegmentBuilder {
   constructor(
@@ -45,7 +45,7 @@ export class LinkSegmentBuilder {
         this.inlineLinkPreviews.push(
           <ImagePreviewer
             key={`${this.col}-${this.href}`}
-            request={of(this.href).then(resolveSrcToImageUrl)}
+            request={resolveSrcToImageUrl({ src: this.href })}
             component={ImagePreviewer.Inline}
           />
         );

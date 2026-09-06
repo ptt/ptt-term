@@ -450,14 +450,17 @@ export class App {
   }
   }
 
-  doPaste() {
-  if (navigator.clipboard && navigator.clipboard.readText) {
-    navigator.clipboard.readText().then(
-      (text) => this.onPasteDone(text),
-      () => this.showPasteUnimplemented());
-  } else {
-    this.showPasteUnimplemented();
-  }
+  async doPaste() {
+    if (navigator.clipboard && navigator.clipboard.readText) {
+      try {
+        const text = await navigator.clipboard.readText();
+        this.onPasteDone(text);
+      } catch {
+        this.showPasteUnimplemented();
+      }
+    } else {
+      this.showPasteUnimplemented();
+    }
   }
 
   showPasteUnimplemented() {

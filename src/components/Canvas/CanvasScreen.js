@@ -39,10 +39,11 @@ export class CanvasScreen extends React.Component {
       document.fonts &&
       document.fonts.ready
     ) {
-      document.fonts.ready.then(() => {
+      (async () => {
+        await document.fonts.ready;
         this.renderer.clearFontCache();
         this.draw();
-      });
+      })();
     }
   }
 

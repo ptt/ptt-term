@@ -14,10 +14,10 @@ function base58Decode(str) {
 
 const noop = () => {};
 
-export const of = src => Promise.resolve({ src });
+export const of = async src => ({ src });
 
-export const resolveSrcToImageUrl = ({ src }) =>
-  imageUrlResolvers.find(r => r.test(src)).request(src);
+export const resolveSrcToImageUrl = async ({ src }) =>
+  await imageUrlResolvers.find(r => r.test(src)).request(src);
 
 export const resolveWithImageDOM = ({ src }) =>
   new Promise((resolve, reject) => {
@@ -75,33 +75,28 @@ export class ImagePreviewer extends React.PureComponent {
   }
 
   handleStart(props) {
-    this.setState((state, { request }) => {
-      request.then(this.handleResolve, this.handleReject);
-      return {
-        pending: request,
-        value: undefined,
-        error: undefined
-      };
+    const { request } = this.props;
+    if (!request) return;
+    this.setState({
+      pending: request,
+      value: undefined,
+      error: undefined
     });
+    this.loadRequest(request);
   }
 
-  handleResolve = value => {
-    this.setState(({ pending }, { request }) => {
-      if (pending !== request) {
-        return;
+  async loadRequest(request) {
+    try {
+      const value = await request;
+      if (this.state.pending === request) {
+        this.setState({ value, error: undefined });
       }
-      return { value };
-    });
-  };
-
-  handleReject = error => {
-    this.setState(({ pending }, { request }) => {
-      if (pending !== request) {
-        return;
+    } catch (error) {
+      if (this.state.pending === request) {
+        this.setState({ error, value: undefined });
       }
-      return { error };
-    });
-  };
+    }
+  }
 
   render() {
     return React.createElement(this.props.component, {
@@ -195,8 +190,8 @@ const imageUrlResolvers = [
     test() {
       return true;
     },
-    request() {
-      return Promise.reject(new Error("Unimplemented"));
+    async request() {
+      throw new Error("Unimplemented");
     }
   }
 ];
@@ -213,7 +208,7 @@ registerImageUrlResolver({
   test(src) {
     return this.regex.test(src);
   },
-  request(src) {
+  async request(src) {
     const [, flickrBase58Id, flickrPhotoId] = src.match(this.regex);
     const photoId = flickrBase58Id ? base58Decode(flickrBase58Id) : flickrPhotoId;
 
@@ -225,19 +220,15 @@ registerImageUrlResolver({
       nojsoncallback: "1"
     });
     const apiURL = `https://api.flickr.com/services/rest/?${params.toString()}`;
-    return fetch(apiURL, {
-      mode: "cors"
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (!data.photo) {
-          throw new Error("Not found");
-        }
-        const { farm, server: svr, id, secret } = data.photo;
-        return {
-          src: `https://farm${farm}.staticflickr.com/${svr}/${id}_${secret}.jpg`
-        };
-      });
+    const res = await fetch(apiURL, { mode: "cors" });
+    const data = await res.json();
+    if (!data.photo) {
+      throw new Error("Not found");
+    }
+    const { farm, server: svr, id, secret } = data.photo;
+    return {
+      src: `https://farm${farm}.staticflickr.com/${svr}/${id}_${secret}.jpg`
+    };
   }
 });
 
@@ -249,18 +240,19 @@ registerImageUrlResolver({
   test(src) {
     return this.regex.test(src);
   },
-  request(src) {
+  async request(src) {
     const [_, photoId, extension = "jpg"] = this.regex.exec(src);
-    return Promise.resolve({
+    return {
       src: `https://i.imgur.com/${photoId}.${extension}`
-    });
+    };
   }
 });
 
-export const createImagePreviewRequest = (href) =>
-  of(href)
-    .then(resolveSrcToImageUrl)
-    .then(resolveWithImageDOM);
+export const createImagePreviewRequest = async (href) => {
+  const { src } = await of(href);
+  const resolved = await resolveSrcToImageUrl({ src });
+  return await resolveWithImageDOM(resolved);
+};
 
 export const initialImagePreviewState = {
   currentImagePreview: undefined,
