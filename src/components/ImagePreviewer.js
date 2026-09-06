@@ -31,6 +31,32 @@ export const resolveWithImageDOM = ({ src }) =>
     img.src = src;
   });
 
+export const LoadingSpinner = ({ style, className = "" }) => (
+  <svg
+    className={`loading-spinner ${className}`}
+    style={{ display: "inline-block", verticalAlign: "middle", ...style }}
+    viewBox="0 0 24 24"
+    width="16"
+    height="16"
+    fill="none"
+  >
+    <circle
+      cx="12"
+      cy="12"
+      r="9"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeOpacity="0.25"
+    />
+    <path
+      d="M12 3a9 9 0 0 1 9 9"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
 export class ImagePreviewer extends React.PureComponent {
   state = {
     pending: undefined,
@@ -127,8 +153,7 @@ ImagePreviewer.OnHover = ({ left, top, value, error }) => {
     );
   } else {
     return (
-      <i
-        className="glyphicon glyphicon-refresh glyphicon-refresh-animate"
+      <LoadingSpinner
         style={{
           position: "absolute",
           left: safeLeft,
@@ -146,9 +171,7 @@ ImagePreviewer.Inline = ({ value, error }) => {
   } else if (value) {
     return <img className="easyReadingImg hyperLinkPreview" src={value.src} />;
   } else {
-    return (
-      <i className="glyphicon glyphicon-refresh glyphicon-refresh-animate" />
-    );
+    return <LoadingSpinner />;
   }
 };
 

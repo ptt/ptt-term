@@ -31,8 +31,8 @@
 }
 
 .DropdownMenu__Item--checked::before {
-  content: "\e013";
-  font-family: "Glyphicons Halflings";
+  content: "✓";
+  font-weight: bold;
   position: absolute;
   left: 10px;
   color: black;
