@@ -169,10 +169,12 @@ export class BaseProfile {
   /**
    * Get bottom prompt HTML for easy reading mode.
    * @param {string} spaces
+   * @param {number} percent
    * @returns {string} HTML string
    */
-  getEasyReadingPrompt(spaces = '') {
-    return '<span align="left"><span class="q0 b7">' + spaces + '</span><span class="q1 b7">[好讀模式]</span><span class="q0 b7"> 滾輪/上下鍵捲動，</span><span class="q1 b7">(Esc)</span><span class="q0 b7">回到終端機 </span><span class="q1 b7">(←/q)</span><span class="q0 b7">離開</span></span>';
+  getEasyReadingPrompt(spaces = '', percent = 100) {
+    const pctStr = (percent >= 100) ? '100%' : (percent < 10 ? '  ' + percent + '%' : ' ' + percent + '%');
+    return '<span align="left"><span class="q0 b7">' + spaces + '瀏覽 </span><span class="q1 b7">(' + pctStr + ')</span><span class="q1 b7"> [好讀模式]</span><span class="q0 b7"> 滾輪/上下鍵捲動，</span><span class="q1 b7">(Esc)</span><span class="q0 b7">回到終端機 </span><span class="q1 b7">(←/q)</span><span class="q0 b7">離開</span></span>';
   }
 
   /**

@@ -119,6 +119,9 @@ export function TermView() {
   easyReadingContent.setAttribute('id', 'easyReadingContent');
   easyReadingOverlay.appendChild(easyReadingContent);
   this.easyReadingContent = easyReadingContent;
+  this.easyReadingContent.addEventListener('scroll', () => {
+    this.updateEasyReadingProgress();
+  });
 
   var easyReadingFooter = document.createElement('div');
   easyReadingFooter.setAttribute('id', 'easyReadingFooter');
@@ -128,7 +131,7 @@ export function TermView() {
   var lastRowDiv = document.createElement('div');
   lastRowDiv.setAttribute('id', 'easyReadingLastRow');
   let spaces = ' ';
-  this.lastRowDivContent = '<span align="left"><span class="q0 b7">' + spaces + '</span><span class="q1 b7">[好讀模式]</span><span class="q0 b7"> 滾輪/上下鍵捲動，</span><span class="q1 b7">(Esc)</span><span class="q0 b7">回到終端機 </span><span class="q1 b7">(←/q)</span><span class="q0 b7">離開</span></span>';
+  this.lastRowDivContent = '<span align="left"><span class="q0 b7">' + spaces + '瀏覽 </span><span class="q1 b7">(100%)</span><span class="q1 b7"> [好讀模式]</span><span class="q0 b7"> 滾輪/上下鍵捲動，</span><span class="q1 b7">(Esc)</span><span class="q0 b7">回到終端機 </span><span class="q1 b7">(←/q)</span><span class="q0 b7">離開</span></span>';
   lastRowDiv.innerHTML = this.lastRowDivContent;
   this.lastRowDiv = lastRowDiv;
   easyReadingFooter.appendChild(lastRowDiv);
@@ -917,7 +920,7 @@ TermView.prototype = {
         }
         var spaces = ' ';
         this.lastRowDiv.style.backgroundColor = '';
-        this.lastRowDiv.innerHTML = profile.getEasyReadingPrompt(spaces);
+        this.updateEasyReadingProgress();
         this.lastRowDiv.style.display = 'block';
         this.replyRowDiv.style.display = 'none';
         // deep clone lines for selection (getRowText and get ansi color)
@@ -926,6 +929,20 @@ TermView.prototype = {
         this.hideEasyReading();
       }
       this.buf.prevPageState = this.buf.pageState;
+    }
+  },
+
+  updateEasyReadingProgress: function() {
+    if (!this.easyReadingContent || !this.lastRowDiv) return;
+    var cont = this.easyReadingContent;
+    var percent = 100;
+    if (cont.scrollHeight > cont.clientHeight) {
+      var scrollBottom = cont.scrollTop + cont.clientHeight;
+      percent = Math.min(100, Math.max(0, Math.round((scrollBottom / cont.scrollHeight) * 100)));
+    }
+    var profile = (this.buf && this.buf.siteProfile) || (this.bbscore && this.bbscore.siteProfile);
+    if (profile && typeof profile.getEasyReadingPrompt === 'function') {
+      this.lastRowDiv.innerHTML = profile.getEasyReadingPrompt(' ', percent);
     }
   },
 
@@ -947,6 +964,7 @@ TermView.prototype = {
         line, this.easyReadingContent.childNodes.length, this.chh,
         showsLinkPreview, el);
     }
+    this.updateEasyReadingProgress();
   },
 
   renderSingleRow: function(target, row) {

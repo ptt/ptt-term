@@ -98,8 +98,16 @@ export class PttProfile extends BaseProfile {
     return { beginIndex, atLastPage };
   }
 
-  getEasyReadingPrompt(spaces = '') {
-    return '<span align="left"><span class="q0 b7">' + spaces + '</span><span class="q1 b7">[好讀模式]</span><span class="q0 b7"> 滾輪/上下鍵捲動，</span><span class="q1 b7">(y)</span><span class="q0 b7">回應 </span><span class="q1 b7">(X%)</span><span class="q0 b7">推文 </span><span class="q1 b7">(Esc)</span><span class="q0 b7">回到終端機 </span><span class="q1 b7">(←/q)</span><span class="q0 b7">離開</span></span>';
+  getEasyReadingPrompt(spaces = '', percent = 100) {
+    const pctStr = (percent >= 100) ? '100%' : (percent < 10 ? '  ' + percent + '%' : ' ' + percent + '%');
+    const cls = (percent >= 100) ? 'q1' : 'q2';
+    return '<span align="left"><span class="q1 b7">' + spaces + '[好讀模式] </span>' +
+           '<span class="' + cls + ' b7">(' + pctStr + ') </span>' +
+           '<span class="q0 b7"> 滾輪/上下鍵捲動，</span>' +
+           '<span class="q1 b7">(y)</span><span class="q0 b7">回應 </span>' +
+           '<span class="q1 b7">(X%)</span><span class="q0 b7">推文 </span>' +
+           '<span class="q1 b7">(Esc)</span><span class="q0 b7">回到終端機 </span>' +
+           '<span class="q1 b7">(←/q)</span><span class="q0 b7">離開</span></span>';
   }
 
   handleEasyReadingKeyDown(easyReading, e) {

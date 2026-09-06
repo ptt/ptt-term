@@ -139,8 +139,8 @@ export class AutoProfile extends BaseProfile {
     return this.getActiveProfile().getPagingSlice(termBuf, statusResult, actualRowIndex);
   }
 
-  getEasyReadingPrompt(spaces = '') {
-    return this.getActiveProfile().getEasyReadingPrompt(spaces);
+  getEasyReadingPrompt(spaces = '', percent = 100) {
+    return this.getActiveProfile().getEasyReadingPrompt(spaces, percent);
   }
 
   handleEasyReadingKeyDown(easyReading, e) {
