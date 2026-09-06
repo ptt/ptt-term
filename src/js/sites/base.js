@@ -198,6 +198,20 @@ export class BaseSite {
   }
 
   /**
+   * Determine if a row is a continuation (wrapped line) of the previous row in easy reading.
+   * @param {TermBuf} termBuf
+   * @param {number} rowIndex
+   * @param {boolean} [isInitialPage=false]
+   * @returns {boolean}
+   */
+  isLineContinuation(termBuf, rowIndex, isInitialPage = false) {
+    if (rowIndex > 0 && termBuf.isTextWrappedRow(rowIndex - 1)) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Get command string for same-thread navigation / refresh.
    * @param {'prevThread'|'nextThread'|'firstThread'|'refreshPost'|'lastThreadList'|'lastThreadReading'} action
    * @returns {string|null}

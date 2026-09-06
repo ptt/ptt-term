@@ -157,6 +157,13 @@ export class PttSite extends BaseSite {
     return { beginIndex, atLastPage };
   }
 
+  isLineContinuation(termBuf, rowIndex, isInitialPage = false) {
+    if (isInitialPage && rowIndex === 4) {
+      return true;
+    }
+    return super.isLineContinuation(termBuf, rowIndex, isInitialPage);
+  }
+
   getEasyReadingCommands() {
     return [
       ['y', '回應'],

@@ -873,7 +873,7 @@ export class TermView {
         var atLastPage = paging.atLastPage;
 
         for (var i = beginIndex; i < lastRowNum; ++i) {
-          if (i > 0 && this.buf.isTextWrappedRow(i-1)) {
+          if (site.isLineContinuation(this.buf, i, false)) {
             this.buf.pageWrappedLines[this.actualRowIndex] += 1;
             // if the second row is the wrapped line from first row 
             if (!atLastPage && i == beginIndex) {
@@ -898,7 +898,7 @@ export class TermView {
         var statusResult = site.parseReadingStatus(lastRowText, this.buf);
         var isEnd = site.isArticleEnd(lastRowText, this.buf, statusResult);
         for (var i = 0; i < lastRowNum; ++i) {
-          if (i == 4 || i > 0 && this.buf.isTextWrappedRow(i-1)) { // row with i == 4 and the i == 3 is the wrapped line
+          if (site.isLineContinuation(this.buf, i, true)) {
             this.buf.pageWrappedLines[this.actualRowIndex] += 1;
           } else {
             this.buf.pageWrappedLines[++this.actualRowIndex] = 1;

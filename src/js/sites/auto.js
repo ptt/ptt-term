@@ -177,6 +177,10 @@ export class AutoSite extends BaseSite {
     return this.getActiveSite().refreshLiveThread(conn, termBuf);
   }
 
+  isLineContinuation(termBuf, rowIndex, isInitialPage = false) {
+    return this.getActiveSite().isLineContinuation(termBuf, rowIndex, isInitialPage);
+  }
+
   getThreadCommand(action) {
     return this.getActiveSite().getThreadCommand(action);
   }
