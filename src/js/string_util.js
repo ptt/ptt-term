@@ -1,6 +1,6 @@
 
 
-import { b2uTable, u2bTable } from '../conv/uao';
+import { b2uTable, u2bTable } from '../conv/uao.js';
 
 /**
  * Only support caret notations (^C, ^H, ^U, ^[, ^?, ...)
@@ -20,6 +20,7 @@ export function unescapeStr(it) {
 
     if (curChar == '\\' && (nextChar == '\\' || nextChar == '^')) {
       result += nextChar;
+      i++;
     } else if (curChar == '^') {
       if ('@' <= nextChar && nextChar <= '_') {
         const code = it.charCodeAt(i+1) - 64;
