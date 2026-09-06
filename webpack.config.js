@@ -16,7 +16,7 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'production'
 
 module.exports = {
   entry: {
-    'pttchrome': './src/entry.js',
+    'app': './src/entry.js',
   },
   output: {
     path: path.join(__dirname, 'dist/assets/'),

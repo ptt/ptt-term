@@ -267,7 +267,7 @@ export class TermBuf extends Event {
       cols = clamped.cols;
       rows = clamped.rows;
     }
-    console.log(`[TermBuf.resize] Resizing buffer to ${cols}x${rows}`);
+    console.debug(`[TermBuf.resize] Resizing buffer to ${cols}x${rows}`);
     this.cols = cols;
     this.rows = rows;
     this.lineChangeds.length = rows;

@@ -9,6 +9,7 @@ function startApp() {
   setupI18n();
 
   const app = new App();
+  window.app = app;
 
   (process.env.DEVELOPER_MODE ? import('../components/DeveloperModeAlert')
     .then(({DeveloperModeAlert}) => new Promise((resolve, reject) => {

@@ -271,7 +271,7 @@ export class App {
   onConnect() {
   this.conn.isConnected = true;
   this.view.setConn(this.conn);
-  console.info("pttchrome onConnect");
+  console.info("app onConnect");
   this.connectState = 1;
   this.updateTabIcon('connect');
   this.view.buf.setTitle({conn: this.connectedUrl.hostname});
@@ -303,7 +303,7 @@ export class App {
   }
 
   onClose() {
-  console.info("pttchrome onClose");
+  console.info("app onClose");
   if (this.timerEverySec) {
     this.timerEverySec.cancel();
   }
@@ -562,7 +562,7 @@ export class App {
   cols = clamped.cols;
   rows = clamped.rows;
 
-  console.log(`[setTermSize] decided size: ${cols}x${rows} (requested: ${requestedCols}x${requestedRows}, current: ${this.buf.cols}x${this.buf.rows}, site: ${this.site.name})`);
+  console.debug(`[setTermSize] decided size: ${cols}x${rows} (requested: ${requestedCols}x${requestedRows}, current: ${this.buf.cols}x${this.buf.rows}, site: ${this.site.name})`);
 
   if (this.buf.cols == cols && this.buf.rows == rows) {
     return;

@@ -23,7 +23,7 @@ export class TouchController {
   document.body.ontouchstart = (e) => {
     this.touchStarted = true;
     app.inputArea.blur();
-    console.log('touchstart');
+    console.debug('touchstart');
   };
 
   document.body.ontouchend = (e) => {
@@ -36,7 +36,7 @@ export class TouchController {
       this.touchStarted = false;
       app.inputArea.focus();
     }
-    console.log('touchend');
+    console.debug('touchend');
   };
 
   this.ham = new Hammer(app.BBSWin);
