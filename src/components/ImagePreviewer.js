@@ -1,6 +1,16 @@
 import React from "react";
-import { stringify } from "querystring";
-import { decode } from "base58";
+
+const B58_ALPHABET = "123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ";
+
+function base58Decode(str) {
+  let num = 0;
+  for (let i = 0; i < str.length; i++) {
+    const idx = B58_ALPHABET.indexOf(str[i]);
+    if (idx === -1) return 0;
+    num = num * 58 + idx;
+  }
+  return num;
+}
 
 const noop = () => {};
 
@@ -182,15 +192,16 @@ registerImageUrlResolver({
   },
   request(src) {
     const [, flickrBase58Id, flickrPhotoId] = src.match(this.regex);
-    const photoId = flickrBase58Id ? decode(flickrBase58Id) : flickrPhotoId;
+    const photoId = flickrBase58Id ? base58Decode(flickrBase58Id) : flickrPhotoId;
 
-    const apiURL = `https://api.flickr.com/services/rest/?${stringify({
+    const params = new URLSearchParams({
       method: "flickr.photos.getInfo",
       api_key: "c8c95356e465b8d7398ff2847152740e",
       photo_id: photoId,
       format: "json",
-      nojsoncallback: 1
-    })}`;
+      nojsoncallback: "1"
+    });
+    const apiURL = `https://api.flickr.com/services/rest/?${params.toString()}`;
     return fetch(apiURL, {
       mode: "cors"
     })
