@@ -29,7 +29,7 @@ export class App {
 
   this.view = new TermView();
   this.buf = new TermBuf(80, 24);
-  this.site = getSite(process.env.DEFAULT_SITE_TYPE || process.env.DEFAULT_PROFILE || 'auto');
+  this.site = getSite(process.env.SITE_TYPE || 'auto');
   this.buf.site = this.site;
   this.buf.setView(this.view);
   //this.buf.severNotifyStr=this.getLM('messageNotify');
@@ -194,7 +194,7 @@ export class App {
       return;
   }
 
-  this.site = getSite(siteType || process.env.DEFAULT_SITE_TYPE || process.env.DEFAULT_PROFILE || 'auto');
+  this.site = getSite(siteType || process.env.SITE_TYPE || 'auto');
   if (this.buf) {
     this.buf.site = this.site;
   }
@@ -205,7 +205,7 @@ export class App {
     hostname: parsed.hostname,
     host: parsed.host,
     port: parsed.port,
-    profile: this.site.name,
+    type: this.site.name,
     siteType: this.site.name,
     easyReadingSupported: true
   };

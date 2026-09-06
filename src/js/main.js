@@ -25,9 +25,8 @@ function startApp() {
     const allowOverride = process.env.ALLOW_OVERRIDE_FROM_QUERY;
     const siteUrl = (allowOverride && getQueryVariable('site'))
       || process.env.DEFAULT_SITE;
-    const siteType = (allowOverride && (getQueryVariable('site_type') || getQueryVariable('profile')))
-      || process.env.DEFAULT_SITE_TYPE
-      || process.env.DEFAULT_PROFILE
+    const siteType = (allowOverride && (getQueryVariable('type') || getQueryVariable('site_type') || getQueryVariable('profile')))
+      || process.env.SITE_TYPE
       || 'auto';
     app.connect(siteUrl, siteType);
     // TODO: Call onSymFont for font data when it's implemented.

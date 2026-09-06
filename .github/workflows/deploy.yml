@@ -21,7 +21,7 @@ jobs:
             PAGE_DESCRIPTION: '使用網頁版終端機連線至批踢踢實業坊(ptt.cc) -- 以學術性質為目的，提供各專業學生實習的平台，而以電子佈告欄系統為主的一系列服務。期許在網際網路上建立起一個快速、即時、平等、免費，開放且自由的言論空間。'
             DYNAMIC_TITLE: 'false'
             DEFAULT_SITE: 'wsstelnet://ws.ptt.cc/bbs'
-            DEFAULT_PROFILE: 'ptt'
+            SITE_TYPE: 'ptt'
             DEV_PROXY_TARGET: 'https://ws.ptt.cc'
             DEV_PROXY_HEADER: 'https://term.ptt.cc'
           - CNAME: 'term.ptt2.cc'
@@ -31,7 +31,7 @@ jobs:
             PAGE_DESCRIPTION: '批踢踢兔(PTT2)是批踢踢實業坊(ptt.cc)的電子佈告欄服務站之一，主要提供個人看板與團體社團看板，為使用者打造專屬的發表與交流空間。'
             DYNAMIC_TITLE: 'false'
             DEFAULT_SITE: 'wsstelnet://ws.ptt2.cc/bbs'
-            DEFAULT_PROFILE: 'ptt'
+            SITE_TYPE: 'ptt'
             DEV_PROXY_TARGET: 'https://ws.ptt2.cc'
             DEV_PROXY_HEADER: 'https://term.ptt2.cc'
     uses: ./.github/workflows/deploy-ghpage.yml
@@ -43,7 +43,7 @@ jobs:
       PAGE_DESCRIPTION: ${{ matrix.site.PAGE_DESCRIPTION }}
       DYNAMIC_TITLE: ${{ matrix.site.DYNAMIC_TITLE }}
       DEFAULT_SITE: ${{ matrix.site.DEFAULT_SITE }}
-      DEFAULT_PROFILE: ${{ matrix.site.DEFAULT_PROFILE }}
+      SITE_TYPE: ${{ matrix.site.SITE_TYPE }}
       DEV_PROXY_TARGET: ${{ matrix.site.DEV_PROXY_TARGET }}
       DEV_PROXY_HEADER: ${{ matrix.site.DEV_PROXY_HEADER }}
       BRANCH: ${{ matrix.site.BRANCH }}

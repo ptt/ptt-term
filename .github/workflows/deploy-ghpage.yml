@@ -33,7 +33,7 @@ on:
       DYNAMIC_TITLE:
         type: string
         required: false
-      DEFAULT_PROFILE:
+      SITE_TYPE:
         type: string
         required: false
         default: 'auto'
@@ -64,7 +64,7 @@ jobs:
           PTTCHROME_PAGE_DESCRIPTION: ${{ inputs.PAGE_DESCRIPTION }}
           PTTCHROME_DYNAMIC_TITLE: ${{ inputs.DYNAMIC_TITLE }}
           DEFAULT_SITE: ${{ inputs.DEFAULT_SITE }}
-          DEFAULT_PROFILE: ${{ inputs.DEFAULT_PROFILE }}
+          SITE_TYPE: ${{ inputs.SITE_TYPE }}
           ALLOW_OVERRIDE_FROM_QUERY: "yes"
           DEV_PROXY_TARGET: ${{ inputs.DEV_PROXY_TARGET }}
           DEV_PROXY_HEADER: ${{ inputs.DEV_PROXY_HEADER }}

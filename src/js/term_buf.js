@@ -223,7 +223,7 @@ export class TermBuf extends Event {
     this.easyReadingShowReplyText = false;
     this.easyReadingShowPushInitText = false;
     this.prevPageState = 0;
-    this.site = getSite(process.env.DEFAULT_SITE_TYPE || process.env.DEFAULT_PROFILE || 'auto');
+    this.site = getSite(process.env.SITE_TYPE || 'auto');
 
     this.lines = new Array(rows);
 

@@ -631,10 +631,10 @@ const enhance = compose(
       onBlinkChange: () => ({ target: { checked } }) => ({
         isBlink: checked
       }),
-      onSendClick: (state, { onCmdSend, site, siteProfile }) => () =>
-        sendColorCommand(state, onCmdSend, undefined, site || siteProfile),
-      onSendSelect: (state, { onCmdSend, site, siteProfile }) => eventKey =>
-        sendColorCommand(state, onCmdSend, eventKey, site || siteProfile),
+      onSendClick: (state, { onCmdSend, site }) => () =>
+        sendColorCommand(state, onCmdSend, undefined, site),
+      onSendSelect: (state, { onCmdSend, site }) => eventKey =>
+        sendColorCommand(state, onCmdSend, eventKey, site),
       onSymEmoClick: (state, { onConvSend }) => ({ target: { textContent } }) =>
         onConvSend(textContent)
     }
