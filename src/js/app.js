@@ -103,15 +103,9 @@ export class App {
     this.mouse_over(e);
   }, false);
 
-  if ('onwheel' in window) {
-    window.addEventListener('wheel', (e) => {
-      this.mouse_scroll(e);
-    }, { capture: true, passive: false });
-  } else {
-    window.addEventListener('mousewheel', (e) => {
-      this.mouse_scroll(e);
-    }, { capture: true, passive: false });
-  }
+  window.addEventListener('wheel', (e) => {
+    this.mouse_scroll(e);
+  }, { capture: true, passive: false });
 
   window.addEventListener('focus', (e) => {
     this.appFocused = true;
@@ -500,13 +494,16 @@ export class App {
   }
 
   doSearchGoogle(searchTerm) {
-  window.open('http://google.com/search?q='+searchTerm);
+    if (!searchTerm) return;
+    window.open('https://www.google.com/search?q=' + encodeURIComponent(searchTerm), '_blank', 'noopener,noreferrer');
   }
 
   doOpenUrlNewTab(a) {
-  const e = document.createEvent('MouseEvents');
-  e.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, true, false, false, false, 0, null);
-  a.dispatchEvent(e);
+    if (!a) return;
+    const url = a.href || (typeof a === 'string' ? a : null);
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
   }
 
   incrementCountToUpdatePushthread(interval) {
