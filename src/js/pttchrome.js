@@ -285,7 +285,7 @@ App.prototype.onConnect = function() {
   console.info("pttchrome onConnect");
   this.connectState = 1;
   this.updateTabIcon('connect');
-  this.view.buf.setTitle({conn: this.connectedUrl.site}),
+  this.view.buf.setTitle({conn: this.connectedUrl.site});
   this.idleTime = 0;
   var self = this;
   this.timerEverySec = setTimer(true, function() {
