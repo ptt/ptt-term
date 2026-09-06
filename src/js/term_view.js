@@ -12,7 +12,8 @@ const ENTER_CHAR = '\r';
 const ESC_CHAR = '\x15'; // Ctrl-U
 const DEFINE_INPUT_BUFFER_SIZE = 12;
 
-export function TermView() {
+export class TermView {
+  constructor() {
   //new pref - start
   this.bbsWidth = 0;
   this.bbsHeight = 0;
@@ -84,9 +85,6 @@ export function TermView() {
   this.titleTimer = null;
   this.notif = null;
 
-  Object.defineProperty(this, 'mainContainer', {
-    get: function() { return $('#mainContainer')[0] },
-  });
 
   var mainDisplay = document.createElement('div');
   mainDisplay.setAttribute('class', 'main');
@@ -225,51 +223,53 @@ export function TermView() {
   this.input.addEventListener('input', (e) => {
     this.onInput(e);
   }, false);
-}
+  }
+
+  get mainContainer() {
+    return $('#mainContainer')[0];
+  }
 
 
-TermView.prototype = {
-
-  onBlink: function() {
+  onBlink() {
     this.blinkOn=true;
     //   if(this.buf && this.buf.changed)
     this.buf.queueUpdate(true);
     //   else this.update();
-  },
+  }
 
-  onBlinkToggle: function() {
+  onBlinkToggle() {
     if (this.useCanvasEngine && this.componentScreen && this.componentScreen.onBlink) {
       this.componentScreen.onBlink();
     }
-  },
+  }
 
-  setBuf: function(buf) {
+  setBuf(buf) {
     this.buf=buf;
-  },
+  }
 
-  setConn: function(conn) {
+  setConn(conn) {
     this.conn=conn;
-  },
+  }
 
-  _send: function(data) {
+  _send(data) {
     if (this.conn)
       this.conn.send(data);
-  },
+  }
 
-  _convSend: function(data) {
+  _convSend(data) {
     if (this.conn)
       this.conn.convSend(data);
-  },
+  }
 
-  setCore: function(core) {
+  setCore(core) {
     this.bbscore=core;
-  },
+  }
 
-  _isConnected: function() {
+  _isConnected() {
     return this.bbscore.isConnected() && !!this.conn;
-  },
+  }
 
-  setFontFace: function(fontFace) {
+  setFontFace(fontFace) {
     this.fontFace = fontFace;
     this.input.style.setProperty('font-family', this.fontFace, 'important');
     this.mainDisplay.style.setProperty('font-family', this.fontFace, 'important');
@@ -277,20 +277,20 @@ TermView.prototype = {
       this.easyReadingOverlay.style.setProperty('font-family', this.fontFace, 'important');
     }
     document.getElementById('cursor').style.setProperty('font-family', this.fontFace, 'important');
-  },
+  }
 
-  setShowFps: function(show) {
+  setShowFps(show) {
     this.showFps = !!show;
     if (this.fpsMeter) {
       this.fpsMeter.setEnabled(this.showFps);
     }
-  },
+  }
 
-  update: function() {
+  update() {
     this.redraw(false);
-  },
+  }
 
-  redraw: function(force) {
+  redraw(force) {
 
     //var start = new Date().getTime();
     var cols = this.buf.cols;
@@ -359,21 +359,21 @@ TermView.prototype = {
     //var time = new Date().getTime() - start;
     //console.log(time);
 
-  },
+  }
 
-  setHighlightedRow: function(row) {
+  setHighlightedRow(row) {
     console.debug(`setHighlightedRow: ${row}, this.buf.highlightCursor:${ this.buf.highlightCursor}`);
     if (this.buf.highlightCursor) {
       this.componentScreen.setCurrentHighlighted(row)
     }
-  },
+  }
 
-  updateHighlightColor: function() {
+  updateHighlightColor() {
     this.BBSWin.style.setProperty('--highlightBG', termColors[this.highlightBG]);
     //this.BBSWin.style.setProperty('--highlightFG', termColors[this.highlightFG]);
-  },
+  }
 
-  onInput: function(e) {
+  onInput(e) {
     if (this.bbscore.modalShown || this.bbscore.contextMenuShown)
       return;
     if (this.isComposition) {
@@ -393,9 +393,9 @@ TermView.prototype = {
       this.onTextInput(e.target.value);
     }
     e.target.value='';
-  },
+  }
 
-  onTextInput: function(text, isPasting) {
+  onTextInput(text, isPasting) {
     if (isPasting) {
       text = text.replace(/\r\n/g, '\r');
       text = text.replace(/\n/g, '\r');
@@ -409,9 +409,9 @@ TermView.prototype = {
       text = text.replace(/\x1b/g, ESC_CHAR);
     }
     this._convSend(text);
-  },
+  }
 
-  onKeyDown: function(e) {
+  onKeyDown(e) {
     if (this.isEasyReadingActive() && 
         !this.buf.easyReadingShowReplyText && !this.buf.easyReadingShowPushInitText) {
       this.easyReadingKeyDownKeyCode = e.keyCode;
@@ -462,9 +462,9 @@ TermView.prototype = {
     this._keyboard.onKeyDown(e);
     if (e.defaultPrevented)
       return;
-  },
+  }
 
-  setTermFontSize: function(cw, ch) {
+  setTermFontSize(cw, ch) {
     var innerBounds = this.innerBounds;
     this.chw = cw;
     this.chh = ch;
@@ -512,9 +512,9 @@ TermView.prototype = {
 
     this.updateReverseScaleCss();
     this.updateCursorPos();
-  },
+  }
 
-  updateReverseScaleCss: function() {
+  updateReverseScaleCss() {
     var rule = 'img.hyperLinkPreview { ' +
       '-webkit-transform: scale(' + Math.floor(1/this.scaleX*100)/100 + ',' +
       Math.floor(1/this.scaleY*100)/100+');' +
@@ -523,9 +523,9 @@ TermView.prototype = {
       this.dynamicCss.deleteRule(0);
     }
     this.dynamicCss.insertRule(rule, 0);
-  },
+  }
 
-  convertMN2XYEx: function(cx, cy) {
+  convertMN2XYEx(cx, cy) {
     var origin;
     var w = this.innerBounds.width;
     var h = this.innerBounds.height;
@@ -536,9 +536,9 @@ TermView.prototype = {
     var realX = origin[0] + (cx) * this.chw * this.scaleX;
     var realY = origin[1] + (cy) * this.chh * this.scaleY;
     return [realX, realY];
-  },
+  }
 
-  checkLeftDB: function() {
+  checkLeftDB() {
     if (this.dbcsDetect && this.buf.cur_x>1) {
       var lines = this.buf.lines;
       var line = lines[this.buf.cur_y];
@@ -547,9 +547,9 @@ TermView.prototype = {
         return true;
     }
     return false;
-  },
+  }
 
-  checkCurDB: function() {
+  checkCurDB() {
     if (this.dbcsDetect) {// && this.buf.cur_x<this.buf.cols-2){
       var lines = this.buf.lines;
       var line = lines[this.buf.cur_y];
@@ -558,10 +558,10 @@ TermView.prototype = {
         return true;
     }
     return false;
-  },
+  }
 
   // Cursor
-  updateCursorPos: function() {
+  updateCursorPos() {
 
     var pos = this.convertMN2XYEx(this.buf.cur_x, this.buf.cur_y);
     // if you want to set cursor color by now background, use this.
@@ -588,9 +588,9 @@ TermView.prototype = {
     this.bbsCursor.style.color = termInvColors[bg];
     this.updateInputBufferPos();
 
-  },
+  }
 
-  updateInputBufferPos: function() {
+  updateInputBufferPos() {
     if (this.input.getAttribute('bshow') == '1') {
       var pos = this.convertMN2XYEx(this.buf.cur_x, this.buf.cur_y);
       {
@@ -618,9 +618,9 @@ TermView.prototype = {
 
       //this.input.style.left = pos[0] +'px';
     }
-  },
+  }
 
-  updateInputBufferWidth: function() {
+  updateInputBufferWidth() {
     // change width according to input
     var wordCounts = u2b(this.input.value).length;
     // chh / 2 - 2 because border of 1
@@ -631,16 +631,16 @@ TermView.prototype = {
     if (parseInt(this.input.style.left) + width + oneWordWidth*2 >= bounds.width) {
       this.input.style.left = bounds.width - width - oneWordWidth*2 + 'px';
     }
-  },
+  }
 
-  onCompositionStart: function(e) {
+  onCompositionStart(e) {
     //this.input.disabled="";
     this.input.setAttribute('bshow', '1');
     this.updateInputBufferPos();
     this.isComposition = true;
-  },
+  }
 
-  onCompositionEnd: function(e) {
+  onCompositionEnd(e) {
     //this.input.disabled="";
     this.input.setAttribute('bshow', '0');
     this.input.style.border = 'none';
@@ -652,9 +652,9 @@ TermView.prototype = {
     //this.input.style.top = '0px';
     //this.input.style.left = '-100000px';
     this.isComposition = false;
-  },
+  }
 
-  fontResize: function() {
+  fontResize() {
     var cols = this.buf ? this.buf.cols : 80;
     var rows = this.buf ? this.buf.rows : 24;
 
@@ -679,9 +679,9 @@ TermView.prototype = {
       nowchw = i;
       this.fixedResize(nowchh);
     }
-  },
+  }
 
-  fixedResize: function(fontSizePx) {
+  fixedResize(fontSizePx) {
     let chw = fontSizePx / 2;
     let chh = fontSizePx;
 
@@ -692,9 +692,9 @@ TermView.prototype = {
       var forceWidthElem = forceWidthElems[i];
       forceWidthElem.style.width = chh + 'px';
     }
-  },
+  }
 
-  calcTermSizeFromFont: function(fontSizePx) {
+  calcTermSizeFromFont(fontSizePx) {
     fontSizePx = Math.floor((fontSizePx + 1) / 2) * 2;
     let width = this.bbsWidth ? this.bbsWidth : this.innerBounds.width;
     let height = this.bbsHeight ? this.bbsHeight : this.innerBounds.height;
@@ -704,9 +704,9 @@ TermView.prototype = {
       return this.buf.siteProfile.clampTermSize(cols, rows);
     }
     return { cols, rows };
-  },
+  }
 
-  calcFontSizeFromTerm: function(termCols, termRows) {
+  calcFontSizeFromTerm(termCols, termRows) {
     termCols = Math.max(80, Math.min(200, termCols));
     termRows = Math.max(24, Math.min(100, termRows));
     let width = this.bbsWidth ? this.bbsWidth : this.innerBounds.width;
@@ -714,9 +714,9 @@ TermView.prototype = {
     let sizeX = Math.floor(2 * (width - 10) / termCols);
     let sizeY = Math.floor(height / termRows);
     return Math.min(sizeX, sizeY);
-  },
+  }
 
-  getRowLineElement: function(node) {
+  getRowLineElement(node) {
     for (let r = node; r && r != r.parentNode; r = r.parentNode) {
       if (r instanceof Element &&
         r.getAttribute('data-type') == 'bbsline') {
@@ -724,9 +724,9 @@ TermView.prototype = {
       }
     }
     return null;
-  },
+  }
 
-  countCol: function(node, pos) {
+  countCol(node, pos) {
     let rowNode = this.getRowLineElement(node);
     if (!rowNode) {
       return { row: 0, col: 0 };
@@ -755,9 +755,9 @@ TermView.prototype = {
       row: parseInt(rowNode.getAttribute('data-row')),
       col: col
     };
-  },
+  }
 
-  getSelectedText: function() {
+  getSelectedText() {
     if (this.bbscore && this.bbscore.connLog && this.bbscore.connLog.hasSelection()) {
       if (!window.getSelection().isCollapsed) {
         return window.getSelection().toString();
@@ -776,9 +776,9 @@ TermView.prototype = {
       return window.getSelection().toString().replace(/\u00a0/g, " ");
     }
     return '';
-  },
+  }
 
-  getSelectionColRow: function() {
+  getSelectionColRow() {
     if (this.isEasyReadingActive()) {
       return null;
     }
@@ -794,9 +794,9 @@ TermView.prototype = {
       start: this.countCol(r.startContainer, r.startOffset),
       end: this.countCol(r.endContainer, r.endOffset)
     };
-  },
+  }
 
-  selectAll: function() {
+  selectAll() {
     if (this.isEasyReadingActive()) {
       window.getSelection().selectAllChildren(this.easyReadingContent);
       return;
@@ -806,9 +806,9 @@ TermView.prototype = {
       return;
     }
     window.getSelection().selectAllChildren(this.screenContainer || this.mainDisplay);
-  },
+  }
 
-  showWaterballNotification: function() {
+  showWaterballNotification() {
     if (!this.enableNotifications) {
       return;
     }
@@ -835,13 +835,13 @@ TermView.prototype = {
     this.notif.onclick = () => {
       window.focus();
     };
-  },
+  }
 
-  isEasyReadingActive: function() {
+  isEasyReadingActive() {
     return !!(this.easyReadingOverlay && this.easyReadingOverlay.style.display !== 'none');
-  },
+  }
 
-  showEasyReading: function() {
+  showEasyReading() {
     if (this.easyReadingOverlay) {
       this.easyReadingOverlay.style.display = 'block';
     }
@@ -849,9 +849,9 @@ TermView.prototype = {
       this.bbscore.lastEasyReadingWheelTime = 0;
       this.bbscore.lastEasyReadingHideTime = 0;
     }
-  },
+  }
 
-  populateEasyReadingPage: function() {
+  populateEasyReadingPage() {
     var profile = this.buf.siteProfile;
     let lastRowNum = profile.getLastRowNum(this.buf);
     if (this.buf.pageState == 3 && this.buf.prevPageState == 3) {
@@ -930,9 +930,9 @@ TermView.prototype = {
       }
       this.buf.prevPageState = this.buf.pageState;
     }
-  },
+  }
 
-  updateEasyReadingProgress: function() {
+  updateEasyReadingProgress() {
     if (!this.easyReadingContent || !this.lastRowDiv) return;
     var cont = this.easyReadingContent;
     var percent = 100;
@@ -944,15 +944,15 @@ TermView.prototype = {
     if (profile && typeof profile.getEasyReadingPrompt === 'function') {
       this.lastRowDiv.innerHTML = profile.getEasyReadingPrompt(' ', percent);
     }
-  },
+  }
 
-  clearRows: function() {
+  clearRows() {
     if (this.easyReadingContent) {
       this.easyReadingContent.innerHTML = '';
     }
-  },
+  }
 
-  appendRows: function(lines, showsLinkPreview) {
+  appendRows(lines, showsLinkPreview) {
     if (!this.easyReadingContent) return;
     for (var i in lines) {
       var line = lines[i];
@@ -965,17 +965,17 @@ TermView.prototype = {
         showsLinkPreview, el);
     }
     this.updateEasyReadingProgress();
-  },
+  }
 
-  renderSingleRow: function(target, row) {
+  renderSingleRow(target, row) {
     var el = document.createElement('span');
     el.setAttribute('type', 'bbsrow');
     el.setAttribute('srow', '0');
     target.appendChild(el);
     return renderRowHtml(row, 0, this.chh, false, el);
-  },
+  }
 
-  hideEasyReading: function() {
+  hideEasyReading() {
     if (this.easyReadingOverlay) {
       this.easyReadingOverlay.style.display = 'none';
     }
@@ -995,29 +995,28 @@ TermView.prototype = {
     }
     // clear the deep cloned copy of lines
     this.buf.pageLines = [];
-  },
+  }
 
-  updateEasyReadingReplyRow: function(row) {
+  updateEasyReadingReplyRow(row) {
     var el = document.createElement('span');
     el.style = "background-color:black;";
     this.renderSingleRow(el, row);
     this.setSingleChild(this.replyRowDiv.childNodes[0] || this.replyRowDiv, el);
     this.replyRowDiv.style.display = 'block';
-  },
+  }
 
-  updateEasyReadingPushInitRow: function(row) {
+  updateEasyReadingPushInitRow(row) {
     var el = document.createElement('span');
     el.style = "background-color:black;";
     this.renderSingleRow(el, row);
     this.setSingleChild(this.lastRowDiv.childNodes[0] || this.lastRowDiv, el);
     this.lastRowDiv.style.backgroundColor = 'black';
     this.lastRowDiv.style.display = 'block';
-  },
+  }
 
-  setSingleChild: function(par, child) {
+  setSingleChild(par, child) {
     while (par.childNodes.length > 0)
       par.removeChild(par.lastChild);
     par.appendChild(child);
   }
-
-};
+}
