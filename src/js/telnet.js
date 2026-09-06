@@ -41,29 +41,29 @@ const STATE_DO=4;
 const STATE_DONT=5;
 const STATE_SB=6;
 
-export function TelnetConnection(socket) {
-  this.socket = socket;
-  this.socket.addEventListener('open', (e) => this._onOpen(e));
-  this.socket.addEventListener('data', (e) => this._onDataAvailable(e));
-  this.socket.addEventListener('close', (e) => this._onClose(e));
+export class TelnetConnection extends Event {
+  constructor(socket) {
+    super();
+    this.socket = socket;
+    this.socket.addEventListener('open', (e) => this._onOpen(e));
+    this.socket.addEventListener('data', (e) => this._onDataAvailable(e));
+    this.socket.addEventListener('close', (e) => this._onClose(e));
 
-  this.state = STATE_DATA;
-  this.iac_sb = '';
+    this.state = STATE_DATA;
+    this.iac_sb = '';
 
-  this.termType = 'VT100';
-}
+    this.termType = 'VT100';
+  }
 
-Event.mixin(TelnetConnection.prototype);
+  _onOpen(e) {
+    this.dispatchEvent(new CustomEvent('open'));
+  }
 
-TelnetConnection.prototype._onOpen = function(e) {
-  this.dispatchEvent(new CustomEvent('open'));
-};
+  _onClose(e) {
+    this.dispatchEvent(new CustomEvent('close'));
+  }
 
-TelnetConnection.prototype._onClose = function(e) {
-  this.dispatchEvent(new CustomEvent('close'));
-};
-
-TelnetConnection.prototype._onDataAvailable = function(e) {
+  _onDataAvailable(e) {
   var str = e.detail.data;
   var data='';
   var count = str.length;
@@ -165,45 +165,46 @@ TelnetConnection.prototype._onDataAvailable = function(e) {
       data='';
     }
   }
-};
+  }
 
-TelnetConnection.prototype._dispatchData = function(data) {
-  this.dispatchEvent(new CustomEvent('data', {
-    detail: {
-      data: data
+  _dispatchData(data) {
+    this.dispatchEvent(new CustomEvent('data', {
+      detail: {
+        data: data
+      }
+    }));
+  }
+
+  send(str) {
+    // XXX Should do escape on IAC.
+    this._sendRaw(str);
+  }
+
+  _sendRaw(data) {
+    if (data) {
+      this.socket.send(data);
     }
-  }));
-};
+  }
 
-TelnetConnection.prototype.send = function(str) {
-  // XXX Should do escape on IAC.
-  this._sendRaw(str);
-};
+  convSend(unicode_str) {
+    // supports UAO
+    // when converting unicode to big5, use UAO.
 
-TelnetConnection.prototype._sendRaw = function(data) {
-  if (data) {
-    this.socket.send(data);
+    var s = u2b(unicode_str);
+    // detect ;50m (half color) and then convert accordingly
+    if (s) {
+      s = ansiHalfColorConv(s);
+      this._sendRaw(s);
+    }
+  }
+
+  sendWillNaws(cols, rows) {
+    this._sendRaw(IAC + WILL + NAWS);
+  }
+
+  sendNaws(cols, rows) {
+    var nawsStr = String.fromCharCode(Math.floor(cols/256), cols%256, Math.floor(rows/256), rows%256).replace(/(\xff)/g,'\xff\xff');
+    var rep = IAC + SB + NAWS + nawsStr + IAC + SE;
+    this._sendRaw( rep );
   }
 }
-
-TelnetConnection.prototype.convSend = function(unicode_str) {
-  // supports UAO
-  // when converting unicode to big5, use UAO.
-
-  var s = u2b(unicode_str);
-  // detect ;50m (half color) and then convert accordingly
-  if (s) {
-    s = ansiHalfColorConv(s);
-    this._sendRaw(s);
-  }
-};
-
-TelnetConnection.prototype.sendWillNaws = function(cols, rows) {
-  this._sendRaw(IAC + WILL + NAWS);
-};
-
-TelnetConnection.prototype.sendNaws = function(cols, rows) {
-  var nawsStr = String.fromCharCode(Math.floor(cols/256), cols%256, Math.floor(rows/256), rows%256).replace(/(\xff)/g,'\xff\xff');
-  var rep = IAC + SB + NAWS + nawsStr + IAC + SE;
-  this._sendRaw( rep );
-};
