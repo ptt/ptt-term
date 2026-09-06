@@ -577,30 +577,7 @@ const EMOTICONS = {
 };
 
 function sendColorCommand({ fg, bg, isBlink }, onCmdSend, type, site) {
-  if (site) {
-    onCmdSend(site.getEditorColorCommand({ fg, bg, isBlink }, type));
-    return;
-  }
-  let lightColor = "0;";
-  if (fg > 7) {
-    fg %= 8;
-    lightColor = "1;";
-  }
-  fg += 30;
-  bg += 40;
-  let blink = "";
-  if (isBlink) {
-    blink = "5;";
-  }
-  let cmd = "\x15[";
-  if (type == "foreground") {
-    cmd += lightColor + blink + fg + "m";
-  } else if (type == "background") {
-    cmd += bg + "m";
-  } else {
-    cmd += lightColor + blink + fg + ";" + bg + "m";
-  }
-  onCmdSend(cmd);
+  onCmdSend(site.getEditorColorCommand({ fg, bg, isBlink }, type));
 }
 
 const enhance = compose(

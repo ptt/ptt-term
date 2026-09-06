@@ -64,16 +64,10 @@ export class ConnectionLog {
     }
 
     this.overlay = overlay;
-    this.contentEl =
-      (overlay.querySelector && overlay.querySelector("#connLogContent")) ||
-      document.getElementById("connLogContent");
-    this.toggleBtn =
-      (overlay.querySelector && overlay.querySelector("#connLogToggleBtn")) ||
-      document.getElementById("connLogToggleBtn");
+    this.contentEl = overlay.querySelector("#connLogContent");
+    this.toggleBtn = overlay.querySelector("#connLogToggleBtn");
 
-    const clearBtn =
-      (overlay.querySelector && overlay.querySelector("#connLogClearBtn")) ||
-      document.getElementById("connLogClearBtn");
+    const clearBtn = overlay.querySelector("#connLogClearBtn");
     if (clearBtn) {
       clearBtn.onclick = (e) => {
         e.stopPropagation();
@@ -88,9 +82,7 @@ export class ConnectionLog {
       };
     }
 
-    const header =
-      (overlay.querySelector && overlay.querySelector("#connLogHeader")) ||
-      document.getElementById("connLogHeader");
+    const header = overlay.querySelector("#connLogHeader");
     if (header) {
       header.onclick = (e) => {
         if (e.target && e.target.tagName !== "BUTTON") {
@@ -99,9 +91,7 @@ export class ConnectionLog {
       };
     }
 
-    const closeBtn =
-      (overlay.querySelector && overlay.querySelector("#connLogCloseBtn")) ||
-      document.getElementById("connLogCloseBtn");
+    const closeBtn = overlay.querySelector("#connLogCloseBtn");
     if (closeBtn) {
       closeBtn.onclick = (e) => {
         e.stopPropagation();
@@ -165,9 +155,7 @@ export class ConnectionLog {
 
   close() {
     this.setEnabled(false);
-    if (this.app) {
-      this.app.onPrefChange("captureConnectionLog", false);
-    }
+    this.app.onPrefChange("captureConnectionLog", false);
     try {
       const PREF_STORAGE_KEY = "pttchrome.pref.v1";
       const raw = window.localStorage.getItem(PREF_STORAGE_KEY);

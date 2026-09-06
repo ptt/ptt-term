@@ -59,6 +59,10 @@ export class TermView {
   // React
   this.componentScreen = {
     setCurrentHighlighted() {},
+    onBlink() {},
+    getSelectedText() { return ''; },
+    getSelectionColRow() { return null; },
+    selectAll() {},
   };
 
   this.selection = null;
@@ -235,7 +239,7 @@ export class TermView {
   }
 
   onBlinkToggle() {
-    if (this.useCanvasEngine && this.componentScreen) {
+    if (this.useCanvasEngine) {
       this.componentScreen.onBlink();
     }
   }
@@ -278,9 +282,7 @@ export class TermView {
 
   setShowFps(show) {
     this.showFps = !!show;
-    if (this.fpsMeter) {
-      this.fpsMeter.setEnabled(this.showFps);
-    }
+    this.fpsMeter.setEnabled(this.showFps);
   }
 
   update() {
@@ -306,7 +308,7 @@ export class TermView {
       lineChangeds[row] = false;
     }
     if (changedLineHtmlStrs.length > 0) {
-      var t0 = (this.showFps && this.fpsMeter && this.fpsMeter.enabled && typeof performance !== 'undefined')
+      var t0 = (this.showFps && this.fpsMeter.enabled && typeof performance !== 'undefined')
         ? performance.now()
         : 0;
       this.componentScreen = renderScreen(
@@ -335,7 +337,7 @@ export class TermView {
         }
       );
       this.setHighlightedRow(this.buf.nowHighlight);
-      if (t0 > 0 && !this.useCanvasEngine && this.fpsMeter) {
+      if (t0 > 0 && !this.useCanvasEngine) {
         this.fpsMeter.recordFrame(performance.now() - t0, false);
       }
 
@@ -753,7 +755,7 @@ export class TermView {
   }
 
   getSelectedText() {
-    if (this.bbscore && this.bbscore.connLog && this.bbscore.connLog.hasSelection()) {
+    if (this.bbscore.connLog.hasSelection()) {
       if (!window.getSelection().isCollapsed) {
         return window.getSelection().toString();
       }
@@ -764,7 +766,7 @@ export class TermView {
       }
       return '';
     }
-    if (this.useCanvasEngine && this.componentScreen) {
+    if (this.useCanvasEngine) {
       return this.componentScreen.getSelectedText();
     }
     if (!window.getSelection().isCollapsed) {
@@ -777,7 +779,7 @@ export class TermView {
     if (this.isEasyReadingActive()) {
       return null;
     }
-    if (this.useCanvasEngine && this.componentScreen) {
+    if (this.useCanvasEngine) {
       var sel = this.componentScreen.getSelectionColRow();
       if (sel)
         return sel;
@@ -796,7 +798,7 @@ export class TermView {
       window.getSelection().selectAllChildren(this.easyReadingContent);
       return;
     }
-    if (this.useCanvasEngine && this.componentScreen) {
+    if (this.useCanvasEngine) {
       this.componentScreen.selectAll();
       return;
     }
@@ -840,10 +842,8 @@ export class TermView {
     if (this.easyReadingOverlay) {
       this.easyReadingOverlay.style.display = 'block';
     }
-    if (this.bbscore) {
-      this.bbscore.lastEasyReadingWheelTime = 0;
-      this.bbscore.lastEasyReadingHideTime = 0;
-    }
+    this.bbscore.lastEasyReadingWheelTime = 0;
+    this.bbscore.lastEasyReadingHideTime = 0;
   }
 
   populateEasyReadingPage() {
@@ -971,10 +971,8 @@ export class TermView {
     if (this.easyReadingOverlay) {
       this.easyReadingOverlay.style.display = 'none';
     }
-    if (this.bbscore) {
-      this.bbscore.lastEasyReadingHideTime = Date.now();
-      this.bbscore.suppressInertialWheel();
-    }
+    this.bbscore.lastEasyReadingHideTime = Date.now();
+    this.bbscore.suppressInertialWheel();
     this.clearRows();
     if (this.lastRowDiv) {
       this.lastRowDiv.style.backgroundColor = '';

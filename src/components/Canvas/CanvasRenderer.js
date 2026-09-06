@@ -284,7 +284,7 @@ export class CanvasRenderer {
 
     CanvasSelection.drawSelection(ctx, selStart, selEnd, cols, chw, chh);
 
-    if (t0 > 0 && options.fpsMeter) {
+    if (t0 > 0) {
       options.fpsMeter.recordFrame(performance.now() - t0, true);
     }
   }

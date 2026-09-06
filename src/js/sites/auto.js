@@ -26,14 +26,12 @@ export class AutoSite extends BaseSite {
       this.isLocked = true;
       if (termBuf && termBuf.rows > 24) {
         console.log(`[AutoSite] Clamping terminal rows from ${termBuf.rows} to 24`);
-        if (termBuf.view && termBuf.view.bbscore && termBuf.view.bbscore.resizer) {
+        if (termBuf.view.bbscore.resizer) {
           termBuf.view.bbscore.resizer();
         } else {
           termBuf.resize(termBuf.cols, 24);
-          if (termBuf.view) {
-            termBuf.view.fontResize();
-            termBuf.view.redraw(true);
-          }
+          termBuf.view.fontResize();
+          termBuf.view.redraw(true);
         }
       }
     } else if (siteName === 'ptt') {

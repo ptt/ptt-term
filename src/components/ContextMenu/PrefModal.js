@@ -130,7 +130,7 @@ const replaceMsg = (msg, replacements) => {
 
 const replaceI18n = (id, replacements) => {
   const msg = i18n(id);
-  if (msg.map && msg.map.call) {
+  if (Array.isArray(msg)) {
     return msg.map((it) => replaceMsg(it, replacements));
   }
   return replaceMsg(msg, replacements);
@@ -205,9 +205,7 @@ const enhance = compose(
         () => {
           const defaultValues = getDefaultPrefs();
           writeValues(defaultValues);
-          if (onReset) {
-            onReset(defaultValues);
-          }
+          onReset(defaultValues);
           return {
             values: defaultValues,
           };

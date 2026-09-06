@@ -802,18 +802,14 @@ export class TermBuf extends Event {
 
       this.dispatchEvent(new CustomEvent('change'));
 
-      if (this.view) {
-        this.view.update();
-      }
+      this.view.update();
       this.changed = false;
 
       this.dispatchEvent(new CustomEvent('viewUpdate'));
     }
 
     if (this.posChanged) { // cursor pos changed
-      if (this.view) {
-        this.view.updateCursorPos();
-      }
+      this.view.updateCursorPos();
       this.posChanged=false;
     }
 
@@ -872,7 +868,7 @@ export class TermBuf extends Event {
         if (col >=1 && line[col-1].isLeadByte) { // second byte of DBCS char
           var prevC = line[col-1];
           var b5 = prevC.ch + c.ch;
-          if ((this.view && this.view.charset == 'UTF-8') || b5.length == 1)
+          if (this.view.charset == 'UTF-8' || b5.length == 1)
             return b5;
           else
             return b2u(b5);
@@ -906,7 +902,7 @@ export class TermBuf extends Event {
         if (col >= 1 && line[col-1].isLeadByte) { // second byte of DBCS char
           var prevC = line[col-1];
           var b5 = prevC.ch + c.ch;
-          if ((this.view && this.view.charset == 'UTF-8') || b5.length == 1)
+          if (this.view.charset == 'UTF-8' || b5.length == 1)
             return b5;
           else
             return b2u(b5);

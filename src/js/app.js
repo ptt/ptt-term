@@ -195,9 +195,7 @@ export class App {
   }
 
   this.site = getSite(siteType || process.env.SITE_TYPE || 'auto');
-  if (this.buf) {
-    this.buf.site = this.site;
-  }
+  this.buf.site = this.site;
 
   this._setupWebsocketConn(ws_url);
   this.connectedUrl = {
@@ -249,9 +247,7 @@ export class App {
 
   _setupWebsocketConn(url) {
   var wsConn = new Websocket(url);
-  if (this.connLog) {
-    this.connLog.attachSocket(wsConn);
-  }
+  this.connLog.attachSocket(wsConn);
   this._attachConn(new TelnetConnection(wsConn));
   }
 
@@ -452,7 +448,7 @@ export class App {
     e.clipboardData.setData('text', this.strToCopy);
     e.preventDefault();
     console.log('copied: ', this.strToCopy);
-  } else if (this.view) {
+  } else {
     var text = this.view.getSelectedText();
     if (text) {
       if (text.indexOf('\x1b') < 0) {
@@ -954,9 +950,7 @@ export class App {
       this.view.redraw(true);
       break;
     case 'captureConnectionLog':
-      if (this.connLog) {
-        this.connLog.setEnabled(!!value);
-      }
+      this.connLog.setEnabled(!!value);
       break;
     default:
       break;
