@@ -188,71 +188,80 @@ export class TermChar {
 
 TermChar.newChar = new TermChar(' ');
 
-export function TermBuf(cols, rows) {
-  this.cols = cols;
-  this.rows = rows;
-  this.view = null;
-  this.cur_x = 0;
-  this.cur_y = 0;
-  this.cur_x_sav = -1;
-  this.cur_y_sav = -1;
-  this.scrollStart = 0;
-  this.scrollEnd = rows-1;
-  this._nowHighlight = -1;
-  Object.defineProperty(this, 'nowHighlight', {
-    set: (val) => this.setHighlight(val),
-    get: () => this._nowHighlight
-  });
-  this.tempMouseCol = 0;
-  this.tempMouseRow = 0;
-  this.mouseCursor = 0;
-  this.highlightCursor = true;
-  this.useMouseBrowsing = true;
-  //this.scrollingTop=0;
-  //this.scrollingBottom=23;
-  this.attr = new TermChar(' ');
-  this.disableLinefeed = false;
-  this.altScreen = '';
-  this.changed = false;
-  this.posChanged = false;
-  this.pageState = 0;
-  this.forceFullWidth = false;
+export class TermBuf extends Event {
+  timerUpdate = null;
+  uriRegEx = /((ftp|http|https|telnet):\/\/([A-Za-z0-9_]+:{0,1}[A-Za-z0-9_]*@)?([A-Za-z0-9_#!:.?+=&%@!\-\/\$\^,;|*~'()]+)(:[0-9]+)?(\/|\/([A-Za-z0-9_#!:.?+=&%@!\-\/]))?)|(pid:\/\/(\d{1,10}))/ig;
 
-  this.startedEasyReading = false;
-  this.easyReadingShowReplyText = false;
-  this.easyReadingShowPushInitText = false;
-  this.prevPageState = 0;
-  this.siteProfile = getSiteProfile(process.env.DEFAULT_PROFILE || 'auto');
+  constructor(cols, rows) {
+    super();
+    this.cols = cols;
+    this.rows = rows;
+    this.view = null;
+    this.cur_x = 0;
+    this.cur_y = 0;
+    this.cur_x_sav = -1;
+    this.cur_y_sav = -1;
+    this.scrollStart = 0;
+    this.scrollEnd = rows-1;
+    this._nowHighlight = -1;
+    this.tempMouseCol = 0;
+    this.tempMouseRow = 0;
+    this.mouseCursor = 0;
+    this.highlightCursor = true;
+    this.useMouseBrowsing = true;
+    //this.scrollingTop=0;
+    //this.scrollingBottom=23;
+    this.attr = new TermChar(' ');
+    this.disableLinefeed = false;
+    this.altScreen = '';
+    this.changed = false;
+    this.posChanged = false;
+    this.pageState = 0;
+    this.forceFullWidth = false;
 
-  this.lines = new Array(rows);
+    this.startedEasyReading = false;
+    this.easyReadingShowReplyText = false;
+    this.easyReadingShowPushInitText = false;
+    this.prevPageState = 0;
+    this.siteProfile = getSiteProfile(process.env.DEFAULT_PROFILE || 'auto');
 
-  this.pageLines = [];
-  this.pageWrappedLines = [];
+    this.lines = new Array(rows);
 
-  this.lineChangeds = new Array(rows);
+    this.pageLines = [];
+    this.pageWrappedLines = [];
 
-  this.viewBufferTimer = 30;
+    this.lineChangeds = new Array(rows);
 
-  while (--rows >= 0) {
-    var line = new Array(cols);
-    var c = cols;
-    while (--c >= 0) {
-      line[c] = new TermChar(' ');
+    this.viewBufferTimer = 30;
+
+    let r = rows;
+    while (--r >= 0) {
+      var line = new Array(cols);
+      var c = cols;
+      while (--c >= 0) {
+        line[c] = new TermChar(' ');
+      }
+      this.lines[r] = line;
+      //this.keyWordLine[rows]=false;
     }
-    this.lines[rows] = line;
-    //this.keyWordLine[rows]=false;
+    this.BBSWin = document.getElementById('BBSWindow');
+    this.titleBase = process.env.PTTCHROME_PAGE_TITLE;
+    this.titleSite = null;
+    this.titleConn = null;
+    this.dynamicTitle = (process.env.PTTCHROME_DYNAMIC_TITLE !== false);
+    document.title = this.title = this.titleBase;
   }
-  this.BBSWin = document.getElementById('BBSWindow');
-  this.titleBase = process.env.PTTCHROME_PAGE_TITLE;
-  this.titleSite = null;
-  this.titleConn = null;
-  this.dynamicTitle = (process.env.PTTCHROME_DYNAMIC_TITLE !== false);
-  document.title = this.title = this.titleBase;
-}
 
-TermBuf.prototype = {
+  get nowHighlight() {
+    return this._nowHighlight;
+  }
 
-  resize: function(cols, rows) {
+  set nowHighlight(val) {
+    this.setHighlight(val);
+  }
+
+
+  resize(cols, rows) {
     if (this.siteProfile && this.siteProfile.clampTermSize) {
       const clamped = this.siteProfile.clampTermSize(cols, rows);
       cols = clamped.cols;
@@ -275,21 +284,19 @@ TermBuf.prototype = {
         }
       }
     }
-  },
+  }
 
-  timerUpdate: null,
 
-  uriRegEx: /((ftp|http|https|telnet):\/\/([A-Za-z0-9_]+:{0,1}[A-Za-z0-9_]*@)?([A-Za-z0-9_#!:.?+=&%@!\-\/\$\^,;|*~'()]+)(:[0-9]+)?(\/|\/([A-Za-z0-9_#!:.?+=&%@!\-\/]))?)|(pid:\/\/(\d{1,10}))/ig,
 
-  setView: function(view) {
+  setView(view) {
     this.view = view;
-  },
+  }
 
-  assignParamsToAttrs: function(params) {
+  assignParamsToAttrs(params) {
     this.attr.assignParams(params)
-  },
+  }
 
-  puts: function(str) {
+  puts(str) {
     if (!str)
       return;
     var cols = this.cols;
@@ -355,9 +362,9 @@ TermBuf.prototype = {
       }
     }
     this.queueUpdate();
-  },
+  }
 
-  updateCharAttr: function() {
+  updateCharAttr() {
     var cols = this.cols;
     var rows = this.rows;
     var lines = this.lines;
@@ -483,9 +490,9 @@ TermBuf.prototype = {
         //
       }
     }
-  },
+  }
 
-  clear: function(param) {
+  clear(param) {
     var rows = this.rows;
     var cols = this.cols;
     var lines = this.lines;
@@ -536,17 +543,17 @@ TermBuf.prototype = {
     this.changed = true;
     this.gotoPos(0, 0);
     this.queueUpdate();
-  },
+  }
 
-  back: function() {
+  back() {
     if (this.cur_x > 0) {
       --this.cur_x;
       this.posChanged = true;
       this.queueUpdate();
     }
-  },
+  }
 
-  tab: function(param) {
+  tab(param) {
     var mod = this.cur_x % 4;
     this.cur_x += 4 - mod;
     if (param > 1) this.cur_x += 4 * (param-1);
@@ -554,9 +561,9 @@ TermBuf.prototype = {
       this.cur_x = this.cols-1;
     this.posChanged = true;
     this.queueUpdate();
-  },
+  }
 
-  backTab: function(param) {
+  backTab(param) {
     var mod = this.cur_x % 4;
     this.cur_x -= (mod > 0 ? mod : 4);
     if (param > 1) this.cur_x -= 4 * (param-1);
@@ -564,9 +571,9 @@ TermBuf.prototype = {
       this.cur_x = 0;
     this.posChanged = true;
     this.queueUpdate();
-  },
+  }
 
-  insert: function(param) {
+  insert(param) {
     var line = this.lines[this.cur_y];
     var cols = this.cols;
     var cur_x = this.cur_x;
@@ -588,9 +595,9 @@ TermBuf.prototype = {
     }
     this.changed = true;
     this.queueUpdate();
-  },
+  }
 
-  del: function(param) {
+  del(param) {
     var line = this.lines[this.cur_y];
     var cols = this.cols;
     var cur_x = this.cur_x;
@@ -612,9 +619,9 @@ TermBuf.prototype = {
     }
     this.changed = true;
     this.queueUpdate();
-  },
+  }
 
-  eraseChar: function(param) {
+  eraseChar(param) {
     var line = this.lines[this.cur_y];
     var cols = this.cols;
     var cur_x = this.cur_x;
@@ -627,9 +634,9 @@ TermBuf.prototype = {
     }
     this.changed = true;
     this.queueUpdate();
-  },
+  }
 
-  eraseLine: function(param) {
+  eraseLine(param) {
     var line = this.lines[this.cur_y];
     var cols = this.cols;
     switch (param) {
@@ -657,18 +664,18 @@ TermBuf.prototype = {
     }
     this.changed = true;
     this.queueUpdate();
-  },
+  }
 
-  deleteLine: function(param) {
+  deleteLine(param) {
     var scrollStart = this.scrollStart;
     this.scrollStart = this.cur_y;
     this.scroll(false, param);
     this.scrollStart = scrollStart;
     this.changed = true;
     this.queueUpdate();
-  },
+  }
 
-  insertLine: function(param) {
+  insertLine(param) {
     var scrollStart = this.scrollStart;
     if (this.cur_y < this.scrollEnd) {
       this.scrollStart=this.cur_y;
@@ -677,9 +684,9 @@ TermBuf.prototype = {
     this.scrollStart = scrollStart;
     this.changed = true;
     this.queueUpdate();
-  },
+  }
 
-  scroll: function(up, n) {
+  scroll(up, n) {
     var scrollStart=this.scrollStart;
     var scrollEnd=this.scrollEnd;
     if(scrollEnd<=scrollStart) {
@@ -736,9 +743,9 @@ TermBuf.prototype = {
     }
     this.changed = true;
     this.queueUpdate();
-  },
+  }
 
-  gotoPos: function(x,y) {
+  gotoPos(x,y) {
     // dump('gotoPos: ' + x + ', ' + y + '\n');
     if (x >= this.cols) x = this.cols-1;
     if (y >= this.rows) y = this.rows-1;
@@ -748,15 +755,15 @@ TermBuf.prototype = {
     this.cur_y = y;
     this.posChanged = true;
     this.queueUpdate();
-  },
+  }
 
-  carriageReturn: function() {
+  carriageReturn() {
     this.cur_x = 0;
     this.posChanged = true;
     this.queueUpdate();
-  },
+  }
 
-  lineFeed: function() {
+  lineFeed() {
     if (this.cur_y < this.scrollEnd) {
       ++this.cur_y;
       this.posChanged = true;
@@ -764,9 +771,9 @@ TermBuf.prototype = {
     } else { // at bottom of screen
       this.scroll(false, 1);
     }
-  },
+  }
 
-  queueUpdate: function(directupdate) {
+  queueUpdate(directupdate) {
     if (this.timerUpdate)
       return;
 
@@ -777,9 +784,9 @@ TermBuf.prototype = {
       this.timerUpdate = setTimeout(func, 1);
     else
       this.timerUpdate = setTimeout(func, 30);
-  },
+  }
 
-  notify: function(timer) {
+  notify(timer) {
     clearTimeout(this.timerUpdate);
     this.timerUpdate = null;
 
@@ -821,9 +828,9 @@ TermBuf.prototype = {
         this.view.onBlinkToggle();
       }
     }
-  },
+  }
 
-  getText: function(row, colStart, colEnd, color, isutf8, reset, lines) {
+  getText(row, colStart, colEnd, color, isutf8, reset, lines) {
     var text = '';
     if (lines) {
       text = lines[row];
@@ -875,9 +882,9 @@ TermBuf.prototype = {
           return c.ch;
       }
     }).join('');
-  },
+  }
 
-  getRowText: function(row, colStart, colEnd, lines) {
+  getRowText(row, colStart, colEnd, lines) {
 
     var text = '';
     if (lines) {
@@ -910,9 +917,9 @@ TermBuf.prototype = {
       }
     }).join('');
 
-  },
+  }
 
-  ansiCmp: function(preChar, thisChar, forceReset) {
+  ansiCmp(preChar, thisChar, forceReset) {
     var text = '';
     var reset = forceReset;
     if ((preChar.bright && !thisChar.bright) ||
@@ -936,9 +943,9 @@ TermBuf.prototype = {
       text += '4' + thisBg + ';';
     if (!text) return '';
     else return ('\x1b[' + text.substr(0,text.length-1) + 'm');
-  },
+  }
 
-  isFullWidth: function(str) {
+  isFullWidth(str) {
     var code = str.charCodeAt(0);
     if (this.view.charset != 'UTF-8' || this.forceFullWidth) { // PTT support
       if (code > 0x7f) return true;
@@ -957,9 +964,9 @@ TermBuf.prototype = {
     } else {
       return false;
     }
-  },
+  }
 
-  isTextWrappedRow: function(row) {
+  isTextWrappedRow(row) {
     // determine whether it is wrapped by looking for the ending "\"
     var rowText = this.getRowText(row, 0, this.cols);
     var slashIndex = rowText.lastIndexOf('\\');
@@ -972,9 +979,9 @@ TermBuf.prototype = {
         return true;
     }
     return false;
-  },
+  }
 
-  setPageState: function() {
+  setPageState() {
     const profile = this.siteProfile;
     let lastRowNum = profile.getLastRowNum(this);
     let cols = this.cols;
@@ -1012,9 +1019,9 @@ TermBuf.prototype = {
       //console.log('pageState = 0 (NORMAL)');
       this.pageState = 0;
     }
-  },
+  }
 
-  isUnicolor: function(lineindex, start, end){
+  isUnicolor(lineindex, start, end) {
     var lines = this.lines;
     var line = lines[lineindex];
     var clr = line[start].getBg();
@@ -1026,9 +1033,9 @@ TermBuf.prototype = {
         return false;
     }
     return true;
-  },
+  }
 
-  isLineEmpty: function(iLine){
+  isLineEmpty(iLine) {
     var rows = this.rows;
     var lines = this.lines;
     var line = lines[iLine];
@@ -1037,9 +1044,9 @@ TermBuf.prototype = {
       if ( line[col].ch != ' ' || line[col].getBg() )
         return false;
     return true;
-  },
+  }
 
-  _calcListRowMouseCursor: function(trow, tcol, lastRowNum, cols) {
+  _calcListRowMouseCursor(trow, tcol, lastRowNum, cols) {
     if ( tcol <= 6 ) {
       this.clearHighlight();
       this.mouseCursor = 1;
@@ -1057,9 +1064,9 @@ TermBuf.prototype = {
         this.mouseCursor = 11;
       }
     }
-  },
+  }
 
-  onMouse_move: function(tcol, trow, doRefresh){
+  onMouse_move(tcol, trow, doRefresh) {
     this.tempMouseCol = tcol;
     this.tempMouseRow = trow;
 
@@ -1159,25 +1166,25 @@ TermBuf.prototype = {
     }
 
     this.BBSWin.style.cursor = mouseCursorMap[this.mouseCursor];
-  },
+  }
 
-  resetMousePos: function() {
+  resetMousePos() {
     if (this.useMouseBrowsing) {
       this.onMouse_move(this.tempMouseCol, this.tempMouseRow, true);
     }
-  },
+  }
 
-  setHighlight: function(row) {
+  setHighlight(row) {
     this._nowHighlight = row;
     this.view.setHighlightedRow(row);
-  },
+  }
 
-  clearHighlight: function(){
+  clearHighlight() {
     this.nowHighlight = -1;
     this.mouseCursor = 0;
-  },
+  }
 
-  setTitle: function(part) {
+  setTitle(part) {
     if (part) {
       if (part.site !== undefined) {
         this.titleSite = part.site;
@@ -1197,6 +1204,5 @@ TermBuf.prototype = {
     }
     document.title = this.title = title;
   }
-};
 
-Event.mixin(TermBuf.prototype);
+}
