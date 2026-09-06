@@ -1,8 +1,9 @@
 import React from "react";
 import ImagePreviewer, {
-  of,
-  resolveSrcToImageUrl,
-  resolveWithImageDOM,
+  initialImagePreviewState,
+  resetImagePreviewState,
+  updateImagePreviewMove,
+  createImagePreviewRequest,
 } from "../ImagePreviewer";
 import CanvasRenderer from "./CanvasRenderer";
 import CanvasSelection from "./CanvasSelection";
@@ -19,9 +20,7 @@ export class CanvasScreen extends React.Component {
 
   state = {
     currentHighlighted: undefined,
-    currentImagePreview: undefined,
-    left: undefined,
-    top: undefined,
+    ...initialImagePreviewState,
     selStart: null,
     selEnd: null,
   };
@@ -62,11 +61,7 @@ export class CanvasScreen extends React.Component {
       this.props.lines !== prevProps.lines &&
       this.state.currentImagePreview
     ) {
-      this.setState({
-        currentImagePreview: undefined,
-        left: undefined,
-        top: undefined,
-      });
+      this.setState(resetImagePreviewState());
     }
 
     const layoutOrStyleChanged =
@@ -259,33 +254,27 @@ export class CanvasScreen extends React.Component {
   };
 
   handleMouseMove = ({ clientX, clientY }) => {
-    if (this.state.currentImagePreview) {
-      this.setState({
-        left: clientX,
-        top: clientY,
-      });
+    const nextPos = updateImagePreviewMove(this.state, clientX, clientY);
+    if (nextPos) {
+      this.setState(nextPos);
     }
   };
 
   handleHyperLinkMouseOver = (e) => {
     if (this.props.enableLinkHoverPreview && e && e.currentTarget) {
       const href = e.currentTarget.href;
-      this.setState({
-        currentImagePreview: of(href)
-          .then(resolveSrcToImageUrl)
-          .then(resolveWithImageDOM),
-        left: e.clientX,
-        top: e.clientY,
-      });
+      if (href) {
+        this.setState({
+          currentImagePreview: createImagePreviewRequest(href),
+          left: e.clientX,
+          top: e.clientY,
+        });
+      }
     }
   };
 
   handleHyperLinkMouseOut = () => {
-    this.setState({
-      currentImagePreview: undefined,
-      left: undefined,
-      top: undefined,
-    });
+    this.setState(resetImagePreviewState());
   };
 
   renderLinkOverlays() {
@@ -400,14 +389,11 @@ export class CanvasScreen extends React.Component {
           }}
         />
         {this.renderLinkOverlays()}
-        {this.state.currentImagePreview && (
-          <ImagePreviewer
-            request={this.state.currentImagePreview}
-            component={ImagePreviewer.OnHover}
-            left={this.state.left}
-            top={this.state.top}
-          />
-        )}
+        <ImagePreviewer.HoverPreview
+          request={this.state.currentImagePreview}
+          left={this.state.left}
+          top={this.state.top}
+        />
       </div>
     );
   }

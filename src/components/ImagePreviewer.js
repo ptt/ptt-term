@@ -141,6 +141,18 @@ ImagePreviewer.Inline = ({ value, error }) => {
   }
 };
 
+ImagePreviewer.HoverPreview = ({ request, left, top }) => {
+  if (!request) return null;
+  return (
+    <ImagePreviewer
+      request={request}
+      component={ImagePreviewer.OnHover}
+      left={left}
+      top={top}
+    />
+  );
+};
+
 const imageUrlResolvers = [
   {
     /*
@@ -209,5 +221,29 @@ registerImageUrlResolver({
     });
   }
 });
+
+export const createImagePreviewRequest = (href) =>
+  of(href)
+    .then(resolveSrcToImageUrl)
+    .then(resolveWithImageDOM);
+
+export const initialImagePreviewState = {
+  currentImagePreview: undefined,
+  left: undefined,
+  top: undefined,
+};
+
+export const resetImagePreviewState = () => ({
+  currentImagePreview: undefined,
+  left: undefined,
+  top: undefined,
+});
+
+export const updateImagePreviewMove = (state, clientX, clientY) => {
+  if (state.currentImagePreview) {
+    return { left: clientX, top: clientY };
+  }
+  return null;
+};
 
 export default ImagePreviewer;

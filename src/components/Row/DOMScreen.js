@@ -1,17 +1,16 @@
 import React from "react";
 import Row from "./index";
 import ImagePreviewer, {
-  of,
-  resolveSrcToImageUrl,
-  resolveWithImageDOM,
+  initialImagePreviewState,
+  resetImagePreviewState,
+  updateImagePreviewMove,
+  createImagePreviewRequest,
 } from "../ImagePreviewer";
 
 export class DOMScreen extends React.Component {
   state = {
     currentHighlighted: undefined,
-    currentImagePreview: undefined,
-    left: undefined,
-    top: undefined,
+    ...initialImagePreviewState,
   };
 
   setCurrentHighlighted = (currentHighlighted) => {
@@ -52,35 +51,32 @@ export class DOMScreen extends React.Component {
       this.props.lines !== prevProps.lines &&
       this.state.currentImagePreview
     ) {
-      this.setState({
-        currentImagePreview: undefined,
-        left: undefined,
-        top: undefined,
-      });
+      this.setState(resetImagePreviewState());
     }
   }
 
   handleMouseMove = ({ clientX, clientY }) => {
-    if (this.state.currentImagePreview) {
-      this.setState({
-        left: clientX,
-        top: clientY,
-      });
+    const nextPos = updateImagePreviewMove(this.state, clientX, clientY);
+    if (nextPos) {
+      this.setState(nextPos);
     }
   };
 
-  handleHyperLinkMouseOver = ({ currentTarget: { href } }) => {
+  handleHyperLinkMouseOver = (e) => {
     if (this.props.enableLinkHoverPreview) {
-      this.setState({
-        currentImagePreview: of(href)
-          .then(resolveSrcToImageUrl)
-          .then(resolveWithImageDOM),
-      });
+      const href = e && e.currentTarget ? e.currentTarget.href : undefined;
+      if (href) {
+        this.setState({
+          currentImagePreview: createImagePreviewRequest(href),
+          left: e.clientX,
+          top: e.clientY,
+        });
+      }
     }
   };
 
   handleHyperLinkMouseOut = () => {
-    this.setState({ currentImagePreview: undefined });
+    this.setState(resetImagePreviewState());
   };
 
   render() {
@@ -99,14 +95,11 @@ export class DOMScreen extends React.Component {
               onHyperLinkMouseOut={this.handleHyperLinkMouseOut}
             />
           ))}
-        {this.state.currentImagePreview && (
-          <ImagePreviewer
-            request={this.state.currentImagePreview}
-            component={ImagePreviewer.OnHover}
-            left={this.state.left}
-            top={this.state.top}
-          />
-        )}
+        <ImagePreviewer.HoverPreview
+          request={this.state.currentImagePreview}
+          left={this.state.left}
+          top={this.state.top}
+        />
       </div>
     );
   }
