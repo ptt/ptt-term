@@ -120,9 +120,8 @@ module.exports = {
         },
         {
           name: 'bootstrap',
-          var: 'bootstrap',
-          path: 'dist/js/bootstrap.min.js',
           style: 'dist/css/bootstrap.min.css',
+          cssOnly: true,
         },
         {
           name: 'hammerjs',
