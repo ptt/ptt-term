@@ -1,5 +1,17 @@
 import { Event } from './event';
 
+export function uint8ArrayToBinaryString(bytes) {
+  const CHUNK_SIZE = 8192;
+  if (bytes.length <= CHUNK_SIZE) {
+    return String.fromCharCode.apply(null, bytes);
+  }
+  let str = "";
+  for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+    str += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK_SIZE));
+  }
+  return str;
+}
+
 export class Websocket extends Event {
   constructor(url) {
     super();
@@ -24,7 +36,7 @@ export class Websocket extends Event {
     }));
     this.dispatchEvent(new CustomEvent('data', {
       detail: {
-        data: String.fromCharCode.apply(String, data)
+        data: uint8ArrayToBinaryString(data)
       }
     }));
   }
