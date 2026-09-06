@@ -397,7 +397,7 @@ TermBuf.prototype = {
           if ( ch0.needUpdate != ch.needUpdate ) {
             ch0.needUpdate = ch.needUpdate = true;
           }
-        } else if (ch.isleadbyte && (col+1) < cols) {
+        } else if (ch.isLeadByte && (col+1) < cols) {
           var ch2 = line[col+1];
           ch2.needUpdate = true;
         }
