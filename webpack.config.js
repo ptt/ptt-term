@@ -1,6 +1,6 @@
 const path = require('path');
 const webpack = require('webpack');
-const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssUrlRelativePlugin = require('css-url-relative-plugin');
@@ -73,7 +73,13 @@ module.exports = {
   },
   devtool: 'source-map',
   optimization: {
-    minimizer: [new OptimizeCSSAssetsPlugin({})],
+    minimizer: [
+      new TerserPlugin({
+        sourceMap: true,
+        parallel: true,
+      }),
+      new OptimizeCSSAssetsPlugin({}),
+    ],
   },
   plugins: [
     new webpack.ProvidePlugin({
@@ -108,12 +114,7 @@ module.exports = {
       template: './src/dev.html',
       filename: '../index.html'
     })
-  ].concat(PRODUCTION_MODE ? [
-    new UglifyJSPlugin({
-      sourceMap: true,
-      parallel: true
-    }),
-  ] : [
+  ].concat(PRODUCTION_MODE ? [] : [
     new HtmlWebpackHarddiskPlugin()
   ]),
   devServer: {
