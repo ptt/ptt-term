@@ -10,7 +10,7 @@ import { EasyReading } from './easy_reading';
 import { ConnectionLog } from './conn_log';
 import { TouchController } from './touch_controller';
 import { i18n } from './i18n';
-import { unescapeStr, b2u, parseWaterball } from './string_util';
+import { unescapeStr, b2u } from './string_util';
 import { setTimer } from './util';
 import PasteShortcutAlert from '../components/PasteShortcutAlert';
 import ConnectionAlert from '../components/ConnectionAlert';
