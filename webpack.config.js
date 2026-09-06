@@ -113,12 +113,6 @@ module.exports = {
       crossOrigin: 'anonymous',
       modules: [
         {
-          // jQuery must be loaded before bootstrap.
-          name: 'jquery',
-          var: 'jQuery',
-          path: 'dist/jquery.min.js',
-        },
-        {
           name: 'bootstrap',
           style: 'dist/css/bootstrap.min.css',
           cssOnly: true,

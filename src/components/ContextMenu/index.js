@@ -1,4 +1,3 @@
-import $ from "jquery";
 import cx from "classnames";
 import React from "react";
 import ReactDOM from "react-dom";
@@ -172,16 +171,8 @@ export class ContextMenu extends React.Component {
     const selColRow = app.view.getSelectionColRow();
     app.lastSelection = selColRow || null;
 
-    const target = $(event.target);
-    let contextOnUrl = "";
-    let aElement;
-    if (target.is("a")) {
-      contextOnUrl = target.attr("href");
-      aElement = target[0];
-    } else if (target.parent().is("a")) {
-      contextOnUrl = target.parent().attr("href");
-      aElement = target[0].parentNode;
-    }
+    const aElement = event.target ? event.target.closest("a") : null;
+    const contextOnUrl = aElement ? aElement.getAttribute("href") || "" : "";
 
     // replace the &nbsp;
     let selectedText = app.view.getSelectedText();

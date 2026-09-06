@@ -227,7 +227,7 @@ export class TermView {
   }
 
   get mainContainer() {
-    return $('#mainContainer')[0];
+    return document.getElementById('mainContainer');
   }
 
 

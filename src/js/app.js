@@ -89,14 +89,11 @@ export class App {
 
   window.addEventListener('mousedown', (e) => {
     this.mouse_down(e);
-  }, false);
-
-  $(window).mousedown((e) => {
     var ret = this.middleMouse_down(e);
     if (ret === false) {
-      return false;
+      e.preventDefault();
     }
-  });
+  }, false);
 
   window.addEventListener('mouseup', (e) => {
     this.mouse_up(e);
@@ -646,10 +643,10 @@ export class App {
   }
 
   getFirstGridOffsets() {
-  var container = $(".main")[0];
+  var container = document.querySelector(".main");
   return {
-    top: container.offsetTop,
-    left: container.offsetLeft
+    top: container ? container.offsetTop : 0,
+    left: container ? container.offsetLeft : 0
   };
   }
 
@@ -830,10 +827,9 @@ export class App {
         break;
     }
 
-    if (this.view.fontFitWindowWidth) {
-      $('.main').addClass('trans-fix');
-    } else {
-      $('.main').removeClass('trans-fix');
+    var mainEl = document.querySelector('.main');
+    if (mainEl) {
+      mainEl.classList.toggle('trans-fix', !!this.view.fontFitWindowWidth);
     }
   } catch (e) {}
   }
@@ -969,7 +965,7 @@ export class App {
 
   if (e.button == 2) { //right button
   } else if (e.button === 0) { //left button
-    if ($(e.target).is('a') || $(e.target).parent().is('a')) {
+    if (e.target && e.target.closest('a')) {
       return;
     }
     if (this.isSelectionCollapsed()) { //no anything be select
@@ -1010,11 +1006,10 @@ export class App {
   }
 
   middleMouse_down(e) {
-  // moved to here because middle click works better with jquery
   if (this.connLog && this.connLog.contains(e.target))
     return;
   if (e.button == 1) {
-    if ($(e.target).is('a') || $(e.target).parent().is('a')) {
+    if (e.target && e.target.closest('a')) {
       return;
     }
     if (this.view.middleButtonFunction == 1) {
