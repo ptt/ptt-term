@@ -1,5 +1,3 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
 import '../conv/uao';
 import { App } from './app';
 import { setupI18n } from './i18n';
@@ -12,18 +10,11 @@ function startApp() {
   const app = new App();
   window.app = app;
 
-  (process.env.DEVELOPER_MODE ? import('../components/DeveloperModeAlert')
-    .then(({DeveloperModeAlert}) => new Promise((resolve, reject) => {
-      const container = document.getElementById('reactAlert')
-      const onDismiss = () => {
-        ReactDOM.unmountComponentAtNode(container)
-        resolve()
-      }
-      ReactDOM.render(
-        <DeveloperModeAlert onDismiss={onDismiss} />,
-        container
-      )
-    })) : Promise.resolve()
+  (process.env.DEVELOPER_MODE ? new Promise((resolve) => {
+    app.showAlert('developerMode', {
+      onDismiss: () => resolve()
+    });
+  }) : Promise.resolve()
   ).then(() => {
     // connect.
     const allowOverride = process.env.ALLOW_OVERRIDE_FROM_QUERY;

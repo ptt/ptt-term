@@ -66,7 +66,8 @@ export class ContextMenu extends React.Component {
 
   componentDidMount() {
     this.contextMenuHandler = (event) => {
-      ReactDOM.unstable_batchedUpdates(() => {
+      const batchUpdates = ReactDOM.unstable_batchedUpdates || ((fn) => fn());
+      batchUpdates(() => {
         this.handleContextMenu(event);
       });
     };

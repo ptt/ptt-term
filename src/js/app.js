@@ -12,9 +12,7 @@ import { TouchController } from './touch_controller';
 import { i18n } from './i18n';
 import { unescapeStr, b2u } from './string_util';
 import { setTimer } from './util';
-import PasteShortcutAlert from '../components/PasteShortcutAlert';
-import ConnectionAlert from '../components/ConnectionAlert';
-import ContextMenu from '../components/ContextMenu';
+import AppOverlay from '../components/AppOverlay';
 import { getSite } from './sites';
 
 function noop() {}
@@ -66,6 +64,8 @@ export class App {
 
   this.inputAreaFocusTimer = null;
   this.modalShown = false;
+  this.activeAlert = null;
+  this.onAlertChange = null;
 
   this.lastSelection = null;
 
@@ -168,6 +168,7 @@ export class App {
   }
 
   connect(url, siteType) {
+  this.dismissAlert('connection');
   this.connectState = 0;
   console.log('connect: ' + url + ', siteType: ' + siteType);
 
@@ -307,15 +308,11 @@ export class App {
   this.connectState = 2;
   this.idleTime = 0;
 
-  const onDismiss = () => {
-    ReactDOM.unmountComponentAtNode(container);
-    this.connect(this.connectedUrl.url);
-  }
-  const container = document.getElementById('reactAlert');
-  ReactDOM.render(
-    <ConnectionAlert onDismiss={onDismiss} />,
-    container
-  );
+  this.showAlert('connection', {
+    onDismiss: () => {
+      this.connect(this.connectedUrl.url);
+    }
+  });
   this.updateTabIcon('disconnect');
   }
 
@@ -464,16 +461,12 @@ export class App {
   }
 
   showPasteUnimplemented() {
-  const container = document.getElementById('reactAlert');
-  const onDismiss = () => {
-    ReactDOM.unmountComponentAtNode(container);
-    this.modalShown = false;
-  };
-  ReactDOM.render(
-    <PasteShortcutAlert onDismiss={onDismiss} />,
-    container
-  );
-  this.modalShown = true;
+    this.modalShown = true;
+    this.showAlert('pasteShortcut', {
+      onDismiss: () => {
+        this.modalShown = false;
+      }
+    });
   }
 
   onPasteDone(content) {
@@ -1354,12 +1347,33 @@ export class App {
   }
   }
 
+  showAlert(type, options = {}) {
+    const { onDismiss, ...props } = options;
+    this.activeAlert = { type, onDismiss, props };
+    if (this.onAlertChange) {
+      this.onAlertChange(this.activeAlert);
+    }
+  }
+
+  dismissAlert(type) {
+    if (!this.activeAlert) return;
+    if (type && this.activeAlert.type !== type) return;
+    this.activeAlert = null;
+    if (this.onAlertChange) {
+      this.onAlertChange(null);
+    }
+  }
+
+  setupOverlay() {
+    ReactDOM.render(
+      <AppOverlay
+        app={this}
+      />,
+      document.getElementById('cmenuReact')
+    );
+  }
+
   setupContextMenus() {
-  ReactDOM.render(
-    <ContextMenu
-      app={this}
-    />,
-    document.getElementById('cmenuReact')
-  );
+    this.setupOverlay();
   }
 }
