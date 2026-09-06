@@ -879,7 +879,7 @@ TermBuf.prototype = {
     }
 
     text = text.slice(colStart, colEnd);
-    return text.map( function(c, col, line) {
+    return text.map((c, col, line) => {
       if (!c.isLeadByte) {
         if (col >=1 && line[col-1].isLeadByte) { // second byte of DBCS char
           var prevC = line[col-1];
