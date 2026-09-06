@@ -8,3 +8,37 @@
   margin-left: -200px;
   box-shadow: 0px 0px 20px black;
 }
+
+.alert-purple {
+  color: #3b0764;
+  background-color: #f3e8ff;
+  border-color: #d8b4fe;
+}
+
+.alert-purple h4 {
+  color: #581c87;
+  font-weight: bold;
+}
+
+.alert-purple .close {
+  color: #3b0764;
+  opacity: 0.4;
+}
+
+.alert-purple .close:hover {
+  opacity: 0.8;
+}
+
+.btn-purple {
+  color: #fff;
+  background-color: #7e22ce;
+  border-color: #6b21a8;
+}
+
+.btn-purple:hover,
+.btn-purple:focus,
+.btn-purple:active {
+  color: #fff;
+  background-color: #6b21a8;
+  border-color: #581c87;
+}
