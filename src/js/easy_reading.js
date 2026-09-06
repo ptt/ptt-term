@@ -1,4 +1,4 @@
-import { readValuesWithDefault } from '../components/ContextMenu/PrefModal';
+import { readValuesWithDefault } from './pref';
 
 export class EasyReading {
   constructor(core, view, termBuf) {

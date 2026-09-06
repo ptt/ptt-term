@@ -1,4 +1,4 @@
-import { readValuesWithDefault } from "../components/ContextMenu/PrefModal";
+import { readValuesWithDefault, updatePref } from "./pref";
 
 export function bytesToHex(bytes) {
   if (!bytes || bytes.length === 0) return "";
@@ -156,17 +156,7 @@ export class ConnectionLog {
   close() {
     this.setEnabled(false);
     this.app.onPrefChange("captureConnectionLog", false);
-    try {
-      const PREF_STORAGE_KEY = "pttchrome.pref.v1";
-      const raw = window.localStorage.getItem(PREF_STORAGE_KEY);
-      if (raw) {
-        const obj = JSON.parse(raw);
-        if (obj && obj.values) {
-          obj.values.captureConnectionLog = false;
-          window.localStorage.setItem(PREF_STORAGE_KEY, JSON.stringify(obj));
-        }
-      }
-    } catch (e) {}
+    updatePref("captureConnectionLog", false);
   }
 
   clear() {
