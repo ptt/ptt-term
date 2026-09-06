@@ -3,7 +3,7 @@ import { Event } from './event';
 export class Websocket extends Event {
   constructor(url) {
     super();
-    this._conn = new WebSocket(url);
+    this._conn = new WebSocket(url, "telnet");
     this._conn.binaryType = "arraybuffer";
     this._conn.addEventListener('open', (e) => this._onOpen(e));
     this._conn.addEventListener('message', (e) => this._onMessage(e));
