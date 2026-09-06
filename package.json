@@ -2,7 +2,6 @@
   "name": "ptt-term",
   "version": "2.0.0",
   "dependencies": {
-    "bootstrap": "^3.3.7",
     "classnames": "^2.2.5",
     "preact": "^10.29.8"
   },
@@ -28,7 +27,6 @@
     "uglifyjs-webpack-plugin": "^2.2.0",
     "url-loader": "^4.1.1",
     "webpack": "^4.42.0",
-    "webpack-cdn-plugin": "^3.2.2",
     "webpack-cli": "^4.9.0",
     "webpack-dev-server": "^4.6.0"
   },
