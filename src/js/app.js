@@ -204,7 +204,7 @@ export class App {
   this._setupWebsocketConn(ws_url);
   this.connectedUrl = {
     url: url,
-    site: parsed.hostname,
+    hostname: parsed.hostname,
     host: parsed.host,
     port: parsed.port,
     profile: this.site.name,
@@ -284,7 +284,7 @@ export class App {
   console.info("pttchrome onConnect");
   this.connectState = 1;
   this.updateTabIcon('connect');
-  this.view.buf.setTitle({conn: this.connectedUrl.site});
+  this.view.buf.setTitle({conn: this.connectedUrl.hostname});
   this.idleTime = 0;
   this.timerEverySec = setTimer(true, () => {
     this.antiIdle();
@@ -950,7 +950,7 @@ export class App {
       this.view.enableNotifications = value;
       break;
     case 'enableEasyReading':
-      /*if (this.connectedUrl.site == 'ptt.cc') {
+      /*if (this.connectedUrl.hostname == 'ptt.cc') {
         this.view.useEasyReadingMode = value;
       } else {
         this.view.useEasyReadingMode = false;
