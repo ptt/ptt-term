@@ -192,6 +192,7 @@ EasyReading.prototype._onKeyDown = function(e) {
         if (profile.navigatePrevPost(this))
           stop = true;
         break;
+      case 'Enter':
       case 'ArrowDown':
         if (profile.navigateNextPost(this))
           stop = true;
@@ -281,8 +282,13 @@ EasyReading.prototype._onKeyDownProcessUI = function(e) {
       case 'Enter':
       case 'ArrowDown':
         stop = this._scrollBy(1);
-        if (!stop)
-          this.leaveCurrentPost();
+        if (!stop) {
+          if (!this.easyReadingReachedPageEnd) {
+            stop = true;
+          } else {
+            this.leaveCurrentPost();
+          }
+        }
         break;
       case 'k':
         this._scrollBy(-1);
