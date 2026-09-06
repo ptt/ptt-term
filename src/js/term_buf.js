@@ -818,7 +818,7 @@ export class TermBuf extends Event {
 
       document.body.classList.toggle('blink--active');
       if (typeof document !== 'undefined') {
-        document.dispatchEvent(new CustomEvent('pttchrome-blink'));
+        document.dispatchEvent(new CustomEvent('term-blink'));
       }
       this.view.onBlinkToggle();
     }

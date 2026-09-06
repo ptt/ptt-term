@@ -32,7 +32,7 @@ export class CanvasScreen extends React.Component {
       window.addEventListener("mousemove", this.handleGlobalMouseMove);
     }
     if (typeof document !== "undefined") {
-      document.addEventListener("pttchrome-blink", this.handleBlink);
+      document.addEventListener("term-blink", this.handleBlink);
     }
     if (
       typeof document !== "undefined" &&
@@ -52,7 +52,7 @@ export class CanvasScreen extends React.Component {
       window.removeEventListener("mousemove", this.handleGlobalMouseMove);
     }
     if (typeof document !== "undefined") {
-      document.removeEventListener("pttchrome-blink", this.handleBlink);
+      document.removeEventListener("term-blink", this.handleBlink);
     }
   }
 
