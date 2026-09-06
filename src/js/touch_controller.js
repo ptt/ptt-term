@@ -1,17 +1,18 @@
-export function TouchController(app) {
-  this.app = app;
-  this.highlightCopy = false;
-  this.touchStarted = false;
-  this.touchedCenter = { x: 0, y: 0 };
+export class TouchController {
+  constructor(app) {
+    this.app = app;
+    this.highlightCopy = false;
+    this.touchStarted = false;
+    this.touchedCenter = { x: 0, y: 0 };
 
-  // make sure the text selection still works
-  delete Hammer.defaults.cssProps.userSelect;
+    // make sure the text selection still works
+    delete Hammer.defaults.cssProps.userSelect;
 
-  this.ham = null;
-  this.setupHandlers();
-};
+    this.ham = null;
+    this.setupHandlers();
+  }
 
-TouchController.prototype.setupHandlers = function() {
+  setupHandlers() {
   const app = this.app;
 
   document.body.ontouchmove = (e) => { 
@@ -72,4 +73,5 @@ TouchController.prototype.setupHandlers = function() {
     app.inputArea.focus();
     console.log('touchtap');
   });
-};
+  }
+}
