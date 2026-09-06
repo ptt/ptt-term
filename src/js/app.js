@@ -402,7 +402,14 @@ export class App {
     this.onDisableLiveHelperModalState();
     // clear the deep cloned copy of lines
     this.buf.pageLines = [];
-    if (this.buf.pageState == 3 && this.view.conn) this.view.conn.send('\x1b[D\x1b[C'); //this.view.conn.send('qr');
+    if (this.buf.pageState == 3 && this.view.conn) {
+      const site = this.buf ? this.buf.site : this.site;
+      const cmd =
+        site && typeof site.getReenterArticleCommand === "function"
+          ? site.getReenterArticleCommand(this.buf)
+          : "\x1b[D\x1b[C";
+      this.view.conn.send(cmd);
+    }
   } else {
     this.view.hideEasyReading();
   }

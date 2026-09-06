@@ -145,4 +145,8 @@ export class Maple3Site extends BaseSite {
     }
     return false;
   }
+
+  getReenterArticleCommand(termBuf) {
+    return 'qr';
+  }
 }

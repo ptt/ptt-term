@@ -168,6 +168,15 @@ export class BaseSite {
   }
 
   /**
+   * Get command string to re-enter/reload current article for easy reading.
+   * @param {TermBuf} termBuf
+   * @returns {string}
+   */
+  getReenterArticleCommand(termBuf) {
+    return '\x1b[D\x1b[C';
+  }
+
+  /**
    * Get bottom prompt HTML for easy reading mode.
    * @param {string} spaces
    * @param {number} percent

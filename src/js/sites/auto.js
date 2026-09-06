@@ -158,4 +158,8 @@ export class AutoSite extends BaseSite {
   parseNotification(data, termBuf) {
     return this.getActiveSite().parseNotification(data, termBuf);
   }
+
+  getReenterArticleCommand(termBuf) {
+    return this.getActiveSite().getReenterArticleCommand(termBuf);
+  }
 }
