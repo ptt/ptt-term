@@ -69,21 +69,39 @@ export class TermChar {
   static defaultFg = 7;
   static defaultBg = 0;
 
+  /**
+   * @param {string} [ch]
+   */
   constructor(ch) {
-    this.ch = ch;
+    /** @type {string} */
+    this.ch = typeof ch === 'string' ? ch : ' ';
     this.resetAttr();
+    /** @type {boolean} */
     this.needUpdate = false;
+    /** @type {boolean} */
     this.isLeadByte = false;
+    /** @type {boolean} */
     this.startOfURL = false;
+    /** @type {boolean} */
     this.endOfURL = false;
+    /** @type {boolean} */
     this.partOfURL = false;
+    /** @type {boolean} */
     this.partOfKeyWord = false;
+    /** @type {string} */
     this.keyWordColor = '#ff0000';
+    /** @type {string} */
     this.fullurl = '';
   }
 
+  /**
+   * @param {number[]} params
+   */
   assignParams(params) {
-    params.forEach(v => {    
+    if (!Array.isArray(params)) return;
+    params.forEach(rawV => {
+      const v = typeof rawV === 'number' && Number.isFinite(rawV) ? rawV : parseInt(rawV, 10);
+      if (!Number.isFinite(v)) return;
       switch (v) {
       case 0: // reset
         this.resetAttr();
@@ -120,18 +138,22 @@ export class TermChar {
   }
 
   copyFromNewChar() {
-    this.ch = TermChar.newChar.ch;
-    this.isLeadByte = TermChar.newChar.isLeadByte;
+    this.ch = TermChar.newChar ? TermChar.newChar.ch : ' ';
+    this.isLeadByte = TermChar.newChar ? TermChar.newChar.isLeadByte : false;
     this.resetAttr();
   }
 
+  /**
+   * @param {TermChar} attr
+   */
   copyAttr(attr) {
-    this.fg = attr.fg;
-    this.bg = attr.bg;
-    this.bright = attr.bright;
-    this.invert = attr.invert;
-    this.blink = attr.blink;
-    this.underLine = attr.underLine;
+    if (!attr || typeof attr !== 'object') return;
+    this.fg = typeof attr.fg === 'number' ? attr.fg : 7;
+    this.bg = typeof attr.bg === 'number' ? attr.bg : 0;
+    this.bright = Boolean(attr.bright);
+    this.invert = Boolean(attr.invert);
+    this.blink = Boolean(attr.blink);
+    this.underLine = Boolean(attr.underLine);
   }
 
   resetAttr() {
@@ -192,17 +214,23 @@ export class TermBuf extends Event {
   timerUpdate = null;
   uriRegEx = /((ftp|http|https|telnet):\/\/([A-Za-z0-9_]+:{0,1}[A-Za-z0-9_]*@)?([A-Za-z0-9_#!:.?+=&%@!\-\/\$\^,;|*~'()]+)(:[0-9]+)?(\/|\/([A-Za-z0-9_#!:.?+=&%@!\-\/]))?)|(pid:\/\/(\d{1,10}))/ig;
 
+  /**
+   * @param {number} cols
+   * @param {number} rows
+   */
   constructor(cols, rows) {
     super();
-    this.cols = cols;
-    this.rows = rows;
+    const validCols = (typeof cols === 'number' && Number.isFinite(cols) && cols > 0) ? Math.floor(cols) : 80;
+    const validRows = (typeof rows === 'number' && Number.isFinite(rows) && rows > 0) ? Math.floor(rows) : 24;
+    this.cols = validCols;
+    this.rows = validRows;
     this.view = null;
     this.cur_x = 0;
     this.cur_y = 0;
     this.cur_x_sav = -1;
     this.cur_y_sav = -1;
     this.scrollStart = 0;
-    this.scrollEnd = rows-1;
+    this.scrollEnd = validRows - 1;
     this._nowHighlight = -1;
     this.tempMouseCol = 0;
     this.tempMouseRow = 0;
@@ -225,19 +253,20 @@ export class TermBuf extends Event {
     this.prevPageState = 0;
     this.site = getSite(process.env.SITE_TYPE || 'auto');
 
-    this.lines = new Array(rows);
+    /** @type {TermChar[][]} */
+    this.lines = new Array(validRows);
 
     this.pageLines = [];
     this.pageWrappedLines = [];
 
-    this.lineChangeds = new Array(rows);
+    this.lineChangeds = new Array(validRows);
 
     this.viewBufferTimer = 30;
 
-    let r = rows;
+    let r = validRows;
     while (--r >= 0) {
-      const line = new Array(cols);
-      let c = cols;
+      const line = new Array(validCols);
+      let c = validCols;
       while (--c >= 0) {
         line[c] = new TermChar(' ');
       }
@@ -260,12 +289,19 @@ export class TermBuf extends Event {
     this.setHighlight(val);
   }
 
-
+  /**
+   * @param {number} cols
+   * @param {number} rows
+   */
   resize(cols, rows) {
-    if (this.site) {
+    cols = (typeof cols === 'number' && Number.isFinite(cols) && cols > 0) ? Math.floor(cols) : this.cols;
+    rows = (typeof rows === 'number' && Number.isFinite(rows) && rows > 0) ? Math.floor(rows) : this.rows;
+    if (this.site && typeof this.site.clampTermSize === 'function') {
       const clamped = this.site.clampTermSize(cols, rows);
-      cols = clamped.cols;
-      rows = clamped.rows;
+      if (clamped && typeof clamped.cols === 'number' && typeof clamped.rows === 'number') {
+        cols = Math.floor(clamped.cols);
+        rows = Math.floor(clamped.rows);
+      }
     }
     console.debug(`[TermBuf.resize] Resizing buffer to ${cols}x${rows}`);
     this.cols = cols;
@@ -284,26 +320,43 @@ export class TermBuf extends Event {
         }
       }
     }
+    if (this.cur_x >= cols) this.cur_x = cols - 1;
+    if (this.cur_y >= rows) this.cur_y = rows - 1;
   }
 
-
-
+  /**
+   * @param {any} view
+   */
   setView(view) {
     this.view = view;
   }
 
+  /**
+   * @param {number[]} params
+   */
   assignParamsToAttrs(params) {
-    this.attr.assignParams(params)
+    if (!Array.isArray(params)) return;
+    this.attr.assignParams(params);
   }
 
+  /**
+   * @param {string} str
+   */
   puts(str) {
-    if (!str)
+    if (!str || typeof str !== 'string')
       return;
     const cols = this.cols;
     const rows = this.rows;
     const lines = this.lines;
     const n = str.length;
+    if (!Number.isFinite(this.cur_x) || this.cur_x < 0) this.cur_x = 0;
+    if (!Number.isFinite(this.cur_y) || this.cur_y < 0) this.cur_y = 0;
+    if (this.cur_y >= rows) this.cur_y = rows - 1;
     let line = lines[this.cur_y];
+    if (!line) {
+      this.gotoPos(this.cur_x, this.cur_y);
+      line = lines[this.cur_y];
+    }
     for (let i = 0; i < n; ++i) {
       const ch = str[i];
       switch (ch) {
@@ -322,6 +375,7 @@ export class TermBuf extends Event {
       case '\v':
         this.lineFeed();
         line = lines[this.cur_y];
+        if (!line) line = lines[this.cur_y] = new Array(cols).fill(null).map(() => new TermChar(' '));
         continue;
       case '\0':
           continue;
@@ -332,9 +386,10 @@ export class TermBuf extends Event {
       if (this.cur_x >= cols) {
         // next line
         if(!this.disableLinefeed) this.lineFeed();
-        this.cur_x=0;
+        this.cur_x = 0;
         line = lines[this.cur_y];
-        this.posChanged=true;
+        if (!line) line = lines[this.cur_y] = new Array(cols).fill(null).map(() => new TermChar(' '));
+        this.posChanged = true;
       }
 
       switch (ch) {
@@ -342,23 +397,28 @@ export class TermBuf extends Event {
         this.tab();
         break;
       default: {
+        if (this.cur_x >= cols) this.cur_x = cols - 1;
         let ch2 = line[this.cur_x];
-        ch2.ch=ch;
-        ch2.copyAttr(this.attr);
-        ch2.needUpdate=true;
-        ++this.cur_x;
-        if (ch2.isLeadByte && this.cur_x < cols) // previous state before this function
-          line[this.cur_x].needUpdate=true;
-        if (this.view.charset == 'UTF-8' && this.isFullWidth(ch) && this.cur_x < cols) {
-          ch2 = line[this.cur_x];
-          ch2.ch = '';
+        if (ch2) {
+          ch2.ch = ch;
           ch2.copyAttr(this.attr);
           ch2.needUpdate = true;
           ++this.cur_x;
-          // assume server will handle mouse moving on full-width char
+          if (ch2.isLeadByte && this.cur_x < cols && line[this.cur_x])
+            line[this.cur_x].needUpdate = true;
+          if (this.view && this.view.charset === 'UTF-8' && this.isFullWidth(ch) && this.cur_x < cols) {
+            ch2 = line[this.cur_x];
+            if (ch2) {
+              ch2.ch = '';
+              ch2.copyAttr(this.attr);
+              ch2.needUpdate = true;
+              ++this.cur_x;
+            }
+            // assume server will handle mouse moving on full-width char
+          }
+          this.changed = true;
+          this.posChanged = true;
         }
-        this.changed = true;
-        this.posChanged = true;
         break;
       }
       }
@@ -489,39 +549,62 @@ export class TermBuf extends Event {
     }
   }
 
+  /**
+   * @param {number} [param]
+   */
   clear(param) {
     let rows = this.rows;
     const cols = this.cols;
     const lines = this.lines;
+    const mode = (typeof param === 'number' && Number.isFinite(param)) ? Math.floor(param) : 0;
 
-    switch (param) {
+    switch (mode) {
     case 0: {
-      const line = lines[this.cur_y];
-      for (let col = this.cur_x; col < cols; ++col) {
-        line[col].copyFromNewChar();
-        line[col].needUpdate = true;
+      if (this.cur_y >= 0 && this.cur_y < rows && lines[this.cur_y]) {
+        const line = lines[this.cur_y];
+        const cur_x = Math.max(0, Math.min(cols, (typeof this.cur_x === 'number' && Number.isFinite(this.cur_x)) ? Math.floor(this.cur_x) : 0));
+        for (let col = cur_x; col < cols; ++col) {
+          if (line[col]) {
+            line[col].copyFromNewChar();
+            line[col].needUpdate = true;
+          }
+        }
       }
-      for (let row = this.cur_y; row < rows; ++row) {
+      for (let row = Math.max(0, this.cur_y + 1); row < rows; ++row) {
         const curLine = lines[row];
-        for (let col = 0; col < cols; ++col) {
-          curLine[col].copyFromNewChar();
-          curLine[col].needUpdate = true;
+        if (curLine) {
+          for (let col = 0; col < cols; ++col) {
+            if (curLine[col]) {
+              curLine[col].copyFromNewChar();
+              curLine[col].needUpdate = true;
+            }
+          }
         }
       }
       break;
     }
     case 1: {
-      for (let row = 0; row < this.cur_y; ++row) {
+      const endRow = Math.min(rows, Math.max(0, this.cur_y));
+      for (let row = 0; row < endRow; ++row) {
         const curLine = lines[row];
-        for (let col = 0; col < cols; ++col) {
-          curLine[col].copyFromNewChar();
-          curLine[col].needUpdate = true;
+        if (curLine) {
+          for (let col = 0; col < cols; ++col) {
+            if (curLine[col]) {
+              curLine[col].copyFromNewChar();
+              curLine[col].needUpdate = true;
+            }
+          }
         }
       }
-      const line = lines[this.cur_y];
-      for (let col = 0; col < this.cur_x; ++col) {
-        line[col].copyFromNewChar();
-        line[col].needUpdate = true;
+      if (this.cur_y >= 0 && this.cur_y < rows && lines[this.cur_y]) {
+        const line = lines[this.cur_y];
+        const cur_x = Math.max(0, Math.min(cols, (typeof this.cur_x === 'number' && Number.isFinite(this.cur_x)) ? Math.floor(this.cur_x) : 0));
+        for (let col = 0; col < cur_x; ++col) {
+          if (line[col]) {
+            line[col].copyFromNewChar();
+            line[col].needUpdate = true;
+          }
+        }
       }
       break;
     }
@@ -529,9 +612,13 @@ export class TermBuf extends Event {
       while (--rows >= 0) {
         let col = cols;
         const line = lines[rows];
-        while (--col >= 0) {
-          line[col].copyFromNewChar();
-          line[col].needUpdate = true;
+        if (line) {
+          while (--col >= 0) {
+            if (line[col]) {
+              line[col].copyFromNewChar();
+              line[col].needUpdate = true;
+            }
+          }
         }
       }
       break;
@@ -542,6 +629,7 @@ export class TermBuf extends Event {
   }
 
   back() {
+    if (!Number.isFinite(this.cur_x)) this.cur_x = 0;
     if (this.cur_x > 0) {
       --this.cur_x;
       this.posChanged = true;
@@ -549,111 +637,167 @@ export class TermBuf extends Event {
     }
   }
 
+  /**
+   * @param {number} [param]
+   */
   tab(param) {
+    if (!Number.isFinite(this.cur_x) || this.cur_x < 0) this.cur_x = 0;
+    const p = (typeof param === 'number' && Number.isFinite(param) && param > 0) ? Math.floor(param) : 1;
     const mod = this.cur_x % 4;
     this.cur_x += 4 - mod;
-    if (param > 1) this.cur_x += 4 * (param-1);
+    if (p > 1) this.cur_x += 4 * (p - 1);
     if (this.cur_x >= this.cols)
-      this.cur_x = this.cols-1;
+      this.cur_x = this.cols - 1;
     this.posChanged = true;
     this.queueUpdate();
   }
 
+  /**
+   * @param {number} [param]
+   */
   backTab(param) {
+    if (!Number.isFinite(this.cur_x) || this.cur_x < 0) this.cur_x = 0;
+    const p = (typeof param === 'number' && Number.isFinite(param) && param > 0) ? Math.floor(param) : 1;
     const mod = this.cur_x % 4;
     this.cur_x -= (mod > 0 ? mod : 4);
-    if (param > 1) this.cur_x -= 4 * (param-1);
+    if (p > 1) this.cur_x -= 4 * (p - 1);
     if (this.cur_x < 0)
       this.cur_x = 0;
     this.posChanged = true;
     this.queueUpdate();
   }
 
+  /**
+   * @param {number} [param]
+   */
   insert(param) {
+    let p = (typeof param === 'number' && Number.isFinite(param) && param > 0) ? Math.floor(param) : 1;
+    if (this.cur_y < 0 || this.cur_y >= this.rows) return;
     const line = this.lines[this.cur_y];
+    if (!line) return;
     const cols = this.cols;
-    let cur_x = this.cur_x;
-    if (cur_x > 0 && line[cur_x-1].isLeadByte) ++cur_x;
-    if (cur_x == cols) return;
-    if (cur_x + param >= cols) {
-      for(let col = cur_x; col < cols; ++col) {
-        line[col].copyFromNewChar();
-        line[col].needUpdate = true;
-      }
-    } else {
-      while (--param >= 0) {
-        const ch = line.pop();
-        line.splice(cur_x, 0, ch);
-        ch.copyFromNewChar();
-      }
-      for (let col = cur_x; col < cols; ++col)
-        line[col].needUpdate = true;
-    }
-    this.changed = true;
-    this.queueUpdate();
-  }
-
-  del(param) {
-    const line = this.lines[this.cur_y];
-    const cols = this.cols;
-    let cur_x = this.cur_x;
-    if (cur_x > 0 && line[cur_x-1].isLeadByte) ++cur_x;
-    if (cur_x == cols) return;
-    if (cur_x + param >= cols) {
+    let cur_x = (typeof this.cur_x === 'number' && Number.isFinite(this.cur_x)) ? Math.floor(this.cur_x) : 0;
+    cur_x = Math.max(0, Math.min(cols, cur_x));
+    if (cur_x > 0 && line[cur_x - 1] && line[cur_x - 1].isLeadByte) ++cur_x;
+    if (cur_x >= cols) return;
+    if (cur_x + p >= cols) {
       for (let col = cur_x; col < cols; ++col) {
-        line[col].copyFromNewChar();
-        line[col].needUpdate = true;
+        if (line[col]) {
+          line[col].copyFromNewChar();
+          line[col].needUpdate = true;
+        }
       }
     } else {
-      let n = cols - cur_x - param;
-      while (--n >= 0)
-        line.splice(cur_x, 0, line.pop());
-      for (let col = cols - param; col < cols; ++col)
-        line[col].copyFromNewChar();
-      for (let col = cur_x; col < cols; ++col)
-        line[col].needUpdate = true;
+      while (--p >= 0) {
+        const ch = line.pop();
+        if (ch) {
+          line.splice(cur_x, 0, ch);
+          ch.copyFromNewChar();
+        }
+      }
+      for (let col = cur_x; col < cols; ++col) {
+        if (line[col]) line[col].needUpdate = true;
+      }
     }
     this.changed = true;
     this.queueUpdate();
   }
 
+  /**
+   * @param {number} [param]
+   */
+  del(param) {
+    let p = (typeof param === 'number' && Number.isFinite(param) && param > 0) ? Math.floor(param) : 1;
+    if (this.cur_y < 0 || this.cur_y >= this.rows) return;
+    const line = this.lines[this.cur_y];
+    if (!line) return;
+    const cols = this.cols;
+    let cur_x = (typeof this.cur_x === 'number' && Number.isFinite(this.cur_x)) ? Math.floor(this.cur_x) : 0;
+    cur_x = Math.max(0, Math.min(cols, cur_x));
+    if (cur_x > 0 && line[cur_x - 1] && line[cur_x - 1].isLeadByte) ++cur_x;
+    if (cur_x >= cols) return;
+    if (cur_x + p >= cols) {
+      for (let col = cur_x; col < cols; ++col) {
+        if (line[col]) {
+          line[col].copyFromNewChar();
+          line[col].needUpdate = true;
+        }
+      }
+    } else {
+      let n = cols - cur_x - p;
+      while (--n >= 0) {
+        const ch = line.pop();
+        if (ch) line.splice(cur_x, 0, ch);
+      }
+      for (let col = cols - p; col < cols; ++col) {
+        if (line[col]) line[col].copyFromNewChar();
+      }
+      for (let col = cur_x; col < cols; ++col) {
+        if (line[col]) line[col].needUpdate = true;
+      }
+    }
+    this.changed = true;
+    this.queueUpdate();
+  }
+
+  /**
+   * @param {number} [param]
+   */
   eraseChar(param) {
+    const p = (typeof param === 'number' && Number.isFinite(param) && param > 0) ? Math.floor(param) : 1;
+    if (this.cur_y < 0 || this.cur_y >= this.rows) return;
     const line = this.lines[this.cur_y];
+    if (!line) return;
     const cols = this.cols;
-    let cur_x = this.cur_x;
-    if (cur_x > 0 && line[cur_x-1].isLeadByte) ++cur_x;
-    if (cur_x == cols) return;
-    const n = (cur_x + param > cols) ? cols : cur_x + param;
+    let cur_x = (typeof this.cur_x === 'number' && Number.isFinite(this.cur_x)) ? Math.floor(this.cur_x) : 0;
+    cur_x = Math.max(0, Math.min(cols, cur_x));
+    if (cur_x > 0 && line[cur_x - 1] && line[cur_x - 1].isLeadByte) ++cur_x;
+    if (cur_x >= cols) return;
+    const n = (cur_x + p > cols) ? cols : cur_x + p;
     for (let col = cur_x; col < n; ++col) {
-      line[col].copyFromNewChar();
-      line[col].needUpdate = true;
+      if (line[col]) {
+        line[col].copyFromNewChar();
+        line[col].needUpdate = true;
+      }
     }
     this.changed = true;
     this.queueUpdate();
   }
 
+  /**
+   * @param {number} [param]
+   */
   eraseLine(param) {
+    if (this.cur_y < 0 || this.cur_y >= this.rows) return;
     const line = this.lines[this.cur_y];
+    if (!line) return;
     const cols = this.cols;
-    switch (param) {
-    case 0: // erase to rigth
-      for (let col = this.cur_x; col < cols; ++col) {
-        line[col].copyFromNewChar();
-        line[col].needUpdate = true;
+    const mode = (typeof param === 'number' && Number.isFinite(param)) ? Math.floor(param) : 0;
+    const cur_x = Math.max(0, Math.min(cols, (typeof this.cur_x === 'number' && Number.isFinite(this.cur_x)) ? Math.floor(this.cur_x) : 0));
+    switch (mode) {
+    case 0: // erase to right
+      for (let col = cur_x; col < cols; ++col) {
+        if (line[col]) {
+          line[col].copyFromNewChar();
+          line[col].needUpdate = true;
+        }
       }
       break;
-    case 1: { //erase to left
-      const cur_x = this.cur_x;
+    case 1: { // erase to left
       for (let col = 0; col < cur_x; ++col) {
-        line[col].copyFromNewChar();
-        line[col].needUpdate=true;
+        if (line[col]) {
+          line[col].copyFromNewChar();
+          line[col].needUpdate = true;
+        }
       }
       break;
     }
-    case 2: //erase all
+    case 2: // erase all
       for (let col = 0; col < cols; ++col) {
-        line[col].copyFromNewChar();
-        line[col].needUpdate = true;
+        if (line[col]) {
+          line[col].copyFromNewChar();
+          line[col].needUpdate = true;
+        }
       }
       break;
     default:
@@ -663,42 +807,60 @@ export class TermBuf extends Event {
     this.queueUpdate();
   }
 
+  /**
+   * @param {number} [param]
+   */
   deleteLine(param) {
+    const p = (typeof param === 'number' && Number.isFinite(param) && param > 0) ? Math.floor(param) : 1;
     const scrollStart = this.scrollStart;
-    this.scrollStart = this.cur_y;
-    this.scroll(false, param);
+    this.scrollStart = Math.max(0, Math.min(this.rows - 1, (typeof this.cur_y === 'number' && Number.isFinite(this.cur_y)) ? Math.floor(this.cur_y) : 0));
+    this.scroll(false, p);
     this.scrollStart = scrollStart;
     this.changed = true;
     this.queueUpdate();
   }
 
+  /**
+   * @param {number} [param]
+   */
   insertLine(param) {
+    const p = (typeof param === 'number' && Number.isFinite(param) && param > 0) ? Math.floor(param) : 1;
     const scrollStart = this.scrollStart;
     if (this.cur_y < this.scrollEnd) {
-      this.scrollStart=this.cur_y;
-      this.scroll(true, param);
+      this.scrollStart = Math.max(0, Math.min(this.rows - 1, (typeof this.cur_y === 'number' && Number.isFinite(this.cur_y)) ? Math.floor(this.cur_y) : 0));
+      this.scroll(true, p);
     }
     this.scrollStart = scrollStart;
     this.changed = true;
     this.queueUpdate();
   }
 
+  /**
+   * @param {boolean} up
+   * @param {number} [n]
+   */
   scroll(up, n) {
-    let scrollStart = this.scrollStart;
-    let scrollEnd = this.scrollEnd;
-    if(scrollEnd<=scrollStart) {
-      scrollStart=0;
-      if(scrollEnd<1) scrollEnd=this.rows-1;
+    let scrollStart = (typeof this.scrollStart === 'number' && Number.isFinite(this.scrollStart)) ? Math.floor(this.scrollStart) : 0;
+    let scrollEnd = (typeof this.scrollEnd === 'number' && Number.isFinite(this.scrollEnd)) ? Math.floor(this.scrollEnd) : this.rows - 1;
+    if (scrollEnd <= scrollStart) {
+      scrollStart = 0;
+      if (scrollEnd < 1) scrollEnd = this.rows - 1;
     }
-    if(n>=this.rows) // scroll more than 1 page = clear
+    let count = (typeof n === 'number' && Number.isFinite(n) && n > 0) ? Math.floor(n) : 1;
+    if (count >= this.rows) { // scroll more than 1 page = clear
       this.clear(2);
-    else if(n >= scrollEnd-scrollStart+1) {
+      return;
+    } else if (count >= scrollEnd - scrollStart + 1) {
       const lines = this.lines;
       const cols = this.cols;
-      for(let row=scrollStart; row <= scrollEnd; ++row) {
-        for(let col=0; col< cols; ++col) {
-          lines[row][col].copyFromNewChar();
-          lines[row][col].needUpdate=true;
+      for (let row = scrollStart; row <= scrollEnd; ++row) {
+        if (lines[row]) {
+          for (let col = 0; col < cols; ++col) {
+            if (lines[row][col]) {
+              lines[row][col].copyFromNewChar();
+              lines[row][col].needUpdate = true;
+            }
+          }
         }
       }
     } else {
@@ -707,24 +869,24 @@ export class TermBuf extends Event {
       const cols = this.cols;
 
       if (up) { // move lines down
-        for (let i = 0; i < rows-1-scrollEnd; ++i)
+        for (let i = 0; i < rows - 1 - scrollEnd; ++i)
           lines.unshift(lines.pop());
-        while (--n >= 0) {
+        while (--count >= 0) {
           const line = lines.pop();
-          lines.splice(rows-1-scrollEnd+scrollStart, 0, line);
+          lines.splice(rows - 1 - scrollEnd + scrollStart, 0, line);
           for (let col = 0; col < cols; ++col)
-            line[col].copyFromNewChar();
+            if (line[col]) line[col].copyFromNewChar();
         }
-        for (let i = 0; i < rows-1-scrollEnd; ++i)
+        for (let i = 0; i < rows - 1 - scrollEnd; ++i)
           lines.push(lines.shift());
       } else { // move lines up
         for (let i = 0; i < scrollStart; ++i)
           lines.push(lines.shift());
-        while (--n >= 0) {
+        while (--count >= 0) {
           const line = lines.shift();
-          lines.splice(scrollEnd-scrollStart, 0, line);
+          lines.splice(scrollEnd - scrollStart, 0, line);
           for (let col = 0; col < cols; ++col) // clear the line
-            line[col].copyFromNewChar();
+            if (line[col]) line[col].copyFromNewChar();
         }
         for (let i = 0; i < scrollStart; ++i)
           lines.unshift(lines.pop());
@@ -733,8 +895,10 @@ export class TermBuf extends Event {
       // update the whole screen within scroll region
       for (let row = scrollStart; row <= scrollEnd; ++row) {
         const line = lines[row];
-        for (let col = 0; col < cols; ++col) {
-          line[col].needUpdate = true;
+        if (line) {
+          for (let col = 0; col < cols; ++col) {
+            if (line[col]) line[col].needUpdate = true;
+          }
         }
       }
     }
@@ -742,14 +906,15 @@ export class TermBuf extends Event {
     this.queueUpdate();
   }
 
-  gotoPos(x,y) {
-    // dump('gotoPos: ' + x + ', ' + y + '\n');
-    if (x >= this.cols) x = this.cols-1;
-    if (y >= this.rows) y = this.rows-1;
-    if (x < 0) x = 0;
-    if (y < 0) y = 0;
-    this.cur_x = x;
-    this.cur_y = y;
+  /**
+   * @param {number} x
+   * @param {number} y
+   */
+  gotoPos(x, y) {
+    const targetX = (typeof x === 'number' && Number.isFinite(x)) ? Math.floor(x) : 0;
+    const targetY = (typeof y === 'number' && Number.isFinite(y)) ? Math.floor(y) : 0;
+    this.cur_x = Math.max(0, Math.min(this.cols - 1, targetX));
+    this.cur_y = Math.max(0, Math.min(this.rows - 1, targetY));
     this.posChanged = true;
     this.queueUpdate();
   }
@@ -761,6 +926,7 @@ export class TermBuf extends Event {
   }
 
   lineFeed() {
+    if (!Number.isFinite(this.cur_y) || this.cur_y < 0) this.cur_y = 0;
     if (this.cur_y < this.scrollEnd) {
       ++this.cur_y;
       this.posChanged = true;
@@ -821,44 +987,67 @@ export class TermBuf extends Event {
     }
   }
 
+  /**
+   * @param {number} row
+   * @param {number} colStart
+   * @param {number} colEnd
+   * @param {boolean} [color]
+   * @param {boolean} [isutf8]
+   * @param {boolean} [reset]
+   * @param {TermChar[][]} [lines]
+   * @returns {string}
+   */
   getText(row, colStart, colEnd, color, isutf8, reset, lines) {
-    let text = lines ? lines[row] : this.lines[row];
-    // always start from leadByte, and end at second-byte of DBCS.
-    // Note: this might change colStart and colEnd. But currently we don't return these changes.
-    if (colStart == this.cols) return '';
+    if (typeof row !== 'number' || !Number.isFinite(row) || row < 0 || row >= this.rows) return '';
+    const srcLines = Array.isArray(lines) ? lines : this.lines;
+    const text = srcLines[row];
+    if (!text) return '';
 
-    if ( colStart > 0 ) {
-      if ( !text[colStart].isLeadByte && text[colStart-1].isLeadByte ) colStart--;
-    } else colStart = 0;
+    let start = (typeof colStart === 'number' && Number.isFinite(colStart)) ? Math.floor(colStart) : 0;
+    let end = (typeof colEnd === 'number' && Number.isFinite(colEnd)) ? Math.floor(colEnd) : this.cols;
+    start = Math.max(0, Math.min(this.cols, start));
+    end = Math.max(0, Math.min(this.cols, end));
 
-    if ( colEnd > 0 ){
-      if ( text[colEnd-1].isLeadByte ) colEnd++;
-    } else colEnd = this.cols;
+    if (start === this.cols) return '';
 
-    if (colStart >= colEnd) return '';
+    if (start > 0) {
+      if (text[start] && !text[start].isLeadByte && text[start - 1] && text[start - 1].isLeadByte) start--;
+    } else {
+      start = 0;
+    }
 
-    if (!this.view) return;
+    if (end > 0 && end <= this.cols) {
+      if (text[end - 1] && text[end - 1].isLeadByte) end++;
+    } else {
+      end = this.cols;
+    }
+
+    if (start >= end) return '';
+
+    if (!this.view) return '';
 
     const charset = this.view.charset;
 
     // generate texts with ansi color
     if (color) {
-      let output = this.ansiCmp(TermChar.newChar, text[colStart], reset);
-      for (let col = colStart; col < colEnd-1; ++col) {
-        if (isutf8 && text[col].isLeadByte && this.ansiCmp(text[col], text[col+1]))
-          output += this.ansiCmp(text[col], text[col+1]).replace(/m$/g, ';50m') + text[col].ch;
+      let output = this.ansiCmp(TermChar.newChar, text[start], reset);
+      for (let col = start; col < end - 1; ++col) {
+        if (!text[col] || !text[col + 1]) continue;
+        if (isutf8 && text[col].isLeadByte && this.ansiCmp(text[col], text[col + 1]))
+          output += this.ansiCmp(text[col], text[col + 1]).replace(/m$/g, ';50m') + text[col].ch;
         else
-          output += text[col].ch + this.ansiCmp(text[col], text[col+1]);
+          output += text[col].ch + this.ansiCmp(text[col], text[col + 1]);
       }
-      output += text[colEnd-1].ch + this.ansiCmp(text[colEnd-1], TermChar.newChar);
+      if (text[end - 1]) output += text[end - 1].ch + this.ansiCmp(text[end - 1], TermChar.newChar);
       return (isutf8 && charset != 'UTF-8' ? b2u(output) : output);
     }
 
-    text = text.slice(colStart, colEnd);
-    return text.map((c, col, line) => {
+    const sliced = text.slice(start, end);
+    return sliced.map((c, col, line) => {
+      if (!c) return ' ';
       if (!c.isLeadByte) {
-        if (col >=1 && line[col-1].isLeadByte) { // second byte of DBCS char
-          const prevC = line[col-1];
+        if (col >= 1 && line[col - 1] && line[col - 1].isLeadByte) { // second byte of DBCS char
+          const prevC = line[col - 1];
           const b5 = prevC.ch + c.ch;
           if (this.view.charset == 'UTF-8' || b5.length == 1)
             return b5;
@@ -867,40 +1056,68 @@ export class TermBuf extends Event {
         } else
           return c.ch;
       }
+      return '';
     }).join('');
   }
 
+  /**
+   * @param {number} row
+   * @param {number} colStart
+   * @param {number} colEnd
+   * @param {TermChar[][]} [lines]
+   * @returns {string}
+   */
   getRowText(row, colStart, colEnd, lines) {
+    if (typeof row !== 'number' || !Number.isFinite(row) || row < 0 || row >= this.rows) return '';
+    const srcLines = Array.isArray(lines) ? lines : this.lines;
+    const text = srcLines[row];
+    if (!text) return '';
 
-    let text = lines ? lines[row] : this.lines[row];
-    // always start from leadByte, and end at second-byte of DBCS.
-    // Note: this might change colStart and colEnd. But currently we don't return these changes.
-    if ( colStart > 0 ){
-      if ( !text[colStart].isLeadByte && text[colStart-1].isLeadByte ) colStart--;
-    } else colStart = 0;
+    let start = (typeof colStart === 'number' && Number.isFinite(colStart)) ? Math.floor(colStart) : 0;
+    let end = (typeof colEnd === 'number' && Number.isFinite(colEnd)) ? Math.floor(colEnd) : this.cols;
+    start = Math.max(0, Math.min(this.cols, start));
+    end = Math.max(0, Math.min(this.cols, end));
 
-    if ( colEnd < this.cols ){
-      if ( text[colEnd].isLeadByte ) colEnd++;
-    } else colEnd = this.cols;
+    if (start > 0) {
+      if (text[start] && !text[start].isLeadByte && text[start - 1] && text[start - 1].isLeadByte) start--;
+    } else {
+      start = 0;
+    }
 
-    text = text.slice(colStart, colEnd);
-    return text.map((c, col, line) => {
+    if (end < this.cols) {
+      if (text[end] && text[end].isLeadByte) end++;
+    } else {
+      end = this.cols;
+    }
+
+    if (start >= end) return '';
+
+    const sliced = text.slice(start, end);
+    return sliced.map((c, col, line) => {
+      if (!c) return ' ';
       if (!c.isLeadByte) {
-        if (col >= 1 && line[col-1].isLeadByte) { // second byte of DBCS char
-          const prevC = line[col-1];
+        if (col >= 1 && line[col - 1] && line[col - 1].isLeadByte) { // second byte of DBCS char
+          const prevC = line[col - 1];
           const b5 = prevC.ch + c.ch;
-          if (this.view.charset == 'UTF-8' || b5.length == 1)
+          if (this.view && this.view.charset == 'UTF-8' || b5.length == 1)
             return b5;
           else
             return b2u(b5);
         } else
           return c.ch;
       }
+      return '';
     }).join('');
-
   }
 
+  /**
+   * @param {TermChar} preChar
+   * @param {TermChar} thisChar
+   * @param {boolean} [forceReset]
+   * @returns {string}
+   */
   ansiCmp(preChar, thisChar, forceReset) {
+    if (!preChar || !thisChar) return '';
     let text = '';
     let reset = forceReset;
     if ((preChar.bright && !thisChar.bright) ||
@@ -926,9 +1143,14 @@ export class TermBuf extends Event {
     else return ('\x1b[' + text.substr(0,text.length-1) + 'm');
   }
 
+  /**
+   * @param {string} str
+   * @returns {boolean}
+   */
   isFullWidth(str) {
+    if (typeof str !== 'string' || str.length === 0) return false;
     const code = str.charCodeAt(0);
-    if (this.view.charset != 'UTF-8' || this.forceFullWidth) { // PTT support
+    if ((this.view && this.view.charset != 'UTF-8') || this.forceFullWidth) { // PTT support
       if (code > 0x7f) return true;
       else return false;
     }
@@ -947,7 +1169,12 @@ export class TermBuf extends Event {
     }
   }
 
+  /**
+   * @param {number} row
+   * @returns {boolean}
+   */
   isTextWrappedRow(row) {
+    if (typeof row !== 'number' || !Number.isFinite(row) || row < 0 || row >= this.rows) return false;
     // determine whether it is wrapped by looking for the ending "\"
     const rowText = this.getRowText(row, 0, this.cols);
     const slashIndex = rowText.lastIndexOf('\\');
@@ -955,7 +1182,9 @@ export class TermBuf extends Event {
       const col = u2b(rowText.substr(0, slashIndex)).length;
       if (col != 77 && col != 78) return false;
       // check the color
-      const ch = this.lines[row][col];
+      const line = this.lines[row];
+      if (!line || !line[col]) return false;
+      const ch = line[col];
       if (ch.fg == 7 && ch.bg === 0 && ch.bright)
         return true;
     }
@@ -964,6 +1193,7 @@ export class TermBuf extends Event {
 
   setPageState() {
     const site = this.site;
+    if (!site) return;
     let lastRowNum = site.getLastRowNum(this);
     let cols = this.cols;
     const lastRowText = this.getRowText(lastRowNum, 0, cols);
@@ -1002,13 +1232,25 @@ export class TermBuf extends Event {
     }
   }
 
+  /**
+   * @param {number} lineindex
+   * @param {number} start
+   * @param {number} end
+   * @returns {boolean}
+   */
   isUnicolor(lineindex, start, end) {
+    if (typeof lineindex !== 'number' || !Number.isFinite(lineindex) || lineindex < 0 || lineindex >= this.rows) return false;
     const lines = this.lines;
     const line = lines[lineindex];
-    const clr = line[start].getBg();
+    if (!line) return false;
+    const s = Math.max(0, Math.min(this.cols, (typeof start === 'number' && Number.isFinite(start)) ? Math.floor(start) : 0));
+    const e = Math.max(0, Math.min(this.cols, (typeof end === 'number' && Number.isFinite(end)) ? Math.floor(end) : this.cols));
+    if (s >= e || !line[s]) return false;
+    const clr = line[s].getBg();
 
     // a dirty hacking, because of the difference between maple and firebird bbs.
-    for (let i = start; i < end; i++) {
+    for (let i = s; i < e; i++) {
+      if (!line[i]) return false;
       const clr1 = line[i].getBg();
       if (clr1 != clr || clr1 === 0)
         return false;
@@ -1016,16 +1258,30 @@ export class TermBuf extends Event {
     return true;
   }
 
+  /**
+   * @param {number} iLine
+   * @returns {boolean}
+   */
   isLineEmpty(iLine) {
+    if (typeof iLine !== 'number' || !Number.isFinite(iLine) || iLine < 0 || iLine >= this.rows) return true;
     const lines = this.lines;
     const line = lines[iLine];
+    if (!line) return true;
 
-    for (let col = 0; col < this.cols; col++)
-      if (line[col].ch != ' ' || line[col].getBg())
+    for (let col = 0; col < this.cols; col++) {
+      const ch = line[col];
+      if (ch && (ch.ch != ' ' || ch.getBg()))
         return false;
+    }
     return true;
   }
 
+  /**
+   * @param {number} trow
+   * @param {number} tcol
+   * @param {number} lastRowNum
+   * @param {number} cols
+   */
   _calcListRowMouseCursor(trow, tcol, lastRowNum, cols) {
     if ( tcol <= 6 ) {
       this.clearHighlight();
@@ -1046,7 +1302,14 @@ export class TermBuf extends Event {
     }
   }
 
+  /**
+   * @param {number} tcol
+   * @param {number} trow
+   * @param {boolean} [doRefresh]
+   */
   onMouse_move(tcol, trow, doRefresh) {
+    tcol = (typeof tcol === 'number' && Number.isFinite(tcol)) ? Math.floor(tcol) : 0;
+    trow = (typeof trow === 'number' && Number.isFinite(trow)) ? Math.floor(trow) : 0;
     this.tempMouseCol = tcol;
     this.tempMouseRow = trow;
 
@@ -1147,7 +1410,9 @@ export class TermBuf extends Event {
       break;
     }
 
-    this.BBSWin.style.cursor = mouseCursorMap[this.mouseCursor];
+    if (this.BBSWin && this.BBSWin.style) {
+      this.BBSWin.style.cursor = mouseCursorMap[this.mouseCursor];
+    }
   }
 
   resetMousePos() {
@@ -1156,9 +1421,15 @@ export class TermBuf extends Event {
     }
   }
 
+  /**
+   * @param {number} row
+   */
   setHighlight(row) {
-    this._nowHighlight = row;
-    this.view.setHighlightedRow(row);
+    const validRow = (typeof row === 'number' && Number.isFinite(row)) ? Math.floor(row) : -1;
+    this._nowHighlight = validRow;
+    if (this.view && typeof this.view.setHighlightedRow === 'function') {
+      this.view.setHighlightedRow(validRow);
+    }
   }
 
   clearHighlight() {
@@ -1166,16 +1437,19 @@ export class TermBuf extends Event {
     this.mouseCursor = 0;
   }
 
+  /**
+   * @param {{ site?: string, conn?: string }} [part]
+   */
   setTitle(part) {
-    if (part) {
-      if (part.site !== undefined) {
+    if (part && typeof part === 'object') {
+      if (typeof part.site === 'string') {
         this.titleSite = part.site;
       }
-      if (part.conn !== undefined) {
+      if (typeof part.conn === 'string') {
         this.titleConn = part.conn;
       }
     }
-    let title = this.titleBase;
+    let title = typeof this.titleBase === 'string' ? this.titleBase : 'PTT Chrome';
     if (this.dynamicTitle) {
       if (this.titleSite) {
         title += ' - ' + this.titleSite;
@@ -1184,7 +1458,10 @@ export class TermBuf extends Event {
         title += ' - ' + this.titleConn;
       }
     }
-    document.title = this.title = title;
+    this.title = title;
+    if (typeof document !== 'undefined') {
+      document.title = title;
+    }
   }
 
 }
