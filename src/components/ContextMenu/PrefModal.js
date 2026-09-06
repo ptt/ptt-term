@@ -249,6 +249,61 @@ const enhance = compose(
   })
 );
 
+const MOUSE_LEFT_OPTIONS = [
+  "options_none",
+  "options_enterKey",
+  "options_rightKey",
+];
+
+const MOUSE_MIDDLE_OPTIONS = [
+  "options_none",
+  "options_enterKey",
+  "options_leftKey",
+  "options_doPaste",
+];
+
+const MOUSE_WHEEL_OPTIONS = [
+  "options_none",
+  "options_upDown",
+  "options_pageUpDown",
+  "options_threadLastNext",
+];
+
+const TabLegend = ({ title, subtitle, onCloseClick }) => (
+  <legend>
+    {title}
+    {subtitle && <small> - {subtitle}</small>}
+    <button type="button" className="close" onClick={onCloseClick}>
+      &times;
+    </button>
+  </legend>
+);
+
+const SelectOptionGroup = ({
+  controlId,
+  label,
+  name,
+  value,
+  options,
+  onChange,
+}) => (
+  <FormGroup controlId={controlId}>
+    <ControlLabel>{label}</ControlLabel>
+    <FormControl
+      componentClass="select"
+      name={name}
+      value={value}
+      onChange={onChange}
+    >
+      {options.map((key, index) => (
+        <option key={key} value={index}>
+          {i18n(key)}
+        </option>
+      ))}
+    </FormControl>
+  </FormGroup>
+);
+
 export const PrefModal = ({
   show,
   // from recompose
@@ -296,16 +351,10 @@ export const PrefModal = ({
             <Tab.Content animation>
               <Tab.Pane eventKey="general">
                 <fieldset className="PrefModal__Grid__Col--right__Fieldset">
-                  <legend>
-                    {i18n("options_general")}
-                    <button
-                      type="button"
-                      className="close"
-                      onClick={onCloseClick}
-                    >
-                      &times;
-                    </button>
-                  </legend>
+                  <TabLegend
+                    title={i18n("options_general")}
+                    onCloseClick={onCloseClick}
+                  />
                   <Checkbox
                     name="enablePicPreview"
                     checked={values.enablePicPreview}
@@ -373,16 +422,10 @@ export const PrefModal = ({
               </Tab.Pane>
               <Tab.Pane eventKey="appearance">
                 <fieldset className="PrefModal__Grid__Col--right__Fieldset">
-                  <legend>
-                    {i18n("options_appearance")}
-                    <button
-                      type="button"
-                      className="close"
-                      onClick={onCloseClick}
-                    >
-                      &times;
-                    </button>
-                  </legend>
+                  <TabLegend
+                    title={i18n("options_appearance")}
+                    onCloseClick={onCloseClick}
+                  />
                   <FormGroup controlId="fontFace">
                     <ControlLabel>{i18n("options_fontFace")}</ControlLabel>
                     <OverlayTrigger
@@ -511,16 +554,10 @@ export const PrefModal = ({
               </Tab.Pane>
               <Tab.Pane eventKey="mouseBrowsing">
                 <fieldset className="PrefModal__Grid__Col--right__Fieldset">
-                  <legend>
-                    {i18n("options_mouseBrowsing")}
-                    <button
-                      type="button"
-                      className="close"
-                      onClick={onCloseClick}
-                    >
-                      &times;
-                    </button>
-                  </legend>
+                  <TabLegend
+                    title={i18n("options_mouseBrowsing")}
+                    onCloseClick={onCloseClick}
+                  />
                   <Checkbox
                     name="useMouseBrowsing"
                     checked={values.useMouseBrowsing}
@@ -560,129 +597,54 @@ export const PrefModal = ({
                         ))}
                     </FormControl>
                   </div>
-                  <FormGroup controlId="mouseLeftFunction">
-                    <ControlLabel>
-                      {i18n("options_mouseLeftFunction")}
-                    </ControlLabel>
-                    <FormControl
-                      componentClass="select"
-                      name="mouseLeftFunction"
-                      value={values.mouseLeftFunction}
-                      onChange={onNumberInputChange}
-                    >
-                      {[
-                        "options_none",
-                        "options_enterKey",
-                        "options_rightKey",
-                      ].map((key, index) => (
-                        <option key={key} value={index}>
-                          {i18n(key)}
-                        </option>
-                      ))}
-                    </FormControl>
-                  </FormGroup>
-                  <FormGroup controlId="mouseMiddleFunction">
-                    <ControlLabel>
-                      {i18n("options_mouseMiddleFunction")}
-                    </ControlLabel>
-                    <FormControl
-                      componentClass="select"
-                      name="mouseMiddleFunction"
-                      value={values.mouseMiddleFunction}
-                      onChange={onNumberInputChange}
-                    >
-                      {[
-                        "options_none",
-                        "options_enterKey",
-                        "options_leftKey",
-                        "options_doPaste",
-                      ].map((key, index) => (
-                        <option key={key} value={index}>
-                          {i18n(key)}
-                        </option>
-                      ))}
-                    </FormControl>
-                  </FormGroup>
-                  <FormGroup controlId="mouseWheelFunction1">
-                    <ControlLabel>
-                      {i18n("options_mouseWheelFunction1")}
-                    </ControlLabel>
-                    <FormControl
-                      componentClass="select"
-                      name="mouseWheelFunction1"
-                      value={values.mouseWheelFunction1}
-                      onChange={onNumberInputChange}
-                    >
-                      {[
-                        "options_none",
-                        "options_upDown",
-                        "options_pageUpDown",
-                        "options_threadLastNext",
-                      ].map((key, index) => (
-                        <option key={key} value={index}>
-                          {i18n(key)}
-                        </option>
-                      ))}
-                    </FormControl>
-                  </FormGroup>
-                  <FormGroup controlId="mouseWheelFunction2">
-                    <ControlLabel>
-                      {i18n("options_mouseWheelFunction2")}
-                    </ControlLabel>
-                    <FormControl
-                      componentClass="select"
-                      name="mouseWheelFunction2"
-                      value={values.mouseWheelFunction2}
-                      onChange={onNumberInputChange}
-                    >
-                      {[
-                        "options_none",
-                        "options_upDown",
-                        "options_pageUpDown",
-                        "options_threadLastNext",
-                      ].map((key, index) => (
-                        <option key={key} value={index}>
-                          {i18n(key)}
-                        </option>
-                      ))}
-                    </FormControl>
-                  </FormGroup>
-                  <FormGroup controlId="mouseWheelFunction3">
-                    <ControlLabel>
-                      {i18n("options_mouseWheelFunction3")}
-                    </ControlLabel>
-                    <FormControl
-                      componentClass="select"
-                      name="mouseWheelFunction3"
-                      value={values.mouseWheelFunction3}
-                      onChange={onNumberInputChange}
-                    >
-                      {[
-                        "options_none",
-                        "options_upDown",
-                        "options_pageUpDown",
-                        "options_threadLastNext",
-                      ].map((key, index) => (
-                        <option key={key} value={index}>
-                          {i18n(key)}
-                        </option>
-                      ))}
-                    </FormControl>
-                  </FormGroup>
+                  <SelectOptionGroup
+                    controlId="mouseLeftFunction"
+                    label={i18n("options_mouseLeftFunction")}
+                    name="mouseLeftFunction"
+                    value={values.mouseLeftFunction}
+                    options={MOUSE_LEFT_OPTIONS}
+                    onChange={onNumberInputChange}
+                  />
+                  <SelectOptionGroup
+                    controlId="mouseMiddleFunction"
+                    label={i18n("options_mouseMiddleFunction")}
+                    name="mouseMiddleFunction"
+                    value={values.mouseMiddleFunction}
+                    options={MOUSE_MIDDLE_OPTIONS}
+                    onChange={onNumberInputChange}
+                  />
+                  <SelectOptionGroup
+                    controlId="mouseWheelFunction1"
+                    label={i18n("options_mouseWheelFunction1")}
+                    name="mouseWheelFunction1"
+                    value={values.mouseWheelFunction1}
+                    options={MOUSE_WHEEL_OPTIONS}
+                    onChange={onNumberInputChange}
+                  />
+                  <SelectOptionGroup
+                    controlId="mouseWheelFunction2"
+                    label={i18n("options_mouseWheelFunction2")}
+                    name="mouseWheelFunction2"
+                    value={values.mouseWheelFunction2}
+                    options={MOUSE_WHEEL_OPTIONS}
+                    onChange={onNumberInputChange}
+                  />
+                  <SelectOptionGroup
+                    controlId="mouseWheelFunction3"
+                    label={i18n("options_mouseWheelFunction3")}
+                    name="mouseWheelFunction3"
+                    value={values.mouseWheelFunction3}
+                    options={MOUSE_WHEEL_OPTIONS}
+                    onChange={onNumberInputChange}
+                  />
                 </fieldset>
               </Tab.Pane>
               <Tab.Pane eventKey="advanced">
                 <fieldset className="PrefModal__Grid__Col--right__Fieldset">
-                  <legend>
-                    {i18n("options_advanced")}
-                    <button
-                      type="button"
-                      className="close"
-                      onClick={onCloseClick}
-                    >
-                      &times;
-                    </button>
-                  </legend>
+                  <TabLegend
+                    title={i18n("options_advanced")}
+                    onCloseClick={onCloseClick}
+                  />
                   <Checkbox
                     name="useCanvasEngine"
                     checked={values.useCanvasEngine}
@@ -717,17 +679,11 @@ export const PrefModal = ({
               </Tab.Pane>
               <Tab.Pane eventKey="about">
                 <div>
-                  <legend>
-                    {i18n("appName")}
-                    <small> - {i18n("about_appName_subtitle")}</small>
-                    <button
-                      type="button"
-                      className="close"
-                      onClick={onCloseClick}
-                    >
-                      &times;
-                    </button>
-                  </legend>
+                  <TabLegend
+                    title={i18n("appName")}
+                    subtitle={i18n("about_appName_subtitle")}
+                    onCloseClick={onCloseClick}
+                  />
                   <p>{replaceI18n("about_description", replacements)}</p>
                 </div>
                 <div>
