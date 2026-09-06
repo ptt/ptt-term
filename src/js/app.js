@@ -1392,7 +1392,7 @@ export class App {
   setupContextMenus() {
   ReactDOM.render(
     <ContextMenu
-      pttchrome={this}
+      app={this}
     />,
     document.getElementById('cmenuReact')
   );
