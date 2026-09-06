@@ -107,12 +107,7 @@ export class SmoothAnsiArt {
       if (this.drawLeftBlockRamp(ctx, item, grid, cols, rows, chw, chh)) {
         return;
       }
-      const stepCol = w > chw ? 2 : 1;
-      const rightCol = c + stepCol;
-      const rightCell =
-        rightCol < cols && grid ? grid[r * cols + rightCol] : null;
-      const isSameRight = rightCell && rightCell.fgIndex === fgIndex;
-      const xR = isSameRight ? x + w + 0.5 : x + w;
+      const xR = this.getAdjustedRightX(item, grid, cols, chw);
       ctx.rect(x, y, xR - x, h);
       return;
     }
@@ -142,19 +137,10 @@ export class SmoothAnsiArt {
         break;
 
       case "\u25e2": // ◢ lower right triangle
-        this.drawTriangleLowerRight(ctx, item, grid, cols, rows, chw, chh);
-        break;
-
       case "\u25e3": // ◣ lower left triangle
-        this.drawTriangleLowerLeft(ctx, item, grid, cols, rows, chw, chh);
-        break;
-
       case "\u25e5": // ◥ upper right triangle
-        this.drawTriangleUpperRight(ctx, item, grid, cols, rows, chw, chh);
-        break;
-
       case "\u25e4": // ◤ upper left triangle
-        this.drawTriangleUpperLeft(ctx, item, grid, cols, rows, chw, chh);
+        this.drawTriangle(ctx, item, grid, cols, chw);
         break;
 
       case "\u25b2": // ▲ up triangle
@@ -172,12 +158,7 @@ export class SmoothAnsiArt {
         break;
 
       default: {
-        const stepCol = w > chw ? 2 : 1;
-        const rightCol = c + stepCol;
-        const rightCell =
-          rightCol < cols && grid ? grid[r * cols + rightCol] : null;
-        const isSameRight = rightCell && rightCell.fgIndex === fgIndex;
-        const xR = isSameRight ? x + w + 0.5 : x + w;
+        const xR = this.getAdjustedRightX(item, grid, cols, chw);
         ctx.rect(x, y, xR - x, h);
         break;
       }
@@ -391,64 +372,60 @@ export class SmoothAnsiArt {
     return true;
   }
 
-  static drawTriangleLowerRight(ctx, item, grid, cols, rows, chw, chh) {
-    const { x, y, w, h, r, c, fgIndex } = item;
+  static getAdjustedRightX(item, grid, cols, chw) {
+    const { x, w, r, c, fgIndex } = item;
     const stepCol = w > chw ? 2 : 1;
     const rightCol = c + stepCol;
     const rightCell =
       rightCol < cols && grid ? grid[r * cols + rightCol] : null;
     const isSameRight = rightCell && rightCell.fgIndex === fgIndex;
-    const xR = isSameRight ? x + w + 0.5 : x + w;
+    return isSameRight ? x + w + 0.5 : x + w;
+  }
 
-    ctx.moveTo(xR, y);
-    ctx.lineTo(xR, y + h);
-    ctx.lineTo(x, y + h);
+  static drawTriangle(ctx, item, grid, cols, chw, type = item.type) {
+    const { x, y, h } = item;
+    const xR = this.getAdjustedRightX(item, grid, cols, chw);
+    switch (type) {
+      case "\u25e2": // ◢ lower right
+        ctx.moveTo(xR, y);
+        ctx.lineTo(xR, y + h);
+        ctx.lineTo(x, y + h);
+        break;
+      case "\u25e3": // ◣ lower left
+        ctx.moveTo(x, y);
+        ctx.lineTo(xR, y + h);
+        ctx.lineTo(x, y + h);
+        break;
+      case "\u25e5": // ◥ upper right
+        ctx.moveTo(x, y);
+        ctx.lineTo(xR, y);
+        ctx.lineTo(xR, y + h);
+        break;
+      case "\u25e4": // ◤ upper left
+        ctx.moveTo(x, y);
+        ctx.lineTo(xR, y);
+        ctx.lineTo(x, y + h);
+        break;
+      default:
+        return;
+    }
     ctx.closePath();
+  }
+
+  static drawTriangleLowerRight(ctx, item, grid, cols, rows, chw, chh) {
+    this.drawTriangle(ctx, item, grid, cols, chw, "\u25e2");
   }
 
   static drawTriangleLowerLeft(ctx, item, grid, cols, rows, chw, chh) {
-    const { x, y, w, h, r, c, fgIndex } = item;
-    const stepCol = w > chw ? 2 : 1;
-    const rightCol = c + stepCol;
-    const rightCell =
-      rightCol < cols && grid ? grid[r * cols + rightCol] : null;
-    const isSameRight = rightCell && rightCell.fgIndex === fgIndex;
-    const xR = isSameRight ? x + w + 0.5 : x + w;
-
-    ctx.moveTo(x, y);
-    ctx.lineTo(xR, y + h);
-    ctx.lineTo(x, y + h);
-    ctx.closePath();
+    this.drawTriangle(ctx, item, grid, cols, chw, "\u25e3");
   }
 
   static drawTriangleUpperRight(ctx, item, grid, cols, rows, chw, chh) {
-    const { x, y, w, h, r, c, fgIndex } = item;
-    const stepCol = w > chw ? 2 : 1;
-    const rightCol = c + stepCol;
-    const rightCell =
-      rightCol < cols && grid ? grid[r * cols + rightCol] : null;
-    const isSameRight = rightCell && rightCell.fgIndex === fgIndex;
-    const xR = isSameRight ? x + w + 0.5 : x + w;
-
-    ctx.moveTo(x, y);
-    ctx.lineTo(xR, y);
-    ctx.lineTo(xR, y + h);
-    ctx.closePath();
+    this.drawTriangle(ctx, item, grid, cols, chw, "\u25e5");
   }
 
   static drawTriangleUpperLeft(ctx, item, grid, cols, rows, chw, chh) {
-    const { x, y, w, h, r, c, fgIndex } = item;
-    const stepCol = w > chw ? 2 : 1;
-    const rightCol = c + stepCol;
-    const rightCell =
-      rightCol < cols && grid ? grid[r * cols + rightCol] : null;
-    const isSameRight = rightCell && rightCell.fgIndex === fgIndex;
-    const xR = isSameRight ? x + w + 0.5 : x + w;
-
-    ctx.moveTo(x, y);
-    ctx.lineTo(xR, y);
-    ctx.lineTo(x, y + h);
-    ctx.closePath();
+    this.drawTriangle(ctx, item, grid, cols, chw, "\u25e4");
   }
 }
 
