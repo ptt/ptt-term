@@ -116,6 +116,70 @@ export class CanvasRenderer {
     return true;
   }
 
+  registerAnsiOrText({
+    charStr,
+    r,
+    c,
+    y,
+    chw,
+    chh,
+    cols,
+    fgIndex,
+    bgIndex,
+    trailBgIndex = bgIndex,
+    isWide = false,
+    smoothAnsiArt,
+    blockGrid,
+    ansiBlockBuckets,
+    textBuckets,
+  }) {
+    if (
+      smoothAnsiArt &&
+      this.tryRegisterSolidBg(
+        blockGrid,
+        cols,
+        r,
+        c,
+        y,
+        chw,
+        chh,
+        fgIndex,
+        bgIndex,
+        charStr,
+        isWide,
+        trailBgIndex
+      )
+    ) {
+      return;
+    }
+    if (!charStr || charStr === " " || charStr === "\x00") {
+      return;
+    }
+    const width = isWide ? chw * 2 : chw;
+    if (smoothAnsiArt && ANSI_BLOCK_SET.has(charStr)) {
+      const blockItem = this.getBlockItem(
+        charStr,
+        r,
+        c,
+        c * chw,
+        y,
+        width,
+        chh,
+        fgIndex
+      );
+      ansiBlockBuckets[fgIndex].push(blockItem);
+      blockGrid[r * cols + c] = blockItem;
+      if (isWide) {
+        blockGrid[r * cols + c + 1] = blockItem;
+      }
+    } else {
+      const textX = isWide ? c * chw + chw : c * chw + chw / 2;
+      textBuckets[fgIndex].push(
+        this.getTextItem(charStr, textX, y + chh / 2, isWide)
+      );
+    }
+  }
+
   getCharMetrics(ctx, text, isDBCS, chw) {
     const key = isDBCS ? text + "\x01" : text;
     let scale = this.metricsCache.get(key);
@@ -408,43 +472,23 @@ export class CanvasRenderer {
                   !isLeadHidden &&
                   !isTrailHidden
                 ) {
-                  if (
-                    smoothAnsiArt &&
-                    this.tryRegisterSolidBg(
-                      blockGrid,
-                      cols,
-                      r,
-                      c,
-                      y,
-                      chw,
-                      chh,
-                      leadFgIndex,
-                      leadBgIndex,
-                      u,
-                      true,
-                      trailBgIndex
-                    )
-                  ) {
-                    // Solid background block registered in blockGrid
-                  } else if (smoothAnsiArt && ANSI_BLOCK_SET.has(u)) {
-                    const blockItem = this.getBlockItem(
-                      u,
-                      r,
-                      c,
-                      c * chw,
-                      y,
-                      chw * 2,
-                      chh,
-                      leadFgIndex
-                    );
-                    ansiBlockBuckets[leadFgIndex].push(blockItem);
-                    blockGrid[r * cols + c] = blockItem;
-                    blockGrid[r * cols + c + 1] = blockItem;
-                  } else {
-                    textBuckets[leadFgIndex].push(
-                      this.getTextItem(u, c * chw + chw, y + chh / 2, true)
-                    );
-                  }
+                  this.registerAnsiOrText({
+                    charStr: u,
+                    r,
+                    c,
+                    y,
+                    chw,
+                    chh,
+                    cols,
+                    fgIndex: leadFgIndex,
+                    bgIndex: leadBgIndex,
+                    trailBgIndex,
+                    isWide: true,
+                    smoothAnsiArt,
+                    blockGrid,
+                    ansiBlockBuckets,
+                    textBuckets,
+                  });
                 } else {
                   if (!isLeadHidden) {
                     textBuckets[leadFgIndex].push(
@@ -508,43 +552,23 @@ export class CanvasRenderer {
               const leadBgIndex = ch.getBg() !== undefined ? ch.getBg() : 0;
               const trailBgIndex =
                 trailCh.getBg() !== undefined ? trailCh.getBg() : 0;
-              if (
-                smoothAnsiArt &&
-                this.tryRegisterSolidBg(
-                  blockGrid,
-                  cols,
-                  r,
-                  c,
-                  y,
-                  chw,
-                  chh,
-                  fgIndex,
-                  leadBgIndex,
-                  ch.ch,
-                  true,
-                  trailBgIndex
-                )
-              ) {
-                // Solid background block registered in blockGrid
-              } else if (smoothAnsiArt && ANSI_BLOCK_SET.has(ch.ch)) {
-                const blockItem = this.getBlockItem(
-                  ch.ch,
-                  r,
-                  c,
-                  c * chw,
-                  y,
-                  chw * 2,
-                  chh,
-                  fgIndex
-                );
-                ansiBlockBuckets[fgIndex].push(blockItem);
-                blockGrid[r * cols + c] = blockItem;
-                blockGrid[r * cols + c + 1] = blockItem;
-              } else {
-                textBuckets[fgIndex].push(
-                  this.getTextItem(ch.ch, c * chw + chw, y + chh / 2, true)
-                );
-              }
+              this.registerAnsiOrText({
+                charStr: ch.ch,
+                r,
+                c,
+                y,
+                chw,
+                chh,
+                cols,
+                fgIndex,
+                bgIndex: leadBgIndex,
+                trailBgIndex,
+                isWide: true,
+                smoothAnsiArt,
+                blockGrid,
+                ansiBlockBuckets,
+                textBuckets,
+              });
               if (ch.underLine || trailCh.underLine) {
                 underlineBuckets[fgIndex].push(
                   c * chw,
@@ -566,43 +590,22 @@ export class CanvasRenderer {
           const fgIndex = ch.getFg() !== undefined ? ch.getFg() : 7;
           const bgIndex = ch.getBg() !== undefined ? ch.getBg() : 0;
 
-          if (
-            smoothAnsiArt &&
-            this.tryRegisterSolidBg(
-              blockGrid,
-              cols,
-              r,
-              c,
-              y,
-              chw,
-              chh,
-              fgIndex,
-              bgIndex,
-              charStr,
-              false
-            )
-          ) {
-            // Solid background block registered in blockGrid
-          } else if (charStr && charStr !== " " && charStr !== "\x00") {
-            if (smoothAnsiArt && ANSI_BLOCK_SET.has(charStr)) {
-              const blockItem = this.getBlockItem(
-                charStr,
-                r,
-                c,
-                c * chw,
-                y,
-                chw,
-                chh,
-                fgIndex
-              );
-              ansiBlockBuckets[fgIndex].push(blockItem);
-              blockGrid[r * cols + c] = blockItem;
-            } else {
-              textBuckets[fgIndex].push(
-                this.getTextItem(charStr, c * chw + chw / 2, y + chh / 2, false)
-              );
-            }
-          }
+          this.registerAnsiOrText({
+            charStr,
+            r,
+            c,
+            y,
+            chw,
+            chh,
+            cols,
+            fgIndex,
+            bgIndex,
+            isWide: false,
+            smoothAnsiArt,
+            blockGrid,
+            ansiBlockBuckets,
+            textBuckets,
+          });
 
           if (ch.underLine) {
             underlineBuckets[fgIndex].push(c * chw, y + chh - 2, chw, 1);
