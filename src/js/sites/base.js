@@ -212,6 +212,24 @@ export class BaseSite {
   }
 
   /**
+   * Check if current screen is a reply prompt.
+   * @param {TermBuf} termBuf
+   * @returns {boolean}
+   */
+  isReplyPrompt(termBuf) {
+    return false;
+  }
+
+  /**
+   * Check if current screen is a push prompt or post-restriction notice.
+   * @param {TermBuf} termBuf
+   * @returns {boolean}
+   */
+  isPushPrompt(termBuf) {
+    return false;
+  }
+
+  /**
    * Called when a Telnet negotiation option is received from the server.
    * @param {string} cmd 'WILL', 'DO', 'WONT', 'DONT'
    * @param {string} opt Option byte

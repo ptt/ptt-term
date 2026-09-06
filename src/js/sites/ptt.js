@@ -1,5 +1,12 @@
 import { BaseSite } from './base';
-import { parseStatusRow, parseListRow, parseWaterball } from '../string_util';
+import {
+  parseStatusRow,
+  parseListRow,
+  parseWaterball,
+  parseReplyText,
+  parsePushInitText,
+  parseReqNotMetText
+} from '../string_util';
 
 export class PttSite extends BaseSite {
   constructor() {
@@ -105,6 +112,27 @@ export class PttSite extends BaseSite {
            '<span class="q1 b7">(X%)</span><span class="q0 b7">推文 </span>' +
            '<span class="q1 b7">(Esc)</span><span class="q0 b7">回到終端機 </span>' +
            '<span class="q1 b7">(←/q)</span><span class="q0 b7">離開</span></span>';
+  }
+
+  isReplyPrompt(termBuf) {
+    const lastRowNum = this.getLastRowNum(termBuf);
+    if (termBuf.cur_y === lastRowNum - 1) {
+      const secondToLastRowText = termBuf.getRowText(lastRowNum - 1, 0, termBuf.cols);
+      return Boolean(parseReplyText(secondToLastRowText));
+    }
+    return false;
+  }
+
+  isPushPrompt(termBuf) {
+    const lastRowNum = this.getLastRowNum(termBuf);
+    const lastRowText = termBuf.getRowText(lastRowNum, 0, termBuf.cols);
+    if (parseReqNotMetText(lastRowText)) {
+      return true;
+    }
+    if (termBuf.cur_y === lastRowNum && parsePushInitText(lastRowText)) {
+      return true;
+    }
+    return false;
   }
 
   handleEasyReadingKeyDown(easyReading, e) {

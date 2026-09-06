@@ -166,4 +166,12 @@ export class AutoSite extends BaseSite {
   getThreadCommand(action) {
     return this.getActiveSite().getThreadCommand(action);
   }
+
+  isReplyPrompt(termBuf) {
+    return this.getActiveSite().isReplyPrompt(termBuf);
+  }
+
+  isPushPrompt(termBuf) {
+    return this.getActiveSite().isPushPrompt(termBuf);
+  }
 }

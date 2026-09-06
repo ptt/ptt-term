@@ -1,8 +1,3 @@
-import {
-  parseReplyText,
-  parsePushInitText,
-  parseReqNotMetText
-} from './string_util';
 import { readValuesWithDefault } from '../components/ContextMenu/PrefModal';
 
 export class EasyReading {
@@ -66,13 +61,12 @@ export class EasyReading {
       return;
 
     const site = this._termBuf.site;
-    let lastColNum = this._termBuf.cols - 1;
     let lastRowNum = site.getLastRowNum(this._termBuf);
     var lastRowText = this._termBuf.getRowText(lastRowNum, 0, this._termBuf.cols);
     // dealing with page state jump to 0 because last row wasn't updated fully 
     if (this._termBuf.pageState == 3) {
       this.startedEasyReading = true;
-    } else if (this.startedEasyReading && parseReqNotMetText(lastRowText)) {
+    } else if (this.startedEasyReading && site.isPushPrompt(this._termBuf)) {
       this.easyReadingShowPushInitText = true;
     } else {
       this.easyReadingShowReplyText = false;
@@ -90,6 +84,8 @@ export class EasyReading {
         }
         var result = site.parseReadingStatus(lastRowText, this._termBuf);
         if (result) {
+          this.easyReadingShowPushInitText = false;
+          this.easyReadingShowReplyText = false;
           var isEnd = site.isArticleEnd(lastRowText, this._termBuf, result);
 
           if (isEnd) {
@@ -107,27 +103,16 @@ export class EasyReading {
           this._termBuf.pageState = 5;
           this.startedEasyReading = false;
         }
-      } else if (this._termBuf.cur_y == lastRowNum) {
-        if (!this.easyReadingShowPushInitText) {
-          var lastRowText = this._termBuf.getRowText(lastRowNum, 0, this._termBuf.cols);
-          var result = parsePushInitText(lastRowText);
-          if (result) {
-            this.easyReadingShowPushInitText = true;
-          } else {
-            this.easyReadingShowPushInitText = false;
-            return;
-          }
-        }
-      } else if (this._termBuf.cur_y == lastRowNum - 1) {
-        var secondToLastRowText = this._termBuf.getRowText(lastRowNum - 1, 0, this._termBuf.cols);
-        var result = parseReplyText(secondToLastRowText);
-        if (result) {
-          this.easyReadingShowReplyText = true;
-        } else {
-          this.easyReadingShowReplyText = false;
-          return;
-        }
+      } else if (site.isPushPrompt(this._termBuf)) {
+        this.easyReadingShowPushInitText = true;
+      } else if (site.isReplyPrompt(this._termBuf)) {
+        this.easyReadingShowReplyText = true;
       } else {
+        if (this._termBuf.cur_y === lastRowNum) {
+          this.easyReadingShowPushInitText = false;
+        } else if (this._termBuf.cur_y === lastRowNum - 1) {
+          this.easyReadingShowReplyText = false;
+        }
         // last line hasn't changed
         return;
       }
