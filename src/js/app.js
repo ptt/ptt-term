@@ -54,10 +54,6 @@ export class App {
   this.idleTime = 0;
   //new pref - end
 
-  // for picPreview
-  this.curX = 0;
-  this.curY = 0;
-
   this.inputArea = document.getElementById('t');
   this.BBSWin = document.getElementById('BBSWindow');
 
@@ -947,12 +943,7 @@ export class App {
   }
 
   checkClass(cn) {
-  return (  cn.indexOf("closeSI") >= 0  || cn.indexOf("EPbtn") >= 0 || 
-      cn.indexOf("closePP") >= 0 || cn.indexOf("picturePreview") >= 0 || 
-      cn.indexOf("drag") >= 0    || cn.indexOf("floatWindowClientArea") >= 0 || 
-      cn.indexOf("WinBtn") >= 0  || cn.indexOf("sBtn") >= 0 || 
-      cn.indexOf("nonspan") >= 0 || cn.indexOf("nomouse_command") >= 0 ||
-      cn.indexOf("conn-log") >= 0);
+    return cn.indexOf("nomouse_command") >= 0 || cn.indexOf("conn-log") >= 0;
   }
 
   mouse_click(e) {
@@ -1124,9 +1115,6 @@ export class App {
     return;
   if (this.connLog && this.connLog.contains(e.target))
     return;
-
-  this.curX = e.clientX;
-  this.curY = e.clientY;
 
   if (this.isSelectionCollapsed() && !this.mouseLeftButtonDown)
     this.setInputAreaFocus();
