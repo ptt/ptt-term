@@ -24,6 +24,7 @@ const DONT = '\xfe';
 const IAC = '\xff';
 
 // Telnet options
+const BINARY = '\x00';
 const ECHO  = '\x01';
 const SUPRESS_GO_AHEAD = '\x03';
 const TERM_TYPE = '\x18';
@@ -106,7 +107,9 @@ TelnetConnection.prototype._onDataAvailable = function(e) {
         }
         break;
       case STATE_WILL:
+        this.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'WILL', opt: ch } }));
         switch (ch) {
+        case BINARY:
         case ECHO:
         case SUPRESS_GO_AHEAD:
           this._sendRaw( IAC + DO + ch );
@@ -117,7 +120,9 @@ TelnetConnection.prototype._onDataAvailable = function(e) {
         this.state = STATE_DATA;
         break;
       case STATE_DO:
+        this.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'DO', opt: ch } }));
         switch (ch) {
+        case BINARY:
         case TERM_TYPE:
           this._sendRaw( IAC + WILL + ch );
           break;
@@ -130,7 +135,11 @@ TelnetConnection.prototype._onDataAvailable = function(e) {
         this.state = STATE_DATA;
         break;
       case STATE_DONT:
+        this.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'DONT', opt: ch } }));
+        this.state = STATE_DATA;
+        break;
       case STATE_WONT:
+        this.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'WONT', opt: ch } }));
         this.state = STATE_DATA;
         break;
       case STATE_SB: // sub negotiation

@@ -9,10 +9,63 @@ export class AutoProfile extends BaseProfile {
     this.maple3Profile = new Maple3Profile();
     this.detectedProfile = null;
     this.isLocked = false;
+    this.hasTelnet = false;
   }
 
   getActiveProfile() {
     return this.detectedProfile || this.pttProfile;
+  }
+
+  lockProfile(profileName, termBuf) {
+    if (this.isLocked) {
+      return;
+    }
+    if (profileName === 'maple3') {
+      console.log('[AutoProfile] Confirmed and locked Maple 3 profile');
+      this.detectedProfile = this.maple3Profile;
+      this.isLocked = true;
+      if (termBuf && termBuf.rows > 24) {
+        console.log(`[AutoProfile] Clamping terminal rows from ${termBuf.rows} to 24`);
+        if (termBuf.view && termBuf.view.bbscore && termBuf.view.bbscore.resizer) {
+          termBuf.view.bbscore.resizer();
+        } else {
+          termBuf.resize(termBuf.cols, 24);
+          if (termBuf.view) {
+            termBuf.view.fontResize();
+            termBuf.view.redraw(true);
+          }
+        }
+      }
+    } else if (profileName === 'ptt') {
+      console.log('[AutoProfile] Confirmed and locked PTT profile');
+      this.detectedProfile = this.pttProfile;
+      this.isLocked = true;
+    }
+  }
+
+  onTelopt(cmd, opt, termBuf) {
+    if (this.isLocked) {
+      return;
+    }
+    this.hasTelnet = true;
+    // TELOPT_BINARY = '\x00' (RFC 856). PTT BBS always sends WILL BINARY and DO BINARY during handshake.
+    if (opt === '\x00') {
+      console.log(`[AutoProfile] Detected TELOPT_BINARY (${cmd}) -> PTT`);
+      this.lockProfile('ptt', termBuf);
+    }
+  }
+
+  onData(data, termBuf) {
+    if (this.isLocked) {
+      return;
+    }
+    // If Telnet options were negotiated (e.g. TTYPE, ECHO, SGA)
+    // but screen data starts arriving and no TELOPT_BINARY was received,
+    // this is a non-PTTCurrent BBS (e.g. classic Maple 2.x or very old PTT).
+    if (this.hasTelnet) {
+      console.log('[AutoProfile] Screen data received after Telnet negotiation without TELOPT_BINARY -> Maple or legacy');
+      this.lockProfile('maple3', termBuf);
+    }
   }
 
   detect(termBuf) {
@@ -29,17 +82,7 @@ export class AutoProfile extends BaseProfile {
     if (/\[←\]離開\s*\[→\]閱讀/.test(row1Text) ||
         /瀏覽\s*P\.\d+/.test(lastRowText) || /瀏覽\s*P\.\d+/.test(row23Text) ||
         /文章選讀/.test(lastRowText) || /文章選讀/.test(row23Text)) {
-      console.log('[AutoProfile] Confirmed and locked Maple 3 profile');
-      this.detectedProfile = this.maple3Profile;
-      this.isLocked = true;
-      if (termBuf.rows > 24) {
-        console.log(`[AutoProfile] Clamping terminal rows from ${termBuf.rows} to 24`);
-        if (termBuf.view && termBuf.view.bbscore && termBuf.view.bbscore.resizer) {
-          termBuf.view.bbscore.resizer();
-        } else {
-          termBuf.resize(termBuf.cols, 24);
-        }
-      }
+      this.lockProfile('maple3', termBuf);
       return;
     }
 
@@ -47,9 +90,7 @@ export class AutoProfile extends BaseProfile {
     let row0Text = termBuf.getRowText(0, 0, cols);
     if (/批踢踢實業坊/.test(row0Text) ||
         this.pttProfile.parseReadingStatus(lastRowText, termBuf)) {
-      console.log('[AutoProfile] Confirmed and locked PTT profile');
-      this.detectedProfile = this.pttProfile;
-      this.isLocked = true;
+      this.lockProfile('ptt', termBuf);
     }
   }
 

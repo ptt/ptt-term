@@ -174,4 +174,19 @@ export class BaseProfile {
   getEasyReadingPrompt(spaces = '') {
     return '<span align="left"><span class="q0 b7">' + spaces + '</span><span class="q1 b7">[好讀模式]</span><span class="q0 b7"> 滾輪/上下鍵捲動，</span><span class="q1 b7">(Esc)</span><span class="q0 b7">回到終端機 </span><span class="q1 b7">(←/q)</span><span class="q0 b7">離開</span></span>';
   }
+
+  /**
+   * Called when a Telnet negotiation option is received from the server.
+   * @param {string} cmd 'WILL', 'DO', 'WONT', 'DONT'
+   * @param {string} opt Option byte
+   * @param {TermBuf} termBuf
+   */
+  onTelopt(cmd, opt, termBuf) {}
+
+  /**
+   * Called when display data is dispatched to the terminal parser.
+   * @param {string} data Raw data chunk
+   * @param {TermBuf} termBuf
+   */
+  onData(data, termBuf) {}
 }

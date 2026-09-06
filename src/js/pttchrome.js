@@ -262,7 +262,15 @@ App.prototype._attachConn = function(conn) {
   this.conn = conn;
   this.conn.addEventListener('open', this.onConnect.bind(this));
   this.conn.addEventListener('close', this.onClose.bind(this));
+  this.conn.addEventListener('telopt', function(e) {
+    if (self.siteProfile && typeof self.siteProfile.onTelopt === 'function') {
+      self.siteProfile.onTelopt(e.detail.cmd, e.detail.opt, self.buf);
+    }
+  });
   this.conn.addEventListener('data', function(e) {
+    if (self.siteProfile && typeof self.siteProfile.onData === 'function') {
+      self.siteProfile.onData(e.detail.data, self.buf);
+    }
     self.onData(e.detail.data);
   });
   this.conn.addEventListener('doNaws', function(e) {
