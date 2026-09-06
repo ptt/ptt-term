@@ -199,7 +199,12 @@ const enhance = compose(
       };
     },
     onInputHelperReset: (state, { pttchrome }) => () => {
-      pttchrome.conn.send("\x15[m");
+      const site = (pttchrome.buf && pttchrome.buf.site) || pttchrome.site;
+      const resetCmd =
+        site && typeof site.getEditorColorResetCommand === "function"
+          ? site.getEditorColorResetCommand()
+          : "\x15[m";
+      pttchrome.conn.send(resetCmd);
     },
     onInputHelperCmdSend: (state, { pttchrome }) => cmd => {
       const sel =
@@ -207,6 +212,11 @@ const enhance = compose(
           ? pttchrome.view.getSelectionColRow()
           : null;
       if (sel && pttchrome.buf.pageState == 6) {
+        const site = (pttchrome.buf && pttchrome.buf.site) || pttchrome.site;
+        const resetCmd =
+          site && typeof site.getEditorColorResetCommand === "function"
+            ? site.getEditorColorResetCommand()
+            : "\x15[m";
         var y = pttchrome.buf.cur_y;
         var selCmd = "";
         // move cursor to end and send reset code
@@ -218,7 +228,7 @@ const enhance = compose(
         }
         var repeats = pttchrome.buf.getRowText(sel.end.row, 0, sel.end.col)
           .length;
-        selCmd += "\x1b[C".repeat(repeats) + "\x15[m";
+        selCmd += "\x1b[C".repeat(repeats) + resetCmd;
 
         // move cursor to start and send color code
         y = sel.end.row;
@@ -399,6 +409,7 @@ export const ContextMenu = ({
     </div>
     <InputHelperModal
       show={showsInputHelper}
+      site={(pttchrome.buf && pttchrome.buf.site) || pttchrome.site}
       onHide={onInputHelperHide}
       onReset={onInputHelperReset}
       onCmdSend={onInputHelperCmdSend}

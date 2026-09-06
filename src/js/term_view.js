@@ -9,7 +9,6 @@ import { wrapText, u2b } from './string_util';
 import { FpsMeter } from './fps_meter';
 
 const ENTER_CHAR = '\r';
-const ESC_CHAR = '\x15'; // Ctrl-U
 const DEFINE_INPUT_BUFFER_SIZE = 12;
 
 export class TermView {
@@ -406,7 +405,12 @@ export class TermView {
       }
 
       //FIXME: stop user from pasting DBCS words with 2-color
-      text = text.replace(/\x1b/g, ESC_CHAR);
+      const site = this.buf ? this.buf.site : null;
+      const escChar =
+        site && typeof site.getEditorEscapeChar === 'function'
+          ? site.getEditorEscapeChar()
+          : '\x15';
+      text = text.replace(/\x1b/g, escChar);
     }
     this._convSend(text);
   }

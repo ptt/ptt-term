@@ -162,4 +162,8 @@ export class Maple3Site extends BaseSite {
         return null;
     }
   }
+
+  getEditorEscapeChar() {
+    return '\x03';
+  }
 }

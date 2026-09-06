@@ -230,6 +230,51 @@ export class BaseSite {
   }
 
   /**
+   * Get escape character for article editor ANSI sequences (e.g. '\x15' / Ctrl-U for PTT).
+   * @returns {string}
+   */
+  getEditorEscapeChar() {
+    return '\x15';
+  }
+
+  /**
+   * Get reset command for article editor ANSI coloring (e.g. '\x15[m' for PTT).
+   * @returns {string}
+   */
+  getEditorColorResetCommand() {
+    return this.getEditorEscapeChar() + '[m';
+  }
+
+  /**
+   * Get color command for article editor.
+   * @param {{fg: number, bg: number, isBlink: boolean}} color
+   * @param {'foreground'|'background'|'both'} [type]
+   * @returns {string}
+   */
+  getEditorColorCommand({ fg, bg, isBlink }, type) {
+    let lightColor = "0;";
+    if (fg > 7) {
+      fg %= 8;
+      lightColor = "1;";
+    }
+    fg += 30;
+    bg += 40;
+    let blink = "";
+    if (isBlink) {
+      blink = "5;";
+    }
+    let cmd = this.getEditorEscapeChar() + "[";
+    if (type === "foreground") {
+      cmd += lightColor + blink + fg + "m";
+    } else if (type === "background") {
+      cmd += bg + "m";
+    } else {
+      cmd += lightColor + blink + fg + ";" + bg + "m";
+    }
+    return cmd;
+  }
+
+  /**
    * Called when a Telnet negotiation option is received from the server.
    * @param {string} cmd 'WILL', 'DO', 'WONT', 'DONT'
    * @param {string} opt Option byte

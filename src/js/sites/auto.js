@@ -174,4 +174,16 @@ export class AutoSite extends BaseSite {
   isPushPrompt(termBuf) {
     return this.getActiveSite().isPushPrompt(termBuf);
   }
+
+  getEditorEscapeChar() {
+    return this.getActiveSite().getEditorEscapeChar();
+  }
+
+  getEditorColorResetCommand() {
+    return this.getActiveSite().getEditorColorResetCommand();
+  }
+
+  getEditorColorCommand(color, type) {
+    return this.getActiveSite().getEditorColorCommand(color, type);
+  }
 }

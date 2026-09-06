@@ -576,7 +576,11 @@ const EMOTICONS = {
   ]
 };
 
-function sendColorCommand({ fg, bg, isBlink }, onCmdSend, type) {
+function sendColorCommand({ fg, bg, isBlink }, onCmdSend, type, site) {
+  if (site && typeof site.getEditorColorCommand === "function") {
+    onCmdSend(site.getEditorColorCommand({ fg, bg, isBlink }, type));
+    return;
+  }
   let lightColor = "0;";
   if (fg > 7) {
     fg %= 8;
@@ -627,10 +631,10 @@ const enhance = compose(
       onBlinkChange: () => ({ target: { checked } }) => ({
         isBlink: checked
       }),
-      onSendClick: (state, { onCmdSend }) => () =>
-        sendColorCommand(state, onCmdSend),
-      onSendSelect: (state, { onCmdSend }) => eventKey =>
-        sendColorCommand(state, onCmdSend, eventKey),
+      onSendClick: (state, { onCmdSend, site, siteProfile }) => () =>
+        sendColorCommand(state, onCmdSend, undefined, site || siteProfile),
+      onSendSelect: (state, { onCmdSend, site, siteProfile }) => eventKey =>
+        sendColorCommand(state, onCmdSend, eventKey, site || siteProfile),
       onSymEmoClick: (state, { onConvSend }) => ({ target: { textContent } }) =>
         onConvSend(textContent)
     }
