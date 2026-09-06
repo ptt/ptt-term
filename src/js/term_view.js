@@ -816,7 +816,7 @@ TermView.prototype = {
       this.titleTimer.cancel();
       this.titleTimer = null;
     }
-    this.titleTimer = setTimer(true, function() {
+    this.titleTimer = setTimer(true, () => {
       if (document.title == this.buf.title) {
         document.title = title + ' ' + app.waterball.message;
       } else {
