@@ -21,21 +21,30 @@ export function initUAO() {
   }
 
   const td = new TextDecoder("big5");
-  const chunk = new Uint8Array(2);
+  const totalPairs = 126 * 157;
+  const bytes = new Uint8Array(totalPairs * 2);
+  const big5Codes = new Uint16Array(totalPairs);
+  let p = 0;
+  let idx = 0;
 
-  // Scan standard Big5 ranges with native TextDecoder
+  // Pack standard Big5 ranges into a single contiguous buffer
   for (let hi = 0x81; hi <= 0xfe; hi++) {
-    chunk[0] = hi;
     for (let lo = 0x40; lo <= 0xfe; lo++) {
       if (lo > 0x7e && lo < 0xa1) continue;
-      chunk[1] = lo;
-      const s = td.decode(chunk);
-      if (s.length === 1 && s !== "\ufffd") {
-        const u = s.charCodeAt(0);
-        const b = (hi << 8) | lo;
-        b2uTable[b] = u;
-        u2bTable[u] = b;
-      }
+      bytes[p++] = hi;
+      bytes[p++] = lo;
+      big5Codes[idx++] = (hi << 8) | lo;
+    }
+  }
+
+  // Single-call native decode
+  const fullStr = td.decode(bytes);
+  for (let i = 0; i < totalPairs; i++) {
+    const code = fullStr.charCodeAt(i);
+    if (code !== 0xfffd) {
+      const b = big5Codes[i];
+      b2uTable[b] = code;
+      u2bTable[code] = b;
     }
   }
 
