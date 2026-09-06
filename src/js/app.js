@@ -1,8 +1,6 @@
 // Main Program
 import React from 'react';
 import ReactDOM from 'react-dom';
-import BaseModal from 'react-overlays/Modal';
-import { Fade, Modal } from "react-bootstrap";
 import { AnsiParser } from './ansi_parser';
 import { TermView } from './term_view';
 import { TermBuf } from './term_buf';
@@ -473,25 +471,15 @@ export class App {
   }
 
   showPasteUnimplemented() {
-  const container = document.getElementById('reactAlert')
+  const container = document.getElementById('reactAlert');
   const onDismiss = () => {
-    ReactDOM.unmountComponentAtNode(container)
+    ReactDOM.unmountComponentAtNode(container);
     this.modalShown = false;
-  }
+  };
   ReactDOM.render(
-    <BaseModal
-      show
-      onExited={onDismiss}
-      backdropClassName="modal-backdrop"
-      containerClassName="modal-open"
-      transition={Fade}
-      dialogTransitionTimeout={Modal.TRANSITION_DURATION}
-      backdropTransitionTimeout={Modal.BACKDROP_TRANSITION_DURATION}
-    >
-      <PasteShortcutAlert onDismiss={onDismiss} />
-    </BaseModal>,
+    <PasteShortcutAlert onDismiss={onDismiss} />,
     container
-  )
+  );
   this.modalShown = true;
   }
 

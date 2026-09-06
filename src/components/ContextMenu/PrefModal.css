@@ -3,18 +3,20 @@
   color: black;
 }
 
-.PrefModal > .modal-dialog {
-  height: 90%;
-  -webkit-user-select: none;
-}
-
-.PrefModal .modal-content {
-  height: 100%;
-}
-
-.PrefModal .modal-body {
-  height: 100%;
+dialog.PrefModal {
+  width: 640px;
+  max-width: 95vw;
+  height: 620px;
+  max-height: 90vh;
+  border-radius: 6px;
+  overflow: hidden;
   padding: 0;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+dialog.PrefModal .NativeDialog__content {
+  height: 100%;
 }
 
 .PrefModal__Grid {
@@ -25,11 +27,19 @@
 
 .PrefModal__Grid__Col--left {
   height: 100%;
-  width: 160px;
+  width: 200px;
+  min-width: 200px;
+  flex-shrink: 0;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  padding: 0 20px;
+  padding: 0 16px;
   box-shadow: -10px 0 180px -60px #949494 inset;
+}
+
+.PrefModal__Grid__Col--left .nav > li > a {
+  padding: 10px 14px;
+  white-space: nowrap;
 }
 
 .PrefModal__Grid__Col--left__Reset {
@@ -39,12 +49,47 @@
 
 .PrefModal__Grid__Col--right {
   flex-grow: 1;
+  min-width: 0;
   overflow-y: auto;
   padding: 20px;
 }
 
+.PrefModal__Grid__Col--right fieldset,
+.PrefModal__Grid__Col--right__Fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
 .PrefModal__Grid__Col--right__Fieldset > :not(legend) {
   padding-left: 20px;
+}
+
+.PrefModal__Grid__Col--right legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0;
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+  font-size: 21px;
+  line-height: inherit;
+  color: #333;
+  border: 0;
+  border-bottom: 1px solid #e5e5e5;
+  box-sizing: border-box;
+}
+
+.PrefModal__Grid__Col--right legend small {
+  font-size: 65%;
+  color: #777;
+}
+
+.PrefModal__Grid__Col--right legend .close {
+  float: none;
+  margin-left: auto;
 }
 
 .PrefModal__Grid__Col--right__Fieldset input[type="text"],
@@ -73,4 +118,3 @@
 .PrefModal__Grid__Col--right__SubCheckbox {
   margin-left: 20px;
 }
-

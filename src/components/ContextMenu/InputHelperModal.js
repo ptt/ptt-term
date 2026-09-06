@@ -1,19 +1,6 @@
 import cx from "classnames";
 import React from "react";
-import { compose, withStateHandlers, withHandlers } from "recompose";
-import {
-  Modal,
-  Button,
-  Tab,
-  Row,
-  Col,
-  Nav,
-  NavItem,
-  NavDropdown,
-  MenuItem,
-  Checkbox,
-  SplitButton
-} from "react-bootstrap";
+import NativeDialog from "../NativeDialog";
 import ColorSpan from "../Row/WordSegmentBuilder/ColorSpan";
 import { i18n } from "../../js/i18n";
 import "./InputHelperModal.css";
@@ -580,302 +567,326 @@ function sendColorCommand({ fg, bg, isBlink }, onCmdSend, type, site) {
   onCmdSend(site.getEditorColorCommand({ fg, bg, isBlink }, type));
 }
 
-const enhance = compose(
-  withStateHandlers(
-    () => ({
-      fg: 7,
-      bg: 0,
-      isBlink: false
-    }),
-    {
-      onColorClick: () => ({
-        target: {
-          dataset: { fg }
-        }
-      }) => ({
-        fg: parseInt(fg, 10)
-      }),
-      onColorContextMenu: ({ bg }) => event => {
-        const {
-          target: { dataset }
-        } = event;
-        event.preventDefault();
-        event.stopPropagation();
-        return {
-          bg: "bg" in dataset ? parseInt(dataset.bg, 10) : bg
-        };
-      },
-      onBlinkChange: () => ({ target: { checked } }) => ({
-        isBlink: checked
-      }),
-      onSendClick: (state, { onCmdSend, site }) => () =>
-        sendColorCommand(state, onCmdSend, undefined, site),
-      onSendSelect: (state, { onCmdSend, site }) => eventKey =>
-        sendColorCommand(state, onCmdSend, eventKey, site),
-      onSymEmoClick: (state, { onConvSend }) => ({ target: { textContent } }) =>
-        onConvSend(textContent)
-    }
-  ),
-  withHandlers({
-    onMouseDown: () => ({ currentTarget: { dataset }, clientX, clientY }) => {
-      dataset.dragActive = true;
-      dataset.dragLastX = clientX;
-      dataset.dragLastY = clientY;
-    },
-    onMouseMove: () => ({
-      currentTarget: { dataset, style },
-      clientX,
-      clientY
-    }) => {
-      if (dataset.dragActive === "true") {
-        window.getSelection().removeAllRanges();
-        style.cssText += `
-          top:${(parseFloat(style.top) || 0) + clientY - dataset.dragLastY}px;
-          left:${(parseFloat(style.left) || 0) + clientX - dataset.dragLastX}px;
-        `;
-        dataset.dragLastX = clientX;
-        dataset.dragLastY = clientY;
-      }
-    },
-    onMouseUp: () => ({ currentTarget: { dataset } }) => {
-      dataset.dragActive = false;
-    }
-  })
-);
+export class InputHelperModal extends React.Component {
+  state = {
+    fg: 7,
+    bg: 0,
+    isBlink: false,
+    activeTab: "colors",
+    symbolDropdownOpen: false,
+    emoDropdownOpen: false,
+    sendDropdownOpen: false,
+  };
 
-export const InputHelperModal = ({
-  show,
-  onReset,
-  onHide,
-  // from recompose
-  onMouseDown,
-  onMouseMove,
-  onMouseUp,
-  fg,
-  bg,
-  isBlink,
-  onColorClick,
-  onColorContextMenu,
-  onBlinkChange,
-  onSendClick,
-  onSendSelect,
-  onSymEmoClick
-}) => (
-  <Modal
-    show={show}
-    backdrop={false}
-    className="InputHelperModal__Dialog"
-    onMouseDown={onMouseDown}
-    onMouseMove={onMouseMove}
-    onMouseUp={onMouseUp}
-  >
-    <Modal.Header closeButton onHide={onHide}>
-      <Modal.Title>{i18n("inputHelperTitle")}</Modal.Title>
-    </Modal.Header>
-    <Modal.Body>
-      <Tab.Container id="input-helper-tabs" defaultActiveKey="colors">
-        <Row className="clearfix">
-          <Col sm={12}>
-            <Nav bsStyle="tabs">
-              <NavItem eventKey="colors">{i18n("colorTitle")}</NavItem>
-              <NavDropdown eventKey="symbols" title={i18n("symTitle")}>
-                {Object.keys(SYMBOLS).map(group => (
-                  <MenuItem key={group} eventKey={`symbols.${group}`}>
-                    {i18n(`symTitle_${group}`)}
-                  </MenuItem>
-                ))}
-              </NavDropdown>
-              <NavDropdown eventKey="emoticons" title={i18n("emoTitle")}>
-                {Object.keys(EMOTICONS).map(group => (
-                  <MenuItem key={group} eventKey={`emoticons.${group}`}>
-                    {i18n(`emoTitle_${group}`)}
-                  </MenuItem>
-                ))}
-              </NavDropdown>
-            </Nav>
-          </Col>
-          <Col sm={12}>
-            <Tab.Content animation>
-              <Tab.Pane eventKey="colors">
-                <Row>
-                  <Col xs={12} sm={7}>
+  dragActive = false;
+  dragStartX = 0;
+  dragStartY = 0;
+  dialogInitialTop = 0;
+  dialogInitialLeft = 0;
+  dialogElem = null;
+
+  handleMouseDown = (e) => {
+    if (
+      e.button !== 0 ||
+      e.target.tagName === "BUTTON" ||
+      (e.target.closest && e.target.closest("button"))
+    ) {
+      return;
+    }
+    this.dragActive = true;
+    this.dragStartX = e.clientX;
+    this.dragStartY = e.clientY;
+    if (this.dialogElem) {
+      const rect = this.dialogElem.getBoundingClientRect();
+      this.dialogInitialTop = rect.top;
+      this.dialogInitialLeft = rect.left;
+      this.dialogElem.style.top = `${rect.top}px`;
+      this.dialogElem.style.left = `${rect.left}px`;
+    }
+    window.addEventListener("mousemove", this.handleMouseMove);
+    window.addEventListener("mouseup", this.handleMouseUp);
+  };
+
+  handleMouseMove = (e) => {
+    if (this.dragActive && this.dialogElem) {
+      window.getSelection().removeAllRanges();
+      const top = this.dialogInitialTop + (e.clientY - this.dragStartY);
+      const left = this.dialogInitialLeft + (e.clientX - this.dragStartX);
+      this.dialogElem.style.top = `${top}px`;
+      this.dialogElem.style.left = `${left}px`;
+    }
+  };
+
+  handleMouseUp = () => {
+    this.dragActive = false;
+    window.removeEventListener("mousemove", this.handleMouseMove);
+    window.removeEventListener("mouseup", this.handleMouseUp);
+  };
+
+  componentWillUnmount() {
+    window.removeEventListener("mousemove", this.handleMouseMove);
+    window.removeEventListener("mouseup", this.handleMouseUp);
+  }
+
+  handleColorClick = (e) => {
+    const fg = e.currentTarget.dataset.fg;
+    if (fg !== undefined) {
+      this.setState({ fg: parseInt(fg, 10) });
+    }
+  };
+
+  handleColorContextMenu = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const bg = e.currentTarget.dataset.bg;
+    if (bg !== undefined) {
+      this.setState({ bg: parseInt(bg, 10) });
+    }
+  };
+
+  handleBlinkChange = (e) => {
+    this.setState({ isBlink: e.target.checked });
+  };
+
+  handleSendClick = () => {
+    sendColorCommand(this.state, this.props.onCmdSend, undefined, this.props.site);
+  };
+
+  handleSendSelect = (type) => (e) => {
+    e.preventDefault();
+    this.setState({ sendDropdownOpen: false });
+    sendColorCommand(this.state, this.props.onCmdSend, type, this.props.site);
+  };
+
+  handleSendReset = (e) => {
+    e.preventDefault();
+    this.setState({ sendDropdownOpen: false });
+    if (this.props.onReset) {
+      this.props.onReset();
+    }
+  };
+
+  handleSymEmoClick = (e) => {
+    if (this.props.onConvSend) {
+      this.props.onConvSend(e.target.textContent);
+    }
+  };
+
+  selectTab = (tab) => (e) => {
+    e.preventDefault();
+    this.setState({
+      activeTab: tab,
+      symbolDropdownOpen: false,
+      emoDropdownOpen: false,
+    });
+  };
+
+  toggleSymbolDropdown = (e) => {
+    e.preventDefault();
+    this.setState((prev) => ({
+      symbolDropdownOpen: !prev.symbolDropdownOpen,
+      emoDropdownOpen: false,
+    }));
+  };
+
+  toggleEmoDropdown = (e) => {
+    e.preventDefault();
+    this.setState((prev) => ({
+      emoDropdownOpen: !prev.emoDropdownOpen,
+      symbolDropdownOpen: false,
+    }));
+  };
+
+  toggleSendDropdown = (e) => {
+    e.preventDefault();
+    this.setState((prev) => ({
+      sendDropdownOpen: !prev.sendDropdownOpen,
+    }));
+  };
+
+  render() {
+    const { show, onHide } = this.props;
+    const { fg, bg, isBlink, activeTab, symbolDropdownOpen, emoDropdownOpen, sendDropdownOpen } = this.state;
+
+    return (
+      <NativeDialog
+        open={show}
+        onClose={onHide}
+        modal={false}
+        className="InputHelperModal__Dialog"
+        ref={(ref) => {
+          this.dialogElem = ref && ref.dialogRef ? ref.dialogRef.current : null;
+        }}
+      >
+        <div className="modal-header" onMouseDown={this.handleMouseDown} style={{ cursor: "move" }}>
+          <button type="button" className="close" onClick={onHide}>
+            &times;
+          </button>
+          <h4 className="modal-title">{i18n("inputHelperTitle")}</h4>
+        </div>
+        <div className="modal-body">
+          <ul className="nav nav-tabs">
+            <li className={activeTab === "colors" ? "active" : ""}>
+              <a href="#" onClick={this.selectTab("colors")}>
+                {i18n("colorTitle")}
+              </a>
+            </li>
+            <li className={cx("dropdown", { active: activeTab.startsWith("symbols.") })}>
+              <a href="#" className="dropdown-toggle" onClick={this.toggleSymbolDropdown}>
+                {i18n("symTitle")} <span className="caret" />
+              </a>
+              {symbolDropdownOpen && (
+                <ul className="dropdown-menu" style={{ display: "block" }}>
+                  {Object.keys(SYMBOLS).map((group) => (
+                    <li key={group} className={activeTab === `symbols.${group}` ? "active" : ""}>
+                      <a href="#" onClick={this.selectTab(`symbols.${group}`)}>
+                        {i18n(`symTitle_${group}`)}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+            <li className={cx("dropdown", { active: activeTab.startsWith("emoticons.") })}>
+              <a href="#" className="dropdown-toggle" onClick={this.toggleEmoDropdown}>
+                {i18n("emoTitle")} <span className="caret" />
+              </a>
+              {emoDropdownOpen && (
+                <ul className="dropdown-menu" style={{ display: "block" }}>
+                  {Object.keys(EMOTICONS).map((group) => (
+                    <li key={group} className={activeTab === `emoticons.${group}` ? "active" : ""}>
+                      <a href="#" onClick={this.selectTab(`emoticons.${group}`)}>
+                        {i18n(`emoTitle_${group}`)}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          </ul>
+
+          <div className="tab-content" style={{ marginTop: 15 }}>
+            {activeTab === "colors" && (
+              <div>
+                <div className="row">
+                  <div className="col-xs-12 col-sm-7">
                     <ul className="InputHelperModal__ColorList">
-                      <li
-                        onClick={onColorClick}
-                        onContextMenu={onColorContextMenu}
-                        className="b0"
-                        data-fg="0"
-                        data-bg="0"
-                      />
-                      <li
-                        onClick={onColorClick}
-                        onContextMenu={onColorContextMenu}
-                        className="b1"
-                        data-fg="1"
-                        data-bg="1"
-                      />
-                      <li
-                        onClick={onColorClick}
-                        onContextMenu={onColorContextMenu}
-                        className="b2"
-                        data-fg="2"
-                        data-bg="2"
-                      />
-                      <li
-                        onClick={onColorClick}
-                        onContextMenu={onColorContextMenu}
-                        className="b3"
-                        data-fg="3"
-                        data-bg="3"
-                      />
-                      <li
-                        onClick={onColorClick}
-                        onContextMenu={onColorContextMenu}
-                        className="b4"
-                        data-fg="4"
-                        data-bg="4"
-                      />
-                      <li
-                        onClick={onColorClick}
-                        onContextMenu={onColorContextMenu}
-                        className="b5"
-                        data-fg="5"
-                        data-bg="5"
-                      />
-                      <li
-                        onClick={onColorClick}
-                        onContextMenu={onColorContextMenu}
-                        className="b6"
-                        data-fg="6"
-                        data-bg="6"
-                      />
-                      <li
-                        onClick={onColorClick}
-                        onContextMenu={onColorContextMenu}
-                        className="b7"
-                        data-fg="7"
-                        data-bg="7"
-                      />
-                      <li
-                        onClick={onColorClick}
-                        onContextMenu={onColorContextMenu}
-                        className="b8"
-                        data-fg="8"
-                      />
-                      <li
-                        onClick={onColorClick}
-                        onContextMenu={onColorContextMenu}
-                        className="b9"
-                        data-fg="9"
-                      />
-                      <li
-                        onClick={onColorClick}
-                        onContextMenu={onColorContextMenu}
-                        className="b10"
-                        data-fg="10"
-                      />
-                      <li
-                        onClick={onColorClick}
-                        onContextMenu={onColorContextMenu}
-                        className="b11"
-                        data-fg="11"
-                      />
-                      <li
-                        onClick={onColorClick}
-                        onContextMenu={onColorContextMenu}
-                        className="b12"
-                        data-fg="12"
-                      />
-                      <li
-                        onClick={onColorClick}
-                        onContextMenu={onColorContextMenu}
-                        className="b13"
-                        data-fg="13"
-                      />
-                      <li
-                        onClick={onColorClick}
-                        onContextMenu={onColorContextMenu}
-                        className="b14"
-                        data-fg="14"
-                      />
-                      <li
-                        onClick={onColorClick}
-                        onContextMenu={onColorContextMenu}
-                        className="b15"
-                        data-fg="15"
-                      />
+                      {Array(16)
+                        .fill(0)
+                        .map((_, i) => (
+                          <li
+                            key={i}
+                            onClick={this.handleColorClick}
+                            onContextMenu={this.handleColorContextMenu}
+                            className={`b${i}`}
+                            data-fg={i}
+                            data-bg={i}
+                          />
+                        ))}
                     </ul>
-                  </Col>
-                  <Col xs={12} sm={5}>
+                  </div>
+                  <div className="col-xs-12 col-sm-5">
                     {i18n("colorHelperTooltip1")}
                     <br />
                     {i18n("colorHelperTooltip2")}
-                  </Col>
-                </Row>
+                  </div>
+                </div>
                 <div className="InputHelperModal__Preview">
                   <ColorSpan
                     className="InputHelperModal__Preview__Content"
                     colorState={{
                       fg,
                       bg,
-                      blink: isBlink
+                      blink: isBlink,
                     }}
                     inner={i18n("colorHelperPreview")}
                   />
                 </div>
-                <Row>
-                  <Col xs={4}>
-                    <Checkbox checked={isBlink} onChange={onBlinkChange}>
-                      {i18n("colorHelperBlink")}
-                    </Checkbox>
-                  </Col>
-                  <Col xs={8} className="InputHelperModal__SendButtonContainer">
-                    <SplitButton
-                      title={i18n("colorHelperSend")}
-                      onClick={onSendClick}
-                    >
-                      <MenuItem eventKey="foreground" onSelect={onSendSelect}>
-                        {i18n("colorHelperSendMenuFore")}
-                      </MenuItem>
-                      <MenuItem eventKey="background" onSelect={onSendSelect}>
-                        {i18n("colorHelperSendMenuBack")}
-                      </MenuItem>
-                      <MenuItem divider />
-                      <MenuItem eventKey="reset" onSelect={onReset}>
-                        {i18n("colorHelperSendMenuReset")}
-                      </MenuItem>
-                    </SplitButton>
-                  </Col>
-                </Row>
-              </Tab.Pane>
-              {Object.keys(SYMBOLS).map(group => (
-                <Tab.Pane key={group} eventKey={`symbols.${group}`}>
+                <div className="row">
+                  <div className="col-xs-4">
+                    <div className="checkbox" style={{ margin: "5px 0" }}>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={isBlink}
+                          onChange={this.handleBlinkChange}
+                        />
+                        {i18n("colorHelperBlink")}
+                      </label>
+                    </div>
+                  </div>
+                  <div className="col-xs-8 InputHelperModal__SendButtonContainer">
+                    <div className="btn-group" style={{ position: "relative" }}>
+                      <button
+                        type="button"
+                        className="btn btn-default"
+                        onClick={this.handleSendClick}
+                      >
+                        {i18n("colorHelperSend")}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-default dropdown-toggle"
+                        onClick={this.toggleSendDropdown}
+                      >
+                        <span className="caret" />
+                      </button>
+                      {sendDropdownOpen && (
+                        <ul className="dropdown-menu dropdown-menu-right" style={{ display: "block" }}>
+                          <li>
+                            <a href="#" onClick={this.handleSendSelect("foreground")}>
+                              {i18n("colorHelperSendMenuFore")}
+                            </a>
+                          </li>
+                          <li>
+                            <a href="#" onClick={this.handleSendSelect("background")}>
+                              {i18n("colorHelperSendMenuBack")}
+                            </a>
+                          </li>
+                          <li className="divider" />
+                          <li>
+                            <a href="#" onClick={this.handleSendReset}>
+                              {i18n("colorHelperSendMenuReset")}
+                            </a>
+                          </li>
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {Object.keys(SYMBOLS).map((group) =>
+              activeTab === `symbols.${group}` ? (
+                <div key={group}>
                   <ul className="InputHelperModal__SymbolList">
                     {SYMBOLS[group].map((it, index) => (
-                      <li key={index} onClick={onSymEmoClick}>
+                      <li key={index} onClick={this.handleSymEmoClick}>
                         {it}
                       </li>
                     ))}
                   </ul>
-                </Tab.Pane>
-              ))}
-              {Object.keys(EMOTICONS).map(group => (
-                <Tab.Pane key={group} eventKey={`emoticons.${group}`}>
+                </div>
+              ) : null
+            )}
+            {Object.keys(EMOTICONS).map((group) =>
+              activeTab === `emoticons.${group}` ? (
+                <div key={group}>
                   <ul className="InputHelperModal__EmoticonList">
                     {EMOTICONS[group].map((it, index) => (
-                      <li key={index} onClick={onSymEmoClick}>
+                      <li key={index} onClick={this.handleSymEmoClick}>
                         {it}
                       </li>
                     ))}
                   </ul>
-                </Tab.Pane>
-              ))}
-            </Tab.Content>
-          </Col>
-        </Row>
-      </Tab.Container>
-    </Modal.Body>
-  </Modal>
-);
+                </div>
+              ) : null
+            )}
+          </div>
+        </div>
+      </NativeDialog>
+    );
+  }
+}
 
-export default enhance(InputHelperModal);
+export default InputHelperModal;

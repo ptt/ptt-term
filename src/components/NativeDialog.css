@@ -1,0 +1,22 @@
+dialog.NativeDialog {
+  position: fixed;
+  z-index: 1050;
+  border: none;
+  border-radius: 6px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  padding: 0;
+  background: #fff;
+  color: #333;
+  margin: auto;
+}
+
+dialog.NativeDialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.NativeDialog__content {
+  position: relative;
+  background-color: #fff;
+  border-radius: 6px;
+  outline: 0;
+}

@@ -1,11 +1,30 @@
-.InputHelperModal__Dialog {
+dialog.InputHelperModal__Dialog {
+  position: fixed;
+  z-index: 1050;
   color: black;
   right: auto;
   bottom: auto;
   overflow: visible;
-}
-.InputHelperModal__Dialog .modal-dialog {
+  top: 15%;
+  left: 20%;
   margin: 0;
+  padding: 0;
+  width: 530px;
+  max-width: 95vw;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+}
+
+.InputHelperModal__Dialog .modal-header {
+  padding: 15px;
+  border-bottom: 1px solid #e5e5e5;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.InputHelperModal__Dialog .modal-body {
+  padding: 15px;
 }
 
 .InputHelperModal__ColorList {
