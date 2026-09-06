@@ -117,8 +117,8 @@ EasyReading.prototype._onChanged = function(e) {
           return;
         }
       }
-    } else if (this._termBuf.cur_y == 22) {
-      var secondToLastRowText = this._termBuf.getRowText(22, 0, this._termBuf.cols);
+    } else if (this._termBuf.cur_y == lastRowNum - 1) {
+      var secondToLastRowText = this._termBuf.getRowText(lastRowNum - 1, 0, this._termBuf.cols);
       var result = parseReplyText(secondToLastRowText);
       if (result) {
         this.easyReadingShowReplyText = true;
