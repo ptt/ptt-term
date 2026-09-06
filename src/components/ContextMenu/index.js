@@ -199,11 +199,7 @@ const enhance = compose(
       };
     },
     onInputHelperReset: (state, { pttchrome }) => () => {
-      const site = (pttchrome.buf && pttchrome.buf.site) || pttchrome.site;
-      const resetCmd =
-        site && typeof site.getEditorColorResetCommand === "function"
-          ? site.getEditorColorResetCommand()
-          : "\x15[m";
+      const resetCmd = pttchrome.site.getEditorColorResetCommand();
       pttchrome.conn.send(resetCmd);
     },
     onInputHelperCmdSend: (state, { pttchrome }) => cmd => {
@@ -212,11 +208,7 @@ const enhance = compose(
           ? pttchrome.view.getSelectionColRow()
           : null;
       if (sel && pttchrome.buf.pageState == 6) {
-        const site = (pttchrome.buf && pttchrome.buf.site) || pttchrome.site;
-        const resetCmd =
-          site && typeof site.getEditorColorResetCommand === "function"
-            ? site.getEditorColorResetCommand()
-            : "\x15[m";
+        const resetCmd = pttchrome.site.getEditorColorResetCommand();
         var y = pttchrome.buf.cur_y;
         var selCmd = "";
         // move cursor to end and send reset code
@@ -409,7 +401,7 @@ export const ContextMenu = ({
     </div>
     <InputHelperModal
       show={showsInputHelper}
-      site={(pttchrome.buf && pttchrome.buf.site) || pttchrome.site}
+      site={pttchrome.site}
       onHide={onInputHelperHide}
       onReset={onInputHelperReset}
       onCmdSend={onInputHelperCmdSend}

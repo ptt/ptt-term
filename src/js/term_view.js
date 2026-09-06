@@ -405,11 +405,7 @@ export class TermView {
       }
 
       //FIXME: stop user from pasting DBCS words with 2-color
-      const site = this.buf ? this.buf.site : null;
-      const escChar =
-        site && typeof site.getEditorEscapeChar === 'function'
-          ? site.getEditorEscapeChar()
-          : '\x15';
+      const escChar = this.buf.site.getEditorEscapeChar();
       text = text.replace(/\x1b/g, escChar);
     }
     this._convSend(text);
@@ -704,10 +700,7 @@ export class TermView {
     let height = this.bbsHeight ? this.bbsHeight : this.innerBounds.height;
     let cols = Math.max(80, Math.min(200, Math.floor(2 * (width - 10) / fontSizePx)));
     let rows = Math.max(24, Math.min(100, Math.floor(height / fontSizePx)));
-    if (this.buf && this.buf.site && this.buf.site.clampTermSize) {
-      return this.buf.site.clampTermSize(cols, rows);
-    }
-    return { cols, rows };
+    return this.buf.site.clampTermSize(cols, rows);
   }
 
   calcFontSizeFromTerm(termCols, termRows) {
@@ -944,10 +937,7 @@ export class TermView {
       var scrollBottom = cont.scrollTop + cont.clientHeight;
       percent = Math.min(100, Math.max(0, Math.round((scrollBottom / cont.scrollHeight) * 100)));
     }
-    var site = (this.buf && this.buf.site) || (this.bbscore && this.bbscore.site);
-    if (site && typeof site.getEasyReadingPrompt === 'function') {
-      this.lastRowDiv.innerHTML = site.getEasyReadingPrompt(' ', percent);
-    }
+    this.lastRowDiv.innerHTML = this.buf.site.getEasyReadingPrompt(' ', percent);
   }
 
   clearRows() {

@@ -577,7 +577,7 @@ const EMOTICONS = {
 };
 
 function sendColorCommand({ fg, bg, isBlink }, onCmdSend, type, site) {
-  if (site && typeof site.getEditorColorCommand === "function") {
+  if (site) {
     onCmdSend(site.getEditorColorCommand({ fg, bg, isBlink }, type));
     return;
   }

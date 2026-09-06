@@ -260,14 +260,10 @@ export class App {
   this.conn.addEventListener('open', () => this.onConnect());
   this.conn.addEventListener('close', () => this.onClose());
   this.conn.addEventListener('telopt', (e) => {
-    if (this.site && typeof this.site.onTelopt === 'function') {
-      this.site.onTelopt(e.detail.cmd, e.detail.opt, this.buf);
-    }
+    this.site.onTelopt(e.detail.cmd, e.detail.opt, this.buf);
   });
   this.conn.addEventListener('data', (e) => {
-    if (this.site && typeof this.site.onData === 'function') {
-      this.site.onData(e.detail.data, this.buf);
-    }
+    this.site.onData(e.detail.data, this.buf);
     this.onData(e.detail.data);
   });
   this.conn.addEventListener('doNaws', (e) => {
@@ -297,10 +293,7 @@ export class App {
   if (!this.appFocused && this.view.enableNotifications) {
     // parse received data for notification (e.g. waterball)
     var str = (this.view && this.view.charset === 'UTF-8') ? data : b2u(data);
-    var site = this.buf ? this.buf.site : this.site;
-    var wb = site && typeof site.parseNotification === 'function'
-      ? site.parseNotification(str, this.buf)
-      : parseWaterball(str, this.buf ? this.buf.rows - 1 : 23);
+    var wb = this.site.parseNotification(str, this.buf);
     if (wb) {
       if ('userId' in wb) {
         this.waterball.userId = wb.userId;
@@ -401,11 +394,7 @@ export class App {
     // clear the deep cloned copy of lines
     this.buf.pageLines = [];
     if (this.buf.pageState == 3 && this.view.conn) {
-      const site = this.buf ? this.buf.site : this.site;
-      const cmd =
-        site && typeof site.getReenterArticleCommand === "function"
-          ? site.getReenterArticleCommand(this.buf)
-          : "\x1b[D\x1b[C";
+      const cmd = this.site.getReenterArticleCommand(this.buf);
       this.view.conn.send(cmd);
     }
   } else {
@@ -583,16 +572,13 @@ export class App {
   }
 
   setTermSize(cols, rows) {
-  const site = this.buf ? this.buf.site : null;
   const requestedCols = cols;
   const requestedRows = rows;
-  if (site && site.clampTermSize) {
-    const clamped = site.clampTermSize(cols, rows);
-    cols = clamped.cols;
-    rows = clamped.rows;
-  }
+  const clamped = this.site.clampTermSize(cols, rows);
+  cols = clamped.cols;
+  rows = clamped.rows;
 
-  console.log(`[setTermSize] decided size: ${cols}x${rows} (requested: ${requestedCols}x${requestedRows}, current: ${this.buf ? this.buf.cols : '?'}x${this.buf ? this.buf.rows : '?'}, site: ${site ? site.name : 'none'})`);
+  console.log(`[setTermSize] decided size: ${cols}x${rows} (requested: ${requestedCols}x${requestedRows}, current: ${this.buf.cols}x${this.buf.rows}, site: ${this.site.name})`);
 
   if (this.buf.cols == cols && this.buf.rows == rows) {
     return;
@@ -761,50 +747,32 @@ export class App {
       this.conn.send('\x1b[D'); //Arrow Left
       break;
     case 8: {
-      const site = this.buf ? this.buf.site : this.site;
-      const cmd = site && typeof site.getThreadCommand === 'function'
-        ? site.getThreadCommand('prevThread')
-        : '[';
+      const cmd = this.site.getThreadCommand('prevThread');
       if (cmd) this.conn.send(cmd);
       break;
     }
     case 9: {
-      const site = this.buf ? this.buf.site : this.site;
-      const cmd = site && typeof site.getThreadCommand === 'function'
-        ? site.getThreadCommand('nextThread')
-        : ']';
+      const cmd = this.site.getThreadCommand('nextThread');
       if (cmd) this.conn.send(cmd);
       break;
     }
     case 10: {
-      const site = this.buf ? this.buf.site : this.site;
-      const cmd = site && typeof site.getThreadCommand === 'function'
-        ? site.getThreadCommand('firstThread')
-        : '=';
+      const cmd = this.site.getThreadCommand('firstThread');
       if (cmd) this.conn.send(cmd);
       break;
     }
     case 12: {
-      const site = this.buf ? this.buf.site : this.site;
-      const cmd = site && typeof site.getThreadCommand === 'function'
-        ? site.getThreadCommand('refreshPost')
-        : '\x1b[D\r\x1b[4~\x1b[4~';
+      const cmd = this.site.getThreadCommand('refreshPost');
       if (cmd) this.conn.send(cmd);
       break;
     }
     case 13: {
-      const site = this.buf ? this.buf.site : this.site;
-      const cmd = site && typeof site.getThreadCommand === 'function'
-        ? site.getThreadCommand('lastThreadList')
-        : '\x1b[D\r\x1b[4~\x1b[4~[]';
+      const cmd = this.site.getThreadCommand('lastThreadList');
       if (cmd) this.conn.send(cmd);
       break;
     }
     case 14: {
-      const site = this.buf ? this.buf.site : this.site;
-      const cmd = site && typeof site.getThreadCommand === 'function'
-        ? site.getThreadCommand('lastThreadReading')
-        : '\x1b[D\x1b[4~[]\r';
+      const cmd = this.site.getThreadCommand('lastThreadReading');
       if (cmd) this.conn.send(cmd);
       break;
     }
@@ -1373,11 +1341,7 @@ export class App {
       }
       break;
     case "previousThread": {
-      const site = this.buf ? this.buf.site : this.site;
-      const cmd =
-        site && typeof site.getThreadCommand === "function"
-          ? site.getThreadCommand("prevThread")
-          : "[";
+      const cmd = this.site.getThreadCommand("prevThread");
       if (cmd) {
         if (this.view.isEasyReadingActive()) {
           this.easyReading.leaveCurrentPost();
@@ -1389,11 +1353,7 @@ export class App {
       break;
     }
     case "nextThread": {
-      const site = this.buf ? this.buf.site : this.site;
-      const cmd =
-        site && typeof site.getThreadCommand === "function"
-          ? site.getThreadCommand("nextThread")
-          : "]";
+      const cmd = this.site.getThreadCommand("nextThread");
       if (cmd) {
         if (this.view.isEasyReadingActive()) {
           this.easyReading.leaveCurrentPost();
