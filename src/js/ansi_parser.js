@@ -16,13 +16,13 @@ export class AnsiParser {
   }
 
   feed(data) {
-    var term = this.termbuf;
+    const term = this.termbuf;
     if (!term)
       return;
-    var s = '';
-    var n = data.length;
-    for (var i = 0; i < n; ++i) {
-      var ch = data[i];
+    let s = '';
+    const n = data.length;
+    for (let i = 0; i < n; ++i) {
+      const ch = data[i];
       switch (this.state) {
       case AnsiParser.STATE_TEXT:
         switch (ch) {
@@ -41,8 +41,8 @@ export class AnsiParser {
         if ( (ch >= '`' && ch <= 'z') || (ch >= '@' && ch <='Z') ) {
           // if(ch != 'm')
           //    dump('CSI: ' + this.esc + ch + '\n');
-          var params=this.esc.split(';');
-          var firstChar = '';
+          const params = this.esc.split(';');
+          let firstChar = '';
           if (params[0]) {
             if (params[0].charAt(0)<'0' || params[0].charAt(0)>'9') {
               firstChar = params[0].charAt(0);
@@ -55,7 +55,7 @@ export class AnsiParser {
             this.esc = '';
             break;
           }
-          for (var j=0; j<params.length; ++j) {
+          for (let j = 0; j < params.length; ++j) {
             if ( params[j] )
               params[j] = parseInt(params[j], 10);
             else
@@ -101,7 +101,7 @@ export class AnsiParser {
           /*
           case 'h':
             if (firstChar == '?') {
-              var mainobj = term.view.conn.listener;
+              const mainobj = term.view.conn.listener;
               switch(params[0]) {
               case 1:
                 term.view.cursorAppMode = true;
@@ -228,8 +228,8 @@ export class AnsiParser {
           ch = '\x07';
         }
         if (ch == '\x07') {
-          var params=this.esc.split(';');
-          var firstChar = '';
+          const params = this.esc.split(';');
+          let firstChar = '';
           if (params[0] && (params[0].charAt(0)<'0' || params[0].charAt(0)>'9')) {
             if (firstChar) { // unknown OSC
               //dump('unknown OSC: ' + this.esc + ch + '\n');
@@ -238,7 +238,7 @@ export class AnsiParser {
               break;
             }
           }
-          for (var j=0; j<params.length - 1; ++j) {
+          for (let j = 0; j < params.length - 1; ++j) {
             if ( params[j] )
               params[j] = parseInt(params[j], 10);
             else
@@ -265,10 +265,10 @@ export class AnsiParser {
         }
         break;
       case AnsiParser.STATE_C1:
-        var C1_End = true;
-        var C1_Char = [' ', '#', '%', '(', ')', '*', '+', '-', '.', '/'];
+        let C1_End = true;
+        const C1_Char = [' ', '#', '%', '(', ')', '*', '+', '-', '.', '/'];
         if (this.esc) { // multi-char is not supported now
-          for (var j = 0; j < C1_Char.length; ++j)
+          for (let j = 0; j < C1_Char.length; ++j)
             if (this.esc == C1_Char[j]) C1_End = false;
           if (C1_End) --i;
           else this.esc += ch;

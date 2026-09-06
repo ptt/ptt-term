@@ -74,7 +74,7 @@ export class App {
 
   this.endTurnsOnLiveUpdate = false;
   this.copyOnSelect = false;
-  var version = window.navigator.userAgent.match(/Chrom(e|ium)\/(\d+)\./);
+  const version = window.navigator.userAgent.match(/Chrom(e|ium)\/(\d+)\./);
   if (version && version.length > 2) {
     this.chromeVersion = parseInt(version[2], 10);
   }
@@ -85,7 +85,7 @@ export class App {
 
   window.addEventListener('mousedown', (e) => {
     this.mouse_down(e);
-    var ret = this.middleMouse_down(e);
+    const ret = this.middleMouse_down(e);
     if (ret === false) {
       e.preventDefault();
     }
@@ -172,13 +172,13 @@ export class App {
   this.connectState = 0;
   console.log('connect: ' + url + ', siteType: ' + siteType);
 
-  var parsed = this._parseURLSimple(url);
+  const parsed = this._parseURLSimple(url);
   if (!parsed) {
     console.log('failed to parse connect url: ' + url);
     return;
   }
   // TODO(hungte): Should we handle the 'port'?
-  var ws_url = parsed.protocol + '://' + parsed.host + parsed.path;
+  const ws_url = parsed.protocol + '://' + parsed.host + parsed.path;
   switch (parsed.protocol) {
   case 'ws':
   case 'wss':
@@ -204,10 +204,10 @@ export class App {
   }
 
   _parseURLSimple(url) {
-  var tokens = url.split(/:\/\//, 2);
+  const tokens = url.split(/:\/\//, 2);
   if (tokens.length != 2)
     return null;
-  var protocol = tokens[0];
+  let protocol = tokens[0];
   // Convert proprietary protocol names.
   switch (protocol) {
   case 'wstelnet':
@@ -218,13 +218,13 @@ export class App {
       break;
   }
 
-  var hostAndPath = tokens[1].split(/\//, 2);
-  var host = hostAndPath[0];
-  var hostport = host.split(/:/);
+  const hostAndPath = tokens[1].split(/\//, 2);
+  const host = hostAndPath[0];
+  const hostport = host.split(/:/);
   if (hostport.length > 2)
     return null;
-  var hostname = hostport[0];
-  var port = hostport.length > 1 ? parseInt(hostport[1], 10) : {
+  const hostname = hostport[0];
+  const port = hostport.length > 1 ? parseInt(hostport[1], 10) : {
     'ws': 80,
     'wss': 443,
     'telnet': 23,
@@ -240,7 +240,7 @@ export class App {
   }
 
   _setupWebsocketConn(url) {
-  var wsConn = new Websocket(url);
+  const wsConn = new Websocket(url);
   this.connLog.attachSocket(wsConn);
   this._attachConn(new TelnetConnection(wsConn));
   }
@@ -282,8 +282,8 @@ export class App {
 
   if (!this.appFocused && this.view.enableNotifications) {
     // parse received data for notification (e.g. waterball)
-    var str = (this.view.charset === 'UTF-8') ? data : b2u(data);
-    var wb = this.site.parseNotification(str, this.buf);
+    const str = (this.view.charset === 'UTF-8') ? data : b2u(data);
+    const wb = this.site.parseNotification(str, this.buf);
     if (wb) {
       if ('userId' in wb) {
         this.waterball.userId = wb.userId;
@@ -405,19 +405,19 @@ export class App {
   if (!this.lastSelection)
     return;
 
-  var selection = this.lastSelection;
-  var pageLines = null;
+  const selection = this.lastSelection;
+  let pageLines = null;
   if (this.view.isEasyReadingActive() && this.buf.pageState == 3) {
     pageLines = this.buf.pageLines;
   }
 
-  var ansiText = '';
+  let ansiText = '';
   if (selection.start.row == selection.end.row) {
     ansiText += this.buf.getText(selection.start.row, selection.start.col, selection.end.col, true, true, false, pageLines);
   } else {
-    for (var i = selection.start.row; i <= selection.end.row; ++i) {
-      var scol = 0;
-      var ecol = this.buf.cols-1;
+    for (let i = selection.start.row; i <= selection.end.row; ++i) {
+      let scol = 0;
+      let ecol = this.buf.cols-1;
       if (i == selection.start.row) {
         scol = selection.start.col;
       } else if (i == selection.end.row) {
@@ -439,7 +439,7 @@ export class App {
     e.preventDefault();
     console.log('copied: ', this.strToCopy);
   } else {
-    var text = this.view.getSelectedText();
+    const text = this.view.getSelectedText();
     if (text) {
       if (text.indexOf('\x1b') < 0) {
         text = text.replace(/\r\n/g, '\r').replace(/\n/g, '\r').replace(/ +\r/g, '\r');
@@ -484,9 +484,9 @@ export class App {
 
   onSymFont(content) {
   console.log("using " + (content ? "extension" : "system") + " font");
-  var font_src = content ? 'src: url('+content.data+');' : '';
-  var css = '@font-face { font-family: MingLiUNoGlyph; '+font_src+' }';
-  var style = document.createElement('style');
+  const font_src = content ? 'src: url('+content.data+');' : '';
+  const css = '@font-face { font-family: MingLiUNoGlyph; '+font_src+' }';
+  const style = document.createElement('style');
   style.type = 'text/css';
   style.innerHTML = css;
   document.getElementsByTagName('head')[0].appendChild(style);
@@ -501,7 +501,7 @@ export class App {
   }
 
   doOpenUrlNewTab(a) {
-  var e = document.createEvent('MouseEvents');
+  const e = document.createEvent('MouseEvents');
   e.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, true, false, false, false, 0, null);
   a.dispatchEvent(e);
   }
@@ -596,7 +596,7 @@ export class App {
   }
 
   updateTabIcon(aStatus) {
-  var icon = require('Icon/logo.png');
+  let icon = require('Icon/logo.png');
   switch (aStatus) {
     case 'connect':
       icon = require('Icon/logo_connect.png');
@@ -609,12 +609,12 @@ export class App {
       break;
   }
 
-  var link = document.querySelector("link[rel~='icon']");
+  const link = document.querySelector("link[rel~='icon']");
   if (!link) {
-    link = document.createElement("link");
-    link.setAttribute("rel", "icon");
-    link.setAttribute("href", icon);
-    document.head.appendChild(link);
+    const newLink = document.createElement("link");
+    newLink.setAttribute("rel", "icon");
+    newLink.setAttribute("href", icon);
+    document.head.appendChild(newLink);
   } else {
     link.setAttribute("href", icon);
   }
@@ -622,9 +622,9 @@ export class App {
 
 // use this method to get better window size in case of page zoom != 100%
   getWindowInnerBounds() {
-  var width = document.documentElement.clientWidth - this.view.bbsViewMargin * 2;
-  var height = document.documentElement.clientHeight - this.view.bbsViewMargin * 2;
-  var bounds = {
+  const width = document.documentElement.clientWidth - this.view.bbsViewMargin * 2;
+  const height = document.documentElement.clientHeight - this.view.bbsViewMargin * 2;
+  const bounds = {
     width: width,
     height: height
   };
@@ -632,7 +632,7 @@ export class App {
   }
 
   getFirstGridOffsets() {
-  var container = document.querySelector(".main");
+  const container = document.querySelector(".main");
   return {
     top: container ? container.offsetTop : 0,
     left: container ? container.offsetLeft : 0
@@ -640,10 +640,10 @@ export class App {
   }
 
   clientToPos(cX, cY) {
-  var x;
-  var y;
-  var w = this.view.innerBounds.width;
-  var h = this.view.innerBounds.height;
+  let x;
+  let y;
+  const w = this.view.innerBounds.width;
+  const h = this.view.innerBounds.height;
   if (this.view.scaleX != 1 || this.view.scaleY != 1) {
     x = cX - ((w - (this.view.chw * this.buf.cols) * this.view.scaleX) / 2);
     y = cY - ((h - (this.view.chh * this.buf.rows) * this.view.scaleY) / 2);
@@ -651,8 +651,8 @@ export class App {
     x = cX - parseFloat(this.view.firstGridOffset.left);
     y = cY - parseFloat(this.view.firstGridOffset.top);
   }
-  var col = Math.floor(x / (this.view.chw * this.view.scaleX));
-  var row = Math.floor(y / (this.view.chh * this.view.scaleY));
+  let col = Math.floor(x / (this.view.chw * this.view.scaleX));
+  let row = Math.floor(y / (this.view.chh * this.view.scaleY));
 
   if (row < 0)
     row = 0;
@@ -668,14 +668,14 @@ export class App {
   }
 
   _navigateRowAndEnter(targetRow) {
-  var diff = this.buf.cur_y - targetRow;
-  var sendstr =
+  const diff = this.buf.cur_y - targetRow;
+  const sendstr =
     (diff > 0 ? '\x1b[A'.repeat(diff) : '\x1b[B'.repeat(-diff)) + '\r';
   this.conn.send(sendstr);
   }
 
   onMouse_click(e) {
-  var cX = e.clientX, cY = e.clientY;
+  const cX = e.clientX, cY = e.clientY;
   if (!this.conn || !this.conn.isConnected)
     return;
 
@@ -709,10 +709,11 @@ export class App {
         this._navigateRowAndEnter(this.buf.nowHighlight);
       }
       break;
-    case 7:
-      var pos = this.clientToPos(cX, cY);
+    case 7: {
+      const pos = this.clientToPos(cX, cY);
       this._navigateRowAndEnter(pos.row);
       break;
+    }
     case 0:
       this.conn.send('\x1b[D'); //Arrow Left
       break;
@@ -753,7 +754,7 @@ export class App {
   }
 
   onMouse_move(cX, cY) {
-  var pos = this.clientToPos(cX, cY);
+  const pos = this.clientToPos(cX, cY);
   this.buf.onMouse_move(pos.col, pos.row, false);
   }
 
@@ -763,7 +764,7 @@ export class App {
   }
 
   onValuesPrefChange(values) {
-  for (var name in values) {
+  for (const name in values) {
     this.onPrefChange(name, values[name]);
   }
 
@@ -816,7 +817,7 @@ export class App {
         break;
     }
 
-    var mainEl = document.querySelector('.main');
+    const mainEl = document.querySelector('.main');
     if (mainEl) {
       mainEl.classList.toggle('trans-fix', !!this.view.fontFitWindowWidth);
     }
@@ -826,8 +827,8 @@ export class App {
   onPrefChange(name, value) {
   try {
     switch (name) {
-    case 'useMouseBrowsing':
-      var useMouseBrowsing = value;
+    case 'useMouseBrowsing': {
+      const useMouseBrowsing = value;
       this.CmdHandler.setAttribute('useMouseBrowsing', useMouseBrowsing?'1':'0');
       this.buf.useMouseBrowsing = useMouseBrowsing;
 
@@ -843,6 +844,7 @@ export class App {
       this.view.redraw(true);
       this.view.updateCursorPos();
       break;
+    }
     case 'mouseBrowsingHighlight':
       this.buf.highlightCursor = value;
       this.view.redraw(true);
@@ -900,17 +902,19 @@ export class App {
     case 'lineWrap':
       this.conn.lineWrap = value;
       break;
-    case 'fontFace':
-      var fontFace = value;
+    case 'fontFace': {
+      let fontFace = value;
       if (!fontFace) 
         fontFace='monospace';
       this.view.setFontFace(fontFace);
       break;
-    case 'bbsMargin':
-      var margin = value;
+    }
+    case 'bbsMargin': {
+      const margin = value;
       this.view.bbsViewMargin = margin;
       this.onWindowResize();
       break;
+    }
     case 'useCanvasEngine':
       this.view.useCanvasEngine = !!value;
       this.view.redraw(true);
@@ -944,7 +948,7 @@ export class App {
     return;
   if (this.connLog && this.connLog.contains(e.target))
     return;
-  var skipMouseClick = (this.CmdHandler.getAttribute('SkipMouseClick') == '1');
+  const skipMouseClick = (this.CmdHandler.getAttribute('SkipMouseClick') == '1');
   this.CmdHandler.setAttribute('SkipMouseClick','0');
 
   if (e.button == 2) { //right button
@@ -954,7 +958,7 @@ export class App {
     }
     if (this.isSelectionCollapsed()) { //no anything be select
       if (this.buf.useMouseBrowsing) {
-        var doMouseCommand = true;
+        let doMouseCommand = true;
         if (e.target.className)
           if (this.checkClass(e.target.className))
             doMouseCommand = false;
@@ -963,7 +967,7 @@ export class App {
             doMouseCommand = false;
         if (skipMouseClick) {
           doMouseCommand = false;
-          var pos = this.clientToPos(e.clientX, e.clientY);
+          const pos = this.clientToPos(e.clientX, e.clientY);
           this.buf.onMouse_move(pos.col, pos.row, true);
         }
         if (doMouseCommand) {
@@ -1029,7 +1033,7 @@ export class App {
     if (!this.isSelectionCollapsed())
       this.CmdHandler.setAttribute('SkipMouseClick','1');
 
-    var onbbsarea = true;
+    let onbbsarea = true;
     if (e.target.className)
       if (this.checkClass(e.target.className))
         onbbsarea = false;
@@ -1060,7 +1064,7 @@ export class App {
         this.onMouse_move(e.clientX, e.clientY);
 
       this.setInputAreaFocus();
-      var preventDefault = true;
+      let preventDefault = true;
       if (e.target.className)
         if (this.checkClass(e.target.className))
           preventDefault = false;
@@ -1114,8 +1118,8 @@ export class App {
   }
 
   suppressInertialWheel(durationMs) {
-  var now = Date.now();
-  var duration = durationMs || ((this.lastEasyReadingWheelTime && (now - this.lastEasyReadingWheelTime < 1000)) ? 1200 : 300);
+  const now = Date.now();
+  const duration = durationMs || ((this.lastEasyReadingWheelTime && (now - this.lastEasyReadingWheelTime < 1000)) ? 1200 : 300);
   this.suppressWheelUntil = Math.max(this.suppressWheelUntil || 0, now + duration);
   this.suppressWheelContinuous = true;
   this.suppressWheelStartedAt = now;
@@ -1128,7 +1132,7 @@ export class App {
   if (this.connLog && this.connLog.contains(e.target))
     return;
 
-  var now = Date.now();
+  const now = Date.now();
 
   // 1. If currently in Easy Reading, allow native browser scrolling within overlay
   if (this.view.isEasyReadingActive()) {
@@ -1137,14 +1141,14 @@ export class App {
   }
 
   // 2. Target check: if event target is still the easyReadingOverlay (e.g. while fading/hiding)
-  var isOverlayTarget = !!(this.view.easyReadingOverlay && e.target &&
+  const isOverlayTarget = !!(this.view.easyReadingOverlay && e.target &&
     (e.target === this.view.easyReadingOverlay || this.view.easyReadingOverlay.contains(e.target)));
 
   // 3. Suppression check (after exiting easy reading or explicit suppression)
   // Trackpad inertia can coast for 1-2 seconds after swiping.
-  var recentlyScrolledInEasyReading = this.lastEasyReadingWheelTime && (now - this.lastEasyReadingWheelTime < 1000);
-  var recentlyExited = this.lastEasyReadingHideTime && (now - this.lastEasyReadingHideTime < 600);
-  var isSuppressed = isOverlayTarget ||
+  const recentlyScrolledInEasyReading = this.lastEasyReadingWheelTime && (now - this.lastEasyReadingWheelTime < 1000);
+  const recentlyExited = this.lastEasyReadingHideTime && (now - this.lastEasyReadingHideTime < 600);
+  const isSuppressed = isOverlayTarget ||
                      (this.suppressWheelUntil && now < this.suppressWheelUntil) ||
                      recentlyScrolledInEasyReading ||
                      recentlyExited;
@@ -1174,7 +1178,7 @@ export class App {
   this.lastEasyReadingWheelTime = 0;
 
   // 4. Normal BBS Terminal Wheel Handling with Pixel Accumulation & Throttling
-  var deltaY = e.deltaY;
+  let deltaY = e.deltaY;
   if (typeof deltaY === 'undefined') {
     deltaY = -e.wheelDelta;
   } else if (e.deltaMode === 1) { // DOM_DELTA_LINE
@@ -1195,7 +1199,7 @@ export class App {
   this.wheelDeltaYAccum = (this.wheelDeltaYAccum || 0) + deltaY;
 
   // Threshold in pixels before triggering 1 BBS step
-  var threshold = Math.max(35, this.view.chh || 35);
+  const threshold = Math.max(35, this.view.chh || 35);
 
   if (Math.abs(this.wheelDeltaYAccum) < threshold) {
     e.stopPropagation();
@@ -1210,7 +1214,7 @@ export class App {
     return;
   }
 
-  var isScrollUp = this.wheelDeltaYAccum < 0;
+  const isScrollUp = this.wheelDeltaYAccum < 0;
 
   // Reset accumulation for discrete mouse clicks (|deltaY| >= 100), or consume threshold
   if (Math.abs(deltaY) >= 100) {
@@ -1223,29 +1227,29 @@ export class App {
   // scroll = up/down
   // hold right mouse key + scroll = page up/down
   // hold left mouse key + scroll = thread prev/next
-  var mouseWheelActionsUp = [ 'none', 'doArrowUp', 'doPageUp', 'previousThread' ];
-  var mouseWheelActionsDown = [ 'none', 'doArrowDown', 'doPageDown', 'nextThread' ];
+  const mouseWheelActionsUp = [ 'none', 'doArrowUp', 'doPageUp', 'previousThread' ];
+  const mouseWheelActionsDown = [ 'none', 'doArrowDown', 'doPageDown', 'nextThread' ];
 
   if (isScrollUp) {
     if (this.mouseRightButtonDown) {
-      var action = mouseWheelActionsUp[this.view.mouseWheelFunction2];
+      const action = mouseWheelActionsUp[this.view.mouseWheelFunction2];
       this.setBBSCmd(action);
     } else if (this.mouseLeftButtonDown) {
-      var action = mouseWheelActionsUp[this.view.mouseWheelFunction3];
+      const action = mouseWheelActionsUp[this.view.mouseWheelFunction3];
       this.setBBSCmd(action);
     } else {
-      var action = mouseWheelActionsUp[this.view.mouseWheelFunction1];
+      const action = mouseWheelActionsUp[this.view.mouseWheelFunction1];
       this.setBBSCmd(action);
     }
   } else {
     if (this.mouseRightButtonDown) {
-      var action = mouseWheelActionsDown[this.view.mouseWheelFunction2];
+      const action = mouseWheelActionsDown[this.view.mouseWheelFunction2];
       this.setBBSCmd(action);
     } else if (this.mouseLeftButtonDown) {
-      var action = mouseWheelActionsDown[this.view.mouseWheelFunction3];
+      const action = mouseWheelActionsDown[this.view.mouseWheelFunction3];
       this.setBBSCmd(action);
     } else {
-      var action = mouseWheelActionsDown[this.view.mouseWheelFunction1];
+      const action = mouseWheelActionsDown[this.view.mouseWheelFunction1];
       this.setBBSCmd(action);
     }
   }
