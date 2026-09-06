@@ -3,7 +3,7 @@
 import { Event } from './event';
 import { ColorState } from './term_ui';
 import { u2b, b2u } from './string_util';
-import { getSiteProfile } from './site_profiles';
+import { getSite } from './sites';
 
 export const termColors = [
   // dark
@@ -223,7 +223,7 @@ export class TermBuf extends Event {
     this.easyReadingShowReplyText = false;
     this.easyReadingShowPushInitText = false;
     this.prevPageState = 0;
-    this.siteProfile = getSiteProfile(process.env.DEFAULT_PROFILE || 'auto');
+    this.site = getSite(process.env.DEFAULT_SITE_TYPE || process.env.DEFAULT_PROFILE || 'auto');
 
     this.lines = new Array(rows);
 
@@ -262,8 +262,8 @@ export class TermBuf extends Event {
 
 
   resize(cols, rows) {
-    if (this.siteProfile && this.siteProfile.clampTermSize) {
-      const clamped = this.siteProfile.clampTermSize(cols, rows);
+    if (this.site && this.site.clampTermSize) {
+      const clamped = this.site.clampTermSize(cols, rows);
       cols = clamped.cols;
       rows = clamped.rows;
     }
@@ -982,35 +982,35 @@ export class TermBuf extends Event {
   }
 
   setPageState() {
-    const profile = this.siteProfile;
-    let lastRowNum = profile.getLastRowNum(this);
+    const site = this.site;
+    let lastRowNum = site.getLastRowNum(this);
     let cols = this.cols;
     var lastRowText = this.getRowText(lastRowNum, 0, cols);
-    if (profile.isEditingScreen(this)) {
+    if (site.isEditingScreen(this)) {
       this.pageState = 6;
       return;
     }
 
-    if (profile.parseReadingStatus(lastRowText, this)) {
+    if (site.parseReadingStatus(lastRowText, this)) {
       this.pageState = 3; // READING
       return;
     }
 
-    if (profile.isMenuScreen(this)) {
+    if (site.isMenuScreen(this)) {
       this.pageState = 1; // MENU
       return;
     }
 
-    if (profile.isListScreen(this)) {
+    if (site.isListScreen(this)) {
       this.pageState = 2; // LIST
       return;
     }
 
     if (lastRowText.trim()) {
-      console.debug('[setPageState] profile=' + profile.name + ', state=' + this.pageState + ', lastRow=' + JSON.stringify(lastRowText));
+      console.debug('[setPageState] site=' + site.name + ', state=' + this.pageState + ', lastRow=' + JSON.stringify(lastRowText));
     }
 
-    if (profile.isPassScreen(this)) {
+    if (site.isPassScreen(this)) {
       //console.log('pageState = 5 (PASS)');
       this.pageState = 5; // some ansi drawing screen to pass
       return;

@@ -1,31 +1,31 @@
-import { BaseProfile } from './base_profile';
-import { PttProfile } from './ptt_profile';
-import { Maple3Profile } from './maple3_profile';
+import { BaseSite } from './base';
+import { PttSite } from './ptt';
+import { Maple3Site } from './maple3';
 
-export class AutoProfile extends BaseProfile {
+export class AutoSite extends BaseSite {
   constructor() {
     super('auto');
-    this.pttProfile = new PttProfile();
-    this.maple3Profile = new Maple3Profile();
-    this.detectedProfile = null;
+    this.pttSite = new PttSite();
+    this.maple3Site = new Maple3Site();
+    this.detectedSite = null;
     this.isLocked = false;
     this.hasTelnet = false;
   }
 
-  getActiveProfile() {
-    return this.detectedProfile || this.pttProfile;
+  getActiveSite() {
+    return this.detectedSite || this.pttSite;
   }
 
-  lockProfile(profileName, termBuf) {
+  lockSite(siteName, termBuf) {
     if (this.isLocked) {
       return;
     }
-    if (profileName === 'maple3') {
-      console.log('[AutoProfile] Confirmed and locked Maple 3 profile');
-      this.detectedProfile = this.maple3Profile;
+    if (siteName === 'maple3') {
+      console.log('[AutoSite] Confirmed and locked Maple 3 site');
+      this.detectedSite = this.maple3Site;
       this.isLocked = true;
       if (termBuf && termBuf.rows > 24) {
-        console.log(`[AutoProfile] Clamping terminal rows from ${termBuf.rows} to 24`);
+        console.log(`[AutoSite] Clamping terminal rows from ${termBuf.rows} to 24`);
         if (termBuf.view && termBuf.view.bbscore && termBuf.view.bbscore.resizer) {
           termBuf.view.bbscore.resizer();
         } else {
@@ -36,9 +36,9 @@ export class AutoProfile extends BaseProfile {
           }
         }
       }
-    } else if (profileName === 'ptt') {
-      console.log('[AutoProfile] Confirmed and locked PTT profile');
-      this.detectedProfile = this.pttProfile;
+    } else if (siteName === 'ptt') {
+      console.log('[AutoSite] Confirmed and locked PTT site');
+      this.detectedSite = this.pttSite;
       this.isLocked = true;
     }
   }
@@ -50,8 +50,8 @@ export class AutoProfile extends BaseProfile {
     this.hasTelnet = true;
     // TELOPT_BINARY = '\x00' (RFC 856). PTT BBS always sends WILL BINARY and DO BINARY during handshake.
     if (opt === '\x00') {
-      console.log(`[AutoProfile] Detected TELOPT_BINARY (${cmd}) -> PTT`);
-      this.lockProfile('ptt', termBuf);
+      console.log(`[AutoSite] Detected TELOPT_BINARY (${cmd}) -> PTT`);
+      this.lockSite('ptt', termBuf);
     }
   }
 
@@ -63,8 +63,8 @@ export class AutoProfile extends BaseProfile {
     // but screen data starts arriving and no TELOPT_BINARY was received,
     // this is a non-PTTCurrent BBS (e.g. classic Maple 2.x or very old PTT).
     if (this.hasTelnet) {
-      console.log('[AutoProfile] Screen data received after Telnet negotiation without TELOPT_BINARY -> Maple or legacy');
-      this.lockProfile('maple3', termBuf);
+      console.log('[AutoSite] Screen data received after Telnet negotiation without TELOPT_BINARY -> Maple or legacy');
+      this.lockSite('maple3', termBuf);
     }
   }
 
@@ -82,76 +82,76 @@ export class AutoProfile extends BaseProfile {
     if (/\[←\]離開\s*\[→\]閱讀/.test(row1Text) ||
         /瀏覽\s*P\.\d+/.test(lastRowText) || /瀏覽\s*P\.\d+/.test(row23Text) ||
         /文章選讀/.test(lastRowText) || /文章選讀/.test(row23Text)) {
-      this.lockProfile('maple3', termBuf);
+      this.lockSite('maple3', termBuf);
       return;
     }
 
     // Check PTT signatures (strong signatures)
     let row0Text = termBuf.getRowText(0, 0, cols);
     if (/批踢踢實業坊/.test(row0Text) ||
-        this.pttProfile.parseReadingStatus(lastRowText, termBuf)) {
-      this.lockProfile('ptt', termBuf);
+        this.pttSite.parseReadingStatus(lastRowText, termBuf)) {
+      this.lockSite('ptt', termBuf);
     }
   }
 
   clampTermSize(cols, rows) {
-    return this.getActiveProfile().clampTermSize(cols, rows);
+    return this.getActiveSite().clampTermSize(cols, rows);
   }
 
   getLastRowNum(termBuf) {
-    return this.getActiveProfile().getLastRowNum(termBuf);
+    return this.getActiveSite().getLastRowNum(termBuf);
   }
 
   isListScreen(termBuf) {
     this.detect(termBuf);
-    return this.getActiveProfile().isListScreen(termBuf);
+    return this.getActiveSite().isListScreen(termBuf);
   }
 
   isMenuScreen(termBuf) {
     this.detect(termBuf);
-    return this.getActiveProfile().isMenuScreen(termBuf);
+    return this.getActiveSite().isMenuScreen(termBuf);
   }
 
   isPassScreen(termBuf) {
     this.detect(termBuf);
-    return this.getActiveProfile().isPassScreen(termBuf);
+    return this.getActiveSite().isPassScreen(termBuf);
   }
 
   isEditingScreen(termBuf) {
     this.detect(termBuf);
-    return this.getActiveProfile().isEditingScreen(termBuf);
+    return this.getActiveSite().isEditingScreen(termBuf);
   }
 
   parseReadingStatus(rowText, termBuf) {
     this.detect(termBuf);
-    return this.getActiveProfile().parseReadingStatus(rowText, termBuf);
+    return this.getActiveSite().parseReadingStatus(rowText, termBuf);
   }
 
   isArticleEnd(lastRowText, termBuf, statusResult) {
-    return this.getActiveProfile().isArticleEnd(lastRowText, termBuf, statusResult);
+    return this.getActiveSite().isArticleEnd(lastRowText, termBuf, statusResult);
   }
 
   isCursorParked(termBuf) {
-    return this.getActiveProfile().isCursorParked(termBuf);
+    return this.getActiveSite().isCursorParked(termBuf);
   }
 
   getPagingSlice(termBuf, statusResult, actualRowIndex) {
-    return this.getActiveProfile().getPagingSlice(termBuf, statusResult, actualRowIndex);
+    return this.getActiveSite().getPagingSlice(termBuf, statusResult, actualRowIndex);
   }
 
   getEasyReadingPrompt(spaces = '', percent = 100) {
-    return this.getActiveProfile().getEasyReadingPrompt(spaces, percent);
+    return this.getActiveSite().getEasyReadingPrompt(spaces, percent);
   }
 
   handleEasyReadingKeyDown(easyReading, e) {
-    return this.getActiveProfile().handleEasyReadingKeyDown(easyReading, e);
+    return this.getActiveSite().handleEasyReadingKeyDown(easyReading, e);
   }
 
   navigatePrevPost(easyReading) {
-    return this.getActiveProfile().navigatePrevPost(easyReading);
+    return this.getActiveSite().navigatePrevPost(easyReading);
   }
 
   navigateNextPost(easyReading) {
-    return this.getActiveProfile().navigateNextPost(easyReading);
+    return this.getActiveSite().navigateNextPost(easyReading);
   }
 }

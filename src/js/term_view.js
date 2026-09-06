@@ -700,8 +700,8 @@ export class TermView {
     let height = this.bbsHeight ? this.bbsHeight : this.innerBounds.height;
     let cols = Math.max(80, Math.min(200, Math.floor(2 * (width - 10) / fontSizePx)));
     let rows = Math.max(24, Math.min(100, Math.floor(height / fontSizePx)));
-    if (this.buf && this.buf.siteProfile && this.buf.siteProfile.clampTermSize) {
-      return this.buf.siteProfile.clampTermSize(cols, rows);
+    if (this.buf && this.buf.site && this.buf.site.clampTermSize) {
+      return this.buf.site.clampTermSize(cols, rows);
     }
     return { cols, rows };
   }
@@ -852,14 +852,14 @@ export class TermView {
   }
 
   populateEasyReadingPage() {
-    var profile = this.buf.siteProfile;
-    let lastRowNum = profile.getLastRowNum(this.buf);
+    var site = this.buf.site;
+    let lastRowNum = site.getLastRowNum(this.buf);
     if (this.buf.pageState == 3 && this.buf.prevPageState == 3) {
       this.showEasyReading();
       var lastRowText = this.buf.getRowText(lastRowNum, 0, this.buf.cols);
-      var result = profile.parseReadingStatus(lastRowText, this.buf);
+      var result = site.parseReadingStatus(lastRowText, this.buf);
       if (result) {
-        var isEnd = result.isEnd || profile.isArticleEnd(lastRowText, this.buf, result);
+        var isEnd = result.isEnd || site.isArticleEnd(lastRowText, this.buf, result);
         if (result.pageIndex && result.pageIndex === this._lastEasyReadingPageIndex && !isEnd) {
           return;
         }
@@ -873,7 +873,7 @@ export class TermView {
           this._lastEasyReadingPageIndex = result.pageIndex;
         }
 
-        var paging = profile.getPagingSlice(this.buf, result, this.actualRowIndex);
+        var paging = site.getPagingSlice(this.buf, result, this.actualRowIndex);
         var beginIndex = paging.beginIndex;
         var atLastPage = paging.atLastPage;
 
@@ -900,8 +900,8 @@ export class TermView {
       this._easyReadingAppendedEnd = false;
       if (this.buf.pageState == 3) {
         var lastRowText = this.buf.getRowText(lastRowNum, 0, this.buf.cols);
-        var statusResult = profile.parseReadingStatus(lastRowText, this.buf);
-        var isEnd = profile.isArticleEnd(lastRowText, this.buf, statusResult);
+        var statusResult = site.parseReadingStatus(lastRowText, this.buf);
+        var isEnd = site.isArticleEnd(lastRowText, this.buf, statusResult);
         for (var i = 0; i < lastRowNum; ++i) {
           if (i == 4 || i > 0 && this.buf.isTextWrappedRow(i-1)) { // row with i == 4 and the i == 3 is the wrapped line
             this.buf.pageWrappedLines[this.actualRowIndex] += 1;
@@ -940,9 +940,9 @@ export class TermView {
       var scrollBottom = cont.scrollTop + cont.clientHeight;
       percent = Math.min(100, Math.max(0, Math.round((scrollBottom / cont.scrollHeight) * 100)));
     }
-    var profile = (this.buf && this.buf.siteProfile) || (this.bbscore && this.bbscore.siteProfile);
-    if (profile && typeof profile.getEasyReadingPrompt === 'function') {
-      this.lastRowDiv.innerHTML = profile.getEasyReadingPrompt(' ', percent);
+    var site = (this.buf && this.buf.site) || (this.bbscore && this.bbscore.site);
+    if (site && typeof site.getEasyReadingPrompt === 'function') {
+      this.lastRowDiv.innerHTML = site.getEasyReadingPrompt(' ', percent);
     }
   }
 

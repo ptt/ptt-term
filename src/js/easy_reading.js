@@ -65,9 +65,9 @@ export class EasyReading {
     if (!this._enabled)
       return;
 
-    const profile = this._termBuf.siteProfile;
+    const site = this._termBuf.site;
     let lastColNum = this._termBuf.cols - 1;
-    let lastRowNum = profile.getLastRowNum(this._termBuf);
+    let lastRowNum = site.getLastRowNum(this._termBuf);
     var lastRowText = this._termBuf.getRowText(lastRowNum, 0, this._termBuf.cols);
     // dealing with page state jump to 0 because last row wasn't updated fully 
     if (this._termBuf.pageState == 3) {
@@ -81,16 +81,16 @@ export class EasyReading {
     }
     if (this.startedEasyReading) {
       console.debug('easy reading cursor pos: ' + this._termBuf.cur_y + ':' + this._termBuf.cur_x);
-      const isParked = profile.isCursorParked(this._termBuf);
+      const isParked = site.isCursorParked(this._termBuf);
 
       if (isParked) {
         if (this.ignoreOneUpdate) {
           this.ignoreOneUpdate = false;
           return;
         }
-        var result = profile.parseReadingStatus(lastRowText, this._termBuf);
+        var result = site.parseReadingStatus(lastRowText, this._termBuf);
         if (result) {
-          var isEnd = profile.isArticleEnd(lastRowText, this._termBuf, result);
+          var isEnd = site.isArticleEnd(lastRowText, this._termBuf, result);
 
           if (isEnd) {
             this.easyReadingReachedPageEnd = true;
@@ -101,7 +101,7 @@ export class EasyReading {
               this.sendCommandAfterUpdate = '\x1b[6~';
             }
           }
-        } else if (profile.isArticleEnd(lastRowText, this._termBuf, null)) {
+        } else if (site.isArticleEnd(lastRowText, this._termBuf, null)) {
           this.easyReadingReachedPageEnd = true;
         } else if (!this.easyReadingShowPushInitText) { // only if not showing last row text
           this._termBuf.pageState = 5;
@@ -184,25 +184,25 @@ export class EasyReading {
     if (e.defaultPrevented)
       return;
 
-    const profile = this._termBuf.siteProfile;
+    const site = this._termBuf.site;
     var stop = false;
     if (!e.ctrlKey && !e.altKey) {
       switch (e.key) {
         case 'Backspace':
         case 'ArrowUp':
-          if (profile.navigatePrevPost(this))
+          if (site.navigatePrevPost(this))
             stop = true;
           break;
         case 'Enter':
         case 'ArrowDown':
-          if (profile.navigateNextPost(this))
+          if (site.navigateNextPost(this))
             stop = true;
           break;
       }
     } else if (e.ctrlKey && !e.altKey) {
       switch (e.key) {
         case 'h':
-          if (profile.navigatePrevPost(this))
+          if (site.navigatePrevPost(this))
             stop = true;
           break;
       }
@@ -238,8 +238,8 @@ export class EasyReading {
   }
 
   _onKeyDownProcessUI(e) {
-    const profile = this._termBuf.siteProfile;
-    if (profile.handleEasyReadingKeyDown && profile.handleEasyReadingKeyDown(this, e)) {
+    const site = this._termBuf.site;
+    if (site.handleEasyReadingKeyDown && site.handleEasyReadingKeyDown(this, e)) {
       e.preventDefault();
       return;
     }

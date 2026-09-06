@@ -15,7 +15,7 @@ import { setTimer } from './util';
 import PasteShortcutAlert from '../components/PasteShortcutAlert';
 import ConnectionAlert from '../components/ConnectionAlert';
 import ContextMenu from '../components/ContextMenu';
-import { getSiteProfile } from './site_profiles';
+import { getSite } from './sites';
 
 function noop() {}
 
@@ -31,8 +31,8 @@ export class App {
 
   this.view = new TermView();
   this.buf = new TermBuf(80, 24);
-  this.siteProfile = getSiteProfile(process.env.DEFAULT_PROFILE || 'auto');
-  this.buf.siteProfile = this.siteProfile;
+  this.site = getSite(process.env.DEFAULT_SITE_TYPE || process.env.DEFAULT_PROFILE || 'auto');
+  this.buf.site = this.site;
   this.buf.setView(this.view);
   //this.buf.severNotifyStr=this.getLM('messageNotify');
   //this.buf.PTTZSTR1=this.getLM('PTTZArea1');
@@ -176,9 +176,9 @@ export class App {
     return this.connectState == 1 && !!this.conn;
   }
 
-  connect(url, profileName) {
+  connect(url, siteType) {
   this.connectState = 0;
-  console.log('connect: ' + url + ', profile: ' + profileName);
+  console.log('connect: ' + url + ', siteType: ' + siteType);
 
   var parsed = this._parseURLSimple(url);
   if (!parsed) {
@@ -196,9 +196,9 @@ export class App {
       return;
   }
 
-  this.siteProfile = getSiteProfile(profileName || process.env.DEFAULT_PROFILE || 'auto');
+  this.site = getSite(siteType || process.env.DEFAULT_SITE_TYPE || process.env.DEFAULT_PROFILE || 'auto');
   if (this.buf) {
-    this.buf.siteProfile = this.siteProfile;
+    this.buf.site = this.site;
   }
 
   this._setupWebsocketConn(ws_url);
@@ -207,7 +207,8 @@ export class App {
     site: parsed.hostname,
     host: parsed.host,
     port: parsed.port,
-    profile: this.siteProfile.name,
+    profile: this.site.name,
+    siteType: this.site.name,
     easyReadingSupported: true
   };
   }
@@ -261,13 +262,13 @@ export class App {
   this.conn.addEventListener('open', () => this.onConnect());
   this.conn.addEventListener('close', () => this.onClose());
   this.conn.addEventListener('telopt', (e) => {
-    if (this.siteProfile && typeof this.siteProfile.onTelopt === 'function') {
-      this.siteProfile.onTelopt(e.detail.cmd, e.detail.opt, this.buf);
+    if (this.site && typeof this.site.onTelopt === 'function') {
+      this.site.onTelopt(e.detail.cmd, e.detail.opt, this.buf);
     }
   });
   this.conn.addEventListener('data', (e) => {
-    if (this.siteProfile && typeof this.siteProfile.onData === 'function') {
-      this.siteProfile.onData(e.detail.data, this.buf);
+    if (this.site && typeof this.site.onData === 'function') {
+      this.site.onData(e.detail.data, this.buf);
     }
     this.onData(e.detail.data);
   });
@@ -574,16 +575,16 @@ export class App {
   }
 
   setTermSize(cols, rows) {
-  const profile = this.buf ? this.buf.siteProfile : null;
+  const site = this.buf ? this.buf.site : null;
   const requestedCols = cols;
   const requestedRows = rows;
-  if (profile && profile.clampTermSize) {
-    const clamped = profile.clampTermSize(cols, rows);
+  if (site && site.clampTermSize) {
+    const clamped = site.clampTermSize(cols, rows);
     cols = clamped.cols;
     rows = clamped.rows;
   }
 
-  console.log(`[setTermSize] decided size: ${cols}x${rows} (requested: ${requestedCols}x${requestedRows}, current: ${this.buf ? this.buf.cols : '?'}x${this.buf ? this.buf.rows : '?'}, profile: ${profile ? profile.name : 'none'})`);
+  console.log(`[setTermSize] decided size: ${cols}x${rows} (requested: ${requestedCols}x${requestedRows}, current: ${this.buf ? this.buf.cols : '?'}x${this.buf ? this.buf.rows : '?'}, site: ${site ? site.name : 'none'})`);
 
   if (this.buf.cols == cols && this.buf.rows == rows) {
     return;

@@ -1,4 +1,4 @@
-export class BaseProfile {
+export class BaseSite {
   constructor(name = 'base') {
     this.name = name;
     this.fixed_last_row = null;
@@ -7,7 +7,7 @@ export class BaseProfile {
   }
 
   /**
-   * Clamp terminal size to profile limits if specified.
+   * Clamp terminal size to site limits if specified.
    * @param {number} cols 
    * @param {number} rows 
    * @returns {{ cols: number, rows: number }}
@@ -22,7 +22,7 @@ export class BaseProfile {
       clampedCols = this.max_cols;
     }
     if (clampedCols !== cols || clampedRows !== rows) {
-      console.log(`[Profile:${this.name}] Clamped terminal size from ${cols}x${rows} to ${clampedCols}x${clampedRows}`);
+      console.log(`[Site:${this.name}] Clamped terminal size from ${cols}x${rows} to ${clampedCols}x${clampedRows}`);
     }
     return { cols: clampedCols, rows: clampedRows };
   }

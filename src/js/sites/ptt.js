@@ -1,7 +1,7 @@
-import { BaseProfile } from './base_profile';
+import { BaseSite } from './base';
 import { parseStatusRow, parseListRow } from '../string_util';
 
-export class PttProfile extends BaseProfile {
+export class PttSite extends BaseSite {
   constructor() {
     super('ptt');
   }

@@ -1,6 +1,6 @@
-import { BaseProfile } from './base_profile';
+import { BaseSite } from './base';
 
-export class Maple3Profile extends BaseProfile {
+export class Maple3Site extends BaseSite {
   constructor() {
     super('maple3');
     this.fixed_last_row = 23;
