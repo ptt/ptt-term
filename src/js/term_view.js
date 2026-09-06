@@ -814,15 +814,31 @@ export class TermView {
         document.title = this.buf.title;
       }
     }, 1500);
-    const options = {
-      icon: require('Icon/icon_128.png'),
-      body: app.waterball.message,
-      tag: app.waterball.userId
+    const postNotification = () => {
+      try {
+        const options = {
+          icon: require('Icon/icon_128.png'),
+          body: app.waterball.message,
+          tag: app.waterball.userId
+        };
+        this.notif = new Notification(title, options);
+        this.notif.onclick = () => {
+          window.focus();
+        };
+      } catch (err) {}
     };
-    this.notif = new Notification(title, options);
-    this.notif.onclick = () => {
-      window.focus();
-    };
+
+    if (typeof Notification !== 'undefined') {
+      if (Notification.permission === 'granted') {
+        postNotification();
+      } else if (Notification.permission !== 'denied' && Notification.requestPermission) {
+        Notification.requestPermission().then((perm) => {
+          if (perm === 'granted') {
+            postNotification();
+          }
+        }).catch(() => {});
+      }
+    }
   }
 
   isEasyReadingActive() {

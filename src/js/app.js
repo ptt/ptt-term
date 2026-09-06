@@ -895,6 +895,9 @@ export class App {
       break;
     case 'enableNotifications':
       this.view.enableNotifications = value;
+      if (value && typeof Notification !== 'undefined' && Notification.requestPermission && Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {});
+      }
       break;
     case 'enableEasyReading':
       /*if (this.connectedUrl.hostname == 'ptt.cc') {
