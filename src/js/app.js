@@ -762,24 +762,54 @@ export class App {
     case 0:
       this.conn.send('\x1b[D'); //Arrow Left
       break;
-    case 8:
-      this.conn.send('['); //Previous post with the same title
+    case 8: {
+      const site = this.buf ? this.buf.site : this.site;
+      const cmd = site && typeof site.getThreadCommand === 'function'
+        ? site.getThreadCommand('prevThread')
+        : '[';
+      if (cmd) this.conn.send(cmd);
       break;
-    case 9:
-      this.conn.send(']'); //Next post with the same title
+    }
+    case 9: {
+      const site = this.buf ? this.buf.site : this.site;
+      const cmd = site && typeof site.getThreadCommand === 'function'
+        ? site.getThreadCommand('nextThread')
+        : ']';
+      if (cmd) this.conn.send(cmd);
       break;
-    case 10:
-      this.conn.send('='); //First post with the same title
+    }
+    case 10: {
+      const site = this.buf ? this.buf.site : this.site;
+      const cmd = site && typeof site.getThreadCommand === 'function'
+        ? site.getThreadCommand('firstThread')
+        : '=';
+      if (cmd) this.conn.send(cmd);
       break;
-    case 12:
-      this.conn.send('\x1b[D\r\x1b[4~\x1b[4~'); //Refresh post / pushed texts
+    }
+    case 12: {
+      const site = this.buf ? this.buf.site : this.site;
+      const cmd = site && typeof site.getThreadCommand === 'function'
+        ? site.getThreadCommand('refreshPost')
+        : '\x1b[D\r\x1b[4~\x1b[4~';
+      if (cmd) this.conn.send(cmd);
       break;
-    case 13:
-      this.conn.send('\x1b[D\r\x1b[4~\x1b[4~[]'); //Last post with the same title (LIST)
+    }
+    case 13: {
+      const site = this.buf ? this.buf.site : this.site;
+      const cmd = site && typeof site.getThreadCommand === 'function'
+        ? site.getThreadCommand('lastThreadList')
+        : '\x1b[D\r\x1b[4~\x1b[4~[]';
+      if (cmd) this.conn.send(cmd);
       break;
-    case 14:
-      this.conn.send('\x1b[D\x1b[4~[]\r'); //Last post with the same title (READING)
+    }
+    case 14: {
+      const site = this.buf ? this.buf.site : this.site;
+      const cmd = site && typeof site.getThreadCommand === 'function'
+        ? site.getThreadCommand('lastThreadReading')
+        : '\x1b[D\x1b[4~[]\r';
+      if (cmd) this.conn.send(cmd);
       break;
+    }
     default:
       //do nothing
       break;
@@ -1344,22 +1374,38 @@ export class App {
         this.conn.send('\x1b[6~');
       }
       break;
-    case "previousThread":
-      if (this.view.isEasyReadingActive()) {
-        this.easyReading.leaveCurrentPost();
-        this.conn.send('[');
-      } else if (this.buf.pageState==2 || this.buf.pageState==3 || this.buf.pageState==4) {
-        this.conn.send('[');
+    case "previousThread": {
+      const site = this.buf ? this.buf.site : this.site;
+      const cmd =
+        site && typeof site.getThreadCommand === "function"
+          ? site.getThreadCommand("prevThread")
+          : "[";
+      if (cmd) {
+        if (this.view.isEasyReadingActive()) {
+          this.easyReading.leaveCurrentPost();
+          this.conn.send(cmd);
+        } else if (this.buf && (this.buf.pageState == 2 || this.buf.pageState == 3 || this.buf.pageState == 4)) {
+          this.conn.send(cmd);
+        }
       }
       break;
-    case "nextThread":
-      if (this.view.isEasyReadingActive()) {
-        this.easyReading.leaveCurrentPost();
-        this.conn.send(']');
-      } else if (this.buf.pageState==2 || this.buf.pageState==3 || this.buf.pageState==4) {
-        this.conn.send(']');
+    }
+    case "nextThread": {
+      const site = this.buf ? this.buf.site : this.site;
+      const cmd =
+        site && typeof site.getThreadCommand === "function"
+          ? site.getThreadCommand("nextThread")
+          : "]";
+      if (cmd) {
+        if (this.view.isEasyReadingActive()) {
+          this.easyReading.leaveCurrentPost();
+          this.conn.send(cmd);
+        } else if (this.buf && (this.buf.pageState == 2 || this.buf.pageState == 3 || this.buf.pageState == 4)) {
+          this.conn.send(cmd);
+        }
       }
       break;
+    }
     case "doEnter":
       if (this.view.isEasyReadingActive()) {
         if (!this.easyReading._scrollBy(1)) {

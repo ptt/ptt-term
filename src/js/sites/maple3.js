@@ -149,4 +149,17 @@ export class Maple3Site extends BaseSite {
   getReenterArticleCommand(termBuf) {
     return 'qr';
   }
+
+  getThreadCommand(action) {
+    switch (action) {
+      case 'prevThread':
+        return '-';
+      case 'nextThread':
+        return '+';
+      case 'firstThread':
+        return '=';
+      default:
+        return null;
+    }
+  }
 }

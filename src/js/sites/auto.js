@@ -162,4 +162,8 @@ export class AutoSite extends BaseSite {
   getReenterArticleCommand(termBuf) {
     return this.getActiveSite().getReenterArticleCommand(termBuf);
   }
+
+  getThreadCommand(action) {
+    return this.getActiveSite().getThreadCommand(action);
+  }
 }

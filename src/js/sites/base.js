@@ -177,6 +177,30 @@ export class BaseSite {
   }
 
   /**
+   * Get command string for same-thread navigation / refresh.
+   * @param {'prevThread'|'nextThread'|'firstThread'|'refreshPost'|'lastThreadList'|'lastThreadReading'} action
+   * @returns {string|null}
+   */
+  getThreadCommand(action) {
+    switch (action) {
+      case 'prevThread':
+        return '[';
+      case 'nextThread':
+        return ']';
+      case 'firstThread':
+        return '=';
+      case 'refreshPost':
+        return '\x1b[D\r\x1b[4~\x1b[4~';
+      case 'lastThreadList':
+        return '\x1b[D\r\x1b[4~\x1b[4~[]';
+      case 'lastThreadReading':
+        return '\x1b[D\x1b[4~[]\r';
+      default:
+        return null;
+    }
+  }
+
+  /**
    * Get bottom prompt HTML for easy reading mode.
    * @param {string} spaces
    * @param {number} percent
