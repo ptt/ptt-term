@@ -1,4 +1,6 @@
 // Main Program
+import React from 'react';
+import ReactDOM from 'react-dom';
 import BaseModal from 'react-overlays/Modal';
 import { Fade, Modal } from "react-bootstrap";
 import { AnsiParser } from './ansi_parser';

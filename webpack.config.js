@@ -58,6 +58,12 @@ module.exports = {
     ]
   },
   resolve: {
+    alias: {
+      'react': 'preact/compat',
+      'react-dom/test-utils': 'preact/test-utils',
+      'react-dom': 'preact/compat',
+      'react/jsx-runtime': 'preact/jsx-runtime'
+    },
     plugins: [new AliasPlugin('described-resolve', [{
       name: 'Icon',
       alias: [
@@ -71,6 +77,10 @@ module.exports = {
     minimizer: [new OptimizeCSSAssetsPlugin({})],
   },
   plugins: [
+    new webpack.ProvidePlugin({
+      React: 'react',
+      ReactDOM: 'react-dom',
+    }),
     new webpack.DefinePlugin({
       'process.env.PTTCHROME_PAGE_TITLE': JSON.stringify(process.env.PTTCHROME_PAGE_TITLE || 'PttChrome'),
       'process.env.PTTCHROME_PAGE_DESCRIPTION': JSON.stringify(process.env.PTTCHROME_PAGE_DESCRIPTION || 'A web client for connecting to the ANSI based terminals.'),
@@ -118,16 +128,6 @@ module.exports = {
           name: 'hammerjs',
           var: 'Hammer',
           path: 'hammer.min.js',
-        },
-        {
-          name: 'react',
-          var: 'React',
-          path: `umd/react.${process.env.NODE_ENV}${PRODUCTION_MODE ? '.min' : ''}.js`,
-        },
-        {
-          name: 'react-dom',
-          var: 'ReactDOM',
-          path: `umd/react-dom.${process.env.NODE_ENV}${PRODUCTION_MODE ? '.min' : ''}.js`,
         },
       ],
     })

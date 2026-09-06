@@ -1,3 +1,4 @@
+import React from "react";
 import { stringify } from "querystring";
 import { decode } from "base58";
 

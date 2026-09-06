@@ -1,3 +1,5 @@
+import React from 'react';
+import ReactDOM from 'react-dom';
 import { App } from './app';
 import { setupI18n } from './i18n';
 import { getQueryVariable } from './util';

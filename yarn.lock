@@ -2643,25 +2643,6 @@ dot-case@^3.0.4:
     no-case "^3.0.4"
     tslib "^2.0.3"
 
-dotenv-defaults@^5.0.2:
-  version "5.0.2"
-  resolved "https://registry.yarnpkg.com/dotenv-defaults/-/dotenv-defaults-5.0.2.tgz#065c410ea516011651e9c60dae0c8902ec53d609"
-  integrity sha512-y5z4NhblzwNk8XBIYVzjLcFkANK0rxbRDO6kGOfH9QrVYIGVEX52IqwSprKVsaLHM9pnNkCSxazZF/JPydDPvA==
-  dependencies:
-    dotenv "^14.0.0"
-
-dotenv-webpack@^9.0.0:
-  version "9.0.0"
-  resolved "https://registry.yarnpkg.com/dotenv-webpack/-/dotenv-webpack-9.0.0.tgz#076f09a75788d167d1202a8176c3e5f56e08213b"
-  integrity sha512-uUtvrfEt+wXXadiZ/VvBYmLmd7KffMhsdaJLZmTTGaixFBZqD2emBwLsWKP4mdJ7bj11gxEcmH6EBFAoWwHrqA==
-  dependencies:
-    dotenv-defaults "^5.0.2"
-
-dotenv@^14.0.0:
-  version "14.3.2"
-  resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-14.3.2.tgz#7c30b3a5f777c79a3429cb2db358eef6751e8369"
-  integrity sha512-vwEppIphpFdvaMCaHfCEv9IgwcxMljMw2TnAQBB4VWPvzXQLTb82jwmdOKzlEVUL3gNFT4l4TPKO+Bn+sqcrVQ==
-
 dunder-proto@^1.0.0, dunder-proto@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/dunder-proto/-/dunder-proto-1.0.1.tgz#d7ae667e1dc83482f8b70fd0f6eefc50da30f58a"
@@ -4386,7 +4367,7 @@ log-update@^5.0.1:
     strip-ansi "^7.0.1"
     wrap-ansi "^8.0.1"
 
-loose-envify@^1.0.0, loose-envify@^1.1.0, loose-envify@^1.4.0:
+loose-envify@^1.0.0, loose-envify@^1.4.0:
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/loose-envify/-/loose-envify-1.4.0.tgz#71ee51fa7be4caec1a63839f7e682d8132d30caf"
   integrity sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==
@@ -5424,6 +5405,11 @@ postcss@^8.2.1, postcss@^8.2.15:
     picocolors "^1.1.1"
     source-map-js "^1.2.1"
 
+preact@^10.29.8:
+  version "10.29.8"
+  resolved "https://registry.yarnpkg.com/preact/-/preact-10.29.8.tgz#fc85b82dc2474e245b1430b51781d417361f5fc3"
+  integrity sha512-ej2aVZ+vZ8WO7tvlQWRM9N63A0KzF9q4mWJfDUHgYaIofWY9hu74QdnQrjoPMmZi2/nZ5gN0bJCQF49xQqx09Q==
+
 prettier@^2.7.1:
   version "2.8.8"
   resolved "https://registry.yarnpkg.com/prettier/-/prettier-2.8.8.tgz#e8c5d7e98a4305ffe3de2e1fc4aca1a71c28b1da"
@@ -5615,16 +5601,6 @@ react-bootstrap@^0.33.1:
     uncontrollable "^7.0.2"
     warning "^3.0.0"
 
-react-dom@^16.2.0:
-  version "16.14.0"
-  resolved "https://registry.yarnpkg.com/react-dom/-/react-dom-16.14.0.tgz#7ad838ec29a777fb3c75c3a190f661cf92ab8b89"
-  integrity sha512-1gCeQXDLoIqMgqD3IO2Ah9bnf0w9kzhwN5q4FGnHZ67hBm9yePzB5JJAIQCc8x3pFnNlwFq4RidZggNAAkzWWw==
-  dependencies:
-    loose-envify "^1.1.0"
-    object-assign "^4.1.1"
-    prop-types "^15.6.2"
-    scheduler "^0.19.1"
-
 react-is@^16.13.1, react-is@^16.3.2:
   version "16.13.1"
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-16.13.1.tgz#789729a4dc36de2999dc156dd6c1d9c18cea56a4"
@@ -5677,15 +5653,6 @@ react-transition-group@^2.0.0, react-transition-group@^2.2.1:
     loose-envify "^1.4.0"
     prop-types "^15.6.2"
     react-lifecycles-compat "^3.0.4"
-
-react@^16.2.0:
-  version "16.14.0"
-  resolved "https://registry.yarnpkg.com/react/-/react-16.14.0.tgz#94d776ddd0aaa37da3eda8fc5b6b18a4c9a3114d"
-  integrity sha512-0X2CImDkJGApiAlcf0ODKIneSwBPhqJawOa5wCtKbu7ZECrmS26NvtSILynQ66cgkT/RJ4LidJOc3bUESwmU8g==
-  dependencies:
-    loose-envify "^1.1.0"
-    object-assign "^4.1.1"
-    prop-types "^15.6.2"
 
 "readable-stream@1 || 2", readable-stream@^2.0.0, readable-stream@^2.0.1, readable-stream@^2.0.2, readable-stream@^2.1.5, readable-stream@^2.2.2, readable-stream@^2.3.3, readable-stream@^2.3.6, readable-stream@^2.3.8, readable-stream@~2.3.6:
   version "2.3.8"
@@ -6020,14 +5987,6 @@ sax@^1.5.0:
   version "1.6.0"
   resolved "https://registry.yarnpkg.com/sax/-/sax-1.6.0.tgz#da59637629307b97e7c4cb28e080a7bc38560d5b"
   integrity sha512-6R3J5M4AcbtLUdZmRv2SygeVaM7IhrLXu9BmnOGmmACak8fiUtOsYNWUS4uK7upbmHIBbLBeFeI//477BKLBzA==
-
-scheduler@^0.19.1:
-  version "0.19.1"
-  resolved "https://registry.yarnpkg.com/scheduler/-/scheduler-0.19.1.tgz#4f3e2ed2c1a7d65681f4c854fa8c5a1ccb40f196"
-  integrity sha512-n/zwRWRYSUj0/3g/otKDRPMh6qv2SYMWNq85IEa8iZyAv8od9zDYpGSnpBEjNgcMNq6Scbu5KfIPxNF72R/2EA==
-  dependencies:
-    loose-envify "^1.1.0"
-    object-assign "^4.1.1"
 
 schema-utils@^1.0.0:
   version "1.0.0"
