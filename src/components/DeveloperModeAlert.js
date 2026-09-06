@@ -5,7 +5,7 @@ import "./PageTopAlert.css";
 export const DeveloperModeAlert = ({ onDismiss }) => (
   <div
     role="alert"
-    className="alert alert-danger alert-dismissible PageTopAlert fade in"
+    className="alert alert-purple alert-dismissible PageTopAlert fade in"
   >
     <button
       type="button"
@@ -18,7 +18,7 @@ export const DeveloperModeAlert = ({ onDismiss }) => (
     <h4>{i18n("alert_developerModeHeader")}</h4>
     <p>{i18n("alert_developerModeText")}</p>
     <p>
-      <button type="button" className="btn btn-danger" onClick={onDismiss}>
+      <button type="button" className="btn btn-purple" onClick={onDismiss}>
         {i18n("alert_developerModeDismiss")}
       </button>
     </p>
