@@ -1142,7 +1142,7 @@ export class TermBuf extends Event {
           this.mouseCursor = 2;
       } else if ( tcol < 7 )
         this.mouseCursor = 1;
-      else if ( trow < 12)
+      else if ( trow < (lastRowNum + 1) / 2 )
         this.mouseCursor = 2;
       else
         this.mouseCursor = 3;

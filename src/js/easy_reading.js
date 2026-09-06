@@ -39,7 +39,7 @@ export class EasyReading {
       let lines = Math.floor(this._view.easyReadingContent.clientHeight / this._view.chh) - 1;
       if (lines > 0) return lines;
     }
-    return 22;
+    return Math.max(1, (this._termBuf ? this._termBuf.rows : 24) - 2);
   }
 
   set _turnPageLines(val) {
