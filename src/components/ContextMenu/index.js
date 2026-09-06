@@ -1,6 +1,5 @@
 import cx from "classnames";
 import React from "react";
-import ReactDOM from "react-dom";
 import { i18n } from "../../js/i18n";
 import DropdownMenu from "./DropdownMenu";
 import InputHelperModal from "./InputHelperModal";
@@ -66,10 +65,7 @@ export class ContextMenu extends React.Component {
 
   componentDidMount() {
     this.contextMenuHandler = (event) => {
-      const batchUpdates = ReactDOM.unstable_batchedUpdates || ((fn) => fn());
-      batchUpdates(() => {
-        this.handleContextMenu(event);
-      });
+      this.handleContextMenu(event);
     };
     const bbsWindow = document.getElementById("BBSWindow");
     if (bbsWindow) {
