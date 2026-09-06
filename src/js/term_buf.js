@@ -65,144 +65,128 @@ const mouseCursorMap = [
   `url(${require('../cursor/last.png')}) 0 0,auto`       // 14
 ];
 
-function TermChar(ch) {
-  this.ch = ch;
-  this.resetAttr();
-  this.needUpdate = false;
-  this.isLeadByte = false;
-  this.startOfURL = false;
-  this.endOfURL = false;
-  this.partOfURL = false;
-  this.partOfKeyWord = false;
-  this.keyWordColor = '#ff0000';
-  this.fullurl = '';
-}
+export class TermChar {
+  static defaultFg = 7;
+  static defaultBg = 0;
 
-// static variable for all TermChar objects
-TermChar.defaultFg = 7;
-TermChar.defaultBg = 0;
+  constructor(ch) {
+    this.ch = ch;
+    this.resetAttr();
+    this.needUpdate = false;
+    this.isLeadByte = false;
+    this.startOfURL = false;
+    this.endOfURL = false;
+    this.partOfURL = false;
+    this.partOfKeyWord = false;
+    this.keyWordColor = '#ff0000';
+    this.fullurl = '';
+  }
 
-TermChar.prototype = {
-
-  assignParams: function(params) {
+  assignParams(params) {
     params.forEach(v => {    
       switch (v) {
       case 0: // reset
         this.resetAttr();
         break;
       case 1: // bright
-        this.bright=true;
+        this.bright = true;
         break;
       case 4:
-        this.underLine=true;
+        this.underLine = true;
         break;
       case 5: // blink
       case 6:
-        this.blink=true;
+        this.blink = true;
         break;
       case 7: // invert
-        this.invert=true;
+        this.invert = true;
         break;
       case 8:
         // invisible is not supported
         break;
-      /*
-      case 22: // normal, or not bright
-        this.bright=false;
-        break;
-      case 24: // not underlined
-        this.underLine=false;
-        break;
-      case 25: // steady, or not blink
-        this.blink=false;
-        break;
-      case 27: // positive, or not invert
-        this.invert=false;
-        break;
-      */
       default:
         if (v <= 37) {
           if (v >= 30) { // fg
             this.fg = v - 30;
           }
         } else if (v >= 40) {
-          if (v<=47) { //bg
+          if (v <= 47) { //bg
             this.bg = v - 40;
           }
         }
         break;
       }
-    })
-  },
+    });
+  }
 
-  copyFromNewChar: function() {
+  copyFromNewChar() {
     this.ch = TermChar.newChar.ch;
     this.isLeadByte = TermChar.newChar.isLeadByte;
     this.resetAttr();
-  },
+  }
 
-  copyAttr: function(attr) {
+  copyAttr(attr) {
     this.fg = attr.fg;
     this.bg = attr.bg;
     this.bright = attr.bright;
     this.invert = attr.invert;
     this.blink = attr.blink;
     this.underLine = attr.underLine;
-  },
+  }
 
-  resetAttr: function() {
+  resetAttr() {
     this.fg = 7;
     this.bg = 0;
     this.bright = false;
     this.invert = false;
     this.blink = false;
     this.underLine = false;
-  },
+  }
   
-  getFg: function() {
+  getFg() {
     if (this.invert)
       return this.bright ? (this.bg + 8) : this.bg;
     return this.bright ? (this.fg + 8) : this.fg;
-  },
+  }
 
-  getBg: function() {
+  getBg() {
     return this.invert ? this.fg : this.bg;
-  },
+  }
 
-  getColor: function() {
+  getColor() {
     return new ColorState(this.getFg(), this.getBg(), this.blink);
-  },
+  }
 
-  isUnderLine: function() {
+  isUnderLine() {
     return this.underLine;
-  },
+  }
 
-  isStartOfURL : function() {
+  isStartOfURL() {
     return this.startOfURL;
-  },
+  }
 
-  isEndOfURL : function() {
+  isEndOfURL() {
     return this.endOfURL;
-  },
+  }
 
-  isPartOfURL : function() {
+  isPartOfURL() {
     return this.partOfURL;
-  },
+  }
 
-  isPartOfKeyWord : function() {
+  isPartOfKeyWord() {
     return this.partOfKeyWord;
-  },
+  }
 
-  getKeyWordColor : function() {
+  getKeyWordColor() {
     return this.keyWordColor;
-  },
+  }
 
-  getFullURL: function() {
+  getFullURL() {
     return this.fullurl;
   }
-};
+}
 
-TermChar.newChar = new TermChar(' ')
+TermChar.newChar = new TermChar(' ');
 
 export function TermBuf(cols, rows) {
   this.cols = cols;
