@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import '../conv/uao';
 import { App } from './app';
 import { setupI18n } from './i18n';
 import { getQueryVariable } from './util';
@@ -41,30 +42,8 @@ function startApp() {
   })
 }
 
-function loadTable(url) {
-  return fetch(url).then(response => {
-    if (!response.ok)
-      throw new Error('loadTable failed: ' + response.statusText + ': ' + url);
-    return response.arrayBuffer();
-  });
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startApp);
+} else {
+  startApp();
 }
-
-function loadResources() {
-  Promise.all([
-    loadTable(require('../conv/b2u_table.bin')),
-    loadTable(require('../conv/u2b_table.bin'))
-  ]).then((binData) => {
-    window.lib = window.lib || {};
-    window.lib.b2uArray = new Uint8Array(binData[0]);
-    window.lib.u2bArray = new Uint8Array(binData[1]);
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', startApp);
-    } else {
-      startApp();
-    }
-  }, (e) => {
-    console.log('loadResources failed: ' + e);
-  });
-}
-
-loadResources();
