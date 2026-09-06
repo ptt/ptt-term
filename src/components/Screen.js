@@ -9,42 +9,33 @@ export class Screen extends React.Component {
   }
 
   setCurrentHighlighted = (currentHighlighted) => {
-    if (this.implRef.current && this.implRef.current.setCurrentHighlighted) {
+    if (this.implRef.current) {
       this.implRef.current.setCurrentHighlighted(currentHighlighted);
     }
   };
 
   onBlink = () => {
-    if (this.implRef.current && this.implRef.current.onBlink) {
+    if (this.implRef.current) {
       this.implRef.current.onBlink();
     }
   };
 
   getSelectedText = () => {
-    if (
-      this.implRef.current &&
-      typeof this.implRef.current.getSelectedText === "function"
-    ) {
+    if (this.implRef.current) {
       return this.implRef.current.getSelectedText();
     }
     return "";
   };
 
   getSelectionColRow = () => {
-    if (
-      this.implRef.current &&
-      typeof this.implRef.current.getSelectionColRow === "function"
-    ) {
+    if (this.implRef.current) {
       return this.implRef.current.getSelectionColRow();
     }
     return null;
   };
 
   selectAll = () => {
-    if (
-      this.implRef.current &&
-      typeof this.implRef.current.selectAll === "function"
-    ) {
+    if (this.implRef.current) {
       this.implRef.current.selectAll();
     }
   };

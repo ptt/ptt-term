@@ -262,7 +262,7 @@ export class TermBuf extends Event {
 
 
   resize(cols, rows) {
-    if (this.site && this.site.clampTermSize) {
+    if (this.site) {
       const clamped = this.site.clampTermSize(cols, rows);
       cols = clamped.cols;
       rows = clamped.rows;
@@ -824,9 +824,7 @@ export class TermBuf extends Event {
       if (typeof document !== 'undefined') {
         document.dispatchEvent(new CustomEvent('pttchrome-blink'));
       }
-      if (this.view && this.view.onBlinkToggle) {
-        this.view.onBlinkToggle();
-      }
+      this.view.onBlinkToggle();
     }
   }
 

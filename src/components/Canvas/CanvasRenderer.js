@@ -409,11 +409,7 @@ export class CanvasRenderer {
             runLength = 1;
           }
 
-          const isUrl = !!(
-            ch &&
-            typeof ch.isPartOfURL === "function" &&
-            ch.isPartOfURL()
-          );
+          const isUrl = !!(ch && ch.isPartOfURL());
           if (isUrl) {
             if (urlStartCol === -1) {
               urlStartCol = c;

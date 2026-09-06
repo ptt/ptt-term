@@ -63,7 +63,7 @@ export class BaseSite {
    * @returns {boolean}
    */
   isPassScreen(termBuf) {
-    let lastRowNum = this.getLastRowNum ? this.getLastRowNum(termBuf) : (termBuf.rows - 1);
+    let lastRowNum = this.getLastRowNum(termBuf);
     let cols = termBuf.cols;
     let lastRowText = termBuf.getRowText(lastRowNum, 0, cols);
     if (lastRowText.indexOf('請按任意鍵繼續') >= 0 || lastRowText.indexOf('請按 空白鍵 繼續') >= 0) {

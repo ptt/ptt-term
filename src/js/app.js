@@ -292,7 +292,7 @@ export class App {
 
   if (!this.appFocused && this.view.enableNotifications) {
     // parse received data for notification (e.g. waterball)
-    var str = (this.view && this.view.charset === 'UTF-8') ? data : b2u(data);
+    var str = (this.view.charset === 'UTF-8') ? data : b2u(data);
     var wb = this.site.parseNotification(str, this.buf);
     if (wb) {
       if ('userId' in wb) {
@@ -376,7 +376,7 @@ export class App {
   }
 
   isSelectionCollapsed() {
-  if (this.view && this.view.useCanvasEngine && !this.view.isEasyReadingActive()) {
+  if (this.view.useCanvasEngine && !this.view.isEasyReadingActive()) {
     return !this.view.getSelectionColRow();
   }
   return window.getSelection().isCollapsed;
@@ -393,16 +393,16 @@ export class App {
     this.onDisableLiveHelperModalState();
     // clear the deep cloned copy of lines
     this.buf.pageLines = [];
-    if (this.buf.pageState == 3 && this.view.conn) {
+    if (this.buf.pageState == 3 && this.conn) {
       const cmd = this.site.getReenterArticleCommand(this.buf);
-      this.view.conn.send(cmd);
+      this.conn.send(cmd);
     }
   } else {
     this.view.hideEasyReading();
   }
   // request the full screen
-  if (this.view.conn)
-    this.view.conn.send(unescapeStr('^L'));
+  if (this.conn)
+    this.conn.send(unescapeStr('^L'));
   }
 
   doCopy(str) {
@@ -452,8 +452,7 @@ export class App {
     e.clipboardData.setData('text', this.strToCopy);
     e.preventDefault();
     console.log('copied: ', this.strToCopy);
-    this.strToCopy = null;
-  } else if (this.view && typeof this.view.getSelectedText === 'function') {
+  } else if (this.view) {
     var text = this.view.getSelectedText();
     if (text) {
       if (text.indexOf('\x1b') < 0) {
@@ -543,9 +542,9 @@ export class App {
 
   if (++this.pushthreadAutoUpdateCount >= this.maxPushthreadAutoUpdateCount) {
     this.pushthreadAutoUpdateCount = 0;
-    if ((this.buf.pageState == 3 || this.buf.pageState == 2) && this.view.conn) {
-      //this.view.conn.send('qrG');
-      this.view.conn.send('\x1b[D\x1b[C\x1b[4~');
+    if ((this.buf.pageState == 3 || this.buf.pageState == 2) && this.conn) {
+      //this.conn.send('qrG');
+      this.conn.send('\x1b[D\x1b[C\x1b[4~');
     }
   }
   }
@@ -1173,13 +1172,13 @@ export class App {
   var now = Date.now();
 
   // 1. If currently in Easy Reading, allow native browser scrolling within overlay
-  if (this.view && this.view.isEasyReadingActive()) {
+  if (this.view.isEasyReadingActive()) {
     this.lastEasyReadingWheelTime = now;
     return;
   }
 
   // 2. Target check: if event target is still the easyReadingOverlay (e.g. while fading/hiding)
-  var isOverlayTarget = !!(this.view && this.view.easyReadingOverlay && e.target &&
+  var isOverlayTarget = !!(this.view.easyReadingOverlay && e.target &&
     (e.target === this.view.easyReadingOverlay || this.view.easyReadingOverlay.contains(e.target)));
 
   // 3. Suppression check (after exiting easy reading or explicit suppression)
@@ -1237,7 +1236,7 @@ export class App {
   this.wheelDeltaYAccum = (this.wheelDeltaYAccum || 0) + deltaY;
 
   // Threshold in pixels before triggering 1 BBS step
-  var threshold = Math.max(35, (this.view && this.view.chh) ? this.view.chh : 35);
+  var threshold = Math.max(35, this.view.chh || 35);
 
   if (Math.abs(this.wheelDeltaYAccum) < threshold) {
     e.stopPropagation();

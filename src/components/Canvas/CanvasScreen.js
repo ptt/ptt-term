@@ -175,18 +175,14 @@ export class CanvasScreen extends React.Component {
         selEnd: { col: cols - 1, row: rows - 1 },
       },
       () => {
-        if (typeof this.props.setInputAreaFocus === "function") {
-          this.props.setInputAreaFocus();
-        }
+        this.props.setInputAreaFocus();
       }
     );
   };
 
   handleMouseDown = (e) => {
     if (e.button !== 0) return;
-    if (typeof this.props.setInputAreaFocus === "function") {
-      this.props.setInputAreaFocus();
-    }
+    this.props.setInputAreaFocus();
     if (e.target && e.target.tagName !== "A") {
       e.preventDefault();
     }
@@ -196,17 +192,13 @@ export class CanvasScreen extends React.Component {
       const line = this.props.lines && this.props.lines[pos.row];
       const cols = this.getCols();
       this.setState(CanvasSelection.getWordSelection(pos, line, cols), () => {
-        if (typeof this.props.setInputAreaFocus === "function") {
-          this.props.setInputAreaFocus();
-        }
+        this.props.setInputAreaFocus();
       });
       return;
     } else if (e.detail === 3) {
       const cols = this.getCols();
       this.setState(CanvasSelection.getLineSelection(pos, cols), () => {
-        if (typeof this.props.setInputAreaFocus === "function") {
-          this.props.setInputAreaFocus();
-        }
+        this.props.setInputAreaFocus();
       });
       return;
     }
@@ -238,13 +230,11 @@ export class CanvasScreen extends React.Component {
   handleGlobalMouseUp = (e) => {
     if (e.button !== 0 || !this.isMouseDown) return;
     this.isMouseDown = false;
-    if (typeof this.props.setInputAreaFocus === "function") {
-      this.props.setInputAreaFocus();
-    }
+    this.props.setInputAreaFocus();
     if (!this.dragStarted) {
       this.setState({ selStart: null, selEnd: null });
     } else {
-      if (this.props.copyOnSelect && typeof this.props.doCopy === "function") {
+      if (this.props.copyOnSelect) {
         const text = this.getSelectedText();
         if (text) {
           this.props.doCopy(text);
@@ -291,16 +281,10 @@ export class CanvasScreen extends React.Component {
       let c = 0;
       while (c < cols) {
         const ch = line[c];
-        if (ch && typeof ch.isStartOfURL === "function" && ch.isStartOfURL()) {
+        if (ch && ch.isStartOfURL()) {
           const startCol = c;
-          const href =
-            typeof ch.getFullURL === "function" ? ch.getFullURL() : "";
-          while (
-            c < cols &&
-            line[c] &&
-            typeof line[c].isPartOfURL === "function" &&
-            line[c].isPartOfURL()
-          ) {
+          const href = ch.getFullURL();
+          while (c < cols && line[c] && line[c].isPartOfURL()) {
             c++;
           }
           const endCol = c;

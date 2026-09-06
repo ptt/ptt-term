@@ -165,7 +165,7 @@ export class ConnectionLog {
 
   close() {
     this.setEnabled(false);
-    if (this.app && typeof this.app.onPrefChange === "function") {
+    if (this.app) {
       this.app.onPrefChange("captureConnectionLog", false);
     }
     try {

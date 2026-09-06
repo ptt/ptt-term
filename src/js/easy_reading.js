@@ -30,11 +30,11 @@ export class EasyReading {
 
   get _turnPageLines() {
     if (this._customTurnPageLines > 0) return this._customTurnPageLines;
-    if (this._view && this._view.easyReadingContent && this._view.chh) {
+    if (this._view.easyReadingContent && this._view.chh) {
       let lines = Math.floor(this._view.easyReadingContent.clientHeight / this._view.chh) - 1;
       if (lines > 0) return lines;
     }
-    return Math.max(1, (this._termBuf ? this._termBuf.rows : 24) - 2);
+    return Math.max(1, this._termBuf.rows - 2);
   }
 
   set _turnPageLines(val) {
@@ -132,9 +132,7 @@ export class EasyReading {
 
   leaveCurrentPost() {
     console.debug('leave current post');
-    if (this._core && typeof this._core.suppressInertialWheel === 'function') {
-      this._core.suppressInertialWheel();
-    }
+    this._core.suppressInertialWheel();
     if (!this.easyReadingReachedPageEnd) {
       this.ignoreOneUpdate = true;
     }
@@ -144,9 +142,7 @@ export class EasyReading {
   stopEasyReading() {
     console.debug('stop easy reading');
     this.sendCommandAfterUpdate = 'skipOne';
-    if (this._core && typeof this._core.suppressInertialWheel === 'function') {
-      this._core.suppressInertialWheel();
-    }
+    this._core.suppressInertialWheel();
   }
 
   _send(data) {
@@ -224,7 +220,7 @@ export class EasyReading {
 
   _onKeyDownProcessUI(e) {
     const site = this._termBuf.site;
-    if (site.handleEasyReadingKeyDown && site.handleEasyReadingKeyDown(this, e)) {
+    if (site.handleEasyReadingKeyDown(this, e)) {
       e.preventDefault();
       return;
     }

@@ -99,9 +99,7 @@ export class TermView {
   easyReadingOverlay.setAttribute('id', 'easyReadingOverlay');
   easyReadingOverlay.addEventListener('mousedown', (e) => {
     if (e.target && e.target.tagName !== 'A') {
-      if (this.bbscore && typeof this.bbscore.setInputAreaFocus === 'function') {
-        this.bbscore.setInputAreaFocus();
-      }
+      this.bbscore.setInputAreaFocus();
     }
   });
   easyReadingOverlay.addEventListener('wheel', (e) => {
@@ -237,7 +235,7 @@ export class TermView {
   }
 
   onBlinkToggle() {
-    if (this.useCanvasEngine && this.componentScreen && this.componentScreen.onBlink) {
+    if (this.useCanvasEngine && this.componentScreen) {
       this.componentScreen.onBlink();
     }
   }
@@ -328,9 +326,9 @@ export class TermView {
           nowHighlight: this.buf.nowHighlight,
           buf: this.buf,
           charset: this.charset,
-          copyOnSelect: this.bbscore ? this.bbscore.copyOnSelect : false,
-          doCopy: this.bbscore ? this.bbscore.doCopy.bind(this.bbscore) : null,
-          setInputAreaFocus: this.bbscore ? this.bbscore.setInputAreaFocus.bind(this.bbscore) : null,
+          copyOnSelect: this.bbscore.copyOnSelect,
+          doCopy: this.bbscore.doCopy.bind(this.bbscore),
+          setInputAreaFocus: this.bbscore.setInputAreaFocus.bind(this.bbscore),
           fpsMeter: this.fpsMeter,
           smoothAnsiArt: this.smoothAnsiArt,
           changedRows: changedRows
@@ -766,7 +764,7 @@ export class TermView {
       }
       return '';
     }
-    if (this.useCanvasEngine && this.componentScreen && typeof this.componentScreen.getSelectedText === 'function') {
+    if (this.useCanvasEngine && this.componentScreen) {
       return this.componentScreen.getSelectedText();
     }
     if (!window.getSelection().isCollapsed) {
@@ -779,7 +777,7 @@ export class TermView {
     if (this.isEasyReadingActive()) {
       return null;
     }
-    if (this.useCanvasEngine && this.componentScreen && typeof this.componentScreen.getSelectionColRow === 'function') {
+    if (this.useCanvasEngine && this.componentScreen) {
       var sel = this.componentScreen.getSelectionColRow();
       if (sel)
         return sel;
@@ -798,7 +796,7 @@ export class TermView {
       window.getSelection().selectAllChildren(this.easyReadingContent);
       return;
     }
-    if (this.useCanvasEngine && this.componentScreen && typeof this.componentScreen.selectAll === 'function') {
+    if (this.useCanvasEngine && this.componentScreen) {
       this.componentScreen.selectAll();
       return;
     }
@@ -975,9 +973,7 @@ export class TermView {
     }
     if (this.bbscore) {
       this.bbscore.lastEasyReadingHideTime = Date.now();
-      if (typeof this.bbscore.suppressInertialWheel === 'function') {
-        this.bbscore.suppressInertialWheel();
-      }
+      this.bbscore.suppressInertialWheel();
     }
     this.clearRows();
     if (this.lastRowDiv) {
