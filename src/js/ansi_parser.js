@@ -223,7 +223,7 @@ AnsiParser.prototype.feed = function(data) {
     case AnsiParser.STATE_OSC:
       if (ch == '\\' && this.esc[this.esc.length - 1] == '\x1b') {
         // ST = ESC \
-        this.esc.pop();
+        this.esc = this.esc.slice(0, -1);
         ch = '\x07';
       }
       if (ch == '\x07') {
