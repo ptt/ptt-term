@@ -539,8 +539,7 @@ export class App {
   if (++this.pushthreadAutoUpdateCount >= this.maxPushthreadAutoUpdateCount) {
     this.pushthreadAutoUpdateCount = 0;
     if ((this.buf.pageState == 3 || this.buf.pageState == 2) && this.conn) {
-      //this.conn.send('qrG');
-      this.conn.send('\x1b[D\x1b[C\x1b[4~');
+      this.site.refreshLiveThread(this.conn, this.buf);
     }
   }
   }

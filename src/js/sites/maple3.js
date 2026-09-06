@@ -153,6 +153,10 @@ export class Maple3Site extends BaseSite {
     return 'qr';
   }
 
+  getRefreshLiveThreadCommand(termBuf) {
+    return 'qrG';
+  }
+
   getThreadCommand(action) {
     switch (action) {
       case 'prevThread':

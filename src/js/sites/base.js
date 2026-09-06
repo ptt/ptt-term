@@ -177,6 +177,27 @@ export class BaseSite {
   }
 
   /**
+   * Get command string to refresh live thread (re-enter article and scroll to bottom).
+   * @param {TermBuf} [termBuf]
+   * @returns {string}
+   */
+  getRefreshLiveThreadCommand(termBuf) {
+    return '\x1b[D\x1b[C\x1b[4~';
+  }
+
+  /**
+   * Refresh live thread.
+   * @param {object} conn
+   * @param {TermBuf} [termBuf]
+   */
+  refreshLiveThread(conn, termBuf) {
+    const cmd = this.getRefreshLiveThreadCommand(termBuf);
+    if (cmd && conn) {
+      conn.send(cmd);
+    }
+  }
+
+  /**
    * Get command string for same-thread navigation / refresh.
    * @param {'prevThread'|'nextThread'|'firstThread'|'refreshPost'|'lastThreadList'|'lastThreadReading'} action
    * @returns {string|null}
