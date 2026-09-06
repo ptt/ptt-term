@@ -4,74 +4,120 @@ export class TouchController {
     this.highlightCopy = false;
     this.touchStarted = false;
     this.touchedCenter = { x: 0, y: 0 };
+    this.activePointerId = null;
+    this.startX = 0;
+    this.startY = 0;
+    this.isPanning = false;
 
-    // make sure the text selection still works
-    delete Hammer.defaults.cssProps.userSelect;
-
-    this.ham = null;
     this.setupHandlers();
   }
 
   setupHandlers() {
-  const app = this.app;
+    const app = this.app;
+    const target = app.BBSWin;
+    if (!target) return;
 
-  document.body.ontouchmove = (e) => { 
-    if (e.touches.length != 1) return false;
-    return true;
-  };
+    target.style.touchAction = 'none';
 
-  document.body.ontouchstart = (e) => {
-    this.touchStarted = true;
-    app.inputArea.blur();
-    console.debug('touchstart');
-  };
+    target.addEventListener('pointerdown', (e) => {
+      if (e.pointerType !== 'touch') return;
+      if (this.activePointerId !== null) return;
 
-  document.body.ontouchend = (e) => {
-    if (app.buf.pageState == 2 && app.buf.highlightCursor &&
-        app.buf.nowHighlight != -1) {
-      app.onMouse_click(this.touchedCenter.x, this.touchedCenter.y);
-      app.buf.nowHighlight = -1;
-      app.buf.highlightCursor = this.highlightCopy;
-      app.BBSWin.style.cursor = 'auto';
-      this.touchStarted = false;
-      app.inputArea.focus();
-    }
-    console.debug('touchend');
-  };
+      this.activePointerId = e.pointerId;
+      this.touchStarted = true;
+      this.isPanning = false;
+      this.startX = e.clientX;
+      this.startY = e.clientY;
+      this.touchedCenter = { x: e.clientX, y: e.clientY };
+      this.highlightCopy = app.buf.highlightCursor;
 
-  this.ham = new Hammer(app.BBSWin);
-  this.ham.on('pan', (ev) => {
-    if (ev.pointerType == 'touch') {
-      //console.log(ev);
-      if (app.buf.pageState == 2) {
-        ev.preventDefault();
-        ev.srcEvent.preventDefault();
+      app.inputArea.blur();
+      console.debug('pointerdown (touch)');
 
+      try {
+        target.setPointerCapture(e.pointerId);
+      } catch (err) {}
+    });
+
+    target.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'touch') return;
+      if (!this.touchStarted || e.pointerId !== this.activePointerId) return;
+
+      const dist = Math.hypot(e.clientX - this.startX, e.clientY - this.startY);
+      if (dist > 8) {
+        this.isPanning = true;
+      }
+
+      if (this.isPanning && app.buf.pageState === 2) {
+        e.preventDefault();
         this.highlightCopy = app.buf.highlightCursor;
         app.buf.highlightCursor = true;
-        app.onMouse_move(ev.center.x, ev.center.y);
-        this.touchedCenter.x = ev.center.x;
-        this.touchedCenter.y = ev.center.y;
+        app.onMouse_move(e.clientX, e.clientY);
+        this.touchedCenter.x = e.clientX;
+        this.touchedCenter.y = e.clientY;
       }
-    }
-  });
+    });
 
-  this.ham.on('tap', (ev) => {
-    //console.log(ev);
-    ev.preventDefault();
-    ev.srcEvent.stopPropagation();
-    ev.srcEvent.preventDefault();
-    if (ev.pointerType != 'touch') return; 
-    this.highlightCopy = app.buf.highlightCursor;
-    app.buf.highlightCursor = false;
-    app.onMouse_move(ev.center.x, ev.center.y);
-    app.onMouse_click(ev.center.x, ev.center.y);
-    app.buf.nowHighlight = -1;
-    app.buf.highlightCursor = this.highlightCopy;
-    app.BBSWin.style.cursor = 'auto';
-    this.touchStarted = false;
-    app.inputArea.focus();
-    console.log('touchtap');
-  });
+    const handlePointerEnd = (e) => {
+      if (e.pointerType !== 'touch') return;
+      if (!this.touchStarted || e.pointerId !== this.activePointerId) return;
+
+      try {
+        if (target.hasPointerCapture(e.pointerId)) {
+          target.releasePointerCapture(e.pointerId);
+        }
+      } catch (err) {}
+
+      if (this.isPanning) {
+        if (app.buf.pageState === 2 && app.buf.highlightCursor && app.buf.nowHighlight !== -1) {
+          app.onMouse_click({ clientX: this.touchedCenter.x, clientY: this.touchedCenter.y });
+          app.buf.nowHighlight = -1;
+          app.buf.highlightCursor = this.highlightCopy;
+          app.BBSWin.style.cursor = 'auto';
+        }
+      } else {
+        e.preventDefault();
+        e.stopPropagation();
+        this.highlightCopy = app.buf.highlightCursor;
+        app.buf.highlightCursor = false;
+        app.onMouse_move(e.clientX, e.clientY);
+        app.onMouse_click(e);
+        app.buf.nowHighlight = -1;
+        app.buf.highlightCursor = this.highlightCopy;
+        app.BBSWin.style.cursor = 'auto';
+        console.debug('pointer tap (touch)');
+      }
+
+      this.touchStarted = false;
+      this.isPanning = false;
+      this.activePointerId = null;
+      app.inputArea.focus();
+      console.debug('pointerup (touch)');
+    };
+
+    target.addEventListener('pointerup', handlePointerEnd);
+
+    target.addEventListener('pointercancel', (e) => {
+      if (e.pointerType !== 'touch') return;
+      if (e.pointerId !== this.activePointerId) return;
+
+      try {
+        if (target.hasPointerCapture(e.pointerId)) {
+          target.releasePointerCapture(e.pointerId);
+        }
+      } catch (err) {}
+
+      if (app.buf.highlightCursor) {
+        app.buf.nowHighlight = -1;
+        app.buf.highlightCursor = this.highlightCopy;
+        app.BBSWin.style.cursor = 'auto';
+      }
+
+      this.touchStarted = false;
+      this.isPanning = false;
+      this.activePointerId = null;
+      app.inputArea.focus();
+      console.debug('pointercancel (touch)');
+    });
   }
 }

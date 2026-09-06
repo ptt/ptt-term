@@ -117,11 +117,6 @@ module.exports = {
           style: 'dist/css/bootstrap.min.css',
           cssOnly: true,
         },
-        {
-          name: 'hammerjs',
-          var: 'Hammer',
-          path: 'hammer.min.js',
-        },
       ],
     })
   ].concat(PRODUCTION_MODE ? [
