@@ -383,14 +383,26 @@ export class App {
     this.conn.send(unescapeStr('^L'));
   }
 
-  doCopy(str) {
-  if (str.indexOf('\x1b') < 0) {
-    str = str.replace(/\r\n/g, '\r');
-    str = str.replace(/\n/g, '\r');
-    str = str.replace(/ +\r/g, '\r');
-  }
-  this.strToCopy = str;
-  document.execCommand('copy');
+  async doCopy(str) {
+    if (typeof str !== 'string') return;
+    if (str.indexOf('\x1b') < 0) {
+      str = str.replace(/\r\n/g, '\r');
+      str = str.replace(/\n/g, '\r');
+      str = str.replace(/ +\r/g, '\r');
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(str);
+        return;
+      } catch (err) {
+        // Fall back to execCommand if permission denied or unsupported context
+      }
+    }
+    this.strToCopy = str;
+    try {
+      document.execCommand('copy');
+    } catch (err) {}
+    this.strToCopy = null;
   }
 
   doCopyAnsi() {
