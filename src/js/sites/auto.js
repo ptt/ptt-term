@@ -154,4 +154,8 @@ export class AutoSite extends BaseSite {
   navigateNextPost(easyReading) {
     return this.getActiveSite().navigateNextPost(easyReading);
   }
+
+  parseNotification(data, termBuf) {
+    return this.getActiveSite().parseNotification(data, termBuf);
+  }
 }

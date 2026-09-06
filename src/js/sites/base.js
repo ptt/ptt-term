@@ -192,4 +192,14 @@ export class BaseSite {
    * @param {TermBuf} termBuf
    */
   onData(data, termBuf) {}
+
+  /**
+   * Parse notification (e.g. waterball or site message) from data string.
+   * @param {string} data Raw or decoded data string
+   * @param {TermBuf} termBuf
+   * @returns {{ userId?: string, message: string } | null}
+   */
+  parseNotification(data, termBuf) {
+    return null;
+  }
 }

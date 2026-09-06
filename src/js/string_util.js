@@ -153,13 +153,15 @@ export function parseListRow(str) {
   return regex.test(str);
 };
 
-export function parseWaterball(str) {
+export function parseWaterball(str, lastRowNum = 23) {
   var regex = new RegExp(/\x1b\[1;33;46m\u2605(\w+)\x1b\[0;1;37;45m (.+) \x1b\[m\x1b\[K/g);
   var result = regex.exec(str);
   if (result && result.length == 3) {
     return { userId: result[1], message: result[2] };
   } else {
-    regex = new RegExp(/\x1b\[24;\d{2}H\x1b\[1;37;45m([^\x1b]+)(?:\x1b\[24;18H)?\x1b\[m/g);
+    var row1Based = lastRowNum + 1;
+    var rowPattern = row1Based !== 24 ? `(?:${row1Based}|24)` : '24';
+    regex = new RegExp(`\\x1b\\[${rowPattern};\\d{2}H\\x1b\\[1;37;45m([^\\x1b]+)(?:\\x1b\\[${rowPattern};18H)?\\x1b\\[m`, 'g');
     result = regex.exec(str);
     if (result && result.length == 2) {
       return { message: result[1] };

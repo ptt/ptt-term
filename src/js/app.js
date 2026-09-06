@@ -297,9 +297,12 @@ export class App {
   this.parser.feed(data);
 
   if (!this.appFocused && this.view.enableNotifications) {
-    // parse received data for waterball
+    // parse received data for notification (e.g. waterball)
     var str = (this.view && this.view.charset === 'UTF-8') ? data : b2u(data);
-    var wb = parseWaterball(str);
+    var site = this.buf ? this.buf.site : this.site;
+    var wb = site && typeof site.parseNotification === 'function'
+      ? site.parseNotification(str, this.buf)
+      : parseWaterball(str, this.buf ? this.buf.rows - 1 : 23);
     if (wb) {
       if ('userId' in wb) {
         this.waterball.userId = wb.userId;

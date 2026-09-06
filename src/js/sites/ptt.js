@@ -1,5 +1,5 @@
 import { BaseSite } from './base';
-import { parseStatusRow, parseListRow } from '../string_util';
+import { parseStatusRow, parseListRow, parseWaterball } from '../string_util';
 
 export class PttSite extends BaseSite {
   constructor() {
@@ -140,5 +140,10 @@ export class PttSite extends BaseSite {
   navigateNextPost(easyReading) {
     easyReading.send('\x1b[D\x1b[B\x1b[C');
     return true;
+  }
+
+  parseNotification(data, termBuf) {
+    let lastRowNum = termBuf ? this.getLastRowNum(termBuf) : 23;
+    return parseWaterball(data, lastRowNum);
   }
 }
