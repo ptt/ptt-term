@@ -13,6 +13,7 @@
   z-index:1;
 
   -webkit-user-select: none;
+  touch-action: none;
 }
 
 #cursor {
