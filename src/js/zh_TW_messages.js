@@ -44,9 +44,6 @@ export const zh_TW = {
   "cmenu_searchGoogle": {
     "message": "在 Google 上搜尋"
   },
-  "cmenu_quickSearch": {
-    "message": "快速搜尋"
-  },
   "cmenu_openUrlNewTab": {
     "message": "在新分頁中開啟連結"
   },

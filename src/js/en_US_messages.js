@@ -44,9 +44,6 @@ export const en_US = {
   "cmenu_searchGoogle": {
     "message": "Search Google for"
   },
-  "cmenu_quickSearch": {
-    "message": "Quick Search"
-  },
   "cmenu_openUrlNewTab": {
     "message": "Open link in new tab"
   },
