@@ -65,7 +65,14 @@ export class NativeDialog extends React.Component {
   };
 
   render() {
-    const { className, style, children, onMouseDown, onMouseMove, onMouseUp } = this.props;
+    const {
+      className,
+      style,
+      children,
+      onMouseDown,
+      onMouseMove,
+      onMouseUp
+    } = this.props;
 
     return (
       <dialog
