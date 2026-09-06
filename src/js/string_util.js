@@ -1,5 +1,7 @@
 
 
+import { b2uTable, u2bTable } from '../conv/uao';
+
 /**
  * Only support caret notations (^C, ^H, ^U, ^[, ^?, ...)
  * If you want to show \ and ^, use \\ and \^ respectively
@@ -78,9 +80,9 @@ export function u2b(it) {
       continue;
     }
     var pos = it.charCodeAt(i);
-    var hi = lib.u2bArray[2*pos], lo = lib.u2bArray[2*pos+1];
-    if ((hi || lo) && hi < 0xff)
-      data += String.fromCharCode(hi) + String.fromCharCode(lo);
+    var b = u2bTable[pos];
+    if (b)
+      data += String.fromCharCode(b >> 8, b & 0xff);
     else if (!(pos >= 0xd800 && pos <= 0xdbff)) // Not a big5 char nor a UTF-16 high surrogate
       data += '\xA1\xBC'; // '□' (Big5)
   }
@@ -96,7 +98,7 @@ export function b2u(it) {
     }
 
     var pos = it.charCodeAt(i) << 8 | it.charCodeAt(i+1);
-    var code = lib.b2uArray[2*pos] << 8 | lib.b2uArray[2*pos+1];
+    var code = b2uTable[pos];
     if (code) {
       str += String.fromCharCode(code);
       ++i;
