@@ -2,9 +2,9 @@ import { readValuesWithDefault, updatePref } from "./pref";
 
 export function bytesToHex(bytes) {
   if (!bytes || bytes.length === 0) return "";
-  var hex = [];
-  for (var i = 0; i < bytes.length; i++) {
-    var b = (bytes[i] & 0xff).toString(16).toUpperCase();
+  const hex = [];
+  for (let i = 0; i < bytes.length; i++) {
+    const b = (bytes[i] & 0xff).toString(16).toUpperCase();
     hex.push(b.length === 1 ? "0" + b : b);
   }
   return hex.join(" ");

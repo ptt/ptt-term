@@ -75,7 +75,7 @@ export class TermView {
 
   this.updateHighlightColor();
 
-  var dynamicStyle = document.createElement('style');
+  const dynamicStyle = document.createElement('style');
   document.head.appendChild(dynamicStyle);
   this.dynamicCss = dynamicStyle.sheet;
 
@@ -89,17 +89,17 @@ export class TermView {
   this.notif = null;
 
 
-  var mainDisplay = document.createElement('div');
+  const mainDisplay = document.createElement('div');
   mainDisplay.setAttribute('class', 'main');
   this.BBSWin.appendChild(mainDisplay);
   this.mainDisplay = mainDisplay;
 
-  var screenContainer = document.createElement('div');
+  const screenContainer = document.createElement('div');
   screenContainer.setAttribute('id', 'screenContainer');
   mainDisplay.appendChild(screenContainer);
   this.screenContainer = screenContainer;
 
-  var easyReadingOverlay = document.createElement('div');
+  const easyReadingOverlay = document.createElement('div');
   easyReadingOverlay.setAttribute('id', 'easyReadingOverlay');
   easyReadingOverlay.addEventListener('mousedown', (e) => {
     if (e.target && e.target.tagName !== 'A') {
@@ -114,7 +114,7 @@ export class TermView {
   this.BBSWin.appendChild(easyReadingOverlay);
   this.easyReadingOverlay = easyReadingOverlay;
 
-  var easyReadingContent = document.createElement('div');
+  const easyReadingContent = document.createElement('div');
   easyReadingContent.setAttribute('id', 'easyReadingContent');
   easyReadingOverlay.appendChild(easyReadingContent);
   this.easyReadingContent = easyReadingContent;
@@ -122,12 +122,12 @@ export class TermView {
     this.updateEasyReadingProgress();
   });
 
-  var easyReadingFooter = document.createElement('div');
+  const easyReadingFooter = document.createElement('div');
   easyReadingFooter.setAttribute('id', 'easyReadingFooter');
   easyReadingOverlay.appendChild(easyReadingFooter);
   this.easyReadingFooter = easyReadingFooter;
 
-  var lastRowDiv = document.createElement('div');
+  const lastRowDiv = document.createElement('div');
   lastRowDiv.setAttribute('id', 'easyReadingLastRow');
   let spaces = ' ';
   this.lastRowDivContent = '<span align="left"><span class="q0 b7">' + spaces + '瀏覽 </span><span class="q1 b7">(100%)</span><span class="q1 b7"> [好讀模式]</span><span class="q0 b7"> 滾輪/上下鍵捲動，</span><span class="q1 b7">(Esc)</span><span class="q0 b7">回到終端機 </span><span class="q1 b7">(←/q)</span><span class="q0 b7">離開</span></span>';
@@ -135,7 +135,7 @@ export class TermView {
   this.lastRowDiv = lastRowDiv;
   easyReadingFooter.appendChild(lastRowDiv);
 
-  var replyRowDiv = document.createElement('div');
+  const replyRowDiv = document.createElement('div');
   replyRowDiv.setAttribute('id', 'easyReadingReplyRow');
   this.replyRowDivContent = '<span align="left"></span>';
   replyRowDiv.innerHTML = this.replyRowDivContent;
@@ -291,15 +291,14 @@ export class TermView {
 
   redraw(force) {
 
-    //var start = new Date().getTime();
-    var cols = this.buf.cols;
-    var rows = this.buf.rows;
-    var lineChangeds = this.buf.lineChangeds;
-    var changedLineHtmlStrs = [];
-    var changedRows = [];
+    const cols = this.buf.cols;
+    const rows = this.buf.rows;
+    const lineChangeds = this.buf.lineChangeds;
+    const changedLineHtmlStrs = [];
+    const changedRows = [];
 
-    var lines = this.buf.lines;
-    for (var row = 0; row < rows; ++row) {
+    const lines = this.buf.lines;
+    for (let row = 0; row < rows; ++row) {
       if (lineChangeds[row] === false && !force)
         continue;
 
@@ -308,7 +307,7 @@ export class TermView {
       lineChangeds[row] = false;
     }
     if (changedLineHtmlStrs.length > 0) {
-      var t0 = (this.showFps && this.fpsMeter.enabled && typeof performance !== 'undefined')
+      const t0 = (this.showFps && this.fpsMeter.enabled && typeof performance !== 'undefined')
         ? performance.now()
         : 0;
       this.componentScreen = renderScreen(
@@ -355,9 +354,6 @@ export class TermView {
 
       this.buf.prevPageState = this.buf.pageState;
     }
-    //var time = new Date().getTime() - start;
-    //console.log(time);
-
   }
 
   setHighlightedRow(row) {
@@ -421,7 +417,7 @@ export class TermView {
     }
 
     // TODO: Move this. Make a key event mapper.
-    var stop = false;
+    let stop = false;
     if (!e.ctrlKey && !e.altKey) {
       switch (e.key) {
         case 'End': //End
@@ -434,13 +430,14 @@ export class TermView {
       }
     } else if (e.ctrlKey && !e.altKey && !e.shiftKey) {
       switch (e.key.toLowerCase()) {
-        case 'c':
-          var selectedText = this.getSelectedText();
+        case 'c': {
+          const selectedText = this.getSelectedText();
           if (selectedText) { //^C , do copy
             this.bbscore.doCopy(selectedText);
             stop = true;
           }
           break;
+        }
         case 'a':
           this.bbscore.doSelectAll();
           stop = true;
@@ -465,11 +462,11 @@ export class TermView {
   }
 
   setTermFontSize(cw, ch) {
-    var innerBounds = this.innerBounds;
+    const innerBounds = this.innerBounds;
     this.chw = cw;
     this.chh = ch;
-    var fontSize = this.chh + 'px';
-    var mainWidth = (this.chw * this.buf.cols + 10) + 'px';
+    const fontSize = this.chh + 'px';
+    const mainWidth = (this.chw * this.buf.cols + 10) + 'px';
     this.mainDisplay.style.fontSize = fontSize;
     this.mainDisplay.style.lineHeight = fontSize;
     if (this.easyReadingOverlay) {
@@ -496,11 +493,11 @@ export class TermView {
       this.scaleY = 1;
     }
 
-    var scaleCss = 'none';
+    let scaleCss = 'none';
     if (this.scaleX != 1 || this.scaleY != 1) {
       //this.mainDisplay.style.transform = 'scaleX('+this.scaleX+')'; // chrome not stable support yet!
       scaleCss = 'scale('+this.scaleX+','+this.scaleY+')';
-      var transOrigin = 'left';
+      let transOrigin = 'left';
       {
         transOrigin = 'center';
       }
@@ -515,7 +512,7 @@ export class TermView {
   }
 
   updateReverseScaleCss() {
-    var rule = 'img.hyperLinkPreview { ' +
+    const rule = 'img.hyperLinkPreview { ' +
       '-webkit-transform: scale(' + Math.floor(1/this.scaleX*100)/100 + ',' +
       Math.floor(1/this.scaleY*100)/100+');' +
       ' }';
@@ -526,23 +523,23 @@ export class TermView {
   }
 
   convertMN2XYEx(cx, cy) {
-    var origin;
-    var w = this.innerBounds.width;
-    var h = this.innerBounds.height;
+    let origin;
+    const w = this.innerBounds.width;
+    const h = this.innerBounds.height;
     if(this.scaleX!=1 || this.scaleY!=1)
       origin = [((w - (this.chw*this.buf.cols+10)*this.scaleX)/2) + this.bbsViewMargin, ((h - (this.chh*this.buf.rows)*this.scaleY)/2) + this.bbsViewMargin];
     else
       origin = [this.firstGridOffset.left, this.firstGridOffset.top];
-    var realX = origin[0] + (cx) * this.chw * this.scaleX;
-    var realY = origin[1] + (cy) * this.chh * this.scaleY;
+    const realX = origin[0] + (cx) * this.chw * this.scaleX;
+    const realY = origin[1] + (cy) * this.chh * this.scaleY;
     return [realX, realY];
   }
 
   checkLeftDB() {
     if (this.dbcsDetect && this.buf.cur_x>1) {
-      var lines = this.buf.lines;
-      var line = lines[this.buf.cur_y];
-      var ch = line[this.buf.cur_x-2];
+      const lines = this.buf.lines;
+      const line = lines[this.buf.cur_y];
+      const ch = line[this.buf.cur_x-2];
       if (ch.isLeadByte)
         return true;
     }
@@ -551,9 +548,9 @@ export class TermView {
 
   checkCurDB() {
     if (this.dbcsDetect) {// && this.buf.cur_x<this.buf.cols-2){
-      var lines = this.buf.lines;
-      var line = lines[this.buf.cur_y];
-      var ch = line[this.buf.cur_x];
+      const lines = this.buf.lines;
+      const line = lines[this.buf.cur_y];
+      const ch = line[this.buf.cur_x];
       if (ch.isLeadByte)
         return true;
     }
@@ -563,20 +560,20 @@ export class TermView {
   // Cursor
   updateCursorPos() {
 
-    var pos = this.convertMN2XYEx(this.buf.cur_x, this.buf.cur_y);
+    const pos = this.convertMN2XYEx(this.buf.cur_x, this.buf.cur_y);
     // if you want to set cursor color by now background, use this.
     if (this.buf.cur_y >= this.buf.rows || this.buf.cur_x >= this.buf.cols)
       return; //sometimes, the value of this.buf.cur_x is 80 :(
 
-    var lines = this.buf.lines;
-    var line = lines[this.buf.cur_y];
-    var ch = line[this.buf.cur_x];
-    var bg = ch.getBg();
+    const lines = this.buf.lines;
+    const line = lines[this.buf.cur_y];
+    const ch = line[this.buf.cur_x];
+    const bg = ch.getBg();
 
     if (this.scaleX == 1 && this.scaleY == 1) {
       this.bbsCursor.style.webkitTransform = 'none';
     } else {
-      var scaleCss = 'scale('+this.scaleX+','+this.scaleY+')';
+      const scaleCss = 'scale('+this.scaleX+','+this.scaleY+')';
       this.mainDisplay.style.webkitTransform = scaleCss;
       this.bbsCursor.style.webkitTransform = scaleCss;
       this.bbsCursor.style.webkitTransformOriginX = 'left';
@@ -592,7 +589,7 @@ export class TermView {
 
   updateInputBufferPos() {
     if (this.input.getAttribute('bshow') == '1') {
-      var pos = this.convertMN2XYEx(this.buf.cur_x, this.buf.cur_y);
+      const pos = this.convertMN2XYEx(this.buf.cur_x, this.buf.cur_y);
       {
         this.input.style.opacity = '1';
         this.input.style.border = 'double';
@@ -603,9 +600,9 @@ export class TermView {
           this.input.style.height = this.chh + 'px';
         }
       }
-      var innerBounds = this.innerBounds;
-      var bbswinheight = innerBounds.height;
-      var bbswinwidth = innerBounds.width;
+      const innerBounds = this.innerBounds;
+      const bbswinheight = innerBounds.height;
+      const bbswinwidth = innerBounds.width;
       if(bbswinheight < pos[1] + parseFloat(this.input.style.height) + this.chh)
         this.input.style.top = (pos[1] - parseFloat(this.input.style.height) - this.chh)+ 4 +'px';
       else
@@ -622,12 +619,12 @@ export class TermView {
 
   updateInputBufferWidth() {
     // change width according to input
-    var wordCounts = u2b(this.input.value).length;
+    const wordCounts = u2b(this.input.value).length;
     // chh / 2 - 2 because border of 1
-    var oneWordWidth = (this.chh/2-2);
-    var width = oneWordWidth*wordCounts;
+    const oneWordWidth = (this.chh/2-2);
+    const width = oneWordWidth*wordCounts;
     this.input.style.width  = width + 'px';
-    var bounds = this.innerBounds;
+    const bounds = this.innerBounds;
     if (parseInt(this.input.style.left) + width + oneWordWidth*2 >= bounds.width) {
       this.input.style.left = bounds.width - width - oneWordWidth*2 + 'px';
     }
@@ -655,18 +652,18 @@ export class TermView {
   }
 
   fontResize() {
-    var cols = this.buf ? this.buf.cols : 80;
-    var rows = this.buf ? this.buf.rows : 24;
+    const cols = this.buf ? this.buf.cols : 80;
+    const rows = this.buf ? this.buf.rows : 24;
 
     {
-      var width = this.bbsWidth ? this.bbsWidth : this.innerBounds.width;
-      var height = this.bbsHeight ? this.bbsHeight : this.innerBounds.height;
+      let width = this.bbsWidth ? this.bbsWidth : this.innerBounds.width;
+      let height = this.bbsHeight ? this.bbsHeight : this.innerBounds.height;
       if (width === 0 || height === 0) return; // errors for openning in a new window
       width -= 10; // for scroll bar
 
-      var o_h, o_w, i = 4;
-      var nowchh = this.chh;
-      var nowchw = this.chw;
+      let o_h, o_w, i = 4;
+      let nowchh = this.chh;
+      let nowchw = this.chw;
       do {
         ++i;
         nowchh = i*2;
@@ -687,9 +684,9 @@ export class TermView {
 
     this.setTermFontSize(chw, chh);
 
-    var forceWidthElems = document.querySelectorAll('.wpadding');
-    for (var i = 0; i < forceWidthElems.length; ++i) {
-      var forceWidthElem = forceWidthElems[i];
+    const forceWidthElems = document.querySelectorAll('.wpadding');
+    for (let i = 0; i < forceWidthElems.length; ++i) {
+      const forceWidthElem = forceWidthElems[i];
       forceWidthElem.style.width = chh + 'px';
     }
   }
@@ -780,7 +777,7 @@ export class TermView {
       return null;
     }
     if (this.useCanvasEngine) {
-      var sel = this.componentScreen.getSelectionColRow();
+      const sel = this.componentScreen.getSelectionColRow();
       if (sel)
         return sel;
     }
@@ -809,9 +806,9 @@ export class TermView {
     if (!this.enableNotifications) {
       return;
     }
-    var app = this.bbscore;
+    const app = this.bbscore;
     //console.log('message from ' + this.waterball.userId + ': ' + this.waterball.message); 
-    var title = app.waterball.userId + ' ' + i18n('notification_said');
+    const title = app.waterball.userId + ' ' + i18n('notification_said');
     if (this.titleTimer) {
       this.titleTimer.cancel();
       this.titleTimer = null;
@@ -823,7 +820,7 @@ export class TermView {
         document.title = this.buf.title;
       }
     }, 1500);
-    var options = {
+    const options = {
       icon: require('Icon/icon_128.png'),
       body: app.waterball.message,
       tag: app.waterball.userId
@@ -847,14 +844,14 @@ export class TermView {
   }
 
   populateEasyReadingPage() {
-    var site = this.buf.site;
+    const site = this.buf.site;
     let lastRowNum = site.getLastRowNum(this.buf);
     if (this.buf.pageState == 3 && this.buf.prevPageState == 3) {
       this.showEasyReading();
-      var lastRowText = this.buf.getRowText(lastRowNum, 0, this.buf.cols);
-      var result = site.parseReadingStatus(lastRowText, this.buf);
+      const lastRowText = this.buf.getRowText(lastRowNum, 0, this.buf.cols);
+      const result = site.parseReadingStatus(lastRowText, this.buf);
       if (result) {
-        var isEnd = result.isEnd || site.isArticleEnd(lastRowText, this.buf, result);
+        const isEnd = result.isEnd || site.isArticleEnd(lastRowText, this.buf, result);
         if (result.pageIndex && result.pageIndex === this._lastEasyReadingPageIndex && !isEnd) {
           return;
         }
@@ -868,11 +865,11 @@ export class TermView {
           this._lastEasyReadingPageIndex = result.pageIndex;
         }
 
-        var paging = site.getPagingSlice(this.buf, result, this.actualRowIndex);
-        var beginIndex = paging.beginIndex;
-        var atLastPage = paging.atLastPage;
+        const paging = site.getPagingSlice(this.buf, result, this.actualRowIndex);
+        let beginIndex = paging.beginIndex;
+        const atLastPage = paging.atLastPage;
 
-        for (var i = beginIndex; i < lastRowNum; ++i) {
+        for (let i = beginIndex; i < lastRowNum; ++i) {
           if (site.isLineContinuation(this.buf, i, false)) {
             this.buf.pageWrappedLines[this.actualRowIndex] += 1;
             // if the second row is the wrapped line from first row 
@@ -894,10 +891,10 @@ export class TermView {
       this._lastEasyReadingPageIndex = 1;
       this._easyReadingAppendedEnd = false;
       if (this.buf.pageState == 3) {
-        var lastRowText = this.buf.getRowText(lastRowNum, 0, this.buf.cols);
-        var statusResult = site.parseReadingStatus(lastRowText, this.buf);
-        var isEnd = site.isArticleEnd(lastRowText, this.buf, statusResult);
-        for (var i = 0; i < lastRowNum; ++i) {
+        const lastRowText = this.buf.getRowText(lastRowNum, 0, this.buf.cols);
+        const statusResult = site.parseReadingStatus(lastRowText, this.buf);
+        const isEnd = site.isArticleEnd(lastRowText, this.buf, statusResult);
+        for (let i = 0; i < lastRowNum; ++i) {
           if (site.isLineContinuation(this.buf, i, true)) {
             this.buf.pageWrappedLines[this.actualRowIndex] += 1;
           } else {
@@ -913,7 +910,7 @@ export class TermView {
         if (isEnd) {
           this._easyReadingAppendedEnd = true;
         }
-        var spaces = ' ';
+        const spaces = ' ';
         this.lastRowDiv.style.backgroundColor = '';
         this.updateEasyReadingProgress();
         this.lastRowDiv.style.display = 'block';
@@ -929,10 +926,10 @@ export class TermView {
 
   updateEasyReadingProgress() {
     if (!this.easyReadingContent || !this.lastRowDiv) return;
-    var cont = this.easyReadingContent;
-    var percent = 100;
+    const cont = this.easyReadingContent;
+    let percent = 100;
     if (cont.scrollHeight > cont.clientHeight) {
-      var scrollBottom = cont.scrollTop + cont.clientHeight;
+      const scrollBottom = cont.scrollTop + cont.clientHeight;
       percent = Math.min(100, Math.max(0, Math.round((scrollBottom / cont.scrollHeight) * 100)));
     }
     this.lastRowDiv.innerHTML = this.buf.site.getEasyReadingPrompt(' ', percent);
@@ -946,9 +943,9 @@ export class TermView {
 
   appendRows(lines, showsLinkPreview) {
     if (!this.easyReadingContent) return;
-    for (var i in lines) {
-      var line = lines[i];
-      var el = document.createElement('span');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const el = document.createElement('span');
       el.setAttribute('type', 'bbsrow');
       el.setAttribute('srow', this.easyReadingContent.childNodes.length);
       this.easyReadingContent.appendChild(el);
@@ -960,7 +957,7 @@ export class TermView {
   }
 
   renderSingleRow(target, row) {
-    var el = document.createElement('span');
+    const el = document.createElement('span');
     el.setAttribute('type', 'bbsrow');
     el.setAttribute('srow', '0');
     target.appendChild(el);
@@ -986,7 +983,7 @@ export class TermView {
   }
 
   updateEasyReadingReplyRow(row) {
-    var el = document.createElement('span');
+    const el = document.createElement('span');
     el.style = "background-color:black;";
     this.renderSingleRow(el, row);
     this.setSingleChild(this.replyRowDiv.childNodes[0] || this.replyRowDiv, el);
@@ -994,7 +991,7 @@ export class TermView {
   }
 
   updateEasyReadingPushInitRow(row) {
-    var el = document.createElement('span');
+    const el = document.createElement('span');
     el.style = "background-color:black;";
     this.renderSingleRow(el, row);
     this.setSingleChild(this.lastRowDiv.childNodes[0] || this.lastRowDiv, el);

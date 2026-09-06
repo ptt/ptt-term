@@ -7,11 +7,11 @@ import { b2uTable, u2bTable } from '../conv/uao';
  * If you want to show \ and ^, use \\ and \^ respectively
  */ 
 export function unescapeStr(it) {
-  var result = '';
+  let result = '';
 
-  for (var i = 0; i < it.length; ++i) {
-    var curChar = it.charAt(i);
-    var nextChar = it.charAt(i+1);
+  for (let i = 0; i < it.length; ++i) {
+    const curChar = it.charAt(i);
+    const nextChar = it.charAt(i+1);
     
     if (i == it.length - 1) {
       result += curChar;
@@ -22,7 +22,7 @@ export function unescapeStr(it) {
       result += nextChar;
     } else if (curChar == '^') {
       if ('@' <= nextChar && nextChar <= '_') {
-        var code = it.charCodeAt(i+1) - 64;
+        const code = it.charCodeAt(i+1) - 64;
         result += String.fromCharCode(code);
         i++;
       } else if (nextChar == '?') {
@@ -47,15 +47,15 @@ export function wrapText(it, maxLen, enterChar) {
   // Spaces next to a word group are merged into that group
   // to ensure the start of each wrapped line is a word.
   // FIXME: full-width punctuation marks aren't recognized
-  var pattern = /\r|\n|([^\x00-\x7f][,.?!:;]?[\t ]*)|([\x00-\x08\x0b\x0c\x0e-\x1f\x21-\x7f]+[\t ]*)|[\t ]+/g;
-  var splited = it.match(pattern);
+  const pattern = /\r|\n|([^\x00-\x7f][,.?!:;]?[\t ]*)|([\x00-\x08\x0b\x0c\x0e-\x1f\x21-\x7f]+[\t ]*)|[\t ]+/g;
+  const splited = it.match(pattern);
 
-  var result = '';
-  var len = 0;
-  for (var i = 0; i < splited.length; ++i) {
+  let result = '';
+  let len = 0;
+  for (let i = 0; i < splited.length; ++i) {
     // Convert special characters to spaces with the same width
     // and then we can get the width by the length of the converted string
-    var grouplen = splited[i].replace(/[^\x00-\x7f]/g,"  ")
+    const grouplen = splited[i].replace(/[^\x00-\x7f]/g,"  ")
                              .replace(/\t/,"    ")
                              .replace(/\r|\n/,"")
                              .length;
@@ -73,14 +73,14 @@ export function wrapText(it, maxLen, enterChar) {
 };
 
 export function u2b(it) {
-  var data = '';
-  for (var i = 0; i < it.length; ++i) {
+  let data = '';
+  for (let i = 0; i < it.length; ++i) {
     if (it.charAt(i) < '\x80') {
       data += it.charAt(i);
       continue;
     }
-    var pos = it.charCodeAt(i);
-    var b = u2bTable[pos];
+    const pos = it.charCodeAt(i);
+    const b = u2bTable[pos];
     if (b)
       data += String.fromCharCode(b >> 8, b & 0xff);
     else if (!(pos >= 0xd800 && pos <= 0xdbff)) // Not a big5 char nor a UTF-16 high surrogate
@@ -90,15 +90,15 @@ export function u2b(it) {
 };
 
 export function b2u(it) {
-  var str = '';
-  for (var i = 0; i < it.length; ++i) {
+  let str = '';
+  for (let i = 0; i < it.length; ++i) {
     if (it.charAt(i) < '\x80' || i == it.length-1) {
       str += it.charAt(i);
       continue;
     }
 
-    var pos = it.charCodeAt(i) << 8 | it.charCodeAt(i+1);
-    var code = b2uTable[pos];
+    const pos = it.charCodeAt(i) << 8 | it.charCodeAt(i+1);
+    const code = b2uTable[pos];
     if (code) {
       str += String.fromCharCode(code);
       ++i;
@@ -115,10 +115,10 @@ export function isDBCSLead(ch) {
 };
 
 export function ansiHalfColorConv(it) {
-  var str = '';
-  var regex = new RegExp('\x15\\[(([0-9]+)?;)+50m', 'g');
-  var result = null;
-  var indices = [];
+  let str = '';
+  const regex = new RegExp('\x15\\[(([0-9]+)?;)+50m', 'g');
+  let result = null;
+  const indices = [];
   while ((result = regex.exec(it))) {
     indices.push(result.index + result[0].length - 4);
   }
@@ -127,10 +127,10 @@ export function ansiHalfColorConv(it) {
     return it;
   }
 
-  var curInd = 0;
-  for (var i = 0; i < indices.length; ++i) {
-    var ind = indices[i];
-    var preEscInd = it.substring(curInd, ind).lastIndexOf('\x15') + curInd;
+  let curInd = 0;
+  for (let i = 0; i < indices.length; ++i) {
+    const ind = indices[i];
+    const preEscInd = it.substring(curInd, ind).lastIndexOf('\x15') + curInd;
     str += it.substring(curInd, preEscInd) + '\x00' + it.substring(ind+4, ind+5) + it.substring(preEscInd, ind) + 'm';
     curInd = ind+5;
   }

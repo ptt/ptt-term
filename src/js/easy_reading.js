@@ -62,7 +62,7 @@ export class EasyReading {
 
     const site = this._termBuf.site;
     let lastRowNum = site.getLastRowNum(this._termBuf);
-    var lastRowText = this._termBuf.getRowText(lastRowNum, 0, this._termBuf.cols);
+    const lastRowText = this._termBuf.getRowText(lastRowNum, 0, this._termBuf.cols);
     // dealing with page state jump to 0 because last row wasn't updated fully 
     if (this._termBuf.pageState == 3) {
       this.startedEasyReading = true;
@@ -82,11 +82,11 @@ export class EasyReading {
           this.ignoreOneUpdate = false;
           return;
         }
-        var result = site.parseReadingStatus(lastRowText, this._termBuf);
+        const result = site.parseReadingStatus(lastRowText, this._termBuf);
         if (result) {
           this.easyReadingShowPushInitText = false;
           this.easyReadingShowReplyText = false;
-          var isEnd = site.isArticleEnd(lastRowText, this._termBuf, result);
+          const isEnd = site.isArticleEnd(lastRowText, this._termBuf, result);
 
           if (isEnd) {
             this.easyReadingReachedPageEnd = true;
@@ -166,7 +166,7 @@ export class EasyReading {
       return;
 
     const site = this._termBuf.site;
-    var stop = false;
+    let stop = false;
     if (!e.ctrlKey && !e.altKey) {
       switch (e.key) {
         case 'Backspace':
@@ -193,7 +193,7 @@ export class EasyReading {
   }
 
   _scrollBy(lines) {
-    var cont = this._view.easyReadingContent;
+    const cont = this._view.easyReadingContent;
     if (!cont)
       return false;
     if (lines < 0 && cont.scrollTop <= 0)
@@ -225,7 +225,7 @@ export class EasyReading {
       return;
     }
 
-    var stop = false;
+    let stop = false;
     if (!e.ctrlKey && !e.altKey) {
       switch (e.key) {
         case 'Backspace':
@@ -320,7 +320,7 @@ export class EasyReading {
   _onMouseClick(e) {
     if (!this._enabled || !this.startedEasyReading)
       return;
-    var stop = false;
+    let stop = false;
     // XXX Should not use term buffer to track mouse cursor.
     switch (this._termBuf.mouseCursor) {
       case 0:

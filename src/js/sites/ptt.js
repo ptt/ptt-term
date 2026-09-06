@@ -18,11 +18,11 @@ export function parseReqNotMetText(it) {
 }
 
 export function parseStatusRow(str) {
-  var regex = new RegExp(/  瀏覽 第 (\d{1,3})(?:\/(\d{1,3}))? 頁 *\( *(\d{1,3})%\)  目前顯示: 第 0*(\d+)~0*(\d+) 行 *(?:\(y\)回應)?(?:\(X\/?%\)推文)?(?:\(h\)說明)? *\(←\/?q?\)離開 /g);
-  var result = regex.exec(str);
+  const regex = /  瀏覽 第 (\d{1,3})(?:\/(\d{1,3}))? 頁 *\( *(\d{1,3})%\)  目前顯示: 第 0*(\d+)~0*(\d+) 行 *(?:\(y\)回應)?(?:\(X\/?%\)推文)?(?:\(h\)說明)? *\(←\/?q?\)離開 /g;
+  const result = regex.exec(str);
 
   if (result && result.length === 6) {
-    var pagePercent = parseInt(result[3]);
+    const pagePercent = parseInt(result[3]);
     return {
       pageIndex:     parseInt(result[1]),
       pageTotal:     parseInt(result[2]),
@@ -37,18 +37,18 @@ export function parseStatusRow(str) {
 }
 
 export function parseListRow(str) {
-  var regex = new RegExp(/\[\d{1,2}\/\d{1,2} +星期. +\d{1,2}:\d{1,2}\] .+ 線上\d+人, 我是\w+ +\[呼叫器\](?:關閉|打開) /g);
+  const regex = /\[\d{1,2}\/\d{1,2} +星期. +\d{1,2}:\d{1,2}\] .+ 線上\d+人, 我是\w+ +\[呼叫器\](?:關閉|打開) /g;
   return regex.test(str);
 }
 
 export function parseWaterball(str, lastRowNum = 23) {
-  var regex = new RegExp(/\x1b\[1;33;46m\u2605(\w+)\x1b\[0;1;37;45m (.+) \x1b\[m\x1b\[K/g);
-  var result = regex.exec(str);
+  let regex = /\x1b\[1;33;46m\u2605(\w+)\x1b\[0;1;37;45m (.+) \x1b\[m\x1b\[K/g;
+  let result = regex.exec(str);
   if (result && result.length == 3) {
     return { userId: result[1], message: result[2] };
   } else {
-    var row1Based = lastRowNum + 1;
-    var rowPattern = row1Based !== 24 ? `(?:${row1Based}|24)` : '24';
+    const row1Based = lastRowNum + 1;
+    const rowPattern = row1Based !== 24 ? `(?:${row1Based}|24)` : '24';
     regex = new RegExp(`\\x1b\\[${rowPattern};\\d{2}H\\x1b\\[1;37;45m([^\\x1b]+)(?:\\x1b\\[${rowPattern};18H)?\\x1b\\[m`, 'g');
     result = regex.exec(str);
     if (result && result.length == 2) {

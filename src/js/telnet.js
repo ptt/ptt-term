@@ -64,15 +64,15 @@ export class TelnetConnection extends Event {
   }
 
   _onDataAvailable(e) {
-  var str = e.detail.data;
-  var data='';
-  var count = str.length;
-  while (count > 0) {
-    var s = str;
-    count -= s.length;
-    var n = s.length;
-    for (var i = 0; i < n; ++i) {
-      var ch = s[i];
+    const str = e.detail.data;
+    let data = '';
+    let count = str.length;
+    while (count > 0) {
+      const s = str;
+      count -= s.length;
+      const n = s.length;
+      for (let i = 0; i < n; ++i) {
+        const ch = s[i];
       switch (this.state) {
       case STATE_DATA:
         if( ch == IAC ) {
@@ -159,8 +159,7 @@ export class TelnetConnection extends Event {
           switch (this.iac_sb[0]) {
           case TERM_TYPE: 
             // FIXME: support other terminal types
-            //var termType = this.app.__prefs__.TermType;
-            var rep = IAC + SB + TERM_TYPE + IS + this.termType + IAC + SE;
+            const rep = IAC + SB + TERM_TYPE + IS + this.termType + IAC + SE;
             this._sendRaw( rep );
             break;
           }
@@ -200,7 +199,7 @@ export class TelnetConnection extends Event {
     // supports UAO
     // when converting unicode to big5, use UAO.
 
-    var s = u2b(unicode_str);
+    let s = u2b(unicode_str);
     // detect ;50m (half color) and then convert accordingly
     if (s) {
       s = ansiHalfColorConv(s);
@@ -213,8 +212,8 @@ export class TelnetConnection extends Event {
   }
 
   sendNaws(cols, rows) {
-    var nawsStr = String.fromCharCode(Math.floor(cols/256), cols%256, Math.floor(rows/256), rows%256).replace(/(\xff)/g,'\xff\xff');
-    var rep = IAC + SB + NAWS + nawsStr + IAC + SE;
+    const nawsStr = String.fromCharCode(Math.floor(cols/256), cols%256, Math.floor(rows/256), rows%256).replace(/(\xff)/g,'\xff\xff');
+    const rep = IAC + SB + NAWS + nawsStr + IAC + SE;
     this._sendRaw( rep );
   }
 
