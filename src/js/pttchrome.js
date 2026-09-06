@@ -21,7 +21,8 @@ function noop() {}
 
 const ANTI_IDLE_STR = '\x00'; // Also consider IAC NOP='\xff\xf1';
 
-export const App = function() {
+export class App {
+  constructor() {
 
   this.CmdHandler = document.getElementById('cmdHandler');
   this.CmdHandler.setAttribute('useMouseBrowsing', '1');
@@ -169,13 +170,13 @@ export const App = function() {
   if (this.chromeVersion && this.chromeVersion >= 37) {
     this.touch = new TouchController(this);
   }
-};
+  }
 
-App.prototype.isConnected = function() {
-  return this.connectState == 1 && !!this.conn;
-};
+  isConnected() {
+    return this.connectState == 1 && !!this.conn;
+  }
 
-App.prototype.connect = function(url, profileName) {
+  connect(url, profileName) {
   this.connectState = 0;
   console.log('connect: ' + url + ', profile: ' + profileName);
 
@@ -209,9 +210,9 @@ App.prototype.connect = function(url, profileName) {
     profile: this.siteProfile.name,
     easyReadingSupported: true
   };
-};
+  }
 
-App.prototype._parseURLSimple = function(url) {
+  _parseURLSimple(url) {
   var tokens = url.split(/:\/\//, 2);
   if (tokens.length != 2)
     return null;
@@ -245,17 +246,17 @@ App.prototype._parseURLSimple = function(url) {
     port,
     path: '/' + (hostAndPath.length > 1 ? hostAndPath[1] : '')
   };
-};
+  }
 
-App.prototype._setupWebsocketConn = function(url) {
+  _setupWebsocketConn(url) {
   var wsConn = new Websocket(url);
   if (this.connLog) {
     this.connLog.attachSocket(wsConn);
   }
   this._attachConn(new TelnetConnection(wsConn));
-};
+  }
 
-App.prototype._attachConn = function(conn) {
+  _attachConn(conn) {
   this.conn = conn;
   this.conn.addEventListener('open', () => this.onConnect());
   this.conn.addEventListener('close', () => this.onClose());
@@ -274,9 +275,9 @@ App.prototype._attachConn = function(conn) {
     conn.sendWillNaws();
     conn.sendNaws(this.buf.cols, this.buf.rows);
   });
-};
+  }
 
-App.prototype.onConnect = function() {
+  onConnect() {
   this.conn.isConnected = true;
   this.view.setConn(this.conn);
   console.info("pttchrome onConnect");
@@ -289,9 +290,9 @@ App.prototype.onConnect = function() {
     this.view.onBlink();
     this.incrementCountToUpdatePushthread();
   }, 1000);
-};
+  }
 
-App.prototype.onData = function(data) {
+  onData(data) {
   this.parser.feed(data);
 
   if (!this.appFocused && this.view.enableNotifications) {
@@ -308,9 +309,9 @@ App.prototype.onData = function(data) {
       this.view.showWaterballNotification();
     }
   }
-};
+  }
 
-App.prototype.onClose = function() {
+  onClose() {
   console.info("pttchrome onClose");
   if (this.timerEverySec) {
     this.timerEverySec.cancel();
@@ -332,66 +333,66 @@ App.prototype.onClose = function() {
     container
   );
   this.updateTabIcon('disconnect');
-};
+  }
 
-App.prototype.sendData = function(str) {
+  sendData(str) {
   if (this.connectState == 1)
     this.conn.convSend(str);
-};
+  }
 
-App.prototype.cancelMbTimer = function() {
+  cancelMbTimer() {
   if (this.mbTimer) {
     this.mbTimer.cancel();
     this.mbTimer = null;
   }
-};
+  }
 
-App.prototype.setMbTimer = function() {
+  setMbTimer() {
   this.cancelMbTimer();
   this.mbTimer = setTimer(false, () => {
     this.mbTimer.cancel();
     this.mbTimer = null;
     this.CmdHandler.setAttribute('SkipMouseClick', '0');
   }, 100);
-};
+  }
 
-App.prototype.cancelDblclickTimer = function() {
+  cancelDblclickTimer() {
   if (this.dblclickTimer) {
     this.dblclickTimer.cancel();
     this.dblclickTimer = null;
   }
-};
+  }
 
-App.prototype.setDblclickTimer = function() {
+  setDblclickTimer() {
   this.cancelDblclickTimer();
   this.dblclickTimer = setTimer(false, () => {
     this.dblclickTimer.cancel();
     this.dblclickTimer = null;
   }, 350);
-};
+  }
 
-App.prototype.setInputAreaFocus = function() {
+  setInputAreaFocus() {
   if (this.modalShown || this.contextMenuShown || (this.touch && this.touch.touchStarted))
     return;
   if (document.activeElement === this.inputArea)
     return;
   //this.DocInputArea.disabled="";
   this.inputArea.focus();
-};
+  }
 
-App.prototype.isSelectionCollapsed = function() {
+  isSelectionCollapsed() {
   if (this.view && this.view.useCanvasEngine && !this.view.isEasyReadingActive()) {
     return !this.view.getSelectionColRow();
   }
   return window.getSelection().isCollapsed;
-};
+  }
 
 // FIXME: Injected when enabled. See: src/components/ContextMenu/index.js
-App.prototype.onToggleLiveHelperModalState = noop;
+  onToggleLiveHelperModalState() {}
 // FIXME: Injected when enabled. See: src/components/ContextMenu/index.js
-App.prototype.onDisableLiveHelperModalState = noop;
+  onDisableLiveHelperModalState() {}
 
-App.prototype.switchToEasyReadingMode = function(doSwitch) {
+  switchToEasyReadingMode(doSwitch) {
   this.easyReading.leaveCurrentPost();
   if (doSwitch) {
     this.onDisableLiveHelperModalState();
@@ -404,9 +405,9 @@ App.prototype.switchToEasyReadingMode = function(doSwitch) {
   // request the full screen
   if (this.view.conn)
     this.view.conn.send(unescapeStr('^L'));
-};
+  }
 
-App.prototype.doCopy = function(str) {
+  doCopy(str) {
   if (str.indexOf('\x1b') < 0) {
     str = str.replace(/\r\n/g, '\r');
     str = str.replace(/\n/g, '\r');
@@ -414,9 +415,9 @@ App.prototype.doCopy = function(str) {
   }
   this.strToCopy = str;
   document.execCommand('copy');
-};
+  }
 
-App.prototype.doCopyAnsi = function() {
+  doCopyAnsi() {
   if (!this.lastSelection)
     return;
 
@@ -446,9 +447,9 @@ App.prototype.doCopyAnsi = function() {
   }
 
   this.doCopy(ansiText);
-};
+  }
 
-App.prototype.onDOMCopy = function(e) {
+  onDOMCopy(e) {
   if (this.strToCopy) {
     e.clipboardData.setData('text', this.strToCopy);
     e.preventDefault();
@@ -464,9 +465,9 @@ App.prototype.onDOMCopy = function(e) {
       e.preventDefault();
     }
   }
-};
+  }
 
-App.prototype.doPaste = function() {
+  doPaste() {
   if (navigator.clipboard && navigator.clipboard.readText) {
     navigator.clipboard.readText().then(
       (text) => this.onPasteDone(text),
@@ -474,9 +475,9 @@ App.prototype.doPaste = function() {
   } else {
     this.showPasteUnimplemented();
   }
-};
+  }
 
-App.prototype.showPasteUnimplemented = function() {
+  showPasteUnimplemented() {
   const container = document.getElementById('reactAlert')
   const onDismiss = () => {
     ReactDOM.unmountComponentAtNode(container)
@@ -497,22 +498,22 @@ App.prototype.showPasteUnimplemented = function() {
     container
   )
   this.modalShown = true;
-};
+  }
 
-App.prototype.onPasteDone = function(content) {
+  onPasteDone(content) {
   //this.conn.convSend(content);
   this.view.onTextInput(content, true);
-};
+  }
 
-App.prototype.onDOMPaste = function(e) {
+  onDOMPaste(e) {
   let str = e.clipboardData.getData('text');
   if (str) {
     e.preventDefault();
     this.onPasteDone(str);
   }
-};
+  }
 
-App.prototype.onSymFont = function(content) {
+  onSymFont(content) {
   console.log("using " + (content ? "extension" : "system") + " font");
   var font_src = content ? 'src: url('+content.data+');' : '';
   var css = '@font-face { font-family: MingLiUNoGlyph; '+font_src+' }';
@@ -520,23 +521,23 @@ App.prototype.onSymFont = function(content) {
   style.type = 'text/css';
   style.innerHTML = css;
   document.getElementsByTagName('head')[0].appendChild(style);
-};
+  }
 
-App.prototype.doSelectAll = function() {
+  doSelectAll() {
   this.view.selectAll();
-};
+  }
 
-App.prototype.doSearchGoogle = function(searchTerm) {
+  doSearchGoogle(searchTerm) {
   window.open('http://google.com/search?q='+searchTerm);
-};
+  }
 
-App.prototype.doOpenUrlNewTab = function(a) {
+  doOpenUrlNewTab(a) {
   var e = document.createEvent('MouseEvents');
   e.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, true, false, false, false, 0, null);
   a.dispatchEvent(e);
-};
+  }
 
-App.prototype.incrementCountToUpdatePushthread = function(interval) {
+  incrementCountToUpdatePushthread(interval) {
   if (this.maxPushthreadAutoUpdateCount == -1) {
     this.pushthreadAutoUpdateCount = 0;
     return;
@@ -549,12 +550,12 @@ App.prototype.incrementCountToUpdatePushthread = function(interval) {
       this.view.conn.send('\x1b[D\x1b[C\x1b[4~');
     }
   }
-};
-App.prototype.setAutoPushthreadUpdate = function(seconds) {
+  }
+  setAutoPushthreadUpdate(seconds) {
   this.maxPushthreadAutoUpdateCount = seconds;
-};
+  }
 
-App.prototype.onWindowResize = function() {
+  onWindowResize() {
   this.view.innerBounds = this.getWindowInnerBounds();
 
   if (this.resizeTimeout) {
@@ -570,9 +571,9 @@ App.prototype.onWindowResize = function() {
   } else {
     this.view.fontResize();
   }
-};
+  }
 
-App.prototype.setTermSize = function(cols, rows) {
+  setTermSize(cols, rows) {
   const profile = this.buf ? this.buf.siteProfile : null;
   const requestedCols = cols;
   const requestedRows = rows;
@@ -592,9 +593,9 @@ App.prototype.setTermSize = function(cols, rows) {
   if (this.conn) {
     this.conn.sendNaws(cols, rows);
   }
-};
+  }
 
-App.prototype.switchMouseBrowsing = function() {
+  switchMouseBrowsing() {
   if (this.CmdHandler.getAttribute('useMouseBrowsing')=='1') {
     this.CmdHandler.setAttribute('useMouseBrowsing', '0');
     this.buf.useMouseBrowsing=false;
@@ -615,9 +616,9 @@ App.prototype.switchMouseBrowsing = function() {
     this.view.redraw(true);
     this.view.updateCursorPos();
   }
-};
+  }
 
-App.prototype.antiIdle = function() {
+  antiIdle() {
   if (this.antiIdleTime && this.idleTime > this.antiIdleTime) {
     if (this.connectState == 1) {
       this.conn.send(ANTI_IDLE_STR);
@@ -627,9 +628,9 @@ App.prototype.antiIdle = function() {
     if (this.connectState == 1)
       this.idleTime += 1000;
   }
-};
+  }
 
-App.prototype.updateTabIcon = function(aStatus) {
+  updateTabIcon(aStatus) {
   var icon = require('Icon/logo.png');
   switch (aStatus) {
     case 'connect':
@@ -652,10 +653,10 @@ App.prototype.updateTabIcon = function(aStatus) {
   } else {
     link.setAttribute("href", icon);
   }
-};
+  }
 
 // use this method to get better window size in case of page zoom != 100%
-App.prototype.getWindowInnerBounds = function() {
+  getWindowInnerBounds() {
   var width = document.documentElement.clientWidth - this.view.bbsViewMargin * 2;
   var height = document.documentElement.clientHeight - this.view.bbsViewMargin * 2;
   var bounds = {
@@ -663,17 +664,17 @@ App.prototype.getWindowInnerBounds = function() {
     height: height
   };
   return bounds;
-};
+  }
 
-App.prototype.getFirstGridOffsets = function() {
+  getFirstGridOffsets() {
   var container = $(".main")[0];
   return {
     top: container.offsetTop,
     left: container.offsetLeft
   };
-};
+  }
 
-App.prototype.clientToPos = function(cX, cY) {
+  clientToPos(cX, cY) {
   var x;
   var y;
   var w = this.view.innerBounds.width;
@@ -699,16 +700,16 @@ App.prototype.clientToPos = function(cX, cY) {
     col = this.buf.cols-1;
 
   return {col: col, row: row};
-};
+  }
 
-App.prototype._navigateRowAndEnter = function (targetRow) {
+  _navigateRowAndEnter(targetRow) {
   var diff = this.buf.cur_y - targetRow;
   var sendstr =
     (diff > 0 ? '\x1b[A'.repeat(diff) : '\x1b[B'.repeat(-diff)) + '\r';
   this.conn.send(sendstr);
-};
+  }
 
-App.prototype.onMouse_click = function (e) {
+  onMouse_click(e) {
   var cX = e.clientX, cY = e.clientY;
   if (!this.conn || !this.conn.isConnected)
     return;
@@ -772,19 +773,19 @@ App.prototype.onMouse_click = function (e) {
       //do nothing
       break;
   }
-};
+  }
 
-App.prototype.onMouse_move = function(cX, cY) {
+  onMouse_move(cX, cY) {
   var pos = this.clientToPos(cX, cY);
   this.buf.onMouse_move(pos.col, pos.row, false);
-};
+  }
 
-App.prototype.resetMouseCursor = function(cX, cY) {
+  resetMouseCursor(cX, cY) {
   this.buf.BBSWin.style.cursor = 'auto';
   this.buf.mouseCursor = 11;
-};
+  }
 
-App.prototype.onValuesPrefChange = function(values) {
+  onValuesPrefChange(values) {
   for (var name in values) {
     this.onPrefChange(name, values[name]);
   }
@@ -844,9 +845,9 @@ App.prototype.onValuesPrefChange = function(values) {
       $('.main').removeClass('trans-fix');
     }
   } catch (e) {}
-};
+  }
 
-App.prototype.onPrefChange = function(name, value) {
+  onPrefChange(name, value) {
   try {
     switch (name) {
     case 'useMouseBrowsing':
@@ -958,18 +959,18 @@ App.prototype.onPrefChange = function(name, value) {
     // eats all errors
     return;
   }
-};
+  }
 
-App.prototype.checkClass = function(cn) {
+  checkClass(cn) {
   return (  cn.indexOf("closeSI") >= 0  || cn.indexOf("EPbtn") >= 0 || 
       cn.indexOf("closePP") >= 0 || cn.indexOf("picturePreview") >= 0 || 
       cn.indexOf("drag") >= 0    || cn.indexOf("floatWindowClientArea") >= 0 || 
       cn.indexOf("WinBtn") >= 0  || cn.indexOf("sBtn") >= 0 || 
       cn.indexOf("nonspan") >= 0 || cn.indexOf("nomouse_command") >= 0 ||
       cn.indexOf("conn-log") >= 0);
-};
+  }
 
-App.prototype.mouse_click = function(e) {
+  mouse_click(e) {
   if (this.modalShown || this.contextMenuShown)
     return;
   if (this.connLog && this.connLog.contains(e.target))
@@ -1017,9 +1018,9 @@ App.prototype.mouse_click = function(e) {
   } else if (e.button == 1) { //middle button
   } else {
   }
-};
+  }
 
-App.prototype.middleMouse_down = function(e) {
+  middleMouse_down(e) {
   // moved to here because middle click works better with jquery
   if (this.connLog && this.connLog.contains(e.target))
     return;
@@ -1038,9 +1039,9 @@ App.prototype.middleMouse_down = function(e) {
       return false;
     }
   }
-};
+  }
 
-App.prototype.mouse_down = function(e) {
+  mouse_down(e) {
   if (this.modalShown || this.contextMenuShown)
     return;
   if (this.connLog && this.connLog.contains(e.target))
@@ -1070,9 +1071,9 @@ App.prototype.mouse_down = function(e) {
   } else if(e.button == 2) {
     this.mouseRightButtonDown = true;
   }
-};
+  }
 
-App.prototype.mouse_up = function(e) {
+  mouse_up(e) {
   if (this.modalShown || this.contextMenuShown)
     return;
   if (this.connLog && this.connLog.contains(e.target))
@@ -1119,9 +1120,9 @@ App.prototype.mouse_up = function(e) {
     this.setInputAreaFocus();
     e.preventDefault();
   }
-};
+  }
 
-App.prototype.mouse_move = function(e) {
+  mouse_move(e) {
   if (this.connLog && this.connLog.contains(e.target))
     return;
   if (this.buf.useMouseBrowsing) {
@@ -1132,9 +1133,9 @@ App.prototype.mouse_move = function(e) {
       this.resetMouseCursor();
   }
 
-};
+  }
 
-App.prototype.mouse_over = function(e) {
+  mouse_over(e) {
   if (this.modalShown || this.contextMenuShown)
     return;
   if (this.connLog && this.connLog.contains(e.target))
@@ -1145,18 +1146,18 @@ App.prototype.mouse_over = function(e) {
 
   if (this.isSelectionCollapsed() && !this.mouseLeftButtonDown)
     this.setInputAreaFocus();
-};
+  }
 
-App.prototype.suppressInertialWheel = function(durationMs) {
+  suppressInertialWheel(durationMs) {
   var now = Date.now();
   var duration = durationMs || ((this.lastEasyReadingWheelTime && (now - this.lastEasyReadingWheelTime < 1000)) ? 1200 : 300);
   this.suppressWheelUntil = Math.max(this.suppressWheelUntil || 0, now + duration);
   this.suppressWheelContinuous = true;
   this.suppressWheelStartedAt = now;
   this.wheelDeltaYAccum = 0;
-};
+  }
 
-App.prototype.mouse_scroll = function(e) {
+  mouse_scroll(e) {
   if (this.modalShown) 
     return;
   if (this.connLog && this.connLog.contains(e.target))
@@ -1294,9 +1295,9 @@ App.prototype.mouse_scroll = function(e) {
       this.CmdHandler.setAttribute('SkipMouseClick','1');
     }
   }
-};
+  }
 
-App.prototype.setBBSCmd = function setBBSCmd(cmd) {
+  setBBSCmd(cmd) {
   switch (cmd) {
     case "doArrowUp":
       if (this.view.isEasyReadingActive()) {
@@ -1371,13 +1372,14 @@ App.prototype.setBBSCmd = function setBBSCmd(cmd) {
     default:
       break;
   }
-};
+  }
 
-App.prototype.setupContextMenus = function() {
+  setupContextMenus() {
   ReactDOM.render(
     <ContextMenu
       pttchrome={this}
     />,
     document.getElementById('cmenuReact')
   );
-};
+  }
+}
