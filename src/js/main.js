@@ -36,8 +36,7 @@ function startApp() {
     console.log("load pref from storage");
     app.onValuesPrefChange(readValuesWithDefault());
     app.setInputAreaFocus();
-    $('#BBSWindow').show();
-    //$('#sideMenus').show();
+    document.getElementById('BBSWindow').style.display = '';
     app.onWindowResize();
   })
 }
@@ -58,7 +57,11 @@ function loadResources() {
     window.lib = window.lib || {};
     window.lib.b2uArray = new Uint8Array(binData[0]);
     window.lib.u2bArray = new Uint8Array(binData[1]);
-    $(document).ready(startApp);
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', startApp);
+    } else {
+      startApp();
+    }
   }, (e) => {
     console.log('loadResources failed: ' + e);
   });

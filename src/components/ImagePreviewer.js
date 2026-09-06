@@ -89,7 +89,7 @@ export class ImagePreviewer extends React.PureComponent {
 }
 
 const getTop = (top, height) => {
-  const pageHeight = $(window).height();
+  const pageHeight = window.innerHeight;
   const safeTop = typeof top === "number" && !isNaN(top) ? top : 20;
   const safeHeight = typeof height === "number" && !isNaN(height) ? height : 0;
 
