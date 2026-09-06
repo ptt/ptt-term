@@ -1,4 +1,4 @@
-import { App } from './pttchrome';
+import { App } from './app';
 import { setupI18n } from './i18n';
 import { getQueryVariable } from './util';
 import { readValuesWithDefault } from '../components/ContextMenu/PrefModal';
