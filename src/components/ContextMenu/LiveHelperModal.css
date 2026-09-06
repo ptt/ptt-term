@@ -1,7 +1,26 @@
+dialog.LiveHelperModal__Dialog {
+  position: fixed;
+  z-index: 1050;
+  top: 10%;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  padding: 0;
+  border-radius: 6px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  width: 500px;
+  max-width: 90vw;
+  background: #fff;
+}
+
 .LiveHelperModal__Body {
   display: flex;
   line-height: 34px;
   color: black;
+  align-items: center;
+  padding: 15px;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .LiveHelperModal__Body__Text {
@@ -9,9 +28,23 @@
 }
 
 .LiveHelperModal__Body__Input {
-  width: 10%;
+  width: 70px;
+  display: inline-block;
 }
 
 .LiveHelperModal__Body__Close {
   margin-left: auto;
+  font-size: 21px;
+  font-weight: bold;
+  line-height: 1;
+  color: #000;
+  text-shadow: 0 1px 0 #fff;
+  opacity: 0.2;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.LiveHelperModal__Body__Close:hover {
+  opacity: 0.5;
 }

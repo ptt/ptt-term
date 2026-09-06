@@ -3,18 +3,20 @@
   color: black;
 }
 
-.PrefModal > .modal-dialog {
-  height: 90%;
-  -webkit-user-select: none;
-}
-
-.PrefModal .modal-content {
-  height: 100%;
-}
-
-.PrefModal .modal-body {
-  height: 100%;
+dialog.PrefModal {
+  width: 600px;
+  max-width: 95vw;
+  height: 620px;
+  max-height: 90vh;
+  border-radius: 6px;
+  overflow: hidden;
   padding: 0;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+dialog.PrefModal .NativeDialog__content {
+  height: 100%;
 }
 
 .PrefModal__Grid {
@@ -73,4 +75,3 @@
 .PrefModal__Grid__Col--right__SubCheckbox {
   margin-left: 20px;
 }
-

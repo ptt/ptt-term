@@ -1,21 +1,6 @@
 import cx from "classnames";
 import React from "react";
-import { compose, withStateHandlers, withHandlers, lifecycle } from "recompose";
-import {
-  Modal,
-  Tab,
-  Row,
-  Col,
-  Nav,
-  NavItem,
-  Button,
-  Checkbox,
-  FormGroup,
-  ControlLabel,
-  FormControl,
-  OverlayTrigger,
-  Popover,
-} from "react-bootstrap";
+import NativeDialog from "../NativeDialog";
 import { i18n } from "../../js/i18n";
 import "./PrefModal.css";
 import {
@@ -27,11 +12,6 @@ import {
 } from "../../js/pref";
 
 export { getDefaultPrefs, readValuesWithDefault, writeValues };
-
-const normalizeSec = (value) => {
-  const sec = parseInt(value, 10);
-  return sec > 1 ? sec : 1;
-};
 
 const replaceMsg = (msg, replacements) => {
   return msg.split(/#(\S+)#/gi).map((it, index) => {
@@ -76,95 +56,6 @@ const changeNestedValue = (obj, key, newValue) => {
   };
 };
 
-const enhance = compose(
-  withStateHandlers(
-    () => ({
-      navActiveKey: "general",
-      values: readValuesWithDefault(),
-      replacements: {
-        link_github_iamchucky: link(
-          "Chuck Yang",
-          "https://github.com/iamchucky"
-        ),
-        link_github_robertabcd: link(
-          "robertabcd",
-          "https://github.com/robertabcd"
-        ),
-        link_robertabcd_PttChrome: link(
-          "robertabcd/PttChrome",
-          "https://github.com/robertabcd/PttChrome"
-        ),
-        link_github_current_owner: link(
-          PTTCHROME.GITHUB_REPOSITORY_OWNER,
-          "https://github.com/" + PTTCHROME.GITHUB_REPOSITORY_OWNER
-        ),
-        link_current_PttChrome: link(
-          PTTCHROME.GITHUB_REPOSITORY,
-          "https://github.com/" + PTTCHROME.GITHUB_REPOSITORY
-        ),
-        link_iamchucky_PttChrome: link(
-          "iamchucky/PttChrome",
-          "https://github.com/iamchucky/PttChrome"
-        ),
-        link_GPL20: link(
-          "General Public License v2.0",
-          "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html"
-        ),
-      },
-    }),
-    {
-      onCloseClick:
-        ({ values }, { onSave }) =>
-        () =>
-          onSave(writeValues(values)),
-
-      onResetClick:
-        (state, { onReset }) =>
-        () => {
-          const defaultValues = getDefaultPrefs();
-          writeValues(defaultValues);
-          onReset(defaultValues);
-          return {
-            values: defaultValues,
-          };
-        },
-
-      onSyncValues: () => () => ({
-        values: readValuesWithDefault(),
-      }),
-
-      onNavSelect: () => (activeKey) => ({
-        navActiveKey: activeKey,
-      }),
-
-      onCheckboxChange:
-        ({ values }) =>
-        ({ target: { name, checked } }) => ({
-          values: changeNestedValue(values, name, !!checked),
-        }),
-
-      onNumberInputChange:
-        ({ values }) =>
-        ({ target: { name, value } }) => ({
-          values: changeNestedValue(values, name, parseInt(value, 10)),
-        }),
-
-      onTextInputChange:
-        ({ values }) =>
-        ({ target: { name, value } }) => ({
-          values: changeNestedValue(values, name, value),
-        }),
-    }
-  ),
-  lifecycle({
-    componentDidUpdate(prevProps) {
-      if (!prevProps.show && this.props.show) {
-        this.props.onSyncValues();
-      }
-    },
-  })
-);
-
 const MOUSE_LEFT_OPTIONS = [
   "options_none",
   "options_enterKey",
@@ -203,10 +94,10 @@ const SelectOptionGroup = ({
   options,
   onChange,
 }) => (
-  <FormGroup controlId={controlId}>
-    <ControlLabel>{label}</ControlLabel>
-    <FormControl
-      componentClass="select"
+  <div className="form-group" id={controlId}>
+    <label className="control-label">{label}</label>
+    <select
+      className="form-control"
       name={name}
       value={value}
       onChange={onChange}
@@ -216,391 +107,483 @@ const SelectOptionGroup = ({
           {i18n(key)}
         </option>
       ))}
-    </FormControl>
-  </FormGroup>
+    </select>
+  </div>
 );
 
-export const PrefModal = ({
-  show,
-  // from recompose
-  onCloseClick,
-  onResetClick,
-  navActiveKey,
-  onNavSelect,
-  values,
-  onCheckboxChange,
-  onNumberInputChange,
-  onTextInputChange,
-  replacements,
-}) => (
-  <Modal show={show} onHide={onCloseClick} className="PrefModal">
-    <Modal.Body>
-      <Tab.Container
-        id="pref-modal-tabs"
-        activeKey={navActiveKey}
-        onSelect={onNavSelect}
+export class PrefModal extends React.Component {
+  state = {
+    navActiveKey: "general",
+    values: readValuesWithDefault(),
+  };
+
+  replacements = {
+    link_github_iamchucky: link(
+      "Chuck Yang",
+      "https://github.com/iamchucky"
+    ),
+    link_github_robertabcd: link(
+      "robertabcd",
+      "https://github.com/robertabcd"
+    ),
+    link_robertabcd_PttChrome: link(
+      "robertabcd/PttChrome",
+      "https://github.com/robertabcd/PttChrome"
+    ),
+    link_github_current_owner: link(
+      PTTCHROME.GITHUB_REPOSITORY_OWNER,
+      "https://github.com/" + PTTCHROME.GITHUB_REPOSITORY_OWNER
+    ),
+    link_current_PttChrome: link(
+      PTTCHROME.GITHUB_REPOSITORY,
+      "https://github.com/" + PTTCHROME.GITHUB_REPOSITORY
+    ),
+    link_iamchucky_PttChrome: link(
+      "iamchucky/PttChrome",
+      "https://github.com/iamchucky/PttChrome"
+    ),
+    link_GPL20: link(
+      "General Public License v2.0",
+      "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html"
+    ),
+  };
+
+  componentDidUpdate(prevProps) {
+    if (!prevProps.show && this.props.show) {
+      this.setState({ values: readValuesWithDefault() });
+    }
+  }
+
+  handleCloseClick = () => {
+    this.props.onSave(writeValues(this.state.values));
+  };
+
+  handleResetClick = () => {
+    const defaultValues = getDefaultPrefs();
+    writeValues(defaultValues);
+    this.props.onReset(defaultValues);
+    this.setState({ values: defaultValues });
+  };
+
+  handleNavSelect = (key) => (e) => {
+    e.preventDefault();
+    this.setState({ navActiveKey: key });
+  };
+
+  handleCheckboxChange = ({ target: { name, checked } }) => {
+    this.setState((prevState) => ({
+      values: changeNestedValue(prevState.values, name, !!checked),
+    }));
+  };
+
+  handleNumberInputChange = ({ target: { name, value } }) => {
+    this.setState((prevState) => ({
+      values: changeNestedValue(prevState.values, name, parseInt(value, 10)),
+    }));
+  };
+
+  handleTextInputChange = ({ target: { name, value } }) => {
+    this.setState((prevState) => ({
+      values: changeNestedValue(prevState.values, name, value),
+    }));
+  };
+
+  render() {
+    const { show } = this.props;
+    const { navActiveKey, values } = this.state;
+
+    return (
+      <NativeDialog
+        open={show}
+        onClose={this.handleCloseClick}
+        className="PrefModal native-modal"
       >
         <div className="PrefModal__Grid">
           <div className="PrefModal__Grid__Col--left">
             <h3>{i18n("menu_settings")}</h3>
-            <Nav bsStyle="pills" stacked>
-              <NavItem eventKey="general">{i18n("options_general")}</NavItem>
-              <NavItem eventKey="appearance">
-                {i18n("options_appearance")}
-              </NavItem>
-              <NavItem eventKey="mouseBrowsing">
-                {i18n("options_mouseBrowsing")}
-              </NavItem>
-              <NavItem eventKey="advanced">
-                {i18n("options_advanced")}
-              </NavItem>
-              <NavItem eventKey="about">{i18n("options_about")}</NavItem>
-            </Nav>
-            <Button
-              className="PrefModal__Grid__Col--left__Reset"
-              onClick={onResetClick}
+            <ul className="nav nav-pills nav-stacked">
+              <li className={navActiveKey === "general" ? "active" : ""}>
+                <a href="#" onClick={this.handleNavSelect("general")}>
+                  {i18n("options_general")}
+                </a>
+              </li>
+              <li className={navActiveKey === "appearance" ? "active" : ""}>
+                <a href="#" onClick={this.handleNavSelect("appearance")}>
+                  {i18n("options_appearance")}
+                </a>
+              </li>
+              <li className={navActiveKey === "mouseBrowsing" ? "active" : ""}>
+                <a href="#" onClick={this.handleNavSelect("mouseBrowsing")}>
+                  {i18n("options_mouseBrowsing")}
+                </a>
+              </li>
+              <li className={navActiveKey === "advanced" ? "active" : ""}>
+                <a href="#" onClick={this.handleNavSelect("advanced")}>
+                  {i18n("options_advanced")}
+                </a>
+              </li>
+              <li className={navActiveKey === "about" ? "active" : ""}>
+                <a href="#" onClick={this.handleNavSelect("about")}>
+                  {i18n("options_about")}
+                </a>
+              </li>
+            </ul>
+            <button
+              type="button"
+              className="btn btn-default PrefModal__Grid__Col--left__Reset"
+              onClick={this.handleResetClick}
             >
               {i18n("options_reset")}
-            </Button>
+            </button>
           </div>
           <div className="PrefModal__Grid__Col--right">
-            <Tab.Content animation>
-              <Tab.Pane eventKey="general">
-                <fieldset className="PrefModal__Grid__Col--right__Fieldset">
-                  <TabLegend
-                    title={i18n("options_general")}
-                    onCloseClick={onCloseClick}
-                  />
-                  <Checkbox
-                    name="enablePicPreview"
-                    checked={values.enablePicPreview}
-                    onChange={onCheckboxChange}
-                  >
+            {navActiveKey === "general" && (
+              <fieldset className="PrefModal__Grid__Col--right__Fieldset">
+                <TabLegend
+                  title={i18n("options_general")}
+                  onCloseClick={this.handleCloseClick}
+                />
+                <div className="checkbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="enablePicPreview"
+                      checked={values.enablePicPreview}
+                      onChange={this.handleCheckboxChange}
+                    />
                     {i18n("options_enablePicPreview")}
-                  </Checkbox>
-                  <Checkbox
-                    name="enableNotifications"
-                    checked={values.enableNotifications}
-                    onChange={onCheckboxChange}
-                  >
+                  </label>
+                </div>
+                <div className="checkbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="enableNotifications"
+                      checked={values.enableNotifications}
+                      onChange={this.handleCheckboxChange}
+                    />
                     {i18n("options_enableNotifications")}
-                  </Checkbox>
-                  <Checkbox
-                    name="enableEasyReading"
-                    checked={values.enableEasyReading}
-                    onChange={onCheckboxChange}
-                  >
+                  </label>
+                </div>
+                <div className="checkbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="enableEasyReading"
+                      checked={values.enableEasyReading}
+                      onChange={this.handleCheckboxChange}
+                    />
                     {i18n("options_enableEasyReading")}
-                  </Checkbox>
-                  <Checkbox
-                    name="endTurnsOnLiveUpdate"
-                    checked={values.endTurnsOnLiveUpdate}
-                    onChange={onCheckboxChange}
-                  >
+                  </label>
+                </div>
+                <div className="checkbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="endTurnsOnLiveUpdate"
+                      checked={values.endTurnsOnLiveUpdate}
+                      onChange={this.handleCheckboxChange}
+                    />
                     {i18n("options_endTurnsOnLiveUpdate")}
-                  </Checkbox>
-                  <Checkbox
-                    name="copyOnSelect"
-                    checked={values.copyOnSelect}
-                    onChange={onCheckboxChange}
-                  >
+                  </label>
+                </div>
+                <div className="checkbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="copyOnSelect"
+                      checked={values.copyOnSelect}
+                      onChange={this.handleCheckboxChange}
+                    />
                     {i18n("options_copyOnSelect")}
-                  </Checkbox>
-                  <FormGroup controlId="antiIdleTime">
-                    <ControlLabel>{i18n("options_antiIdleTime")}</ControlLabel>
-                    <OverlayTrigger
-                      trigger="focus"
-                      placement="right"
-                      overlay={
-                        <Popover id="tooltip_antiIdleTime">
-                          {i18n("tooltip_antiIdleTime")}
-                        </Popover>
-                      }
-                    >
-                      <FormControl
-                        name="antiIdleTime"
+                  </label>
+                </div>
+                <div className="form-group" id="antiIdleTime">
+                  <label className="control-label">{i18n("options_antiIdleTime")}</label>
+                  <input
+                    className="form-control"
+                    name="antiIdleTime"
+                    type="number"
+                    title={i18n("tooltip_antiIdleTime")}
+                    value={values.antiIdleTime}
+                    onChange={this.handleNumberInputChange}
+                  />
+                  <p className="help-block" id="tooltip_antiIdleTime">{i18n("tooltip_antiIdleTime")}</p>
+                </div>
+                <div className="form-group" id="lineWrap">
+                  <label className="control-label">{i18n("options_lineWrap")}</label>
+                  <input
+                    className="form-control"
+                    name="lineWrap"
+                    type="number"
+                    value={values.lineWrap}
+                    onChange={this.handleNumberInputChange}
+                  />
+                </div>
+              </fieldset>
+            )}
+            {navActiveKey === "appearance" && (
+              <fieldset className="PrefModal__Grid__Col--right__Fieldset">
+                <TabLegend
+                  title={i18n("options_appearance")}
+                  onCloseClick={this.handleCloseClick}
+                />
+                <div className="form-group" id="fontFace">
+                  <label className="control-label">{i18n("options_fontFace")}</label>
+                  <input
+                    className="form-control"
+                    name="fontFace"
+                    type="text"
+                    title={i18n("tooltip_fontFace")}
+                    value={values.fontFace}
+                    onChange={this.handleTextInputChange}
+                  />
+                  <p className="help-block" id="tooltip_fontFace">{i18n("tooltip_fontFace")}</p>
+                </div>
+                <div className="form-group" id="bbsMargin">
+                  <label className="control-label">{i18n("options_bbsMargin")}</label>
+                  <input
+                    className="form-control"
+                    name="bbsMargin"
+                    type="number"
+                    value={values.bbsMargin}
+                    onChange={this.handleNumberInputChange}
+                  />
+                </div>
+                <div className="form-group" id="termSizeMode">
+                  <label className="control-label">{i18n("options_termSize")}</label>
+                  <select
+                    className="form-control"
+                    name="termSizeMode"
+                    value={values.termSizeMode}
+                    onChange={this.handleTextInputChange}
+                  >
+                    <option key="options_fixedTermSize" value="fixed-term-size">
+                      {i18n("options_fixedTermSize")}
+                    </option>
+                    <option key="options_fixedFontSize" value="fixed-font-size">
+                      {i18n("options_fixedFontSize")}
+                    </option>
+                    <option key="options_maxFontSize" value="max-font-size">
+                      {i18n("options_maxFontSize")}
+                    </option>
+                  </select>
+                </div>
+                {values.termSizeMode === "fixed-term-size" && (
+                  <div>
+                    <div className="form-group" id="termSize_cols">
+                      <label className="control-label">{i18n("options_cols")}</label>
+                      <input
+                        className="form-control"
+                        name="termSize.cols"
                         type="number"
-                        value={values.antiIdleTime}
-                        onChange={onNumberInputChange}
+                        value={values.termSize.cols}
+                        onChange={this.handleNumberInputChange}
                       />
-                    </OverlayTrigger>
-                  </FormGroup>
-                  <FormGroup controlId="lineWrap">
-                    <ControlLabel>{i18n("options_lineWrap")}</ControlLabel>
-                    <FormControl
-                      name="lineWrap"
-                      type="number"
-                      value={values.lineWrap}
-                      onChange={onNumberInputChange}
-                    />
-                  </FormGroup>
-                </fieldset>
-              </Tab.Pane>
-              <Tab.Pane eventKey="appearance">
-                <fieldset className="PrefModal__Grid__Col--right__Fieldset">
-                  <TabLegend
-                    title={i18n("options_appearance")}
-                    onCloseClick={onCloseClick}
-                  />
-                  <FormGroup controlId="fontFace">
-                    <ControlLabel>{i18n("options_fontFace")}</ControlLabel>
-                    <OverlayTrigger
-                      trigger="focus"
-                      placement="right"
-                      overlay={
-                        <Popover id="tooltip_fontFace">
-                          {i18n("tooltip_fontFace")}
-                        </Popover>
-                      }
-                    >
-                      <FormControl
-                        name="fontFace"
-                        type="text"
-                        value={values.fontFace}
-                        onChange={onTextInputChange}
+                    </div>
+                    <div className="form-group" id="termSize_rows">
+                      <label className="control-label">{i18n("options_rows")}</label>
+                      <input
+                        className="form-control"
+                        name="termSize.rows"
+                        type="number"
+                        value={values.termSize.rows}
+                        onChange={this.handleNumberInputChange}
                       />
-                    </OverlayTrigger>
-                  </FormGroup>
-                  <FormGroup controlId="bbsMargin">
-                    <ControlLabel>{i18n("options_bbsMargin")}</ControlLabel>
-                    <FormControl
-                      name="bbsMargin"
-                      type="number"
-                      value={values.bbsMargin}
-                      onChange={onNumberInputChange}
-                    />
-                  </FormGroup>
-                  <FormGroup controlId="termSizeMode">
-                    <ControlLabel>{i18n("options_termSize")}</ControlLabel>
-                    <FormControl
-                      componentClass="select"
-                      name="termSizeMode"
-                      value={values.termSizeMode}
-                      onChange={onTextInputChange}
-                    >
-                      <option
-                        key={"options_fixedTermSize"}
-                        value={"fixed-term-size"}
-                      >
-                        {i18n("options_fixedTermSize")}
-                      </option>
-                      <option
-                        key={"options_fixedFontSize"}
-                        value={"fixed-font-size"}
-                      >
-                        {i18n("options_fixedFontSize")}
-                      </option>
-                      <option
-                        key={"options_maxFontSize"}
-                        value={"max-font-size"}
-                      >
-                        {i18n("options_maxFontSize")}
-                      </option>
-                    </FormControl>
-                  </FormGroup>
-                  {(() => {
-                    switch (values.termSizeMode) {
-                      case "fixed-term-size":
-                        return (
-                          <div>
-                            <FormGroup controlId="termSize_cols">
-                              <ControlLabel>
-                                {i18n("options_cols")}
-                              </ControlLabel>
-                              <FormControl
-                                name="termSize.cols"
-                                type="number"
-                                value={values.termSize.cols}
-                                onChange={onNumberInputChange}
-                              />
-                            </FormGroup>
-                            <FormGroup controlId="termSize_rows">
-                              <ControlLabel>
-                                {i18n("options_rows")}
-                              </ControlLabel>
-                              <FormControl
-                                name="termSize.rows"
-                                type="number"
-                                value={values.termSize.rows}
-                                onChange={onNumberInputChange}
-                              />
-                            </FormGroup>
-                            <Checkbox
-                              name="fontFitWindowWidth"
-                              checked={values.fontFitWindowWidth}
-                              onChange={onCheckboxChange}
-                            >
-                              {i18n("options_fontFitWindowWidth")}
-                            </Checkbox>
-                          </div>
-                        );
-                      case "fixed-font-size":
-                        return (
-                          <FormGroup controlId="fontSize">
-                            <ControlLabel>
-                              {i18n("options_fontSize")}
-                            </ControlLabel>
-                            <FormControl
-                              name="fontSize"
-                              type="number"
-                              value={values.fontSize}
-                              onChange={onNumberInputChange}
-                            />
-                          </FormGroup>
-                        );
-                      case "max-font-size":
-                        return (
-                          <FormGroup controlId="maxFontSize">
-                            <ControlLabel>
-                              {i18n("options_fontSizeMax")}
-                            </ControlLabel>
-                            <FormControl
-                              name="maxFontSize"
-                              type="number"
-                              value={values.maxFontSize}
-                              onChange={onNumberInputChange}
-                            />
-                          </FormGroup>
-                        );
-                      default:
-                        return null;
-                    }
-                  })()}
-                </fieldset>
-              </Tab.Pane>
-              <Tab.Pane eventKey="mouseBrowsing">
-                <fieldset className="PrefModal__Grid__Col--right__Fieldset">
-                  <TabLegend
-                    title={i18n("options_mouseBrowsing")}
-                    onCloseClick={onCloseClick}
-                  />
-                  <Checkbox
-                    name="useMouseBrowsing"
-                    checked={values.useMouseBrowsing}
-                    onChange={onCheckboxChange}
-                  >
-                    {i18n("options_useMouseBrowsing")}
-                  </Checkbox>
-                  <Checkbox
-                    name="mouseBrowsingHighlight"
-                    checked={values.mouseBrowsingHighlight}
-                    onChange={onCheckboxChange}
-                  >
-                    {i18n("options_mouseBrowsingHighlight")}
-                  </Checkbox>
-                  <div className="PrefModal__Grid__Col--right__MouseBrowsingHighlightColor">
-                    {i18n("options_highlightColor")}
-                    <FormControl
-                      componentClass="select"
-                      className={cx(
-                        `b${values.mouseBrowsingHighlightColor}`,
-                        `b${values.mouseBrowsingHighlightColor}`
-                      )}
-                      name="mouseBrowsingHighlightColor"
-                      value={values.mouseBrowsingHighlightColor}
-                      onChange={onNumberInputChange}
-                    >
-                      {Array(16)
-                        .fill(0, 1 /* skip transparent (index === 0) */)
-                        .map((x, i) => (
-                          <option
-                            key={i}
-                            value={i}
-                            className={cx(
-                              `b${i}` /* FIXME: Existing bug: Not working for Chrome */
-                            )}
-                          />
-                        ))}
-                    </FormControl>
+                    </div>
+                    <div className="checkbox">
+                      <label>
+                        <input
+                          type="checkbox"
+                          name="fontFitWindowWidth"
+                          checked={values.fontFitWindowWidth}
+                          onChange={this.handleCheckboxChange}
+                        />
+                        {i18n("options_fontFitWindowWidth")}
+                      </label>
+                    </div>
                   </div>
-                  <SelectOptionGroup
-                    controlId="mouseLeftFunction"
-                    label={i18n("options_mouseLeftFunction")}
-                    name="mouseLeftFunction"
-                    value={values.mouseLeftFunction}
-                    options={MOUSE_LEFT_OPTIONS}
-                    onChange={onNumberInputChange}
-                  />
-                  <SelectOptionGroup
-                    controlId="mouseMiddleFunction"
-                    label={i18n("options_mouseMiddleFunction")}
-                    name="mouseMiddleFunction"
-                    value={values.mouseMiddleFunction}
-                    options={MOUSE_MIDDLE_OPTIONS}
-                    onChange={onNumberInputChange}
-                  />
-                  <SelectOptionGroup
-                    controlId="mouseWheelFunction1"
-                    label={i18n("options_mouseWheelFunction1")}
-                    name="mouseWheelFunction1"
-                    value={values.mouseWheelFunction1}
-                    options={MOUSE_WHEEL_OPTIONS}
-                    onChange={onNumberInputChange}
-                  />
-                  <SelectOptionGroup
-                    controlId="mouseWheelFunction2"
-                    label={i18n("options_mouseWheelFunction2")}
-                    name="mouseWheelFunction2"
-                    value={values.mouseWheelFunction2}
-                    options={MOUSE_WHEEL_OPTIONS}
-                    onChange={onNumberInputChange}
-                  />
-                  <SelectOptionGroup
-                    controlId="mouseWheelFunction3"
-                    label={i18n("options_mouseWheelFunction3")}
-                    name="mouseWheelFunction3"
-                    value={values.mouseWheelFunction3}
-                    options={MOUSE_WHEEL_OPTIONS}
-                    onChange={onNumberInputChange}
-                  />
-                </fieldset>
-              </Tab.Pane>
-              <Tab.Pane eventKey="advanced">
-                <fieldset className="PrefModal__Grid__Col--right__Fieldset">
-                  <TabLegend
-                    title={i18n("options_advanced")}
-                    onCloseClick={onCloseClick}
-                  />
-                  <Checkbox
-                    name="useCanvasEngine"
-                    checked={values.useCanvasEngine}
-                    onChange={onCheckboxChange}
+                )}
+                {values.termSizeMode === "fixed-font-size" && (
+                  <div className="form-group" id="fontSize">
+                    <label className="control-label">{i18n("options_fontSize")}</label>
+                    <input
+                      className="form-control"
+                      name="fontSize"
+                      type="number"
+                      value={values.fontSize}
+                      onChange={this.handleNumberInputChange}
+                    />
+                  </div>
+                )}
+                {values.termSizeMode === "max-font-size" && (
+                  <div className="form-group" id="maxFontSize">
+                    <label className="control-label">{i18n("options_fontSizeMax")}</label>
+                    <input
+                      className="form-control"
+                      name="maxFontSize"
+                      type="number"
+                      value={values.maxFontSize}
+                      onChange={this.handleNumberInputChange}
+                    />
+                  </div>
+                )}
+              </fieldset>
+            )}
+            {navActiveKey === "mouseBrowsing" && (
+              <fieldset className="PrefModal__Grid__Col--right__Fieldset">
+                <TabLegend
+                  title={i18n("options_mouseBrowsing")}
+                  onCloseClick={this.handleCloseClick}
+                />
+                <div className="checkbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="useMouseBrowsing"
+                      checked={values.useMouseBrowsing}
+                      onChange={this.handleCheckboxChange}
+                    />
+                    {i18n("options_useMouseBrowsing")}
+                  </label>
+                </div>
+                <div className="checkbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="mouseBrowsingHighlight"
+                      checked={values.mouseBrowsingHighlight}
+                      onChange={this.handleCheckboxChange}
+                    />
+                    {i18n("options_mouseBrowsingHighlight")}
+                  </label>
+                </div>
+                <div className="PrefModal__Grid__Col--right__MouseBrowsingHighlightColor">
+                  {i18n("options_highlightColor")}
+                  <select
+                    className={cx(
+                      "form-control",
+                      `b${values.mouseBrowsingHighlightColor}`
+                    )}
+                    name="mouseBrowsingHighlightColor"
+                    value={values.mouseBrowsingHighlightColor}
+                    onChange={this.handleNumberInputChange}
                   >
+                    {Array(16)
+                      .fill(0, 1)
+                      .map((x, i) => (
+                        <option
+                          key={i}
+                          value={i}
+                          className={cx(`b${i}`)}
+                        />
+                      ))}
+                  </select>
+                </div>
+                <SelectOptionGroup
+                  controlId="mouseLeftFunction"
+                  label={i18n("options_mouseLeftFunction")}
+                  name="mouseLeftFunction"
+                  value={values.mouseLeftFunction}
+                  options={MOUSE_LEFT_OPTIONS}
+                  onChange={this.handleNumberInputChange}
+                />
+                <SelectOptionGroup
+                  controlId="mouseMiddleFunction"
+                  label={i18n("options_mouseMiddleFunction")}
+                  name="mouseMiddleFunction"
+                  value={values.mouseMiddleFunction}
+                  options={MOUSE_MIDDLE_OPTIONS}
+                  onChange={this.handleNumberInputChange}
+                />
+                <SelectOptionGroup
+                  controlId="mouseWheelFunction1"
+                  label={i18n("options_mouseWheelFunction1")}
+                  name="mouseWheelFunction1"
+                  value={values.mouseWheelFunction1}
+                  options={MOUSE_WHEEL_OPTIONS}
+                  onChange={this.handleNumberInputChange}
+                />
+                <SelectOptionGroup
+                  controlId="mouseWheelFunction2"
+                  label={i18n("options_mouseWheelFunction2")}
+                  name="mouseWheelFunction2"
+                  value={values.mouseWheelFunction2}
+                  options={MOUSE_WHEEL_OPTIONS}
+                  onChange={this.handleNumberInputChange}
+                />
+                <SelectOptionGroup
+                  controlId="mouseWheelFunction3"
+                  label={i18n("options_mouseWheelFunction3")}
+                  name="mouseWheelFunction3"
+                  value={values.mouseWheelFunction3}
+                  options={MOUSE_WHEEL_OPTIONS}
+                  onChange={this.handleNumberInputChange}
+                />
+              </fieldset>
+            )}
+            {navActiveKey === "advanced" && (
+              <fieldset className="PrefModal__Grid__Col--right__Fieldset">
+                <TabLegend
+                  title={i18n("options_advanced")}
+                  onCloseClick={this.handleCloseClick}
+                />
+                <div className="checkbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="useCanvasEngine"
+                      checked={values.useCanvasEngine}
+                      onChange={this.handleCheckboxChange}
+                    />
                     {i18n("options_useCanvasEngine")}
-                  </Checkbox>
-                  <Checkbox
-                    className="PrefModal__Grid__Col--right__SubCheckbox"
-                    name="smoothAnsiArt"
-                    checked={values.smoothAnsiArt}
-                    disabled={!values.useCanvasEngine}
-                    onChange={onCheckboxChange}
-                  >
+                  </label>
+                </div>
+                <div className="checkbox PrefModal__Grid__Col--right__SubCheckbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="smoothAnsiArt"
+                      checked={values.smoothAnsiArt}
+                      disabled={!values.useCanvasEngine}
+                      onChange={this.handleCheckboxChange}
+                    />
                     {i18n("options_smoothAnsiArt")}
-                  </Checkbox>
-                  <Checkbox
-                    name="showFps"
-                    checked={values.showFps}
-                    onChange={onCheckboxChange}
-                  >
+                  </label>
+                </div>
+                <div className="checkbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="showFps"
+                      checked={values.showFps}
+                      onChange={this.handleCheckboxChange}
+                    />
                     {i18n("options_showFps")}
-                  </Checkbox>
-                  <Checkbox
-                    name="captureConnectionLog"
-                    checked={values.captureConnectionLog}
-                    onChange={onCheckboxChange}
-                  >
+                  </label>
+                </div>
+                <div className="checkbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="captureConnectionLog"
+                      checked={values.captureConnectionLog}
+                      onChange={this.handleCheckboxChange}
+                    />
                     {i18n("options_captureConnectionLog")}
-                  </Checkbox>
-                </fieldset>
-              </Tab.Pane>
-              <Tab.Pane eventKey="about">
+                  </label>
+                </div>
+              </fieldset>
+            )}
+            {navActiveKey === "about" && (
+              <div>
                 <div>
                   <TabLegend
                     title={i18n("appName")}
                     subtitle={i18n("about_appName_subtitle")}
-                    onCloseClick={onCloseClick}
+                    onCloseClick={this.handleCloseClick}
                   />
-                  <p>{replaceI18n("about_description", replacements)}</p>
+                  <p>{replaceI18n("about_description", this.replacements)}</p>
                 </div>
                 <div>
                   <legend>
@@ -611,7 +594,7 @@ export const PrefModal = ({
                       : ""}
                   </legend>
                   <ul>
-                    {replaceI18n("about_version_content", replacements).map(
+                    {replaceI18n("about_version_content", this.replacements).map(
                       (text, index) => (
                         <li key={index}>{text}</li>
                       )
@@ -626,13 +609,13 @@ export const PrefModal = ({
                     ))}
                   </ul>
                 </div>
-              </Tab.Pane>
-            </Tab.Content>
+              </div>
+            )}
           </div>
         </div>
-      </Tab.Container>
-    </Modal.Body>
-  </Modal>
-);
+      </NativeDialog>
+    );
+  }
+}
 
-export default enhance(PrefModal);
+export default PrefModal;
