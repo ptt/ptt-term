@@ -1177,9 +1177,7 @@ export class App {
 
   // 4. Normal BBS Terminal Wheel Handling with Pixel Accumulation & Throttling
   let deltaY = e.deltaY;
-  if (typeof deltaY === 'undefined') {
-    deltaY = -e.wheelDelta;
-  } else if (e.deltaMode === 1) { // DOM_DELTA_LINE
+  if (e.deltaMode === 1) { // DOM_DELTA_LINE
     deltaY *= 30;
   } else if (e.deltaMode === 2) { // DOM_DELTA_PAGE
     deltaY *= 300;

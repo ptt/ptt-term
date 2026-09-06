@@ -94,7 +94,9 @@ export class TermKeyboard {
           return this._send(mapped);
         }
       } else if (e.key.length == 1) {
-        // Normal char is handled in keypress. See comment in onKeyPress.
+        if (!e.isComposing && e.keyCode !== 229) {
+          return this._send(e.key);
+        }
         return false;
       }
     } else if (e.ctrlKey && !e.altKey && !e.shiftKey) {
@@ -119,15 +121,10 @@ export class TermKeyboard {
     return false;
   }
 
+  /**
+   * @deprecated Handled in onKeyDown
+   */
   onKeyPress(e) {
-    // Firefox on Mac issues keyCode for the key that starts composition (while
-    // other browsers send 229), so a normal char is handled using keypress. We
-    // can't move all key handling here since ctrl- and alt-compounds are
-    // handled by browsers before keypress.
-    if (!e.ctrlKey && !e.altKey && e.key.length == 1) {
-      e.preventDefault();
-      return this._send(e.key)
-    }
     return false;
   }
 }
