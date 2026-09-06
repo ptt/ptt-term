@@ -37,36 +37,3 @@
   left: 10px;
   color: black;
 }
-
-.DropdownMenu__Item--quickSearch {
-  position: relative;
-}
-
-.DropdownMenu__Item--quickSearch .QuickSearchMenu {
-  display: none;
-}
-
-.DropdownMenu__Item--quickSearch:hover .QuickSearchMenu {
-  display: block;
-}
-
-.QuickSearchMenu {
-  left: 100%;
-  top: 0px;
-  margin-top: -5px;
-  margin-left: -1px;
-}
-
-.QuickSearchMenu--up {
-  top: initial !important;
-  bottom: 0px;
-  margin-top: 0px !important;
-  margin-bottom: -5px;
-}
-
-.QuickSearchMenu--left {
-  right: 100%;
-  left: initial !important;
-  margin-left: 0px !important;
-  margin-right: -1px;
-}

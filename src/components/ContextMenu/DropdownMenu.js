@@ -30,14 +30,6 @@ const normalizeSelectedText = (selectedText) => {
   return selectedText;
 };
 
-const QUICK_SEARCH = {
-  providers: [
-    {
-      name: "goo.gl",
-      url: "https://goo.gl/%s"
-    }
-  ]
-};
 
 const MenuItem = ({ eventKey, onSelect, onClick, divider, className, children }) => {
   if (divider) {
@@ -69,7 +61,6 @@ export const DropdownMenu = ({
   onInputHelperClick,
   onLiveArticleHelperClick,
   onSettingsClick,
-  onQuickSearchSelect,
 }) => {
   const menuRef = useRef(null);
 
@@ -125,44 +116,6 @@ export const DropdownMenu = ({
         </React.Fragment>
       )}
       <MenuItem divider />
-      {selEnabled && (
-        <React.Fragment>
-          <li role="presentation" className="DropdownMenu__Item--quickSearch">
-            <a
-              role="menuitem"
-              tabIndex="-1"
-              href="#"
-              onClick={(e) => e.preventDefault()}
-            >
-              {i18n("cmenu_quickSearch")}{" "}
-              <span style={{ float: "right" }}>&#9658;</span>
-            </a>
-            <ul
-              className={cx(
-                "dropdown-menu",
-                "DropdownMenu--reset",
-                "QuickSearchMenu",
-                {
-                  "QuickSearchMenu--up": pageY > window.innerHeight / 2,
-                  "QuickSearchMenu--left": pageX > window.innerWidth * 0.7
-                }
-              )}
-              role="menu"
-            >
-              {QUICK_SEARCH.providers.map((p) => (
-                <MenuItem
-                  key={p.url}
-                  eventKey={p.url}
-                  onSelect={onQuickSearchSelect}
-                >
-                  {p.name}
-                </MenuItem>
-              ))}
-            </ul>
-          </li>
-          <MenuItem divider />
-        </React.Fragment>
-      )}
       {normalEnabled && (
         <React.Fragment>
           <MenuItem eventKey="selectAll" onSelect={onMenuSelect}>

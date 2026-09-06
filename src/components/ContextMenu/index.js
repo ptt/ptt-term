@@ -254,16 +254,6 @@ export class ContextMenu extends React.Component {
     });
   };
 
-  handleQuickSearchSelect = (eventKey, event) => {
-    const url = eventKey.replace("%s", this.state.selectedText);
-    window.open(url);
-    if (event) {
-      event.stopPropagation();
-    }
-    this.props.app.contextMenuShown = false;
-    this.setState(initialState);
-  };
-
   handleInputHelperHide = () => {
     this.setState({ showsInputHelper: false });
   };
@@ -376,7 +366,6 @@ export class ContextMenu extends React.Component {
             onInputHelperClick={this.handleInputHelperClick}
             onLiveArticleHelperClick={this.handleLiveArticleHelperClick}
             onSettingsClick={this.handleSettingsClick}
-            onQuickSearchSelect={this.handleQuickSearchSelect}
           />
         </div>
         <InputHelperModal
