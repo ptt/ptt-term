@@ -61,7 +61,7 @@ module.exports = {
     plugins: [new AliasPlugin('described-resolve', [{
       name: 'Icon',
       alias: [
-        path.resolve(__dirname, `src/icon/${process.env.PTTCHROME_THEME || 'pttchrome'}/`),
+        path.resolve(__dirname, `src/icon/${process.env.PTTCHROME_THEME || 'default'}/`),
         path.resolve(__dirname, 'src/icon/')
       ]
     }], 'resolve')]
