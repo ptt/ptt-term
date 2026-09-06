@@ -19,8 +19,8 @@ export class ConnectionLog {
     this.contentEl = null;
     this.toggleBtn = null;
     this.currentSocket = null;
-    this._onRecvBound = this._onRecv.bind(this);
-    this._onSendBound = this._onSend.bind(this);
+    this._onRecvBound = (e) => this._onRecv(e);
+    this._onSendBound = (e) => this._onSend(e);
 
     try {
       const prefs = readValuesWithDefault();

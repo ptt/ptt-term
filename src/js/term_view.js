@@ -147,9 +147,9 @@ export function TermView() {
   this.setFontFace('MingLiu,monospace');
 
   this._keyboard = new TermKeyboard(
-    this.checkLeftDB.bind(this),
-    this.checkCurDB.bind(this),
-    this._send.bind(this));
+    () => this.checkLeftDB(),
+    () => this.checkCurDB(),
+    (data) => this._send(data));
 
   this.input.addEventListener('compositionstart', (e) => {
     this.onCompositionStart(e);
@@ -832,7 +832,7 @@ TermView.prototype = {
       tag: app.waterball.userId
     };
     this.notif = new Notification(title, options);
-    this.notif.onclick = function() {
+    this.notif.onclick = () => {
       window.focus();
     };
   },

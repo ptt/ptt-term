@@ -84,71 +84,69 @@ export const App = function() {
     this.chromeVersion = parseInt(version[2], 10);
   }
 
-  var self = this;
-
-  window.addEventListener('click', function(e) {
-    self.mouse_click(e);
+  window.addEventListener('click', (e) => {
+    this.mouse_click(e);
   }, false);
 
-  window.addEventListener('mousedown', function(e) {
-    self.mouse_down(e);
+  window.addEventListener('mousedown', (e) => {
+    this.mouse_down(e);
   }, false);
 
-  $(window).mousedown(function(e) {
-    var ret = self.middleMouse_down(e);
+  $(window).mousedown((e) => {
+    var ret = this.middleMouse_down(e);
     if (ret === false) {
       return false;
     }
   });
 
-  window.addEventListener('mouseup', function(e) {
-    self.mouse_up(e);
+  window.addEventListener('mouseup', (e) => {
+    this.mouse_up(e);
   }, false);
 
-  document.addEventListener('mousemove', function(e) {
-    self.mouse_move(e);
+  document.addEventListener('mousemove', (e) => {
+    this.mouse_move(e);
   }, false);
 
-  document.addEventListener('mouseover', function(e) {
-    self.mouse_over(e);
+  document.addEventListener('mouseover', (e) => {
+    this.mouse_over(e);
   }, false);
 
   if ('onwheel' in window) {
-    window.addEventListener('wheel', function(e) {
-      self.mouse_scroll(e);
+    window.addEventListener('wheel', (e) => {
+      this.mouse_scroll(e);
     }, { capture: true, passive: false });
   } else {
-    window.addEventListener('mousewheel', function(e) {
-      self.mouse_scroll(e);
+    window.addEventListener('mousewheel', (e) => {
+      this.mouse_scroll(e);
     }, { capture: true, passive: false });
   }
 
-  window.addEventListener('focus', function(e) {
-    self.appFocused = true;
-    if (self.view.titleTimer) {
-      self.view.titleTimer.cancel();
-      self.view.titleTimer = null;
-      self.view.buf.setTitle();
-      self.view.notif.close();
+  window.addEventListener('focus', (e) => {
+    this.appFocused = true;
+    if (this.view.titleTimer) {
+      this.view.titleTimer.cancel();
+      this.view.titleTimer = null;
+      this.view.buf.setTitle();
+      this.view.notif.close();
     }
   }, false);
 
-  window.addEventListener('blur', function(e) {
-    self.appFocused = false;
+  window.addEventListener('blur', (e) => {
+    this.appFocused = false;
   }, false);
 
   this.strToCopy = null;
-  document.addEventListener('copy', function(e) {
-    self.onDOMCopy(e);
+  document.addEventListener('copy', (e) => {
+    this.onDOMCopy(e);
   });
-  this.inputArea.addEventListener('paste', function(e) {
-    self.onDOMPaste(e);
+  this.inputArea.addEventListener('paste', (e) => {
+    this.onDOMPaste(e);
   });
 
   this.view.innerBounds = this.getWindowInnerBounds();
   this.view.firstGridOffset = this.getFirstGridOffsets();
-  window.onresize = function() {
-    self.onWindowResize();
+  window.onresize = () => {
+    this.onWindowResize();
   };
 
   window.addEventListener('beforeunload', (e) => {
@@ -258,24 +256,23 @@ App.prototype._setupWebsocketConn = function(url) {
 };
 
 App.prototype._attachConn = function(conn) {
-  var self = this;
   this.conn = conn;
-  this.conn.addEventListener('open', this.onConnect.bind(this));
-  this.conn.addEventListener('close', this.onClose.bind(this));
-  this.conn.addEventListener('telopt', function(e) {
-    if (self.siteProfile && typeof self.siteProfile.onTelopt === 'function') {
-      self.siteProfile.onTelopt(e.detail.cmd, e.detail.opt, self.buf);
+  this.conn.addEventListener('open', () => this.onConnect());
+  this.conn.addEventListener('close', () => this.onClose());
+  this.conn.addEventListener('telopt', (e) => {
+    if (this.siteProfile && typeof this.siteProfile.onTelopt === 'function') {
+      this.siteProfile.onTelopt(e.detail.cmd, e.detail.opt, this.buf);
     }
   });
-  this.conn.addEventListener('data', function(e) {
-    if (self.siteProfile && typeof self.siteProfile.onData === 'function') {
-      self.siteProfile.onData(e.detail.data, self.buf);
+  this.conn.addEventListener('data', (e) => {
+    if (this.siteProfile && typeof this.siteProfile.onData === 'function') {
+      this.siteProfile.onData(e.detail.data, this.buf);
     }
-    self.onData(e.detail.data);
+    this.onData(e.detail.data);
   });
-  this.conn.addEventListener('doNaws', function(e) {
+  this.conn.addEventListener('doNaws', (e) => {
     conn.sendWillNaws();
-    conn.sendNaws(self.buf.cols, self.buf.rows);
+    conn.sendNaws(this.buf.cols, this.buf.rows);
   });
 };
 
@@ -287,11 +284,10 @@ App.prototype.onConnect = function() {
   this.updateTabIcon('connect');
   this.view.buf.setTitle({conn: this.connectedUrl.site});
   this.idleTime = 0;
-  var self = this;
-  this.timerEverySec = setTimer(true, function() {
-    self.antiIdle();
-    self.view.onBlink();
-    self.incrementCountToUpdatePushthread();
+  this.timerEverySec = setTimer(true, () => {
+    this.antiIdle();
+    this.view.onBlink();
+    this.incrementCountToUpdatePushthread();
   }, 1000);
 };
 
@@ -352,11 +348,10 @@ App.prototype.cancelMbTimer = function() {
 
 App.prototype.setMbTimer = function() {
   this.cancelMbTimer();
-  var _this = this;
-  this.mbTimer = setTimer(false, function() {
-    _this.mbTimer.cancel();
-    _this.mbTimer = null;
-    _this.CmdHandler.setAttribute('SkipMouseClick', '0');
+  this.mbTimer = setTimer(false, () => {
+    this.mbTimer.cancel();
+    this.mbTimer = null;
+    this.CmdHandler.setAttribute('SkipMouseClick', '0');
   }, 100);
 };
 
@@ -369,10 +364,9 @@ App.prototype.cancelDblclickTimer = function() {
 
 App.prototype.setDblclickTimer = function() {
   this.cancelDblclickTimer();
-  var _this = this;
-  this.dblclickTimer = setTimer(false, function() {
-    _this.dblclickTimer.cancel();
-    _this.dblclickTimer = null;
+  this.dblclickTimer = setTimer(false, () => {
+    this.dblclickTimer.cancel();
+    this.dblclickTimer = null;
   }, 350);
 };
 
@@ -1111,14 +1105,13 @@ App.prototype.mouse_up = function(e) {
         this.doCopy(this.view ? this.view.getSelectedText() : window.getSelection().toString().replace(/\u00a0/g, " "));
       }
     }
-    var _this = this;
-    this.inputAreaFocusTimer = setTimer(false, function() {
-      if (_this.inputAreaFocusTimer) {
-        _this.inputAreaFocusTimer.cancel();
-        _this.inputAreaFocusTimer = null;
+    this.inputAreaFocusTimer = setTimer(false, () => {
+      if (this.inputAreaFocusTimer) {
+        this.inputAreaFocusTimer.cancel();
+        this.inputAreaFocusTimer = null;
       }
-      if (!_this.contextMenuShown && _this.isSelectionCollapsed())
-        _this.setInputAreaFocus();
+      if (!this.contextMenuShown && this.isSelectionCollapsed())
+        this.setInputAreaFocus();
     }, 10);
   } else if (e.button == 2) {
     // right button: opens context menu, do not steal focus or set focus timer

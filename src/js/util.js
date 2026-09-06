@@ -1,19 +1,15 @@
 export function setTimer(repeat, func, timelimit) {
-  if(repeat) {
-	  return {
-		  timer: setInterval(func, timelimit),
-		  cancel: function() {
-			  clearInterval(this.timer);
-		  }
-	  };
-  } else {
-	  return {
-		  timer: setTimeout(func, timelimit),
-		  cancel: function() {
-			  clearTimeout(this.timer);
-		  }
-	  };
-  }
+  const timer = repeat ? setInterval(func, timelimit) : setTimeout(func, timelimit);
+  return {
+    timer: timer,
+    cancel: () => {
+      if (repeat) {
+        clearInterval(timer);
+      } else {
+        clearTimeout(timer);
+      }
+    }
+  };
 }
 
 export function getQueryVariable(variable) {

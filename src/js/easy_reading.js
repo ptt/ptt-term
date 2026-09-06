@@ -12,7 +12,7 @@ export function EasyReading(core, view, termBuf) {
 
   this._customTurnPageLines = 0;
   Object.defineProperty(this, '_turnPageLines', {
-    get: function() {
+    get: () => {
       if (this._customTurnPageLines > 0) return this._customTurnPageLines;
       if (this._view && this._view.easyReadingContent && this._view.chh) {
         let lines = Math.floor(this._view.easyReadingContent.clientHeight / this._view.chh) - 1;
@@ -20,7 +20,7 @@ export function EasyReading(core, view, termBuf) {
       }
       return 22;
     },
-    set: function(val) {
+    set: (val) => {
       this._customTurnPageLines = val;
     }
   });
@@ -32,8 +32,8 @@ export function EasyReading(core, view, termBuf) {
   function bindProperty(target, name, obj, prop) {
     if (!prop) prop = name;
     Object.defineProperty(obj, prop, {
-      get: function() { return target[name]; },
-      set: function(val) { target[name] = val; }
+      get: () => target[name],
+      set: (val) => { target[name] = val; }
     });
   }
   bindProperty(this._view, 'useEasyReadingMode', this, '_enabled');
@@ -41,8 +41,8 @@ export function EasyReading(core, view, termBuf) {
   bindProperty(this._termBuf, 'easyReadingShowReplyText', this);
   bindProperty(this._termBuf, 'easyReadingShowPushInitText', this);
 
-  this._termBuf.addEventListener('change', this._onChanged.bind(this));
-  this._termBuf.addEventListener('viewUpdate', this._onViewUpdated.bind(this));
+  this._termBuf.addEventListener('change', (e) => this._onChanged(e));
+  this._termBuf.addEventListener('viewUpdate', (e) => this._onViewUpdated(e));
 };
 
 EasyReading.prototype._onChanged = function(e) {

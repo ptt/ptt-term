@@ -12,64 +12,63 @@ export function TouchController(app) {
 };
 
 TouchController.prototype.setupHandlers = function() {
-  var self = this;
-  var app = this.app;
+  const app = this.app;
 
-  document.body.ontouchmove = function(e) { 
+  document.body.ontouchmove = (e) => { 
     if (e.touches.length != 1) return false;
     return true;
   };
 
-  document.body.ontouchstart = function(e) {
-    self.touchStarted = true;
+  document.body.ontouchstart = (e) => {
+    this.touchStarted = true;
     app.inputArea.blur();
     console.log('touchstart');
   };
 
-  document.body.ontouchend = function(e) {
+  document.body.ontouchend = (e) => {
     if (app.buf.pageState == 2 && app.buf.highlightCursor &&
         app.buf.nowHighlight != -1) {
-      app.onMouse_click(self.touchedCenter.x, self.touchedCenter.y);
+      app.onMouse_click(this.touchedCenter.x, this.touchedCenter.y);
       app.buf.nowHighlight = -1;
-      app.buf.highlightCursor = self.highlightCopy;
+      app.buf.highlightCursor = this.highlightCopy;
       app.BBSWin.style.cursor = 'auto';
-      self.touchStarted = false;
+      this.touchStarted = false;
       app.inputArea.focus();
     }
     console.log('touchend');
   };
 
   this.ham = new Hammer(app.BBSWin);
-  this.ham.on('pan', function(ev) {
+  this.ham.on('pan', (ev) => {
     if (ev.pointerType == 'touch') {
       //console.log(ev);
       if (app.buf.pageState == 2) {
         ev.preventDefault();
         ev.srcEvent.preventDefault();
 
-        self.highlightCopy = app.buf.highlightCursor;
+        this.highlightCopy = app.buf.highlightCursor;
         app.buf.highlightCursor = true;
         app.onMouse_move(ev.center.x, ev.center.y);
-        self.touchedCenter.x = ev.center.x;
-        self.touchedCenter.y = ev.center.y;
+        this.touchedCenter.x = ev.center.x;
+        this.touchedCenter.y = ev.center.y;
       }
     }
   });
 
-  this.ham.on('tap', function(ev) {
+  this.ham.on('tap', (ev) => {
     //console.log(ev);
     ev.preventDefault();
     ev.srcEvent.stopPropagation();
     ev.srcEvent.preventDefault();
-    if (ev.pointerType != 'touch')  return; 
-    self.highlightCopy = app.buf.highlightCursor;
+    if (ev.pointerType != 'touch') return; 
+    this.highlightCopy = app.buf.highlightCursor;
     app.buf.highlightCursor = false;
     app.onMouse_move(ev.center.x, ev.center.y);
     app.onMouse_click(ev.center.x, ev.center.y);
     app.buf.nowHighlight = -1;
-    app.buf.highlightCursor = self.highlightCopy;
+    app.buf.highlightCursor = this.highlightCopy;
     app.BBSWin.style.cursor = 'auto';
-    self.touchStarted = false;
+    this.touchStarted = false;
     app.inputArea.focus();
     console.log('touchtap');
   });

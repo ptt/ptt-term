@@ -43,9 +43,9 @@ const STATE_SB=6;
 
 export function TelnetConnection(socket) {
   this.socket = socket;
-  this.socket.addEventListener('open', this._onOpen.bind(this));
-  this.socket.addEventListener('data', this._onDataAvailable.bind(this));
-  this.socket.addEventListener('close', this._onClose.bind(this));
+  this.socket.addEventListener('open', (e) => this._onOpen(e));
+  this.socket.addEventListener('data', (e) => this._onDataAvailable(e));
+  this.socket.addEventListener('close', (e) => this._onClose(e));
 
   this.state = STATE_DATA;
   this.iac_sb = '';

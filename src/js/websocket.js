@@ -3,10 +3,10 @@ import { Event } from './event';
 export function Websocket(url) {
   this._conn = new WebSocket(url);
   this._conn.binaryType = "arraybuffer";
-  this._conn.addEventListener('open', this._onOpen.bind(this));
-  this._conn.addEventListener('message', this._onMessage.bind(this));
-  this._conn.addEventListener('error', this._onError.bind(this));
-  this._conn.addEventListener('close', this._onClose.bind(this));
+  this._conn.addEventListener('open', (e) => this._onOpen(e));
+  this._conn.addEventListener('message', (e) => this._onMessage(e));
+  this._conn.addEventListener('error', (e) => this._onError(e));
+  this._conn.addEventListener('close', (e) => this._onClose(e));
 };
 
 Event.mixin(Websocket.prototype);
@@ -54,7 +54,7 @@ Websocket.prototype.send = function(str) {
   var chunk = 1000;
   for (var i = 0; i < str.length; i += chunk) {
     var chunkStr = str.substring(i, i+chunk);
-    var byteArray = new Uint8Array(chunkStr.split('').map(function(x) { return x.charCodeAt(0); }));
+    var byteArray = new Uint8Array(chunkStr.split('').map((x) => x.charCodeAt(0)));
     this.dispatchEvent(new CustomEvent('rawSend', {
       detail: {
         data: byteArray

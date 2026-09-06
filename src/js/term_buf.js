@@ -216,8 +216,8 @@ export function TermBuf(cols, rows) {
   this.scrollEnd = rows-1;
   this._nowHighlight = -1;
   Object.defineProperty(this, 'nowHighlight', {
-    set: this.setHighlight.bind(this),
-    get: function() { return this._nowHighlight; }.bind(this)
+    set: (val) => this.setHighlight(val),
+    get: () => this._nowHighlight
   });
   this.tempMouseCol = 0;
   this.tempMouseRow = 0;
@@ -786,9 +786,8 @@ TermBuf.prototype = {
     if (this.timerUpdate)
       return;
 
-    var _this = this;
-    var func = function() {
-      _this.notify();
+    const func = () => {
+      this.notify();
     };
     if (directupdate)
       this.timerUpdate = setTimeout(func, 1);
@@ -913,14 +912,12 @@ TermBuf.prototype = {
     } else colEnd = this.cols;
 
     text = text.slice(colStart, colEnd);
-    var charset = this.view.charset;
-    let that = this;
-    return text.map( function(c, col, line) {
+    return text.map((c, col, line) => {
       if (!c.isLeadByte) {
         if (col >= 1 && line[col-1].isLeadByte) { // second byte of DBCS char
           var prevC = line[col-1];
           var b5 = prevC.ch + c.ch;
-          if ((that.view && that.view.charset == 'UTF-8') || b5.length == 1)
+          if ((this.view && this.view.charset == 'UTF-8') || b5.length == 1)
             return b5;
           else
             return b2u(b5);
