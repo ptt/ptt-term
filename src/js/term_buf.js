@@ -222,6 +222,7 @@ TermChar.newChar = new TermChar(' ');
 
 export class TermBuf extends Event {
   timerUpdate = null;
+  animFrameId = null;
   uriRegEx = /((ftp|http|https|telnet):\/\/([A-Za-z0-9_]+:{0,1}[A-Za-z0-9_]*@)?([A-Za-z0-9_#!:.?+=&%@!\-\/\$\^,;|*~'()]+)(:[0-9]+)?(\/|\/([A-Za-z0-9_#!:.?+=&%@!\-\/]))?)|(pid:\/\/(\d{1,10}))/ig;
 
   /**
@@ -947,21 +948,33 @@ export class TermBuf extends Event {
   }
 
   queueUpdate(directupdate) {
-    if (this.timerUpdate)
+    if (this.animFrameId !== null || this.timerUpdate !== null)
       return;
 
     const func = () => {
+      this.animFrameId = null;
+      this.timerUpdate = null;
       this.notify();
     };
-    if (directupdate)
-      this.timerUpdate = setTimeout(func, 1);
-    else
-      this.timerUpdate = setTimeout(func, 30);
+
+    if (typeof requestAnimationFrame === 'function') {
+      this.animFrameId = requestAnimationFrame(func);
+    } else {
+      this.timerUpdate = setTimeout(func, directupdate ? 1 : 16);
+    }
   }
 
   notify(timer) {
-    clearTimeout(this.timerUpdate);
-    this.timerUpdate = null;
+    if (this.animFrameId !== null) {
+      if (typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(this.animFrameId);
+      }
+      this.animFrameId = null;
+    }
+    if (this.timerUpdate !== null) {
+      clearTimeout(this.timerUpdate);
+      this.timerUpdate = null;
+    }
 
     if (this.changed) { // content changed
       this.updateCharAttr();
