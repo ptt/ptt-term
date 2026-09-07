@@ -85,12 +85,12 @@ test('E2E Session: Mock BBS WebSocket server negotiates Telnet and feeds ANSI te
       });
 
       const telnetOpts = [
-        IAC.charCodeAt(0),
-        WILL.charCodeAt(0),
-        ECHO.charCodeAt(0),
-        IAC.charCodeAt(0),
-        WILL.charCodeAt(0),
-        SUPRESS_GO_AHEAD.charCodeAt(0),
+        IAC,
+        WILL,
+        ECHO,
+        IAC,
+        WILL,
+        SUPRESS_GO_AHEAD,
       ];
 
       // ANSI BBS Login Banner
@@ -127,7 +127,7 @@ test('E2E Session: Mock BBS WebSocket server negotiates Telnet and feeds ANSI te
       ws.onmessage = (e) => {
         const data = new Uint8Array(e.data);
         socketAdapter.dispatchEvent(new CustomEvent('data', {
-          detail: { data: uint8ArrayToBinaryString(data) }
+          detail: { data }
         }));
 
         socketAdapter.send('guest\r');

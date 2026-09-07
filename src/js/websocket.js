@@ -56,7 +56,7 @@ export class Websocket extends Event {
     }));
     this.dispatchEvent(new CustomEvent('data', {
       detail: {
-        data: uint8ArrayToBinaryString(data)
+        data: data
       }
     }));
   }

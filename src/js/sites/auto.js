@@ -46,8 +46,8 @@ export class AutoSite extends BaseSite {
       return;
     }
     this.hasTelnet = true;
-    // TELOPT_BINARY = '\x00' (RFC 856). PTT BBS always sends WILL BINARY and DO BINARY during handshake.
-    if (opt === '\x00') {
+    // TELOPT_BINARY = 0x00 / '\x00' (RFC 856). PTT BBS always sends WILL BINARY and DO BINARY during handshake.
+    if (opt === 0 || opt === '\x00') {
       console.log(`[AutoSite] Detected TELOPT_BINARY (${cmd}) -> PTT`);
       this.lockSite('ptt', termBuf);
     }

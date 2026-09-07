@@ -27,12 +27,13 @@ export class AnsiParser {
    */
   feed(data) {
     const term = this.termbuf;
-    if (!term || typeof data !== 'string' || data.length === 0)
+    if (!term || !data || data.length === 0)
       return;
     let s = '';
+    const isArray = data instanceof Uint8Array;
     const n = data.length;
     for (let i = 0; i < n; ++i) {
-      let ch = data[i];
+      let ch = isArray ? String.fromCharCode(data[i]) : data[i];
       switch (this.state) {
       case AnsiParser.STATE_TEXT:
         switch (ch) {
