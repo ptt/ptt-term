@@ -24,7 +24,7 @@
     ]
   },
   "scripts": {
-    "clean": "rimraf dist/assets dist/index.html",
+    "clean": "rimraf dist/assets dist/index.html dist/manifest.webmanifest dist/*.png dist/sw.js",
     "prebuild": "npm run clean",
     "build": "vite build",
     "prebuild:dev": "npm run clean",

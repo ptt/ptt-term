@@ -24,6 +24,9 @@ on:
       PAGE_TITLE:
         type: string
         required: false
+      PAGE_SHORT_NAME:
+        type: string
+        required: false
       PAGE_DESCRIPTION:
         type: string
         required: false
@@ -61,6 +64,7 @@ jobs:
           CNAME: ${{ inputs.CNAME }}
           PTTCHROME_THEME: ${{ inputs.THEME }}
           PTTCHROME_PAGE_TITLE: ${{ inputs.PAGE_TITLE }}
+          PTTCHROME_PAGE_SHORT_NAME: ${{ inputs.PAGE_SHORT_NAME }}
           PTTCHROME_PAGE_DESCRIPTION: ${{ inputs.PAGE_DESCRIPTION }}
           PTTCHROME_DYNAMIC_TITLE: ${{ inputs.DYNAMIC_TITLE }}
           DEFAULT_SITE: ${{ inputs.DEFAULT_SITE }}

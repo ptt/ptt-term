@@ -18,6 +18,7 @@ jobs:
             TARGET_REPO: 'ptt/term.ptt.cc'
             THEME: 'ptt.cc'
             PAGE_TITLE: '批踢踢實業坊'
+            PAGE_SHORT_NAME: 'PTT'
             PAGE_DESCRIPTION: '使用網頁版終端機連線至批踢踢實業坊(ptt.cc) -- 以學術性質為目的，提供各專業學生實習的平台，而以電子佈告欄系統為主的一系列服務。期許在網際網路上建立起一個快速、即時、平等、免費，開放且自由的言論空間。'
             DYNAMIC_TITLE: 'false'
             DEFAULT_SITE: 'wsstelnet://ws.ptt.cc/bbs'
@@ -28,6 +29,7 @@ jobs:
             TARGET_REPO: 'ptt/term.ptt2.cc'
             THEME: 'ptt2.cc'
             PAGE_TITLE: '批踢踢兔'
+            PAGE_SHORT_NAME: 'PTT2'
             PAGE_DESCRIPTION: '批踢踢兔(PTT2)是批踢踢實業坊(ptt.cc)的電子佈告欄服務站之一，主要提供個人看板與團體社團看板，為使用者打造專屬的發表與交流空間。'
             DYNAMIC_TITLE: 'false'
             DEFAULT_SITE: 'wsstelnet://ws.ptt2.cc/bbs'
@@ -40,6 +42,7 @@ jobs:
       TARGET_REPO: ${{ matrix.site.TARGET_REPO }}
       CNAME: ${{ matrix.site.CNAME }}
       PAGE_TITLE: ${{ matrix.site.PAGE_TITLE }}
+      PAGE_SHORT_NAME: ${{ matrix.site.PAGE_SHORT_NAME }}
       PAGE_DESCRIPTION: ${{ matrix.site.PAGE_DESCRIPTION }}
       DYNAMIC_TITLE: ${{ matrix.site.DYNAMIC_TITLE }}
       DEFAULT_SITE: ${{ matrix.site.DEFAULT_SITE }}
