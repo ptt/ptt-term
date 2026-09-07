@@ -2,6 +2,7 @@ import cx from "classnames";
 import React from "react";
 import NativeDialog from "../NativeDialog";
 import { i18n } from "../../js/i18n";
+import { FontManager } from "./FontManager";
 import "./PrefModal.css";
 import {
   DEFAULT_PREFS,
@@ -118,33 +119,27 @@ export class PrefModal extends React.Component {
   };
 
   replacements = {
-    link_github_iamchucky: link(
-      "Chuck Yang",
-      "https://github.com/iamchucky"
-    ),
-    link_github_robertabcd: link(
-      "robertabcd",
-      "https://github.com/robertabcd"
-    ),
+    link_github_iamchucky: link("Chuck Yang", "https://github.com/iamchucky"),
+    link_github_robertabcd: link("robertabcd", "https://github.com/robertabcd"),
     link_robertabcd_PttChrome: link(
       "robertabcd/PttChrome",
-      "https://github.com/robertabcd/PttChrome"
+      "https://github.com/robertabcd/PttChrome",
     ),
     link_github_current_owner: link(
       PTTCHROME.GITHUB_REPOSITORY_OWNER,
-      "https://github.com/" + PTTCHROME.GITHUB_REPOSITORY_OWNER
+      "https://github.com/" + PTTCHROME.GITHUB_REPOSITORY_OWNER,
     ),
     link_current_PttChrome: link(
       PTTCHROME.GITHUB_REPOSITORY,
-      "https://github.com/" + PTTCHROME.GITHUB_REPOSITORY
+      "https://github.com/" + PTTCHROME.GITHUB_REPOSITORY,
     ),
     link_iamchucky_PttChrome: link(
       "iamchucky/PttChrome",
-      "https://github.com/iamchucky/PttChrome"
+      "https://github.com/iamchucky/PttChrome",
     ),
     link_GPL20: link(
       "General Public License v2.0",
-      "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html"
+      "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html",
     ),
   };
 
@@ -210,6 +205,11 @@ export class PrefModal extends React.Component {
               <li className={navActiveKey === "appearance" ? "active" : ""}>
                 <a href="#" onClick={this.handleNavSelect("appearance")}>
                   {i18n("options_appearance")}
+                </a>
+              </li>
+              <li className={navActiveKey === "font" ? "active" : ""}>
+                <a href="#" onClick={this.handleNavSelect("font")}>
+                  {i18n("options_fontFace")}
                 </a>
               </li>
               <li className={navActiveKey === "mouseBrowsing" ? "active" : ""}>
@@ -311,7 +311,9 @@ export class PrefModal extends React.Component {
                   </label>
                 </div>
                 <div className="form-group" id="antiIdleTime">
-                  <label className="control-label">{i18n("options_antiIdleTime")}</label>
+                  <label className="control-label">
+                    {i18n("options_antiIdleTime")}
+                  </label>
                   <input
                     className="form-control"
                     name="antiIdleTime"
@@ -320,10 +322,14 @@ export class PrefModal extends React.Component {
                     value={values.antiIdleTime}
                     onChange={this.handleNumberInputChange}
                   />
-                  <p className="help-block" id="tooltip_antiIdleTime">{i18n("tooltip_antiIdleTime")}</p>
+                  <p className="help-block" id="tooltip_antiIdleTime">
+                    {i18n("tooltip_antiIdleTime")}
+                  </p>
                 </div>
                 <div className="form-group" id="lineWrap">
-                  <label className="control-label">{i18n("options_lineWrap")}</label>
+                  <label className="control-label">
+                    {i18n("options_lineWrap")}
+                  </label>
                   <input
                     className="form-control"
                     name="lineWrap"
@@ -340,20 +346,10 @@ export class PrefModal extends React.Component {
                   title={i18n("options_appearance")}
                   onCloseClick={this.handleCloseClick}
                 />
-                <div className="form-group" id="fontFace">
-                  <label className="control-label">{i18n("options_fontFace")}</label>
-                  <input
-                    className="form-control"
-                    name="fontFace"
-                    type="text"
-                    title={i18n("tooltip_fontFace")}
-                    value={values.fontFace}
-                    onChange={this.handleTextInputChange}
-                  />
-                  <p className="help-block" id="tooltip_fontFace">{i18n("tooltip_fontFace")}</p>
-                </div>
                 <div className="form-group" id="bbsMargin">
-                  <label className="control-label">{i18n("options_bbsMargin")}</label>
+                  <label className="control-label">
+                    {i18n("options_bbsMargin")}
+                  </label>
                   <input
                     className="form-control"
                     name="bbsMargin"
@@ -363,7 +359,9 @@ export class PrefModal extends React.Component {
                   />
                 </div>
                 <div className="form-group" id="termSizeMode">
-                  <label className="control-label">{i18n("options_termSize")}</label>
+                  <label className="control-label">
+                    {i18n("options_termSize")}
+                  </label>
                   <select
                     className="form-control"
                     name="termSizeMode"
@@ -384,7 +382,9 @@ export class PrefModal extends React.Component {
                 {values.termSizeMode === "fixed-term-size" && (
                   <div>
                     <div className="form-group" id="termSize_cols">
-                      <label className="control-label">{i18n("options_cols")}</label>
+                      <label className="control-label">
+                        {i18n("options_cols")}
+                      </label>
                       <input
                         className="form-control"
                         name="termSize.cols"
@@ -394,7 +394,9 @@ export class PrefModal extends React.Component {
                       />
                     </div>
                     <div className="form-group" id="termSize_rows">
-                      <label className="control-label">{i18n("options_rows")}</label>
+                      <label className="control-label">
+                        {i18n("options_rows")}
+                      </label>
                       <input
                         className="form-control"
                         name="termSize.rows"
@@ -418,7 +420,9 @@ export class PrefModal extends React.Component {
                 )}
                 {values.termSizeMode === "fixed-font-size" && (
                   <div className="form-group" id="fontSize">
-                    <label className="control-label">{i18n("options_fontSize")}</label>
+                    <label className="control-label">
+                      {i18n("options_fontSize")}
+                    </label>
                     <input
                       className="form-control"
                       name="fontSize"
@@ -430,7 +434,9 @@ export class PrefModal extends React.Component {
                 )}
                 {values.termSizeMode === "max-font-size" && (
                   <div className="form-group" id="maxFontSize">
-                    <label className="control-label">{i18n("options_fontSizeMax")}</label>
+                    <label className="control-label">
+                      {i18n("options_fontSizeMax")}
+                    </label>
                     <input
                       className="form-control"
                       name="maxFontSize"
@@ -440,6 +446,27 @@ export class PrefModal extends React.Component {
                     />
                   </div>
                 )}
+              </fieldset>
+            )}
+            {navActiveKey === "font" && (
+              <fieldset className="PrefModal__Grid__Col--right__Fieldset">
+                <TabLegend
+                  title={i18n("options_fontFace")}
+                  onCloseClick={this.handleCloseClick}
+                />
+                <div className="form-group" id="fontFace">
+                  <label className="control-label">
+                    {i18n("options_fontFaceAndPriority")}
+                  </label>
+                  <FontManager
+                    value={values.fontFace}
+                    onChange={(newFontFace) => {
+                      this.handleTextInputChange({
+                        target: { name: "fontFace", value: newFontFace },
+                      });
+                    }}
+                  />
+                </div>
               </fieldset>
             )}
             {navActiveKey === "mouseBrowsing" && (
@@ -475,7 +502,7 @@ export class PrefModal extends React.Component {
                   <select
                     className={cx(
                       "form-control",
-                      `b${values.mouseBrowsingHighlightColor}`
+                      `b${values.mouseBrowsingHighlightColor}`,
                     )}
                     name="mouseBrowsingHighlightColor"
                     value={values.mouseBrowsingHighlightColor}
@@ -484,11 +511,7 @@ export class PrefModal extends React.Component {
                     {Array(16)
                       .fill(0, 1)
                       .map((x, i) => (
-                        <option
-                          key={i}
-                          value={i}
-                          className={cx(`b${i}`)}
-                        />
+                        <option key={i} value={i} className={cx(`b${i}`)} />
                       ))}
                   </select>
                 </div>
@@ -606,11 +629,12 @@ export class PrefModal extends React.Component {
                       : ""}
                   </legend>
                   <ul>
-                    {replaceI18n("about_version_content", this.replacements).map(
-                      (text, index) => (
-                        <li key={index}>{text}</li>
-                      )
-                    )}
+                    {replaceI18n(
+                      "about_version_content",
+                      this.replacements,
+                    ).map((text, index) => (
+                      <li key={index}>{text}</li>
+                    ))}
                   </ul>
                 </div>
                 <div>
