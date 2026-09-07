@@ -12,6 +12,7 @@ import { TouchController } from './touch_controller';
 import { i18n } from './i18n';
 import { unescapeStr } from './string_util';
 import { setTimer } from './util';
+import { setTerminalBellEnabled } from './bell.js';
 import AppOverlay from '../components/AppOverlay';
 import { getSite } from './sites';
 import iconLogo from 'Icon/logo.png';
@@ -900,6 +901,9 @@ export class App {
       if (value && typeof Notification !== 'undefined' && Notification.requestPermission && Notification.permission === 'default') {
         Notification.requestPermission().catch(() => {});
       }
+      break;
+    case 'enableBell':
+      setTerminalBellEnabled(value);
       break;
     case 'enableEasyReading':
       /*if (this.connectedUrl.hostname == 'ptt.cc') {

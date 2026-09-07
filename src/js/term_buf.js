@@ -5,6 +5,7 @@ import { ColorState } from './term_ui';
 import { isForceWidthCode } from './symbol_table';
 import { u2bTable } from '../conv/uao';
 import { getSite } from './sites';
+import { playTerminalBell } from './bell.js';
 import cursorBack from '../cursor/back.png';
 import cursorPageup from '../cursor/pageup.png';
 import cursorPagedown from '../cursor/pagedown.png';
@@ -401,9 +402,8 @@ export class TermBuf extends Event {
       const ch = str[i];
       switch (ch) {
       case '\x07':
-        // FIXME: beep (1)Sound (2)AlertNotification (3)change icon
-        // should only play sound
         this.bellOccurred = true;
+        playTerminalBell();
         this.dispatchEvent(new CustomEvent('bell'));
         continue;
       case '\b':

@@ -384,6 +384,8 @@ test('TermBuf puts handles bell (\\x07), setting bellOccurred and dispatching be
   assert.ok(putsMatch);
   const putsBody = putsMatch[1];
   let bellDispatched = 0;
+  let bellSoundPlayed = 0;
+  const playTerminalBell = () => { bellSoundPlayed++; };
   const mockTerm = {
     bellOccurred: false,
     cols: 80,
@@ -402,10 +404,11 @@ test('TermBuf puts handles bell (\\x07), setting bellOccurred and dispatching be
       if (evt.type === 'bell') bellDispatched++;
     },
   };
-  mockTerm.puts = new Function('str', 'attr = null', putsBody).bind(mockTerm);
+  mockTerm.puts = new Function('playTerminalBell', 'return function(str, attr = null) { ' + putsBody + ' }')(playTerminalBell).bind(mockTerm);
 
   assert.equal(mockTerm.bellOccurred, false);
   mockTerm.puts('hello\x07world');
   assert.equal(mockTerm.bellOccurred, true);
   assert.equal(bellDispatched, 1);
+  assert.equal(bellSoundPlayed, 1);
 });

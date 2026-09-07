@@ -2,6 +2,7 @@ export const DEFAULT_PREFS = {
   enablePicPreview: true,
   picPreviewWhitelistOnly: true,
   enableNotifications: true,
+  enableBell: true,
   enableEasyReading: false,
   endTurnsOnLiveUpdate: false,
   copyOnSelect: false,
