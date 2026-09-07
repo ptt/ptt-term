@@ -824,17 +824,30 @@ export class TermView {
         document.title = this.buf.title;
       }
     }, 1500);
-    const postNotification = () => {
+    const postNotification = async () => {
+      const options = {
+        icon: icon128,
+        body: app.waterball.message,
+        tag: app.waterball.userId
+      };
+
       try {
-        const options = {
-          icon: icon128,
-          body: app.waterball.message,
-          tag: app.waterball.userId
-        };
-        this.notif = new Notification(title, options);
-        this.notif.onclick = () => {
-          window.focus();
-        };
+        if ('serviceWorker' in navigator) {
+          const reg = await navigator.serviceWorker.getRegistration();
+          if (reg && typeof reg.showNotification === 'function') {
+            await reg.showNotification(title, options);
+            return;
+          }
+        }
+      } catch (err) {}
+
+      try {
+        if (typeof Notification !== 'undefined') {
+          this.notif = new Notification(title, options);
+          this.notif.onclick = () => {
+            window.focus();
+          };
+        }
       } catch (err) {}
     };
 
