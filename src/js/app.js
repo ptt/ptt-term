@@ -14,6 +14,9 @@ import { unescapeStr, b2u } from './string_util';
 import { setTimer } from './util';
 import AppOverlay from '../components/AppOverlay';
 import { getSite } from './sites';
+import iconLogo from 'Icon/logo.png';
+import iconLogoConnect from 'Icon/logo_connect.png';
+import iconLogoDisconnect from 'Icon/logo_disconnect.png';
 
 function noop() {}
 
@@ -442,7 +445,7 @@ export class App {
     e.preventDefault();
     console.log('copied: ', this.strToCopy);
   } else {
-    const text = this.view.getSelectedText();
+    let text = this.view.getSelectedText();
     if (text) {
       if (text.indexOf('\x1b') < 0) {
         text = text.replace(/\r\n/g, '\r').replace(/\n/g, '\r').replace(/ +\r/g, '\r');
@@ -600,14 +603,14 @@ export class App {
   }
 
   updateTabIcon(aStatus) {
-  let icon = require('Icon/logo.png');
+  let icon = iconLogo;
   switch (aStatus) {
     case 'connect':
-      icon = require('Icon/logo_connect.png');
+      icon = iconLogoConnect;
       this.setInputAreaFocus();
       break;
     case 'disconnect':
-      icon = require('Icon/logo_disconnect.png');
+      icon = iconLogoDisconnect;
       break;
     default:
       break;

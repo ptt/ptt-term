@@ -7,6 +7,7 @@ import { i18n } from './i18n';
 import { setTimer } from './util';
 import { wrapText, u2b } from './string_util';
 import { FpsMeter } from './fps_meter';
+import icon128 from 'Icon/icon_128.png';
 
 const ENTER_CHAR = '\r';
 const DEFINE_INPUT_BUFFER_SIZE = 12;
@@ -819,7 +820,7 @@ export class TermView {
     const postNotification = () => {
       try {
         const options = {
-          icon: require('Icon/icon_128.png'),
+          icon: icon128,
           body: app.waterball.message,
           tag: app.waterball.userId
         };
