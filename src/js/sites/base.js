@@ -119,8 +119,8 @@ export class BaseSite {
    * @returns {boolean} True if handled.
    */
   handlePassScreenClick(termBuf, conn) {
-    if (this.isWaitingForAnyKey(termBuf)) {
-      if (conn && typeof conn.send === 'function') {
+    if (this.isPassScreen(termBuf)) {
+      if (conn) {
         conn.send(' ');
       }
       return true;

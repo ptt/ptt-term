@@ -988,14 +988,13 @@ export class App {
   } else if (e.button === 0) { //left button
     const a = e.target && e.target.closest('a');
     if (a) {
-      if (this.site && typeof this.site.handleCustomLink === 'function' && this.site.handleCustomLink(a.href, this)) {
+      if (this.site.handleCustomLink(a.href, this)) {
         e.preventDefault();
       }
       return;
     }
     if (this.isSelectionCollapsed() && !skipMouseClick) { //no anything be select
-      if (this.site && this.site.isWaitingForAnyKey(this.buf)) {
-        this.site.handlePassScreenClick(this.buf, this.conn);
+      if (this.site.handlePassScreenClick(this.buf, this.conn)) {
         e.preventDefault();
         this.setInputAreaFocus();
         return;

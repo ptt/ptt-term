@@ -307,12 +307,8 @@ export class PttSite extends BaseSite {
     const m = /#aid=([0-9A-Za-z_-]{8})/.exec(url);
     if (m) {
       const aid = m[1];
-      if (typeof app.conn.send === 'function') {
-        app.conn.send(`#${aid}\r`);
-      }
-      if (typeof app.setInputAreaFocus === 'function') {
-        app.setInputAreaFocus();
-      }
+      app.conn.send(`#${aid}\r`);
+      app.setInputAreaFocus();
       return true;
     }
     return false;
