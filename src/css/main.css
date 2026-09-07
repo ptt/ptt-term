@@ -14,13 +14,45 @@
 
   user-select: none;
   touch-action: none;
+  -webkit-touch-callout: none;
 }
 
 #cursor {
   display: none;
 }
 
-.blink--active #cursor {
+#cursor.cursor--blink {
+  display: none;
+  background-color: transparent;
+  mix-blend-mode: normal;
+}
+
+.blink--active #cursor.cursor--blink,
+.blink--active #cursor:not(.cursor--underline):not(.cursor--reverse):not(.cursor--blink-reverse) {
+  display: block;
+}
+
+#cursor.cursor--underline {
+  display: block;
+  background-color: transparent;
+  mix-blend-mode: normal;
+}
+
+#cursor.cursor--reverse {
+  display: block;
+  background-color: #ffffff;
+  mix-blend-mode: difference;
+  pointer-events: none;
+}
+
+#cursor.cursor--blink-reverse {
+  display: none;
+  background-color: #ffffff;
+  mix-blend-mode: difference;
+  pointer-events: none;
+}
+
+.blink--active #cursor.cursor--blink-reverse {
   display: block;
 }
 

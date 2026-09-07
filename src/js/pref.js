@@ -23,6 +23,7 @@ export const DEFAULT_PREFS = {
   mouseWheelFunction3: 3,
 
   // displays
+  cursorStyle: 'blink',
   fontFitWindowWidth: false,
   fontFace: "MingLiu,SymMingLiu,'Noto Sans Mono CJK TC','PingFang TC',monospace",
   fontSize: 24,

@@ -928,6 +928,9 @@ export class App {
       this.onWindowResize();
       break;
     }
+    case 'cursorStyle':
+      this.view.setCursorStyle(value);
+      break;
     case 'useCanvasEngine':
       this.view.useCanvasEngine = !!value;
       if (this.view.fpsMeter) {

@@ -85,6 +85,7 @@ export class TermView {
   this.input = document.getElementById('t');
   this.bbsCursor = document.getElementById('cursor');
   this.BBSWin = document.getElementById('BBSWindow');
+  this.cursorStyle = 'blink';
   this.enablePicPreview = true;
   this.picPreviewWhitelistOnly = true;
   this.scaleX = 1;
@@ -509,6 +510,7 @@ export class TermView {
     }
     this.bbsCursor.style.fontSize = fontSize;
     this.bbsCursor.style.lineHeight = fontSize;
+    this.applyCursorStyle();
     this.mainDisplay.style.overflowX = 'hidden';
     this.mainDisplay.style.overflowY = 'hidden';
     this.mainDisplay.style.textAlign = 'left';
@@ -585,8 +587,54 @@ export class TermView {
   }
 
   // Cursor
-  updateCursorPos() {
+  setCursorStyle(style) {
+    this.cursorStyle = style || 'blink';
+    this.applyCursorStyle();
+    this.updateCursorPos();
+  }
 
+  applyCursorStyle() {
+    if (!this.bbsCursor) {
+      this.bbsCursor = (typeof document !== 'undefined') ? document.getElementById('cursor') : null;
+    }
+    if (!this.bbsCursor) return;
+
+    const style = this.cursorStyle || 'blink';
+    this.bbsCursor.classList.remove(
+      'cursor--blink',
+      'cursor--underline',
+      'cursor--reverse',
+      'cursor--blink-reverse'
+    );
+
+    const isBlock = style === 'reverse' || style === 'blink-reverse';
+    const blockHeight = isBlock ? Math.round(this.chh / 2) : 0;
+
+    if (style === 'reverse') {
+      this.bbsCursor.classList.add('cursor--reverse');
+      this.bbsCursor.textContent = '';
+      if (this.chw) this.bbsCursor.style.width = this.chw + 'px';
+      if (blockHeight) this.bbsCursor.style.height = blockHeight + 'px';
+    } else if (style === 'blink-reverse') {
+      this.bbsCursor.classList.add('cursor--blink-reverse');
+      this.bbsCursor.textContent = '';
+      if (this.chw) this.bbsCursor.style.width = this.chw + 'px';
+      if (blockHeight) this.bbsCursor.style.height = blockHeight + 'px';
+    } else if (style === 'underline') {
+      this.bbsCursor.classList.add('cursor--underline');
+      this.bbsCursor.textContent = '_';
+      this.bbsCursor.style.width = '';
+      this.bbsCursor.style.height = '0px';
+    } else {
+      this.bbsCursor.classList.add('cursor--blink');
+      this.bbsCursor.textContent = '_';
+      this.bbsCursor.style.width = '';
+      this.bbsCursor.style.height = '0px';
+    }
+  }
+
+  updateCursorPos() {
+    if (!this.bbsCursor) return;
     const pos = this.convertMN2XYEx(this.buf.cur_x, this.buf.cur_y);
     // if you want to set cursor color by now background, use this.
     if (this.buf.cur_y >= this.buf.rows || this.buf.cur_x >= this.buf.cols)
@@ -594,8 +642,8 @@ export class TermView {
 
     const lines = this.buf.lines;
     const line = lines[this.buf.cur_y];
-    const ch = line[this.buf.cur_x];
-    const bg = ch.getBg();
+    const ch = line ? line[this.buf.cur_x] : null;
+    const bg = ch ? ch.getBg() : 0;
 
     if (this.scaleX == 1 && this.scaleY == 1) {
       this.bbsCursor.style.transform = 'none';
@@ -606,12 +654,19 @@ export class TermView {
       this.bbsCursor.style.transformOrigin = 'left top';
     }
 
-    this.bbsCursor.style.left = pos[0] + 'px';
-    this.bbsCursor.style.top = (pos[1] - this.scaleY) + 'px';
-    // if you want to set cursor color by now background, use this.
-    this.bbsCursor.style.color = termInvColors[bg];
-    this.updateInputBufferPos();
+    const isBlock = this.cursorStyle === 'reverse' || this.cursorStyle === 'blink-reverse';
+    const blockHeight = isBlock ? Math.round(this.chh / 2) : 0;
+    const topOffset = isBlock ? ((this.chh - blockHeight) * this.scaleY) : -this.scaleY;
 
+    this.bbsCursor.style.left = pos[0] + 'px';
+    this.bbsCursor.style.top = (pos[1] + topOffset) + 'px';
+    if (isBlock) {
+      if (this.chw) this.bbsCursor.style.width = this.chw + 'px';
+      if (blockHeight) this.bbsCursor.style.height = blockHeight + 'px';
+    } else {
+      this.bbsCursor.style.color = termInvColors[bg];
+    }
+    this.updateInputBufferPos();
   }
 
   updateInputBufferPos() {

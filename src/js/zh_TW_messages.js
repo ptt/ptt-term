@@ -130,6 +130,21 @@ export const zh_TW = {
   options_appearance: {
     message: "介面",
   },
+  options_cursorStyle: {
+    message: "游標樣式",
+  },
+  options_cursorBlink: {
+    message: "閃爍底線",
+  },
+  options_cursorUnderline: {
+    message: "恆亮底線",
+  },
+  options_cursorReverse: {
+    message: "反色半格方塊 (恆亮)",
+  },
+  options_cursorBlinkReverse: {
+    message: "反色半格方塊 (閃爍)",
+  },
   options_bbsMargin: {
     message: "BBS 周圍邊距 (像素)",
   },

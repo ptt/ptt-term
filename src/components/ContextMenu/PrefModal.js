@@ -345,6 +345,30 @@ export class PrefModal extends React.Component {
                   title={i18n("options_appearance")}
                   onCloseClick={this.handleCloseClick}
                 />
+                <div className="form-group" id="cursorStyle">
+                  <label className="control-label">
+                    {i18n("options_cursorStyle")}
+                  </label>
+                  <select
+                    className="form-control"
+                    name="cursorStyle"
+                    value={values.cursorStyle || "blink"}
+                    onChange={this.handleTextInputChange}
+                  >
+                    <option key="options_cursorBlink" value="blink">
+                      {i18n("options_cursorBlink")}
+                    </option>
+                    <option key="options_cursorUnderline" value="underline">
+                      {i18n("options_cursorUnderline")}
+                    </option>
+                    <option key="options_cursorReverse" value="reverse">
+                      {i18n("options_cursorReverse")}
+                    </option>
+                    <option key="options_cursorBlinkReverse" value="blink-reverse">
+                      {i18n("options_cursorBlinkReverse")}
+                    </option>
+                  </select>
+                </div>
                 <div className="form-group" id="bbsMargin">
                   <label className="control-label">
                     {i18n("options_bbsMargin")}

@@ -294,3 +294,87 @@ test('renderScreen captures and returns component instance via ref in Preact', (
   }
 });
 
+test('TermView cursorStyle handles blink, reverse, and blink-reverse styles', () => {
+  const mockClassList = new Set();
+  const mockCursor = {
+    classList: {
+      add: (cls) => mockClassList.add(cls),
+      remove: (...classes) => classes.forEach((c) => mockClassList.delete(c)),
+      has: (cls) => mockClassList.has(cls),
+    },
+    style: {},
+    textContent: '_',
+  };
+
+  const mockView = {
+    bbsCursor: mockCursor,
+    chw: 12,
+    chh: 24,
+    scaleX: 1,
+    scaleY: 1,
+    buf: {
+      cur_x: 5,
+      cur_y: 10,
+      rows: 24,
+      cols: 80,
+      lines: Array.from({ length: 24 }, () => Array.from({ length: 80 }, () => ({ getBg: () => 0 }))),
+    },
+    convertMN2XYEx: (cx, cy) => [cx * 12, cy * 24],
+    updateInputBufferPos() {},
+  };
+
+  const setCursorStyleBody = termViewSource.match(
+    /setCursorStyle\(style\)\s*\{([\s\S]*?\n  )\}/
+  )[1];
+  const applyCursorStyleBody = termViewSource.match(
+    /applyCursorStyle\(\)\s*\{([\s\S]*?\n  )\}/
+  )[1];
+  const updateCursorPosBody = termViewSource.match(
+    /updateCursorPos\(\)\s*\{([\s\S]*?\n  )\}/
+  )[1];
+
+  const termInvColors = ['#ffffff', '#ff0000', '#00ff00', '#ffff00', '#0000ff', '#ff00ff', '#00ffff', '#000000'];
+  mockView.setCursorStyle = new Function('style', setCursorStyleBody).bind(mockView);
+  mockView.applyCursorStyle = new Function("termInvColors", `return function applyCursorStyle() { ${applyCursorStyleBody} }`)(termInvColors).bind(mockView);
+  mockView.updateCursorPos = new Function('termInvColors', `return function updateCursorPos() { ${updateCursorPosBody} }`)(termInvColors).bind(mockView);
+
+  // 1. Default / Blink underline mode
+  mockView.setCursorStyle('blink');
+  assert.equal(mockView.cursorStyle, 'blink');
+  assert.ok(mockClassList.has('cursor--blink'));
+  assert.equal(mockCursor.textContent, '_');
+  assert.equal(mockCursor.style.left, '60px'); // 5 * 12
+  assert.equal(mockCursor.style.top, '239px'); // 10 * 24 - 1
+
+  // 2. Steady underline mode
+  mockView.setCursorStyle('underline');
+  assert.equal(mockView.cursorStyle, 'underline');
+  assert.ok(mockClassList.has('cursor--underline'));
+  assert.equal(mockClassList.has('cursor--blink'), false);
+  assert.equal(mockCursor.textContent, '_');
+  assert.equal(mockCursor.style.left, '60px');
+  assert.equal(mockCursor.style.top, '239px');
+
+  // 3. Reverse half-height block mode (steady)
+  mockView.setCursorStyle('reverse');
+  assert.equal(mockView.cursorStyle, 'reverse');
+  assert.ok(mockClassList.has('cursor--reverse'));
+  assert.equal(mockClassList.has('cursor--underline'), false);
+  assert.equal(mockCursor.textContent, '');
+  assert.equal(mockCursor.style.width, '12px');
+  assert.equal(mockCursor.style.height, '12px'); // Half of chh (24 / 2 = 12)
+  assert.equal(mockCursor.style.left, '60px');
+  assert.equal(mockCursor.style.top, '252px'); // 10 * 24 + (24 - 12) = 252 (bottom half of cell)
+
+  // 4. Blink-reverse half-height block mode
+  mockView.setCursorStyle('blink-reverse');
+  assert.equal(mockView.cursorStyle, 'blink-reverse');
+  assert.ok(mockClassList.has('cursor--blink-reverse'));
+  assert.equal(mockClassList.has('cursor--reverse'), false);
+  assert.equal(mockCursor.textContent, '');
+  assert.equal(mockCursor.style.width, '12px');
+  assert.equal(mockCursor.style.height, '12px');
+  assert.equal(mockCursor.style.top, '252px');
+});
+
+

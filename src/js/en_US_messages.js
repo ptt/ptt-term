@@ -131,6 +131,21 @@ export const en_US = {
   options_appearance: {
     message: "Appearance",
   },
+  options_cursorStyle: {
+    message: "Cursor style",
+  },
+  options_cursorBlink: {
+    message: "Blinking underline",
+  },
+  options_cursorUnderline: {
+    message: "Steady underline",
+  },
+  options_cursorReverse: {
+    message: "Reverse color half-block (steady)",
+  },
+  options_cursorBlinkReverse: {
+    message: "Reverse color half-block (blinking)",
+  },
   options_bbsMargin: {
     message: "Margins around BBS view (px)",
   },
