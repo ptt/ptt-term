@@ -10,6 +10,56 @@ export class AutoSite extends BaseSite {
     this.detectedSite = null;
     this.isLocked = false;
     this.hasTelnet = false;
+
+    return new Proxy(this, {
+      get(target, prop, receiver) {
+        if (
+          Object.prototype.hasOwnProperty.call(target, prop) ||
+          Object.prototype.hasOwnProperty.call(AutoSite.prototype, prop)
+        ) {
+          return Reflect.get(target, prop, receiver);
+        }
+        const active = target.getActiveSite();
+        const val = Reflect.get(active, prop, active);
+        if (typeof val === 'function') {
+          return function (...args) {
+            if (!target.isLocked) {
+              const termBuf = args.find(
+                (a) => a && typeof a.getRowText === 'function'
+              );
+              if (termBuf) {
+                target.detect(termBuf);
+              }
+            }
+            return val.apply(target.getActiveSite(), args);
+          };
+        }
+        return val;
+      },
+      set(target, prop, value, receiver) {
+        if (
+          Object.prototype.hasOwnProperty.call(target, prop) ||
+          Object.prototype.hasOwnProperty.call(AutoSite.prototype, prop)
+        ) {
+          return Reflect.set(target, prop, value, receiver);
+        }
+        return Reflect.set(
+          target.getActiveSite(),
+          prop,
+          value,
+          target.getActiveSite()
+        );
+      },
+      has(target, prop) {
+        if (
+          Object.prototype.hasOwnProperty.call(target, prop) ||
+          Object.prototype.hasOwnProperty.call(AutoSite.prototype, prop)
+        ) {
+          return true;
+        }
+        return prop in target.getActiveSite();
+      },
+    });
   }
 
   getActiveSite() {
@@ -23,21 +73,33 @@ export class AutoSite extends BaseSite {
     if (siteName === 'maple3') {
       console.log('[AutoSite] Confirmed and locked Maple 3 site');
       this.detectedSite = this.maple3Site;
+      this.name = 'maple3';
       this.isLocked = true;
       if (termBuf && termBuf.rows > 24) {
         console.log(`[AutoSite] Clamping terminal rows from ${termBuf.rows} to 24`);
-        if (termBuf.view.bbscore.resizer) {
+        if (termBuf.view && termBuf.view.bbscore && termBuf.view.bbscore.resizer) {
           termBuf.view.bbscore.resizer();
-        } else {
+        } else if (termBuf.resize) {
           termBuf.resize(termBuf.cols, 24);
-          termBuf.view.fontResize();
-          termBuf.view.redraw(true);
+          if (termBuf.view) {
+            termBuf.view.fontResize();
+            termBuf.view.redraw(true);
+          }
         }
       }
     } else if (siteName === 'ptt') {
       console.log('[AutoSite] Confirmed and locked PTT site');
       this.detectedSite = this.pttSite;
+      this.name = 'ptt';
       this.isLocked = true;
+    }
+
+    if (termBuf) {
+      termBuf.site = this.detectedSite;
+      const app = termBuf.view && termBuf.view.bbscore;
+      if (app) {
+        app.site = this.detectedSite;
+      }
     }
   }
 
@@ -91,121 +153,5 @@ export class AutoSite extends BaseSite {
       this.lockSite('ptt', termBuf);
     }
   }
-
-  clampTermSize(cols, rows) {
-    return this.getActiveSite().clampTermSize(cols, rows);
-  }
-
-  getLastRowNum(termBuf) {
-    return this.getActiveSite().getLastRowNum(termBuf);
-  }
-
-  isListScreen(termBuf) {
-    this.detect(termBuf);
-    return this.getActiveSite().isListScreen(termBuf);
-  }
-
-  isMenuScreen(termBuf) {
-    this.detect(termBuf);
-    return this.getActiveSite().isMenuScreen(termBuf);
-  }
-
-  isPassScreen(termBuf) {
-    this.detect(termBuf);
-    return this.getActiveSite().isPassScreen(termBuf);
-  }
-
-  isEditingScreen(termBuf) {
-    this.detect(termBuf);
-    return this.getActiveSite().isEditingScreen(termBuf);
-  }
-
-  parseReadingStatus(rowText, termBuf) {
-    this.detect(termBuf);
-    return this.getActiveSite().parseReadingStatus(rowText, termBuf);
-  }
-
-  isArticleEnd(lastRowText, termBuf, statusResult) {
-    return this.getActiveSite().isArticleEnd(lastRowText, termBuf, statusResult);
-  }
-
-  isCursorParked(termBuf) {
-    return this.getActiveSite().isCursorParked(termBuf);
-  }
-
-  getPagingSlice(termBuf, statusResult, actualRowIndex) {
-    return this.getActiveSite().getPagingSlice(termBuf, statusResult, actualRowIndex);
-  }
-
-  getEasyReadingCommands() {
-    return this.getActiveSite().getEasyReadingCommands();
-  }
-
-  getBasicPrompt(extra_cmds, spaces = '', percent = 100) {
-    return this.getActiveSite().getBasicPrompt(extra_cmds, spaces, percent);
-  }
-
-  getEasyReadingPrompt(spaces = '', percent = 100) {
-    return this.getActiveSite().getEasyReadingPrompt(spaces, percent);
-  }
-
-  handleEasyReadingKeyDown(easyReading, e) {
-    return this.getActiveSite().handleEasyReadingKeyDown(easyReading, e);
-  }
-
-  navigatePrevPost(easyReading) {
-    return this.getActiveSite().navigatePrevPost(easyReading);
-  }
-
-  navigateNextPost(easyReading) {
-    return this.getActiveSite().navigateNextPost(easyReading);
-  }
-
-  parseNotification(data, termBuf) {
-    return this.getActiveSite().parseNotification(data, termBuf);
-  }
-
-  getReenterArticleCommand(termBuf) {
-    return this.getActiveSite().getReenterArticleCommand(termBuf);
-  }
-
-  getRefreshLiveThreadCommand(termBuf) {
-    return this.getActiveSite().getRefreshLiveThreadCommand(termBuf);
-  }
-
-  refreshLiveThread(conn, termBuf) {
-    return this.getActiveSite().refreshLiveThread(conn, termBuf);
-  }
-
-  isLineContinuation(termBuf, rowIndex, isInitialPage = false) {
-    return this.getActiveSite().isLineContinuation(termBuf, rowIndex, isInitialPage);
-  }
-
-  getThreadCommand(action) {
-    return this.getActiveSite().getThreadCommand(action);
-  }
-
-  isReplyPrompt(termBuf) {
-    return this.getActiveSite().isReplyPrompt(termBuf);
-  }
-
-  isPushPrompt(termBuf) {
-    return this.getActiveSite().isPushPrompt(termBuf);
-  }
-
-  getEditorEscapeChar() {
-    return this.getActiveSite().getEditorEscapeChar();
-  }
-
-  getEditorColorResetCommand() {
-    return this.getActiveSite().getEditorColorResetCommand();
-  }
-
-  getEditorColorCommand(color, type) {
-    return this.getActiveSite().getEditorColorCommand(color, type);
-  }
-
-  sendAntiIdle(conn) {
-    return this.getActiveSite().sendAntiIdle(conn);
-  }
 }
+

@@ -261,3 +261,34 @@ test('AutoSite detects and locks site profile based on Telnet options or explici
   assert.equal(autoMaple.isLocked, true);
   assert.ok(autoMaple.getActiveSite() instanceof Maple3Site);
 });
+test('AutoSite replaces termBuf.site and app.site on lock and proxies calls transparently', () => {
+  const auto = new AutoSite();
+  const mockApp = { site: auto };
+  const mockTerm = {
+    cols: 80,
+    rows: 24,
+    site: auto,
+    view: { bbscore: mockApp },
+    isUnicolor: () => true,
+    getRowText: (r) => (r === 0 ? '【主功能表】 批踢踢實業坊' : ''),
+  };
+
+  assert.equal(mockTerm.site, auto);
+  assert.equal(mockApp.site, auto);
+
+  // Before lock: calling isMenuScreen triggers auto-detection and locks to PTT
+  const isMenu = mockTerm.site.isMenuScreen(mockTerm);
+  assert.ok(isMenu);
+
+  // After lock: mockTerm.site and mockApp.site are directly replaced with PttSite instance!
+  assert.ok(mockTerm.site instanceof PttSite);
+  assert.ok(mockApp.site instanceof PttSite);
+  assert.notEqual(mockTerm.site, auto);
+  assert.notEqual(mockApp.site, auto);
+
+  // External reference to auto still works transparently via Proxy without boilerplate
+  assert.equal(auto.name, 'ptt');
+  assert.equal(auto.isLocked, true);
+  assert.ok(auto.isMenuScreen(mockTerm));
+});
+
