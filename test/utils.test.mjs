@@ -175,3 +175,76 @@ test('ConnectionLog manages logging, formatting, and UI state', () => {
     globalThis.document = originalDoc;
   }
 });
+
+test('Websocket chunks outgoing data and pauses on bufferedAmount backpressure', async () => {
+  const sentBuffers = [];
+  let currentBufferedAmount = 0;
+
+  class MockWsNative {
+    static CONNECTING = 0;
+    static OPEN = 1;
+    static CLOSING = 2;
+    static CLOSED = 3;
+
+    constructor(url, protocol) {
+      this.url = url;
+      this.protocol = protocol;
+      this.binaryType = 'arraybuffer';
+      this.readyState = MockWsNative.OPEN;
+      this.listeners = {};
+    }
+    get bufferedAmount() {
+      return currentBufferedAmount;
+    }
+    addEventListener(type, fn) {
+      this.listeners[type] = this.listeners[type] || [];
+      this.listeners[type].push(fn);
+    }
+    send(buf) {
+      sentBuffers.push(new Uint8Array(buf));
+    }
+    close() {
+      this.readyState = 3; // CLOSED
+    }
+  }
+
+  const originalWs = globalThis.WebSocket;
+  try {
+    globalThis.WebSocket = MockWsNative;
+    const { Websocket, BUFFER_HIGH_WATERMARK } = await import('../src/js/websocket.js');
+
+    const ws = new Websocket('ws://localhost:8080/bbs');
+    assert.equal(ws.bufferedAmount, 0);
+
+    // Test sending large string: 1200 bytes should split into 3 chunks (512, 512, 176)
+    const largePayload = 'A'.repeat(1200);
+    ws.send(largePayload);
+
+    // Wait for the async queue to flush
+    await new Promise((r) => setTimeout(r, 60));
+
+    assert.equal(sentBuffers.length, 3);
+    assert.equal(sentBuffers[0].length, 512);
+    assert.equal(sentBuffers[1].length, 512);
+    assert.equal(sentBuffers[2].length, 176);
+
+    // Test backpressure throttle: simulate high bufferedAmount
+    sentBuffers.length = 0;
+    currentBufferedAmount = BUFFER_HIGH_WATERMARK + 100;
+
+    ws.send('B'.repeat(100));
+    // Since bufferedAmount is high, it should not send immediately
+    await new Promise((r) => setTimeout(r, 30));
+    assert.equal(sentBuffers.length, 0);
+
+    // Drain buffer
+    currentBufferedAmount = 0;
+    await new Promise((r) => setTimeout(r, 50));
+    assert.equal(sentBuffers.length, 1);
+    assert.equal(sentBuffers[0].length, 100);
+
+    ws.close();
+  } finally {
+    globalThis.WebSocket = originalWs;
+  }
+});

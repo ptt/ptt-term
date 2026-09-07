@@ -12,15 +12,27 @@ export function uint8ArrayToBinaryString(bytes) {
   return str;
 }
 
+export const BUFFER_HIGH_WATERMARK = 4096;
+export const BUFFER_LOW_WATERMARK = 1024;
+export const CHUNK_SIZE = 512;
+export const INTER_CHUNK_DELAY_MS = 15;
+
 export class Websocket extends Event {
   constructor(url) {
     super();
     this._conn = new WebSocket(url, "telnet");
     this._conn.binaryType = "arraybuffer";
+    this._sendQueue = [];
+    this._isFlushing = false;
+
     this._conn.addEventListener('open', (e) => this._onOpen(e));
     this._conn.addEventListener('message', (e) => this._onMessage(e));
     this._conn.addEventListener('error', (e) => this._onError(e));
     this._conn.addEventListener('close', (e) => this._onClose(e));
+  }
+
+  get bufferedAmount() {
+    return this._conn ? this._conn.bufferedAmount : 0;
   }
 
   _onOpen(e) {
@@ -46,37 +58,78 @@ export class Websocket extends Event {
   }
 
   _onClose(e) {
+    this._sendQueue = [];
+    this._isFlushing = false;
     this.dispatchEvent(new CustomEvent('close'));
   }
 
-  send(str) {
-    // XXX: move this to app.
-    // because ptt seems to reponse back slowly after large
-    // chunk of text is pasted, so better to split it up.
-    if (typeof str !== 'string') {
-      const byteArray = str instanceof Uint8Array ? str : new Uint8Array(str);
-      this.dispatchEvent(new CustomEvent('rawSend', {
-        detail: {
-          data: byteArray
+  send(data) {
+    if (!this._conn) return;
+
+    if (typeof data !== 'string') {
+      const byteArray = data instanceof Uint8Array ? data : new Uint8Array(data);
+      this._sendQueue.push(byteArray);
+    } else {
+      for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+        const slice = data.substring(i, i + CHUNK_SIZE);
+        const byteArray = new Uint8Array(slice.length);
+        for (let j = 0; j < slice.length; j++) {
+          byteArray[j] = slice.charCodeAt(j) & 0xff;
         }
-      }));
-      this._conn.send(byteArray.buffer);
-      return;
+        this._sendQueue.push(byteArray);
+      }
     }
-    const chunk = 1000;
-    for (let i = 0; i < str.length; i += chunk) {
-      const chunkStr = str.substring(i, i+chunk);
-      const byteArray = new Uint8Array(chunkStr.split('').map((x) => x.charCodeAt(0)));
-      this.dispatchEvent(new CustomEvent('rawSend', {
-        detail: {
-          data: byteArray
+
+    if (!this._isFlushing) {
+      this._flushSendQueue();
+    }
+  }
+
+  async _flushSendQueue() {
+    this._isFlushing = true;
+
+    try {
+      while (this._sendQueue.length > 0) {
+        if (
+          !this._conn ||
+          (typeof WebSocket !== 'undefined' && this._conn.readyState !== WebSocket.OPEN)
+        ) {
+          this._sendQueue = [];
+          break;
         }
-      }));
-      this._conn.send(byteArray.buffer);
+
+        // Apply backpressure if bufferedAmount exceeds high watermark
+        while (this._conn && this._conn.bufferedAmount > BUFFER_HIGH_WATERMARK) {
+          await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+
+        const chunk = this._sendQueue.shift();
+        if (!chunk) continue;
+
+        this.dispatchEvent(
+          new CustomEvent('rawSend', {
+            detail: {
+              data: chunk,
+            },
+          })
+        );
+        this._conn.send(chunk.buffer);
+
+        // If more chunks remain in queue (bulk transmission / paste), apply inter-chunk delay
+        if (this._sendQueue.length > 0) {
+          await new Promise((resolve) => setTimeout(resolve, INTER_CHUNK_DELAY_MS));
+        }
+      }
+    } finally {
+      this._isFlushing = false;
     }
   }
 
   close() {
-    this._conn.close();
+    this._sendQueue = [];
+    this._isFlushing = false;
+    if (this._conn) {
+      this._conn.close();
+    }
   }
 }
