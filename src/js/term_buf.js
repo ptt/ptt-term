@@ -336,12 +336,10 @@ export class TermBuf extends Event {
   resize(cols, rows) {
     cols = (typeof cols === 'number' && Number.isFinite(cols) && cols > 0) ? Math.floor(cols) : this.cols;
     rows = (typeof rows === 'number' && Number.isFinite(rows) && rows > 0) ? Math.floor(rows) : this.rows;
-    if (this.site && typeof this.site.clampTermSize === 'function') {
-      const clamped = this.site.clampTermSize(cols, rows);
-      if (clamped && typeof clamped.cols === 'number' && typeof clamped.rows === 'number') {
-        cols = Math.floor(clamped.cols);
-        rows = Math.floor(clamped.rows);
-      }
+    const clamped = this.site.clampTermSize(cols, rows);
+    if (clamped && typeof clamped.cols === 'number' && typeof clamped.rows === 'number') {
+      cols = Math.floor(clamped.cols);
+      rows = Math.floor(clamped.rows);
     }
     console.debug(`[TermBuf.resize] Resizing buffer to ${cols}x${rows}`);
     this.cols = cols;
@@ -604,22 +602,20 @@ export class TermBuf extends Event {
           // dump('found URI: ' + res[0] + '\n');
         }
 
-        if (this.site && typeof this.site.detectCustomLinks === 'function') {
-          const customLinks = this.site.detectCustomLinks(s, line, this);
-          if (Array.isArray(customLinks)) {
-            for (let i = 0; i < customLinks.length; ++i) {
-              const cl = customLinks[i];
-              if (cl && typeof cl.start === 'number' && typeof cl.end === 'number' && cl.end > cl.start) {
-                const overlap = uris && uris.some(u => !(cl.end <= u[0] || cl.start >= u[1]));
-                if (!overlap) {
-                  if (!uris) uris = [];
-                  uris.push([cl.start, cl.end, cl.url]);
-                }
+        const customLinks = this.site.detectCustomLinks(s, line, this);
+        if (Array.isArray(customLinks)) {
+          for (let i = 0; i < customLinks.length; ++i) {
+            const cl = customLinks[i];
+            if (cl && typeof cl.start === 'number' && typeof cl.end === 'number' && cl.end > cl.start) {
+              const overlap = uris && uris.some(u => !(cl.end <= u[0] || cl.start >= u[1]));
+              if (!overlap) {
+                if (!uris) uris = [];
+                uris.push([cl.start, cl.end, cl.url]);
               }
             }
-            if (uris) {
-              uris.sort((a, b) => a[0] - b[0]);
-            }
+          }
+          if (uris) {
+            uris.sort((a, b) => a[0] - b[0]);
           }
         }
 
@@ -641,9 +637,7 @@ export class TermBuf extends Event {
               line[col].needUpdate = true; //fix link bug
             }
             const targetUrl = uri[2] || urlTemp;
-            const fullurl = this.site && typeof this.site.resolveUrl === 'function'
-              ? this.site.resolveUrl(targetUrl)
-              : (targetUrl.toLowerCase().startsWith('pid://') ? 'https://www.pixiv.net/artworks/' + targetUrl.slice(6) : targetUrl);
+            const fullurl = this.site.resolveUrl(targetUrl);
             line[uri[0]].startOfURL = true;
             line[uri[0]].fullurl = fullurl;
             line[uri[1]-1].endOfURL = true;
@@ -1295,36 +1289,34 @@ export class TermBuf extends Event {
   }
 
   setPageState() {
-    const site = this.site;
-    if (!site) return;
-    let lastRowNum = site.getLastRowNum(this);
+    let lastRowNum = this.site.getLastRowNum(this);
     let cols = this.cols;
     const lastRowText = this.getRowText(lastRowNum, 0, cols);
-    if (site.isEditingScreen(this)) {
+    if (this.site.isEditingScreen(this)) {
       this.pageState = 6;
       return;
     }
 
-    if (site.parseReadingStatus(lastRowText, this)) {
+    if (this.site.parseReadingStatus(lastRowText, this)) {
       this.pageState = 3; // READING
       return;
     }
 
-    if (site.isMenuScreen(this)) {
+    if (this.site.isMenuScreen(this)) {
       this.pageState = 1; // MENU
       return;
     }
 
-    if (site.isListScreen(this)) {
+    if (this.site.isListScreen(this)) {
       this.pageState = 2; // LIST
       return;
     }
 
     if (lastRowText.trim()) {
-      console.debug('[setPageState] site=' + site.name + ', state=' + this.pageState + ', lastRow=' + JSON.stringify(lastRowText));
+      console.debug('[setPageState] site=' + this.site.name + ', state=' + this.pageState + ', lastRow=' + JSON.stringify(lastRowText));
     }
 
-    if (site.isPassScreen(this)) {
+    if (this.site.isPassScreen(this)) {
       //console.log('pageState = 5 (PASS)');
       this.pageState = 5; // some ansi drawing screen to pass
       return;
@@ -1420,9 +1412,7 @@ export class TermBuf extends Event {
       this.clearHighlight();
     }
 
-    let lastRowNum = this.site
-      ? this.site.getLastRowNum(this)
-      : this.rows - 1;
+    let lastRowNum = this.site.getLastRowNum(this);
     let cols = this.cols;
 
     switch( this.pageState ) {
@@ -1530,7 +1520,7 @@ export class TermBuf extends Event {
   setHighlight(row) {
     const validRow = (typeof row === 'number' && Number.isFinite(row)) ? Math.floor(row) : -1;
     this._nowHighlight = validRow;
-    if (this.view && typeof this.view.setHighlightedRow === 'function') {
+    if (this.view) {
       this.view.setHighlightedRow(validRow);
     }
   }
