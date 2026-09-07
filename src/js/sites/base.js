@@ -92,9 +92,37 @@ export class BaseSite {
    */
   isPassScreen(termBuf) {
     let lastRowNum = this.getLastRowNum(termBuf);
-    let cols = termBuf.cols;
-    let lastRowText = termBuf.getRowText(lastRowNum, 0, cols);
-    if (lastRowText.indexOf('請按任意鍵繼續') >= 0 || lastRowText.indexOf('請按 空白鍵 繼續') >= 0) {
+    let cols = termBuf ? termBuf.cols : 80;
+    let lastRowText = termBuf ? termBuf.getRowText(lastRowNum, 0, cols) : '';
+    const regex = /(?:請\s*)?按\s*(?:任\s*意\s*鍵|空\s*白\s*鍵|[([]?Space(?:\/Return)?[)\]]?)\s*繼續/i;
+    if (regex.test(lastRowText)) return true;
+    if (termBuf && termBuf.rows > 24) {
+      let row23Text = termBuf.getRowText(23, 0, cols);
+      if (regex.test(row23Text)) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Check if current terminal screen is waiting for any key to continue.
+   * @param {TermBuf} termBuf 
+   * @returns {boolean}
+   */
+  isWaitingForAnyKey(termBuf) {
+    return this.isPassScreen(termBuf);
+  }
+
+  /**
+   * Handle mouse click when waiting for any key.
+   * @param {TermBuf} termBuf 
+   * @param {object} conn 
+   * @returns {boolean} True if handled.
+   */
+  handlePassScreenClick(termBuf, conn) {
+    if (this.isWaitingForAnyKey(termBuf)) {
+      if (conn && typeof conn.send === 'function') {
+        conn.send(' ');
+      }
       return true;
     }
     return false;

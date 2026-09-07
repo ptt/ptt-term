@@ -64,6 +64,98 @@ test('BaseSite detects pass/continue prompt screen', () => {
     getRowText: () => '普通文章內容',
   };
   assert.equal(site.isPassScreen(mockTerm3), false);
+
+  const mockTerm4 = {
+    rows: 24,
+    cols: 80,
+    getRowText: () => '內文提到任意鍵三個字但並非提示',
+  };
+  assert.equal(site.isPassScreen(mockTerm4), false);
+
+  const mockTerm5 = {
+    rows: 24,
+    cols: 80,
+    getRowText: () => ' ◆ 訊息                     [按任意鍵繼續]',
+  };
+  assert.equal(site.isPassScreen(mockTerm5), true);
+
+  // Maple variations
+  const mockTermMaplePack = {
+    rows: 24,
+    cols: 80,
+    getRowText: () => '▄▄▄▄▄ 請按 任意鍵 繼續 ▄▄▄▄▄',
+  };
+  assert.equal(site.isPassScreen(mockTermMaplePack), true);
+
+  const mockTermMapleCyan = {
+    rows: 24,
+    cols: 80,
+    getRowText: () => '★ 請按 (Space/Return) 繼續 ★',
+  };
+  assert.equal(site.isPassScreen(mockTermMapleCyan), true);
+
+  const mockTermMapleSpaceFilm = {
+    rows: 24,
+    cols: 80,
+    getRowText: () => '請按 [SPACE] 繼續觀賞，或按其他鍵結束： ',
+  };
+  assert.equal(site.isPassScreen(mockTermMapleSpaceFilm), true);
+
+  const mockTermEsc = {
+    rows: 24,
+    cols: 80,
+    getRowText: () => '請按 Esc 鍵離開說明',
+  };
+  assert.equal(site.isPassScreen(mockTermEsc), false);
+
+  // isWaitingForAnyKey
+  assert.equal(site.isWaitingForAnyKey(mockTerm1), true);
+  assert.equal(site.isWaitingForAnyKey(mockTerm3), false);
+
+  // handlePassScreenClick sends space on pass screen
+  const sent = [];
+  const mockConn = { send: (s) => sent.push(s) };
+  assert.equal(site.handlePassScreenClick(mockTerm1, mockConn), true);
+  assert.deepEqual(sent, [' ']);
+
+  // Non-pass screen does not send space
+  assert.equal(site.handlePassScreenClick(mockTerm3, mockConn), false);
+  assert.deepEqual(sent, [' ']);
+
+  // PTT Site: reading screen and list screen must not be misdetected as pass screen
+  const ptt = new PttSite();
+  const mockPttReading = {
+    rows: 24,
+    cols: 80,
+    cur_y: 23,
+    cur_x: 79,
+    isUnicolor: () => true,
+    getRowText: (r) => (r === 23 ? '  瀏覽 第 1/1 頁 (100%)  目前顯示: 第 01~24 行  (y)回應(X)推文(^X)轉錄 (=[?]說明' : ''),
+  };
+  assert.equal(ptt.isPassScreen(mockPttReading), false);
+  assert.equal(ptt.isWaitingForAnyKey(mockPttReading), false);
+
+  const mockPttList = {
+    rows: 24,
+    cols: 80,
+    cur_y: 23,
+    cur_x: 79,
+    isUnicolor: () => true,
+    getRowText: (r) => (r === 23 ? '  文章選讀  (y)回應(X)推文(^X)轉錄 (=[?]說明' : ''),
+  };
+  assert.equal(ptt.isPassScreen(mockPttList), false);
+  assert.equal(ptt.isWaitingForAnyKey(mockPttList), false);
+
+  const mockPttPrompt = {
+    rows: 24,
+    cols: 80,
+    cur_y: 23,
+    cur_x: 79,
+    isUnicolor: () => true,
+    getRowText: (r) => (r === 23 ? ' ◆ 訊息                     [按任意鍵繼續]' : ''),
+  };
+  assert.equal(ptt.isPassScreen(mockPttPrompt), true);
+  assert.equal(ptt.isWaitingForAnyKey(mockPttPrompt), true);
 });
 
 test('PttSite parses prompt text patterns', () => {

@@ -984,7 +984,13 @@ export class App {
     if (e.target && e.target.closest('a')) {
       return;
     }
-    if (this.isSelectionCollapsed()) { //no anything be select
+    if (this.isSelectionCollapsed() && !skipMouseClick) { //no anything be select
+      if (this.site && this.site.isWaitingForAnyKey(this.buf)) {
+        this.site.handlePassScreenClick(this.buf, this.conn);
+        e.preventDefault();
+        this.setInputAreaFocus();
+        return;
+      }
       if (this.buf.useMouseBrowsing) {
         let doMouseCommand = true;
         if (e.target.className)

@@ -94,17 +94,6 @@ export class PttSite extends BaseSite {
     return false;
   }
 
-  isPassScreen(termBuf) {
-    if (super.isPassScreen(termBuf)) {
-      return true;
-    }
-    let cols = termBuf.cols;
-    let lastRowNum = this.getLastRowNum(termBuf);
-    if (termBuf.isUnicolor(lastRowNum, 28, 53) && termBuf.cur_y === lastRowNum && termBuf.cur_x === cols - 1) {
-      return true;
-    }
-    return false;
-  }
 
   isEditingScreen(termBuf) {
     let lastRowNum = this.getLastRowNum(termBuf);
