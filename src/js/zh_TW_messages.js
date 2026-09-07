@@ -81,6 +81,12 @@ export const zh_TW = {
   "options_picPreviewWhitelistOnly": {
     "message": "僅預覽受信任圖床的圖片 (建議開啟，維護隱私與安全)"
   },
+  "imagePreview_loading": {
+    "message": "載入圖片中..."
+  },
+  "imagePreview_failed": {
+    "message": "無法載入圖片預覽"
+  },
   "options_enableNotifications": {
     "message": "啟用水球通知"
   },

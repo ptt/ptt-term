@@ -81,6 +81,12 @@ export const en_US = {
   "options_picPreviewWhitelistOnly": {
     "message": "Only preview images from trusted image hosts (Security & Privacy)"
   },
+  "imagePreview_loading": {
+    "message": "Loading image..."
+  },
+  "imagePreview_failed": {
+    "message": "Failed to load image preview"
+  },
   "options_enableNotifications": {
     "message": "Enable notifications when a message is received."
   },

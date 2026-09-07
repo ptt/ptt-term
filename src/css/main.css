@@ -244,6 +244,11 @@ span {
 .loading-spinner {
   display: inline-block;
   animation: spin .7s infinite linear;
+  pointer-events: none;
+}
+
+.image-preview-popup {
+  pointer-events: none;
 }
 
 .glyphicon-refresh-animate {

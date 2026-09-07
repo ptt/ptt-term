@@ -66,11 +66,15 @@ export class DOMScreen extends React.Component {
     if (this.props.enableLinkHoverPreview) {
       const href = e && e.currentTarget ? e.currentTarget.href : undefined;
       if (href) {
+        if (this.state.currentImagePreview && this.state.previewHref === href) {
+          return;
+        }
         const whitelistOnly = this.props.picPreviewWhitelistOnly !== false;
         const request = createImagePreviewRequest(href, whitelistOnly);
         if (request) {
           this.setState({
             currentImagePreview: request,
+            previewHref: href,
             left: e.clientX,
             top: e.clientY,
           });
@@ -79,7 +83,15 @@ export class DOMScreen extends React.Component {
     }
   };
 
-  handleHyperLinkMouseOut = () => {
+  handleHyperLinkMouseOut = (e) => {
+    if (
+      e &&
+      e.relatedTarget &&
+      e.currentTarget &&
+      e.currentTarget.contains(e.relatedTarget)
+    ) {
+      return;
+    }
     this.setState(resetImagePreviewState());
   };
 
@@ -101,6 +113,7 @@ export class DOMScreen extends React.Component {
           ))}
         <ImagePreviewer.HoverPreview
           request={this.state.currentImagePreview}
+          href={this.state.previewHref}
           left={this.state.left}
           top={this.state.top}
         />
