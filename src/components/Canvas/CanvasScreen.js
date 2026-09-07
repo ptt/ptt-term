@@ -255,11 +255,15 @@ export class CanvasScreen extends React.Component {
     if (this.props.enableLinkHoverPreview && e && e.currentTarget) {
       const href = e.currentTarget.href;
       if (href) {
-        this.setState({
-          currentImagePreview: createImagePreviewRequest(href),
-          left: e.clientX,
-          top: e.clientY,
-        });
+        const whitelistOnly = this.props.picPreviewWhitelistOnly !== false;
+        const request = createImagePreviewRequest(href, whitelistOnly);
+        if (request) {
+          this.setState({
+            currentImagePreview: request,
+            left: e.clientX,
+            top: e.clientY,
+          });
+        }
       }
     }
   };

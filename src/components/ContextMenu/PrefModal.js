@@ -254,6 +254,18 @@ export class PrefModal extends React.Component {
                     {i18n("options_enablePicPreview")}
                   </label>
                 </div>
+                <div className="checkbox PrefModal__Grid__Col--right__SubCheckbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="picPreviewWhitelistOnly"
+                      checked={values.picPreviewWhitelistOnly}
+                      disabled={!values.enablePicPreview}
+                      onChange={this.handleCheckboxChange}
+                    />
+                    {i18n("options_picPreviewWhitelistOnly")}
+                  </label>
+                </div>
                 <div className="checkbox">
                   <label>
                     <input

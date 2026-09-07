@@ -70,6 +70,7 @@ export class TermView {
   this.bbsCursor = document.getElementById('cursor');
   this.BBSWin = document.getElementById('BBSWindow');
   this.enablePicPreview = true;
+  this.picPreviewWhitelistOnly = true;
   this.scaleX = 1;
   this.scaleY = 1;
 
@@ -326,7 +327,8 @@ export class TermView {
           setInputAreaFocus: this.bbscore.setInputAreaFocus.bind(this.bbscore),
           fpsMeter: this.fpsMeter,
           smoothAnsiArt: this.smoothAnsiArt,
-          changedRows: changedRows
+          changedRows: changedRows,
+          picPreviewWhitelistOnly: this.picPreviewWhitelistOnly !== false,
         }
       );
       this.setHighlightedRow(this.buf.nowHighlight);

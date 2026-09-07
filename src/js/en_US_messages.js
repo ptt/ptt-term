@@ -78,6 +78,9 @@ export const en_US = {
   "options_enablePicPreview": {
     "message": "Enable preview when hover on image URLs."
   },
+  "options_picPreviewWhitelistOnly": {
+    "message": "Only preview images from trusted image hosts (Security & Privacy)"
+  },
   "options_enableNotifications": {
     "message": "Enable notifications when a message is received."
   },
