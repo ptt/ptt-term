@@ -930,6 +930,9 @@ export class App {
     }
     case 'useCanvasEngine':
       this.view.useCanvasEngine = !!value;
+      if (this.view.fpsMeter) {
+        this.view.fpsMeter.setIsCanvas(this.view.useCanvasEngine);
+      }
       this.view.redraw(true);
       break;
     case 'showFps':
@@ -938,6 +941,9 @@ export class App {
     case 'smoothAnsi':
     case 'smoothAnsiArt':
       this.view.smoothAnsiArt = !!value;
+      if (this.view.fpsMeter) {
+        this.view.fpsMeter.setSmoothAnsiArt(this.view.smoothAnsiArt);
+      }
       this.view.redraw(true);
       break;
     case 'captureConnectionLog':

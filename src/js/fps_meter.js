@@ -1,14 +1,20 @@
 export class FpsMeter {
-  constructor() {
+  constructor(options = {}) {
     this.enabled = false;
     this.element = null;
+    this.textSpan = null;
+    this.canvasBtn = null;
+    this.smoothAnsiBtn = null;
     this.lastFrameTime = 0;
     this.lastRenderTime = 0;
     this.lastUiUpdateTime = 0;
     this.recentDeltas = [];
     this.recentDurations = [];
-    this.isCanvas = false;
+    this.isCanvas = !!options.isCanvas;
     this.idleTimer = null;
+    this.smoothAnsiArt = options.smoothAnsiArt !== undefined ? !!options.smoothAnsiArt : true;
+    this.onToggleCanvas = typeof options.onToggleCanvas === 'function' ? options.onToggleCanvas : null;
+    this.onToggleSmoothAnsi = typeof options.onToggleSmoothAnsi === 'function' ? options.onToggleSmoothAnsi : null;
   }
 
   ensureElement() {
@@ -19,6 +25,46 @@ export class FpsMeter {
         this.element.id = 'fpsOverlay';
         document.body.appendChild(this.element);
       }
+    }
+    if (this.element && !this.textSpan && typeof document !== 'undefined') {
+      this.element.innerHTML = '';
+      this.textSpan = document.createElement('span');
+      this.textSpan.className = 'fps-text';
+      this.element.appendChild(this.textSpan);
+
+      const space1 = document.createTextNode(' ');
+      this.element.appendChild(space1);
+
+      this.canvasBtn = document.createElement('span');
+      this.canvasBtn.className = 'fps-canvas nomouse_command';
+      this.canvasBtn.style.cursor = 'pointer';
+      this.canvasBtn.style.pointerEvents = 'auto';
+      this.canvasBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        this.toggleCanvas();
+      });
+      this.canvasBtn.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+      });
+      this.element.appendChild(this.canvasBtn);
+
+      const space2 = document.createTextNode(' ');
+      this.element.appendChild(space2);
+
+      this.smoothAnsiBtn = document.createElement('span');
+      this.smoothAnsiBtn.className = 'fps-smooth-ansi nomouse_command';
+      this.smoothAnsiBtn.style.cursor = 'pointer';
+      this.smoothAnsiBtn.style.pointerEvents = 'auto';
+      this.smoothAnsiBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        this.toggleSmoothAnsi();
+      });
+      this.smoothAnsiBtn.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+      });
+      this.element.appendChild(this.smoothAnsiBtn);
     }
     return this.element;
   }
@@ -58,6 +104,9 @@ export class FpsMeter {
         this.updateDisplay(now, false);
       }
     }, 400);
+    if (this.idleTimer && typeof this.idleTimer.unref === 'function') {
+      this.idleTimer.unref();
+    }
   }
 
   stopIdleChecker() {
@@ -121,8 +170,49 @@ export class FpsMeter {
     }
 
     const engine = this.isCanvas ? 'Canvas' : 'DOM';
-    this.element.textContent = `FPS: ${fpsText} (${durationText} ms) [${engine}]`;
+    const mainText = `FPS: ${fpsText} (${durationText} ms)`;
+    const canvasText = `[${engine}]`;
+    const statusText = this.smoothAnsiArt ? 'on' : 'off';
+    const ansiText = `[smoothANSI: ${statusText}]`;
+
+    if (this.textSpan && this.canvasBtn && this.smoothAnsiBtn) {
+      this.textSpan.textContent = mainText;
+      this.canvasBtn.textContent = canvasText;
+      this.smoothAnsiBtn.textContent = ansiText;
+    } else {
+      this.element.textContent = `${mainText} ${canvasText} ${ansiText}`;
+    }
     this.lastUiUpdateTime = now;
+  }
+
+  toggleCanvas() {
+    this.isCanvas = !this.isCanvas;
+    if (typeof this.onToggleCanvas === 'function') {
+      this.onToggleCanvas(this.isCanvas);
+    }
+    const now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+    this.updateDisplay(now, false);
+  }
+
+  setIsCanvas(isCanvas) {
+    this.isCanvas = !!isCanvas;
+    const now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+    this.updateDisplay(now, false);
+  }
+
+  toggleSmoothAnsi() {
+    this.smoothAnsiArt = !this.smoothAnsiArt;
+    if (typeof this.onToggleSmoothAnsi === 'function') {
+      this.onToggleSmoothAnsi(this.smoothAnsiArt);
+    }
+    const now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+    this.updateDisplay(now, false);
+  }
+
+  setSmoothAnsiArt(enabled) {
+    this.smoothAnsiArt = !!enabled;
+    const now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+    this.updateDisplay(now, false);
   }
 }
 

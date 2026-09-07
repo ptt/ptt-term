@@ -305,6 +305,28 @@ span {
   letter-spacing: 0.5px;
 }
 
+#fpsOverlay .fps-canvas,
+#fpsOverlay .fps-smooth-ansi {
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  margin-left: 2px;
+  padding: 1px 3px;
+  border-radius: 2px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+#fpsOverlay .fps-canvas:hover,
+#fpsOverlay .fps-smooth-ansi:hover {
+  background-color: rgba(0, 255, 0, 0.25);
+  color: #ffffff;
+}
+
+#fpsOverlay .fps-canvas:active,
+#fpsOverlay .fps-smooth-ansi:active {
+  background-color: rgba(0, 255, 0, 0.45);
+}
+
 #connLogOverlay {
   position: fixed;
   bottom: 0;

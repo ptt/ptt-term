@@ -7,6 +7,7 @@ import { i18n } from './i18n';
 import { setTimer } from './util';
 import { wrapText, u2b } from './string_util';
 import { FpsMeter } from './fps_meter';
+import { updatePref } from './pref.js';
 import icon128 from 'Icon/icon_128.png';
 
 const ENTER_CHAR = '\r';
@@ -30,7 +31,20 @@ export class TermView {
   this.useCanvasEngine = true;
   this.showFps = false;
   this.smoothAnsiArt = true;
-  this.fpsMeter = new FpsMeter();
+  this.fpsMeter = new FpsMeter({
+    isCanvas: this.useCanvasEngine,
+    smoothAnsiArt: this.smoothAnsiArt,
+    onToggleCanvas: (isCanvas) => {
+      this.useCanvasEngine = isCanvas;
+      updatePref('useCanvasEngine', isCanvas);
+      this.redraw(true);
+    },
+    onToggleSmoothAnsi: (enabled) => {
+      this.smoothAnsiArt = enabled;
+      updatePref('smoothAnsiArt', enabled);
+      this.redraw(true);
+    }
+  });
   //new pref - end
 
   this.bbsViewMargin = 0;
@@ -277,7 +291,17 @@ export class TermView {
 
   setShowFps(show) {
     this.showFps = !!show;
+    this.fpsMeter.setIsCanvas(this.useCanvasEngine);
+    this.fpsMeter.setSmoothAnsiArt(this.smoothAnsiArt);
     this.fpsMeter.setEnabled(this.showFps);
+  }
+
+  setUseCanvasEngine(enabled) {
+    this.useCanvasEngine = !!enabled;
+    if (this.fpsMeter) {
+      this.fpsMeter.setIsCanvas(this.useCanvasEngine);
+    }
+    this.redraw(true);
   }
 
   update() {
