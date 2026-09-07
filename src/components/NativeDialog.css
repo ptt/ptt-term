@@ -8,6 +8,16 @@ dialog.NativeDialog {
   background: #fff;
   color: #333;
   margin: auto;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+}
+
+dialog.NativeDialog input,
+dialog.NativeDialog button,
+dialog.NativeDialog select,
+dialog.NativeDialog textarea {
+  font-family: inherit;
 }
 
 dialog.NativeDialog::backdrop {

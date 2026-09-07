@@ -1,8 +1,3 @@
-#tooltip_antiIdleTime,
-#tooltip_fontFace {
-  color: black;
-}
-
 dialog.PrefModal {
   width: 640px;
   max-width: 95vw;
@@ -82,6 +77,12 @@ dialog.PrefModal .NativeDialog__content {
   box-sizing: border-box;
 }
 
+.TabLegend__Text {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35em;
+}
+
 .PrefModal__Grid__Col--right legend small {
   font-size: 65%;
   color: #777;
@@ -90,6 +91,7 @@ dialog.PrefModal .NativeDialog__content {
 .PrefModal__Grid__Col--right legend .close {
   float: none;
   margin-left: auto;
+  align-self: center;
 }
 
 .PrefModal__Grid__Col--right__Fieldset input[type="text"],
@@ -97,10 +99,20 @@ dialog.PrefModal .NativeDialog__content {
 .PrefModal__Grid__Col--right__Fieldset input[type="password"],
 .PrefModal__Grid__Col--right__Fieldset select {
   width: 250px;
+  margin-top: 5px;
 }
 
-.PrefModal__Grid__Col--right__Fieldset select {
-  margin-top: 5px;
+.PrefModal__Grid__Col--right__Fieldset .control-label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.PrefModal__Grid__Col--right__Fieldset .form-group {
+  margin-bottom: 17px;
+}
+
+#antiIdleTime {
+  margin-top: calc(10px + 0.5em);
 }
 
 .PrefModal__Grid__Col--right__MouseBrowsingHighlightColor {
@@ -117,4 +129,13 @@ dialog.PrefModal .NativeDialog__content {
 
 .PrefModal__Grid__Col--right__SubCheckbox {
   margin-left: 20px;
+}
+
+.PrefModal__About p,
+.PrefModal__About li {
+  line-height: 1.46;
+}
+
+.PrefModal__About li {
+  margin-bottom: 0.04em;
 }

@@ -79,8 +79,10 @@ const MOUSE_WHEEL_OPTIONS = [
 
 const TabLegend = ({ title, subtitle, onCloseClick }) => (
   <legend>
-    {title}
-    {subtitle && <small> - {subtitle}</small>}
+    <span className="TabLegend__Text">
+      <span>{title}</span>
+      {subtitle && <small>- {subtitle}</small>}
+    </span>
     <button type="button" className="close" onClick={onCloseClick}>
       &times;
     </button>
@@ -322,9 +324,6 @@ export class PrefModal extends React.Component {
                     value={values.antiIdleTime}
                     onChange={this.handleNumberInputChange}
                   />
-                  <p className="help-block" id="tooltip_antiIdleTime">
-                    {i18n("tooltip_antiIdleTime")}
-                  </p>
                 </div>
                 <div className="form-group" id="lineWrap">
                   <label className="control-label">
@@ -611,7 +610,7 @@ export class PrefModal extends React.Component {
               </fieldset>
             )}
             {navActiveKey === "about" && (
-              <div>
+              <div className="PrefModal__About">
                 <div>
                   <TabLegend
                     title={i18n("appName")}
