@@ -981,7 +981,11 @@ export class App {
 
   if (e.button == 2) { //right button
   } else if (e.button === 0) { //left button
-    if (e.target && e.target.closest('a')) {
+    const a = e.target && e.target.closest('a');
+    if (a) {
+      if (this.site && typeof this.site.handleCustomLink === 'function' && this.site.handleCustomLink(a.href, this)) {
+        e.preventDefault();
+      }
       return;
     }
     if (this.isSelectionCollapsed() && !skipMouseClick) { //no anything be select

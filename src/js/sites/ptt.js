@@ -64,6 +64,7 @@ export function parseWaterball(str, lastRowNum = 23) {
 export class PttSite extends BaseSite {
   constructor() {
     super('ptt');
+    this.currentBoard = null;
   }
 
   isMenuScreen(termBuf) {
@@ -233,4 +234,145 @@ export class PttSite extends BaseSite {
 
     return null;
   }
+
+  /**
+   * Extract current board name from terminal screen header if available.
+   * Checks row 0..3 for board title patterns (e.g. 看板《Gossiping》, 看板 Gossiping, 看板: Gossiping).
+   * @param {TermBuf} termBuf 
+   * @returns {string|null}
+   */
+  extractBoardName(termBuf) {
+    if (!termBuf || !termBuf.rows) return null;
+    for (let r = 0; r < Math.min(4, termBuf.rows); ++r) {
+      const rowText = termBuf.getRowText(r, 0, termBuf.cols);
+      const m = /看板[：:\s《]+([0-9A-Za-z_.-]+)》?/.exec(rowText);
+      if (m) {
+        this.currentBoard = m[1];
+        return m[1];
+      }
+    }
+    return this.currentBoard || null;
+  }
+
+  /**
+   * Detect PTT article code (AID) links in a row.
+   * Format: #1gIeu-3A (Android) or #1gIeu-3A [Android] or #1gIeu-3A@Android or #1gIeu-3A
+   * @param {string} lineText 
+   * @param {TermChar[]} lineChars 
+   * @param {TermBuf} [termBuf] 
+   * @returns {Array<{ start: number, end: number, url: string, aid: string, board: string|null }>}
+   */
+  detectCustomLinks(lineText, lineChars, termBuf) {
+    if (termBuf) {
+      this.extractBoardName(termBuf);
+    }
+    if (!lineText) return [];
+    const links = [];
+    const crossPostMatch = /本文轉錄自\s+([0-9A-Za-z_.-]{2,})\s+看板/.exec(lineText);
+    const crossPostBoard = crossPostMatch ? crossPostMatch[1] : null;
+    const re = /(?<![0-9A-Za-z_#-])#([0-9A-Za-z_-]{8})(?![0-9A-Za-z_-])(?:\s*(?:\(([0-9A-Za-z_.-]+)\)|\[([0-9A-Za-z_.-]+)\]|@([0-9A-Za-z_.-]+)))?/g;
+    let m;
+    while ((m = re.exec(lineText)) !== null) {
+      const aid = m[1];
+      if (!isAidc(aid)) continue;
+      const board = m[2] || m[3] || m[4] || crossPostBoard || this.extractBoardName(termBuf);
+      let url;
+      if (board) {
+        const fn = aidToFn(aid);
+        url = fn ? `https://www.ptt.cc/bbs/${board}/${fn}.html` : `https://www.ptt.cc/bbs/${board}/#${aid}`;
+      } else {
+        url = `#aid=${aid}`;
+      }
+      links.push({
+        start: m.index,
+        end: m.index + m[0].length,
+        url,
+        aid,
+        board,
+      });
+    }
+    return links;
+  }
+
+  /**
+   * Handle custom link clicks.
+   * If the URL is a boardless AID action (#aid=...), send keystrokes to terminal.
+   * If it is a web URL (https://www.ptt.cc/...), return false to let browser open the page.
+   * @param {string} url
+   * @param {object} app
+   * @returns {boolean}
+   */
+  handleCustomLink(url, app) {
+    if (!url || !app || !app.conn) return false;
+    const m = /#aid=([0-9A-Za-z_-]{8})/.exec(url);
+    if (m) {
+      const aid = m[1];
+      if (typeof app.conn.send === 'function') {
+        app.conn.send(`#${aid}\r`);
+      }
+      if (typeof app.setInputAreaFocus === 'function') {
+        app.setInputAreaFocus();
+      }
+      return true;
+    }
+    return false;
+  }
 }
+
+// ---------------------------------------------------------------------------
+// PTT Article ID (AID) Codec (RFC / pttbbs mbbsd/aids.c specification)
+// ---------------------------------------------------------------------------
+const AIDC_TABLE = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_";
+const AIDC_LEN = 8;
+const TYPE_SCALE = 17592186044416; // 2^44
+const V1_SCALE = 4096;             // 2^12
+const V2_MOD = 4096;
+const V1_MOD = 4294967296;         // 2^32
+
+export function isAidc(aid) {
+  return typeof aid === 'string' && /^[0-9A-Za-z_-]{8}$/.test(aid);
+}
+
+/**
+ * Convert filename (e.g. "M.1786265274.A.5E3") to 8-character AID (e.g. "1gU3wwNZ").
+ * @param {string} fn 
+ * @returns {string|null}
+ */
+export function fnToAid(fn) {
+  if (typeof fn !== 'string') return null;
+  const bare = fn.replace(/\.html$/i, '');
+  const m = /^([MG])\.(\d{1,10})\.A(?:\.([0-9A-Fa-f]{1,3}))?$/.exec(bare);
+  if (!m) return null;
+  const v1 = parseInt(m[2], 10);
+  if (!(v1 >= 0) || v1 >= V1_MOD) return null;
+  const v2 = m[3] ? parseInt(m[3], 16) : 0;
+  const type = m[1] === 'M' ? 0 : 1;
+  let aidu = type * TYPE_SCALE + v1 * V1_SCALE + v2;
+  let out = '';
+  for (let i = 0; i < AIDC_LEN; ++i) {
+    out = AIDC_TABLE.charAt(aidu % 64) + out;
+    aidu = Math.floor(aidu / 64);
+  }
+  return out;
+}
+
+/**
+ * Convert 8-character AID (e.g. "1gU3wwNZ") to filename (e.g. "M.1786265274.A.5E3").
+ * @param {string} aid 
+ * @returns {string|null}
+ */
+export function aidToFn(aid) {
+  if (!isAidc(aid)) return null;
+  let aidu = 0;
+  for (let i = 0; i < aid.length; ++i) {
+    const v = AIDC_TABLE.indexOf(aid.charAt(i));
+    if (v < 0) return null;
+    aidu = aidu * 64 + v;
+  }
+  const type = Math.floor(aidu / TYPE_SCALE) % 16;
+  const v1 = Math.floor(aidu / V1_SCALE) % V1_MOD;
+  const v2 = aidu % V2_MOD;
+  const hex = v2.toString(16).toUpperCase().padStart(3, '0');
+  return (type === 0 ? 'M' : 'G') + '.' + v1 + '.A.' + hex;
+}
+

@@ -1,4 +1,5 @@
-.y:not(.o), .y::before, .y::after
+.y:not(.o), .y::before, .y::after,
+.aid-action:not(.o), .aid-action::before, .aid-action::after
 {
   text-decoration: underline #ff6600 !important;
   text-underline-offset: 2px;
@@ -12,7 +13,9 @@
 .q4, .q4::before, .rq4::after{color:#000080;}
 .q5, .q5::before, .rq5::after{color:#800080;}
 .q6, .q6::before, .rq6::after{color:#008080;}
-.y:not(.o):hover, .y:hover::before, .y:hover::after, .q7, .q7::before, .rq7::after{color:#c0c0c0;}
+.y:not(.o):hover, .y:hover::before, .y:hover::after,
+.aid-action:not(.o):hover, .aid-action:hover::before, .aid-action:hover::after,
+.q7, .q7::before, .rq7::after{color:#c0c0c0;}
 .q8, .q8::before, .rq8::after{color:#808080;}
 .q9, .q9::before, .rq9::after{color:#ff0000;}
 .q10, .q10::before, .rq10::after{color:#00ff00;}

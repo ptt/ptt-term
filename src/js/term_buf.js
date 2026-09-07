@@ -595,12 +595,32 @@ export class TermBuf extends Event {
 
         let res;
         let uris = null;
-        // pairs of URI start and end positions are stored in line.uri.
+        this.uriRegEx.lastIndex = 0;
+        // pairs of URI start and end positions are stored in line.uris.
         while ( (res = this.uriRegEx.exec(s)) !== null ) {
           if (!uris)   uris = [];
           const uri = [res.index, res.index+res[0].length];
           uris.push(uri);
           // dump('found URI: ' + res[0] + '\n');
+        }
+
+        if (this.site && typeof this.site.detectCustomLinks === 'function') {
+          const customLinks = this.site.detectCustomLinks(s, line, this);
+          if (Array.isArray(customLinks)) {
+            for (let i = 0; i < customLinks.length; ++i) {
+              const cl = customLinks[i];
+              if (cl && typeof cl.start === 'number' && typeof cl.end === 'number' && cl.end > cl.start) {
+                const overlap = uris && uris.some(u => !(cl.end <= u[0] || cl.start >= u[1]));
+                if (!overlap) {
+                  if (!uris) uris = [];
+                  uris.push([cl.start, cl.end, cl.url]);
+                }
+              }
+            }
+            if (uris) {
+              uris.sort((a, b) => a[0] - b[0]);
+            }
+          }
         }
 
         if (uris) {
@@ -620,13 +640,12 @@ export class TermBuf extends Event {
               line[col].partOfURL = true;
               line[col].needUpdate = true; //fix link bug
             }
-            const urlTemp2 = urlTemp.toLowerCase();
+            const targetUrl = uri[2] || urlTemp;
+            const fullurl = this.site && typeof this.site.resolveUrl === 'function'
+              ? this.site.resolveUrl(targetUrl)
+              : (targetUrl.toLowerCase().startsWith('pid://') ? 'https://www.pixiv.net/artworks/' + targetUrl.slice(6) : targetUrl);
             line[uri[0]].startOfURL = true;
-            if (urlTemp2.startsWith('pid://')) {
-              line[uri[0]].fullurl = 'https://www.pixiv.net/artworks/' + urlTemp2.slice(6);
-            } else {
-              line[uri[0]].fullurl = urlTemp;
-            }
+            line[uri[0]].fullurl = fullurl;
             line[uri[1]-1].endOfURL = true;
           }
         }

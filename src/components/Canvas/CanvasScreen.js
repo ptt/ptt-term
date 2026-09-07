@@ -305,12 +305,13 @@ export class CanvasScreen extends React.Component {
             c++;
           }
           const endCol = c;
+          const isAction = typeof href === "string" && href.includes("#aid=");
           links.push(
             <a
               key={`link-${r}-${startCol}`}
               href={href}
-              target="_blank"
-              rel="noopener noreferrer"
+              target={isAction ? undefined : "_blank"}
+              rel={isAction ? undefined : "noopener noreferrer"}
               data-srow={r}
               data-scol={startCol}
               draggable="false"

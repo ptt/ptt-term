@@ -5,19 +5,22 @@ export const HyperLink = ({
   inner,
   onMouseOver,
   onMouseOut
-}) => (
-  <a
-    onMouseOver={onMouseOver}
-    onMouseOut={onMouseOut}
-    scol={col} // FIXME: data-?
-    srow={row} // FIXME: data-?
-    className="y"
-    href={href}
-    rel="noreferrer"
-    target="_blank"
-  >
-    {inner}
-  </a>
-);
+}) => {
+  const isAction = typeof href === "string" && href.includes("#aid=");
+  return (
+    <a
+      onMouseOver={onMouseOver}
+      onMouseOut={onMouseOut}
+      scol={col} // FIXME: data-?
+      srow={row} // FIXME: data-?
+      className={isAction ? "aid-action" : "y"}
+      href={href}
+      rel={isAction ? undefined : "noreferrer"}
+      target={isAction ? undefined : "_blank"}
+    >
+      {inner}
+    </a>
+  );
+};
 
 export default HyperLink;

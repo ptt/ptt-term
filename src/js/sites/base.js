@@ -453,4 +453,37 @@ export class BaseSite {
 
     return null;
   }
+
+  /**
+   * Detect site-specific custom links in a text row.
+   * @param {string} lineText
+   * @param {TermChar[]} lineChars
+   * @param {TermBuf} [termBuf]
+   * @returns {Array<{ start: number, end: number, url: string }>}
+   */
+  detectCustomLinks(lineText, lineChars, termBuf) {
+    return [];
+  }
+
+  /**
+   * Resolve or transform a URL if needed (e.g. pid://, custom schemes).
+   * @param {string} url
+   * @returns {string}
+   */
+  resolveUrl(url) {
+    if (typeof url === "string" && url.toLowerCase().startsWith("pid://")) {
+      return "https://www.pixiv.net/artworks/" + url.slice(6);
+    }
+    return url;
+  }
+
+  /**
+   * Handle custom link clicks if needed.
+   * @param {string} url
+   * @param {object} app
+   * @returns {boolean} True if handled internally and should preventDefault.
+   */
+  handleCustomLink(url, app) {
+    return false;
+  }
 }

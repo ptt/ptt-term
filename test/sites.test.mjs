@@ -16,6 +16,9 @@ import {
   parseListRow,
   parseWaterballRow,
   parseWaterball,
+  fnToAid,
+  aidToFn,
+  isAidc,
 } from '../src/js/sites/ptt.js';
 
 test('getSite resolves site profiles correctly with fallback', () => {
@@ -353,6 +356,7 @@ test('AutoSite detects and locks site profile based on Telnet options or explici
   assert.equal(autoMaple.isLocked, true);
   assert.ok(autoMaple.getActiveSite() instanceof Maple3Site);
 });
+
 test('AutoSite replaces termBuf.site and app.site on lock and proxies calls transparently', () => {
   const auto = new AutoSite();
   const mockApp = { site: auto };
@@ -382,5 +386,184 @@ test('AutoSite replaces termBuf.site and app.site on lock and proxies calls tran
   assert.equal(auto.name, 'ptt');
   assert.equal(auto.isLocked, true);
   assert.ok(auto.isMenuScreen(mockTerm));
+});
+
+test('PttSite AID codec converts filenames and AIDs bidirectionally', () => {
+  const pairs = [
+    ['M.1786458180.A.4FE', '1gUp14J-'],
+    ['M.1786265274.A.5E3', '1gU3wwNZ'],
+  ];
+
+  for (const [fn, aid] of pairs) {
+    assert.equal(fnToAid(fn), aid);
+    assert.equal(aidToFn(aid), fn);
+    assert.equal(isAidc(aid), true);
+  }
+
+  assert.equal(fnToAid('M.1.A.001')?.length, 8);
+  assert.equal(fnToAid('M.1786265274.A.5E3.html'), '1gU3wwNZ');
+  assert.equal(fnToAid('M.1786265274.A.5e3'), '1gU3wwNZ');
+  assert.equal(aidToFn(fnToAid('M.123.A')), 'M.123.A.000');
+
+  const gAid = fnToAid('G.1786265274.A.5E3');
+  assert.equal(aidToFn(gAid), 'G.1786265274.A.5E3');
+
+  assert.equal(fnToAid('M.1786265274.5E3'), null);
+  assert.equal(fnToAid('X.1786265274.A.5E3'), null);
+  assert.equal(fnToAid('M.1786265274.A.5E3F'), null);
+  assert.equal(fnToAid(''), null);
+  assert.equal(fnToAid(null), null);
+
+  assert.equal(aidToFn('1gU3wwNZa'), null);
+  assert.equal(aidToFn('1gU3wwN'), null);
+  assert.equal(aidToFn('1gU3ww.Z'), null);
+  assert.equal(aidToFn(''), null);
+  assert.equal(aidToFn(null), null);
+
+  assert.equal(aidToFn('1gUp14J-'), 'M.1786458180.A.4FE');
+  const withUnderscore = fnToAid('M.4294967295.A.FFF');
+  assert.equal(aidToFn(withUnderscore), 'M.4294967295.A.FFF');
+});
+
+test('PttSite detects custom links for AID codes in lines', () => {
+  const ptt = new PttSite();
+
+  const line1 = '推薦文章請看 #1gU3wwNZ (Browsers) 超級詳細';
+  const links1 = ptt.detectCustomLinks(line1, null, null);
+  assert.equal(links1.length, 1);
+  assert.equal(links1[0].aid, '1gU3wwNZ');
+  assert.equal(links1[0].board, 'Browsers');
+  assert.equal(links1[0].url, 'https://www.ptt.cc/bbs/Browsers/M.1786265274.A.5E3.html');
+  assert.equal(line1.substring(links1[0].start, links1[0].end), '#1gU3wwNZ (Browsers)');
+
+  const line2 = '請參考 #1gUp14J-@SYSOP 說明公告';
+  const links2 = ptt.detectCustomLinks(line2, null, null);
+  assert.equal(links2.length, 1);
+  assert.equal(links2[0].aid, '1gUp14J-');
+  assert.equal(links2[0].board, 'SYSOP');
+  assert.equal(links2[0].url, 'https://www.ptt.cc/bbs/SYSOP/M.1786458180.A.4FE.html');
+  assert.equal(line2.substring(links2[0].start, links2[0].end), '#1gUp14J-@SYSOP');
+
+  const mockTerm = {
+    rows: 24,
+    cols: 80,
+    getRowText: (r) => (r === 0 ? '【板主:admin】         看板《Gossiping》        線上:12345' : ''),
+  };
+  const line3 = '剛才有人發在 #1gU3wwNZ 趕快去看';
+  const links3 = ptt.detectCustomLinks(line3, null, mockTerm);
+  assert.equal(links3.length, 1);
+  assert.equal(links3[0].aid, '1gU3wwNZ');
+  assert.equal(links3[0].board, 'Gossiping');
+  assert.equal(links3[0].url, 'https://www.ptt.cc/bbs/Gossiping/M.1786265274.A.5E3.html');
+
+  const line4 = '代碼: #1gU3wwNZ';
+  const links4 = ptt.detectCustomLinks(line4, null, null);
+  assert.equal(links4.length, 1);
+  assert.equal(links4[0].aid, '1gU3wwNZ');
+  assert.equal(links4[0].board, null);
+  assert.equal(links4[0].url, '#aid=1gU3wwNZ');
+
+  const line5 = '#123 #short #toolongAID123 #FFFFFF ##1gU3wwNZ abc#1gU3wwNZ';
+  const links5 = ptt.detectCustomLinks(line5, null, null);
+  assert.equal(links5.length, 0);
+
+  const line6 = '※ [本文轉錄自 C_Chat 看板 #1gUp14J- ]';
+  const links6 = ptt.detectCustomLinks(line6, null, null);
+  assert.equal(links6.length, 1);
+  assert.equal(links6[0].aid, '1gUp14J-');
+  assert.equal(links6[0].board, 'C_Chat');
+  assert.equal(links6[0].url, 'https://www.ptt.cc/bbs/C_Chat/M.1786458180.A.4FE.html');
+
+  // Article reading screen header: 作者 ... 看板 Gossiping
+  const mockTermArticle = {
+    rows: 24,
+    cols: 80,
+    getRowText: (r) => (r === 0 ? '作者  someone (nick)                                         看板  Gossiping' : ''),
+  };
+  const line7 = '請看這篇 #1gU3wwNZ 討論';
+  const links7 = ptt.detectCustomLinks(line7, null, mockTermArticle);
+  assert.equal(links7.length, 1);
+  assert.equal(links7[0].aid, '1gU3wwNZ');
+  assert.equal(links7[0].board, 'Gossiping');
+  assert.equal(links7[0].url, 'https://www.ptt.cc/bbs/Gossiping/M.1786265274.A.5E3.html');
+
+  // Bracket notation: #AID [Board]
+  const line8 = '參考資料 #1gU3wwNZ [Browsers]';
+  const links8 = ptt.detectCustomLinks(line8, null, null);
+  assert.equal(links8.length, 1);
+  assert.equal(links8[0].aid, '1gU3wwNZ');
+  assert.equal(links8[0].board, 'Browsers');
+  assert.equal(links8[0].url, 'https://www.ptt.cc/bbs/Browsers/M.1786265274.A.5E3.html');
+
+  // AutoSite forwards detectCustomLinks and retains currentBoard across scrolled pages
+  const auto = new AutoSite();
+  auto.detectCustomLinks('第一頁標頭', null, mockTermArticle);
+  const mockTermPage2 = {
+    rows: 24,
+    cols: 80,
+    getRowText: (r) => (r === 0 ? '內文第二頁沒有看板資訊' : ''),
+  };
+  const linksAuto = auto.detectCustomLinks('第二頁推文提到 #1gU3wwNZ 推薦閱讀', null, mockTermPage2);
+  assert.equal(linksAuto.length, 1);
+  assert.equal(linksAuto[0].aid, '1gU3wwNZ');
+  assert.equal(linksAuto[0].board, 'Gossiping');
+  assert.equal(linksAuto[0].url, 'https://www.ptt.cc/bbs/Gossiping/M.1786265274.A.5E3.html');
+});
+
+test('PttSite and AutoSite handleCustomLink execute in-terminal AID jumps and pass web links', () => {
+  const ptt = new PttSite();
+  const auto = new AutoSite();
+  let sentData = '';
+  let focused = false;
+  const mockApp = {
+    conn: {
+      send: (data) => {
+        sentData += data;
+      },
+    },
+    setInputAreaFocus: () => {
+      focused = true;
+    },
+  };
+
+  // Boardless AID link sends keystroke into terminal
+  assert.equal(ptt.handleCustomLink('#aid=1gU3wwNZ', mockApp), true);
+  assert.equal(sentData, '#1gU3wwNZ\r');
+  assert.equal(focused, true);
+
+  // Resolved URL with hash also handled
+  sentData = '';
+  focused = false;
+  assert.equal(ptt.handleCustomLink('https://term.ptt.cc/#aid=1gU3wwNZ', mockApp), true);
+  assert.equal(sentData, '#1gU3wwNZ\r');
+  assert.equal(focused, true);
+
+  // AutoSite transparently proxies handleCustomLink
+  sentData = '';
+  focused = false;
+  assert.equal(auto.handleCustomLink('#aid=1gUp14J-', mockApp), true);
+  assert.equal(sentData, '#1gUp14J-\r');
+  assert.equal(focused, true);
+
+  // Web page link with board is not intercepted (let browser open page)
+  sentData = '';
+  assert.equal(ptt.handleCustomLink('https://www.ptt.cc/bbs/Gossiping/M.1786265274.A.5E3.html', mockApp), false);
+  assert.equal(sentData, '');
+
+  // BaseSite defaults to false
+  const base = new BaseSite();
+  assert.equal(base.handleCustomLink('#aid=1gU3wwNZ', mockApp), false);
+
+  // Null/empty inputs safely return false
+  assert.equal(ptt.handleCustomLink(null, mockApp), false);
+  assert.equal(ptt.handleCustomLink('', mockApp), false);
+  assert.equal(ptt.handleCustomLink('#aid=123', mockApp), false);
+});
+
+test('BaseSite resolves URLs including pid:// scheme', () => {
+  const site = new BaseSite();
+  assert.equal(site.resolveUrl('pid://12345678'), 'https://www.pixiv.net/artworks/12345678');
+  assert.equal(site.resolveUrl('https://example.com/test'), 'https://example.com/test');
+  assert.equal(site.resolveUrl('http://ptt.cc'), 'http://ptt.cc');
 });
 
