@@ -247,10 +247,8 @@ export class TermView {
   }
 
   onBlinkToggle() {
-    if (this.useCanvasEngine) {
-      if (this.componentScreen && typeof this.componentScreen.onBlink === 'function') {
-        this.componentScreen.onBlink();
-      }
+    if (this.useCanvasEngine && this.componentScreen) {
+      this.componentScreen.onBlink();
     }
   }
 
@@ -258,36 +256,28 @@ export class TermView {
     this.buf=buf;
   }
 
-  setConn(conn) {
-    this.conn=conn;
-  }
-
-  _send(data) {
-    if (this.conn)
-      this.conn.send(data);
-  }
-
-  _convSend(data) {
-    if (this.conn)
-      this.conn.convSend(data);
-  }
-
   setCore(core) {
     this.bbscore=core;
   }
 
-  _isConnected() {
-    return this.bbscore.isConnected() && !!this.conn;
+  get conn() {
+    return this.bbscore ? this.bbscore.conn : null;
+  }
+
+  _send(data) {
+    if (this.bbscore && this.bbscore.conn)
+      this.bbscore.conn.send(data);
+  }
+
+  _convSend(data) {
+    if (this.bbscore && this.bbscore.conn)
+      this.bbscore.conn.convSend(data);
   }
 
   setFontFace(fontFace) {
     this.fontFace = fontFace;
     this.input.style.setProperty('font-family', this.fontFace, 'important');
-    this.mainDisplay.style.setProperty('font-family', this.fontFace, 'important');
-    if (this.easyReadingOverlay) {
-      this.easyReadingOverlay.style.setProperty('font-family', this.fontFace, 'important');
-    }
-    document.getElementById('cursor').style.setProperty('font-family', this.fontFace, 'important');
+    this.easyReadingOverlay.style.setProperty('--font-face', this.fontFace);
   }
 
   setShowFps(show) {
@@ -299,9 +289,7 @@ export class TermView {
 
   setUseCanvasEngine(enabled) {
     this.useCanvasEngine = !!enabled;
-    if (this.fpsMeter) {
-      this.fpsMeter.setIsCanvas(this.useCanvasEngine);
-    }
+    this.fpsMeter.setIsCanvas(this.useCanvasEngine);
     this.redraw(true);
   }
 
@@ -387,7 +375,7 @@ export class TermView {
 
   setHighlightedRow(row) {
     console.debug(`setHighlightedRow: ${row}, this.buf.highlightCursor:${ this.buf.highlightCursor}`);
-    if (this.buf.highlightCursor && this.componentScreen && typeof this.componentScreen.setCurrentHighlighted === 'function') {
+    if (this.buf.highlightCursor && this.componentScreen) {
       this.componentScreen.setCurrentHighlighted(row);
     }
   }
@@ -840,7 +828,7 @@ export class TermView {
       return '';
     }
     if (this.useCanvasEngine) {
-      if (this.componentScreen && typeof this.componentScreen.getSelectedText === 'function') {
+      if (this.componentScreen) {
         return this.componentScreen.getSelectedText();
       }
       return '';
@@ -856,7 +844,7 @@ export class TermView {
       return null;
     }
     if (this.useCanvasEngine) {
-      if (this.componentScreen && typeof this.componentScreen.getSelectionColRow === 'function') {
+      if (this.componentScreen) {
         const sel = this.componentScreen.getSelectionColRow();
         if (sel)
           return sel;
@@ -877,7 +865,7 @@ export class TermView {
       return;
     }
     if (this.useCanvasEngine) {
-      if (this.componentScreen && typeof this.componentScreen.selectAll === 'function') {
+      if (this.componentScreen) {
         this.componentScreen.selectAll();
       }
       return;

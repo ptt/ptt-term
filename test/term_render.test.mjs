@@ -412,3 +412,39 @@ test('TermBuf puts handles bell (\\x07), setting bellOccurred and dispatching be
   assert.equal(bellDispatched, 1);
   assert.equal(bellSoundPlayed, 1);
 });
+
+test('TermView _send, _convSend and conn getter delegate to bbscore.conn', () => {
+  const connMatch = termViewSource.match(/get conn\(\)\s*\{([\s\S]*?\n  )\}/);
+  const sendMatch = termViewSource.match(/_send\(data\)\s*\{([\s\S]*?\n  )\}/);
+  const convSendMatch = termViewSource.match(/_convSend\(data\)\s*\{([\s\S]*?\n  )\}/);
+
+  assert.ok(connMatch, 'TermView must define conn getter');
+  assert.ok(sendMatch, 'TermView must define _send method');
+  assert.ok(convSendMatch, 'TermView must define _convSend method');
+
+  const sent = [];
+  const convSent = [];
+  const mockConn = {
+    send(data) {
+      sent.push(data);
+    },
+    convSend(data) {
+      convSent.push(data);
+    },
+  };
+  const mockView = {
+    bbscore: { conn: mockConn },
+  };
+  Object.defineProperty(mockView, 'conn', {
+    get: new Function(connMatch[1]),
+  });
+  mockView._send = new Function('data', sendMatch[1]).bind(mockView);
+  mockView._convSend = new Function('data', convSendMatch[1]).bind(mockView);
+
+  assert.equal(mockView.conn, mockConn);
+  mockView._send('\x1b[D');
+  assert.deepEqual(sent, ['\x1b[D']);
+  mockView._convSend('test');
+  assert.deepEqual(convSent, ['test']);
+});
+

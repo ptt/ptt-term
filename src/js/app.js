@@ -149,7 +149,7 @@ export class App {
   this.pushthreadAutoUpdateCount = 0;
   this.maxPushthreadAutoUpdateCount = -1;
   this.onWindowResize();
-  this.setupContextMenus();
+  this.setupOverlay();
   this.contextMenuShown = false;
 
   // init touch controller if device supports touch
@@ -264,7 +264,6 @@ export class App {
 
   onConnect() {
   this.conn.isConnected = true;
-  this.view.setConn(this.conn);
   console.info("app onConnect");
   this.connectState = 1;
   this.updateTabIcon('connect');
@@ -944,9 +943,7 @@ export class App {
       break;
     case 'useCanvasEngine':
       this.view.useCanvasEngine = !!value;
-      if (this.view.fpsMeter) {
-        this.view.fpsMeter.setIsCanvas(this.view.useCanvasEngine);
-      }
+      this.view.fpsMeter.setIsCanvas(this.view.useCanvasEngine);
       this.view.redraw(true);
       break;
     case 'showFps':
@@ -955,9 +952,7 @@ export class App {
     case 'smoothAnsi':
     case 'smoothAnsiArt':
       this.view.smoothAnsiArt = !!value;
-      if (this.view.fpsMeter) {
-        this.view.fpsMeter.setSmoothAnsiArt(this.view.smoothAnsiArt);
-      }
+      this.view.fpsMeter.setSmoothAnsiArt(this.view.smoothAnsiArt);
       this.view.redraw(true);
       break;
     case 'captureConnectionLog':
@@ -1415,9 +1410,5 @@ export class App {
       />,
       document.getElementById('cmenuReact')
     );
-  }
-
-  setupContextMenus() {
-    this.setupOverlay();
   }
 }
