@@ -91,6 +91,18 @@ export const zh_TW = {
   options_enableNotifications: {
     message: "啟用水球通知",
   },
+  options_enableBell: {
+    message: "終端機提示音 (Bell)",
+  },
+  options_bellAlways: {
+    message: "隨時播放提示音",
+  },
+  options_bellBackground: {
+    message: "僅在背景時播放 (視窗不在前景)",
+  },
+  options_bellOff: {
+    message: "關閉 (靜音)",
+  },
   options_enableEasyReading: {
     message: "啟用文章好讀模式 (實驗性)",
   },

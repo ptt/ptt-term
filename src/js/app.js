@@ -11,8 +11,8 @@ import { ConnectionLog } from './conn_log';
 import { TouchController } from './touch_controller';
 import { i18n } from './i18n';
 import { unescapeStr } from './string_util';
-import { setTimer } from './util';
-import { setTerminalBellEnabled } from './bell.js';
+import { setTimer, resolveWebSocketUrl } from './util';
+import { setTerminalBellEnabled, setWindowFocused } from './bell.js';
 import AppOverlay from '../components/AppOverlay';
 import { getSite } from './sites';
 import iconLogo from 'Icon/logo.png';
@@ -108,6 +108,7 @@ export class App {
 
   window.addEventListener('focus', (e) => {
     this.appFocused = true;
+    setWindowFocused(true);
     if (this.view.titleTimer) {
       this.view.titleTimer.cancel();
       this.view.titleTimer = null;
@@ -118,6 +119,7 @@ export class App {
 
   window.addEventListener('blur', (e) => {
     this.appFocused = false;
+    setWindowFocused(false);
   }, false);
 
   this.strToCopy = null;
@@ -199,6 +201,9 @@ export class App {
   }
 
   _parseURLSimple(url) {
+  if (!url)
+    return null;
+  url = resolveWebSocketUrl(url);
   const tokens = url.split(/:\/\//, 2);
   if (tokens.length != 2)
     return null;

@@ -19,8 +19,10 @@ const BELL_PEAK_GAIN = 0.06;
 const SILENCE_GAIN = 0.0001; // -80dB floor for exponential ramping
 
 let isBellEnabled = true;
+let bellMode = 'always';
 let audioContext = null;
 let lastBellTimestamp = -Infinity;
+let isWindowFocusedState = true;
 
 let audioContextFactory = () => {
   const AudioContextClass =
@@ -29,22 +31,69 @@ let audioContextFactory = () => {
   return AudioContextClass ? new AudioContextClass() : null;
 };
 
-export function canPlayBell(
-  now = Date.now(),
-  state = { enabled: isBellEnabled, lastPlayedAt: lastBellTimestamp }
-) {
-  if (!state.enabled) return false;
-  const cooldown =
-    state.cooldownMs !== undefined ? state.cooldownMs : BELL_COOLDOWN_MS;
-  return now - state.lastPlayedAt >= cooldown;
+export function setWindowFocused(focused) {
+  isWindowFocusedState = !!focused;
 }
 
-export function setTerminalBellEnabled(enabled) {
-  isBellEnabled = !!enabled;
+export function isWindowFocused() {
+  if (typeof document !== 'undefined') {
+    if (typeof document.hasFocus === 'function') {
+      return document.hasFocus();
+    }
+    if (typeof document.hidden === 'boolean') {
+      return !document.hidden;
+    }
+  }
+  return isWindowFocusedState;
+}
+
+export function canPlayBell(
+  now = Date.now(),
+  state = {
+    enabled: isBellEnabled,
+    mode: bellMode,
+    lastPlayedAt: lastBellTimestamp,
+    isFocused: undefined,
+  }
+) {
+  const mode =
+    state.mode !== undefined
+      ? state.mode
+      : state.enabled === false
+      ? 'off'
+      : bellMode;
+  if (state.enabled === false || mode === 'off') return false;
+
+  if (mode === 'background') {
+    const focused =
+      state.isFocused !== undefined ? state.isFocused : isWindowFocused();
+    if (focused) return false;
+  }
+
+  const cooldown =
+    state.cooldownMs !== undefined ? state.cooldownMs : BELL_COOLDOWN_MS;
+  return now - (state.lastPlayedAt !== undefined ? state.lastPlayedAt : lastBellTimestamp) >= cooldown;
+}
+
+export function setTerminalBellEnabled(enabledOrMode) {
+  if (enabledOrMode === false || enabledOrMode === 'off') {
+    bellMode = 'off';
+    isBellEnabled = false;
+  } else if (enabledOrMode === 'background') {
+    bellMode = 'background';
+    isBellEnabled = true;
+  } else {
+    bellMode = 'always';
+    isBellEnabled = true;
+  }
+}
+
+export function getTerminalBellMode() {
+  return bellMode;
 }
 
 export function isTerminalBellEnabled() {
-  return isBellEnabled;
+  return isBellEnabled && bellMode !== 'off';
 }
 
 export function unlockAudioContext() {
@@ -147,5 +196,7 @@ export function resetBellAudioForTesting(factory) {
   audioContext = null;
   lastBellTimestamp = -Infinity;
   isBellEnabled = true;
+  bellMode = 'always';
+  isWindowFocusedState = true;
 }
 

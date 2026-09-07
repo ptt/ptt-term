@@ -6,7 +6,10 @@ import {
   BELL_COOLDOWN_MS,
   canPlayBell,
   setTerminalBellEnabled,
+  getTerminalBellMode,
   isTerminalBellEnabled,
+  setWindowFocused,
+  isWindowFocused,
   unlockAudioContext,
   playTerminalBell,
   resetBellAudioForTesting,
@@ -128,4 +131,46 @@ test('playTerminalBell synthesizes 750Hz acoustic chime via Web Audio and handle
   resetBellAudioForTesting(() => new MockAudioContext());
   assert.equal(unlockAudioContext(), true);
   assert.equal(resumed, true);
+});
+
+test('bell multi-mode handling and window focus gating', () => {
+  resetBellAudioForTesting();
+
+  // Default mode is 'always'
+  assert.equal(getTerminalBellMode(), 'always');
+  assert.equal(isTerminalBellEnabled(), true);
+
+  // Background mode: suppresses playback when window is focused, plays when unfocused
+  setTerminalBellEnabled('background');
+  assert.equal(getTerminalBellMode(), 'background');
+  assert.equal(isTerminalBellEnabled(), true);
+
+  // When focused: suppressed
+  assert.equal(canPlayBell(1000, { mode: 'background', isFocused: true, lastPlayedAt: 0, cooldownMs: 100 }), false);
+  // When in background (unfocused): allowed
+  assert.equal(canPlayBell(1000, { mode: 'background', isFocused: false, lastPlayedAt: 0, cooldownMs: 100 }), true);
+
+  // setWindowFocused updates default focus detection
+  setWindowFocused(true);
+  assert.equal(isWindowFocused(), true);
+  assert.equal(canPlayBell(1000, { mode: 'background', lastPlayedAt: 0, cooldownMs: 100 }), false);
+
+  setWindowFocused(false);
+  assert.equal(isWindowFocused(), false);
+  assert.equal(canPlayBell(1000, { mode: 'background', lastPlayedAt: 0, cooldownMs: 100 }), true);
+
+  // Off mode: suppressed regardless of focus
+  setTerminalBellEnabled('off');
+  assert.equal(getTerminalBellMode(), 'off');
+  assert.equal(isTerminalBellEnabled(), false);
+  assert.equal(canPlayBell(1000, { mode: 'off', isFocused: false, lastPlayedAt: 0, cooldownMs: 100 }), false);
+
+  // Boolean compatibility: true -> always, false -> off
+  setTerminalBellEnabled(true);
+  assert.equal(getTerminalBellMode(), 'always');
+  assert.equal(isTerminalBellEnabled(), true);
+
+  setTerminalBellEnabled(false);
+  assert.equal(getTerminalBellMode(), 'off');
+  assert.equal(isTerminalBellEnabled(), false);
 });

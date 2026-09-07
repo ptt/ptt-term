@@ -2,7 +2,7 @@ export const DEFAULT_PREFS = {
   enablePicPreview: true,
   picPreviewWhitelistOnly: true,
   enableNotifications: true,
-  enableBell: true,
+  enableBell: "always",
   enableEasyReading: false,
   endTurnsOnLiveUpdate: false,
   copyOnSelect: false,
@@ -72,6 +72,11 @@ export const readValuesWithDefault = () => {
       }
       if (saved.fontSize === 999 || saved.fontSize === undefined) {
         prefs.fontSize = DEFAULT_PREFS.fontSize;
+      }
+      if (saved.enableBell === true) {
+        prefs.enableBell = "always";
+      } else if (saved.enableBell === false) {
+        prefs.enableBell = "off";
       }
     }
     return prefs;

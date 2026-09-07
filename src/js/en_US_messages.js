@@ -92,6 +92,18 @@ export const en_US = {
   options_enableNotifications: {
     message: "Enable notifications when a message is received.",
   },
+  options_enableBell: {
+    message: "Terminal bell (BEL)",
+  },
+  options_bellAlways: {
+    message: "Always play sound",
+  },
+  options_bellBackground: {
+    message: "Only when in background",
+  },
+  options_bellOff: {
+    message: "Off (mute)",
+  },
   options_enableEasyReading: {
     message: "Enable easy reading article view. (experimental)",
   },

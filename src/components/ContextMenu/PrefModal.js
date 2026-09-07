@@ -312,6 +312,33 @@ export class PrefModal extends React.Component {
                     {i18n("options_copyOnSelect")}
                   </label>
                 </div>
+                <div className="form-group" id="enableBell">
+                  <label className="control-label">
+                    {i18n("options_enableBell")}
+                  </label>
+                  <select
+                    className="form-control"
+                    name="enableBell"
+                    value={
+                      values.enableBell === false || values.enableBell === "off"
+                        ? "off"
+                        : values.enableBell === "background"
+                          ? "background"
+                          : "always"
+                    }
+                    onChange={this.handleTextInputChange}
+                  >
+                    <option key="options_bellAlways" value="always">
+                      {i18n("options_bellAlways")}
+                    </option>
+                    <option key="options_bellBackground" value="background">
+                      {i18n("options_bellBackground")}
+                    </option>
+                    <option key="options_bellOff" value="off">
+                      {i18n("options_bellOff")}
+                    </option>
+                  </select>
+                </div>
                 <div className="form-group" id="antiIdleTime">
                   <label className="control-label">
                     {i18n("options_antiIdleTime")}
@@ -364,7 +391,10 @@ export class PrefModal extends React.Component {
                     <option key="options_cursorReverse" value="reverse">
                       {i18n("options_cursorReverse")}
                     </option>
-                    <option key="options_cursorBlinkReverse" value="blink-reverse">
+                    <option
+                      key="options_cursorBlinkReverse"
+                      value="blink-reverse"
+                    >
                       {i18n("options_cursorBlinkReverse")}
                     </option>
                   </select>
