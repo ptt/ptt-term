@@ -9,11 +9,11 @@ import PrefModal from "./PrefModal";
 function noop() {}
 
 const EVENT_KEY_BY_HOT_KEY = {
-  ["C".charCodeAt(0)]: "copy",
-  ["E".charCodeAt(0)]: "copyLinkUrl",
-  ["P".charCodeAt(0)]: "paste",
-  ["S".charCodeAt(0)]: "searchGoogle",
-  ["T".charCodeAt(0)]: "openUrlNewTab"
+  c: "copy",
+  e: "copyLinkUrl",
+  p: "paste",
+  s: "searchGoogle",
+  t: "openUrlNewTab"
 };
 
 const menuHandlerByEventKey = {
@@ -94,7 +94,8 @@ export class ContextMenu extends React.Component {
       if (event.altKey || event.ctrlKey || event.shiftKey) {
         return;
       }
-      const eventKey = EVENT_KEY_BY_HOT_KEY[event.keyCode];
+      const key = (event.key || "").toLowerCase();
+      const eventKey = EVENT_KEY_BY_HOT_KEY[key];
       if (eventKey) {
         this.handleMenuSelect(eventKey, event);
       }

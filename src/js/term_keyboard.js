@@ -94,7 +94,7 @@ export class TermKeyboard {
           return this._send(mapped);
         }
       } else if (e.key.length == 1) {
-        if (!e.isComposing && e.keyCode !== 229) {
+        if (!e.isComposing && e.key !== 'Process' && e.keyCode !== 229) {
           return this._send(e.key);
         }
         return false;

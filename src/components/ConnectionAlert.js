@@ -21,7 +21,7 @@ export const ConnectionAlert = ({ onDismiss }) => {
         return;
       }
 
-      if (e.keyCode === 13) {
+      if (e.key === "Enter" || e.code === "Enter" || e.keyCode === 13) {
         onDismiss();
       }
       // Kills everything because we don't want any further action performed under ConnectionAlert status

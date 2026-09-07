@@ -46,6 +46,7 @@ export class TermView {
   // TODO Move this into easy_reading.js
   this.useEasyReadingMode = false;
   this.easyReadingKeyDownKeyCode = 0;
+  this.easyReadingKeyDownIsComposing = false;
 
   this.curRow = 0;
   this.curCol = 0;
@@ -169,14 +170,14 @@ export class TermView {
     // code even under IME.
     // Char inputs will be handler on input event.
     // We can safely ignore those IME keys here.
-    if (e.keyCode == 229)
+    if (e.isComposing || e.key === 'Process' || e.keyCode == 229)
       return false;
 
     // TODO: Since the app is almost useless on mobile devices, we might want
     // to revisit if we want this code.
 
-    // iOS sends the keydown that starts composition as key code 0. Ignore it.
-    if (e.keyCode == 0)
+    // iOS sends the keydown that starts composition as key code 0 or Unidentified. Ignore it.
+    if (e.key === 'Unidentified' || e.keyCode == 0)
       return false;
 
     // iOS sends backspace when composing. Disallow any non-control keys during it.
@@ -197,8 +198,8 @@ export class TermView {
     // disable auto update pushthread if any command is issued;
     if (!e.altKey) this.bbscore.onDisableLiveHelperModalState();
 
-    if(e.keyCode > 15 && e.keyCode < 19)
-      return; // Shift Ctrl Alt (19)
+    if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || (e.keyCode > 15 && e.keyCode < 19))
+      return; // Shift Ctrl Alt
     this.onKeyDown(e);
   }, false);
 
@@ -207,8 +208,8 @@ export class TermView {
 
     if (!shouldAcceptInput())
       return;
-    if(e.keyCode > 15 && e.keyCode < 19)
-      return; // Shift Ctrl Alt (19)
+    if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || (e.keyCode > 15 && e.keyCode < 19))
+      return; // Shift Ctrl Alt
     // set input area focus whenever key down even if there is selection
     this.bbscore.setInputAreaFocus();
   }, false);
@@ -383,7 +384,7 @@ export class TermView {
 
     if (this.isEasyReadingActive() && 
         !this.buf.easyReadingShowReplyText && !this.buf.easyReadingShowPushInitText &&
-        this.easyReadingKeyDownKeyCode == 229 && e.target.value != 'X') { // only use on chinese IME
+        (this.easyReadingKeyDownIsComposing || this.easyReadingKeyDownKeyCode == 229) && e.target.value != 'X') { // only use on chinese IME
       e.target.value = '';
       return;
     }
@@ -414,6 +415,7 @@ export class TermView {
     if (this.isEasyReadingActive() && 
         !this.buf.easyReadingShowReplyText && !this.buf.easyReadingShowPushInitText) {
       this.easyReadingKeyDownKeyCode = e.keyCode;
+      this.easyReadingKeyDownIsComposing = e.isComposing || e.key === 'Process' || e.keyCode === 229;
       this.bbscore.easyReading._onKeyDown(e);
       if (e.defaultPrevented)
         return;
