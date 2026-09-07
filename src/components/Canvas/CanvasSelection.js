@@ -1,11 +1,3 @@
-import { isDBCSLead, b2u } from "../../js/string_util";
-import { isBadDBCSCode } from "../../js/symbol_table";
-
-export function isBadDBCS(u) {
-  if (!u || u.length === 0) return true;
-  return isBadDBCSCode(u.charCodeAt(0));
-}
-
 export class CanvasSelection {
   static getGridPos(e, canvas, cols, rows) {
     if (!canvas) return { col: 0, row: 0 };
@@ -32,19 +24,15 @@ export class CanvasSelection {
     return { start, end };
   }
 
-  static getSelectionColRow(selStart, selEnd, lines, charset) {
+  static getSelectionColRow(selStart, selEnd, lines) {
     const sel = CanvasSelection.getNormalizedSelection(selStart, selEnd);
     if (!sel) return null;
     const line = lines && lines[sel.end.row];
     let endCol = sel.end.col + 1;
-    const isCharsetUtf8 = charset === "UTF-8";
-    if (
-      !isCharsetUtf8 &&
-      line &&
-      line[sel.end.col] &&
-      isDBCSLead(line[sel.end.col].ch)
-    ) {
-      endCol = sel.end.col + 2;
+    if (line && line[sel.end.col]) {
+      if (line[sel.end.col].isDBCSLead) {
+        endCol = sel.end.col + 2;
+      }
     }
     return {
       start: { row: sel.start.row, col: sel.start.col },
@@ -52,11 +40,10 @@ export class CanvasSelection {
     };
   }
 
-  static getSelectedText(selStart, selEnd, lines, cols, charset) {
+  static getSelectedText(selStart, selEnd, lines, cols) {
     const sel = CanvasSelection.getNormalizedSelection(selStart, selEnd);
     if (!sel) return "";
     const { start, end } = sel;
-    const isCharsetUtf8 = charset === "UTF-8";
     const result = [];
 
     for (let r = start.row; r <= end.row; ++r) {
@@ -64,31 +51,20 @@ export class CanvasSelection {
       if (!line) continue;
       let sc = r === start.row ? start.col : 0;
       let ec = r === end.row ? end.col + 1 : cols;
-      if (!isCharsetUtf8) {
-        if (sc > 0 && line[sc - 1] && isDBCSLead(line[sc - 1].ch)) {
-          sc--;
-        }
-        if (ec < line.length && line[ec - 1] && isDBCSLead(line[ec - 1].ch)) {
-          ec++;
-        }
+      if (sc > 0 && line[sc] && (line[sc].isDBCSTrail || line[sc].ch === "") && line[sc - 1] && line[sc - 1].isDBCSLead) {
+        sc--;
+      }
+      if (ec < line.length && line[ec] && (line[ec].isDBCSTrail || line[ec].ch === "") && line[ec - 1] && line[ec - 1].isDBCSLead) {
+        ec++;
       }
       let rowText = "";
       for (let c = sc; c < ec && c < line.length; ++c) {
         const ch = line[c];
         if (!ch) continue;
-        if (
-          !isCharsetUtf8 &&
-          isDBCSLead(ch.ch) &&
-          c + 1 < line.length &&
-          line[c + 1]
-        ) {
-          const u = b2u(ch.ch + line[c + 1].ch);
-          rowText +=
-            u && u.length === 1 && !isBadDBCS(u) ? u : ch.ch + line[c + 1].ch;
-          c++;
-        } else {
-          rowText += ch.ch;
+        if (ch.isDBCSTrail || ch.ch === "") {
+          continue;
         }
+        rowText += ch.ch;
       }
       result.push(rowText.replace(/\s+$/, ""));
     }

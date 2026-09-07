@@ -21,6 +21,9 @@ class MockTermBuf {
   puts(str) {
     this.output.push(str);
   }
+  putDBCS(str) {
+    this.output.push(str);
+  }
   assignParamsToAttrs(params) {
     this.attrs.push(params);
   }

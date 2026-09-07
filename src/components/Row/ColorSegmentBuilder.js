@@ -1,11 +1,5 @@
 import { WordSegmentBuilder, TwoColorWordBuilder } from "./WordSegmentBuilder";
-import { b2u, isDBCSLead } from "../../js/string_util";
-import { isBadDBCSCode, isForceWidthCode } from "../../js/symbol_table";
-
-function isBadDBCS(u) {
-  if (!u || u.length === 0) return true;
-  return isBadDBCSCode(u.charCodeAt(0));
-}
+import { isForceWidthCode } from "../../js/symbol_table";
 
 function shouldForceWidth(u) {
   if (!u || u.length === 0) return false;
@@ -32,52 +26,65 @@ export class ColorSegmentBuilder {
   }
 
   readChar(ch) {
-    if (!this.lead) {
-      if (isDBCSLead(ch.ch)) {
-        this.lead = ch;
+    if (this.lead) {
+      const { lead } = this;
+      this.lead = null;
+
+      if (ch.isDBCSTrail || ch.ch === '') {
+        const leadColor = lead.getColor();
+        const trailColor = ch.getColor();
+        const text = lead.ch;
+
+        if (!leadColor.equals(trailColor)) {
+          this.segs.push(this.wordBuilder.build());
+          this.wordBuilder = new TwoColorWordBuilder(
+            this.segs.length,
+            leadColor,
+            trailColor,
+            this.forceWidth
+          );
+          this.wordBuilder.appendNormalText(text);
+          return;
+        }
+
+        const forceWidth = shouldForceWidth(text) ? this.forceWidth : 0;
+        if (!forceWidth) {
+          this.appendNormalChar(text, leadColor);
+          return;
+        }
+        if (!this.wordBuilder.isLastSegmentSameColor(leadColor))
+          this.beginSegment(leadColor);
+        this.wordBuilder.appendForceWidthWord(text, forceWidth);
         return;
       }
 
-      this.appendNormalChar(ch.ch, ch.getColor());
+      this.appendNormalChar(lead.ch, lead.getColor());
+    }
+
+    if (ch.isDBCSTrail || ch.ch === '') {
       return;
     }
-    const { lead } = this;
-    const leadColor = lead.getColor();
-    this.lead = null;
-    const text = b2u(lead.ch + ch.ch);
-    if (text.length !== 1) {
-      // Conversion error.
-      this.appendNormalChar("?", leadColor);
-      this.appendNormalChar(ch.ch == "\x20" ? " " : "?", ch.getColor());
+
+    if (ch.isDBCSLead) {
+      this.lead = ch;
       return;
     }
-    if (isBadDBCS(text)) {
-      this.appendNormalChar("?", leadColor);
-      this.appendNormalChar("?", ch.getColor());
+
+    if (shouldForceWidth(ch.ch) && this.forceWidth) {
+      if (!this.wordBuilder.isLastSegmentSameColor(ch.getColor()))
+        this.beginSegment(ch.getColor());
+      this.wordBuilder.appendForceWidthWord(ch.ch, this.forceWidth);
       return;
     }
-    if (!leadColor.equals(ch.getColor())) {
-      this.segs.push(this.wordBuilder.build());
-      this.wordBuilder = new TwoColorWordBuilder(
-        this.segs.length,
-        leadColor,
-        ch.getColor(),
-        this.forceWidth
-      );
-      this.wordBuilder.appendNormalText(text);
-      return;
-    }
-    const forceWidth = shouldForceWidth(text) ? this.forceWidth : 0;
-    if (!forceWidth) {
-      this.appendNormalChar(text, leadColor);
-      return;
-    }
-    if (!this.wordBuilder.isLastSegmentSameColor(leadColor))
-      this.beginSegment(leadColor);
-    this.wordBuilder.appendForceWidthWord(text, forceWidth);
+
+    this.appendNormalChar(ch.ch, ch.getColor());
   }
 
   build() {
+    if (this.lead) {
+      this.appendNormalChar(this.lead.ch, this.lead.getColor());
+      this.lead = null;
+    }
     this.beginSegment();
     return this.segs;
   }

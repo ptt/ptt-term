@@ -1,7 +1,6 @@
 import { termColors } from "../../js/term_buf";
-import { b2u, isDBCSLead } from "../../js/string_util";
 import { SmoothAnsiArt, ANSI_BLOCK_SET, hasAnsiArt } from "./SmoothAnsiArt";
-import { isBadDBCS, CanvasSelection } from "./CanvasSelection";
+import { CanvasSelection } from "./CanvasSelection";
 
 // URL underline color matches DOM mode's URL underline (#ff6600)
 const URL_UNDERLINE_COLOR = "#ff6600";
@@ -441,140 +440,90 @@ export class CanvasRenderer {
           const ch = line[c];
           if (!ch) continue;
 
+          // Unicode DBCS character: stored in cell c, and trail cell c + 1 has isDBCSTrail
           if (
-            !isCharsetUtf8 &&
-            isDBCSLead(ch.ch) &&
-            c + 1 < cols &&
-            line[c + 1]
-          ) {
-            const trailCh = line[c + 1];
-            const u = b2u(ch.ch + trailCh.ch);
-            if (u && u.length === 1 && !isBadDBCS(u)) {
-              if (ch.blink || trailCh.blink) {
-                hasBlink = true;
-              }
-              const isLeadHidden = ch.blink && isBlinkHidden;
-              const isTrailHidden = trailCh.blink && isBlinkHidden;
-              if (!isLeadHidden || !isTrailHidden) {
-                const leadFgIndex = ch.getFg() !== undefined ? ch.getFg() : 7;
-                const trailFgIndex =
-                  trailCh.getFg() !== undefined ? trailCh.getFg() : 7;
-                const leadBgIndex = ch.getBg() !== undefined ? ch.getBg() : 0;
-                const trailBgIndex =
-                  trailCh.getBg() !== undefined ? trailCh.getBg() : 0;
-
-                if (
-                  leadFgIndex === trailFgIndex &&
-                  !isLeadHidden &&
-                  !isTrailHidden
-                ) {
-                  this.registerAnsiOrText({
-                    charStr: u,
-                    r,
-                    c,
-                    y,
-                    chw,
-                    chh,
-                    cols,
-                    fgIndex: leadFgIndex,
-                    bgIndex: leadBgIndex,
-                    trailBgIndex,
-                    isWide: true,
-                    smoothAnsiArt,
-                    blockGrid,
-                    ansiBlockBuckets,
-                    textBuckets,
-                  });
-                } else {
-                  if (!isLeadHidden) {
-                    textBuckets[leadFgIndex].push(
-                      this.getTextItem(u, c * chw + chw, y + chh / 2, true, {
-                        x: c * chw,
-                        y,
-                        w: chw,
-                        h: chh,
-                      })
-                    );
-                  }
-                  if (!isTrailHidden) {
-                    textBuckets[trailFgIndex].push(
-                      this.getTextItem(u, c * chw + chw, y + chh / 2, true, {
-                        x: (c + 1) * chw,
-                        y,
-                        w: chw,
-                        h: chh,
-                      })
-                    );
-                  }
-                }
-
-                if (ch.underLine && !isLeadHidden) {
-                  underlineBuckets[leadFgIndex].push(
-                    c * chw,
-                    y + chh - 2,
-                    chw,
-                    1
-                  );
-                }
-                if (trailCh.underLine && !isTrailHidden) {
-                  underlineBuckets[trailFgIndex].push(
-                    (c + 1) * chw,
-                    y + chh - 2,
-                    chw,
-                    1
-                  );
-                }
-              }
-              c++;
-              continue;
-            }
-          }
-
-          if (
-            isCharsetUtf8 &&
             c + 1 < cols &&
             line[c + 1] &&
-            line[c + 1].ch === "" &&
-            ch.ch &&
-            ch.ch !== ""
+            (line[c + 1].isDBCSTrail || line[c + 1].ch === '') &&
+            ch.isDBCSLead
           ) {
             const trailCh = line[c + 1];
             if (ch.blink || trailCh.blink) {
               hasBlink = true;
             }
-            const isHidden = (ch.blink || trailCh.blink) && isBlinkHidden;
-            if (!isHidden) {
-              const fgIndex = ch.getFg() !== undefined ? ch.getFg() : 7;
+            const isLeadHidden = ch.blink && isBlinkHidden;
+            const isTrailHidden = trailCh.blink && isBlinkHidden;
+            if (!isLeadHidden || !isTrailHidden) {
+              const leadFgIndex = ch.getFg() !== undefined ? ch.getFg() : 7;
+              const trailFgIndex =
+                trailCh.getFg() !== undefined ? trailCh.getFg() : 7;
               const leadBgIndex = ch.getBg() !== undefined ? ch.getBg() : 0;
               const trailBgIndex =
                 trailCh.getBg() !== undefined ? trailCh.getBg() : 0;
-              this.registerAnsiOrText({
-                charStr: ch.ch,
-                r,
-                c,
-                y,
-                chw,
-                chh,
-                cols,
-                fgIndex,
-                bgIndex: leadBgIndex,
-                trailBgIndex,
-                isWide: true,
-                smoothAnsiArt,
-                blockGrid,
-                ansiBlockBuckets,
-                textBuckets,
-              });
-              if (ch.underLine || trailCh.underLine) {
-                underlineBuckets[fgIndex].push(
+
+              if (leadFgIndex === trailFgIndex && !isLeadHidden && !isTrailHidden) {
+                this.registerAnsiOrText({
+                  charStr: ch.ch,
+                  r,
+                  c,
+                  y,
+                  chw,
+                  chh,
+                  cols,
+                  fgIndex: leadFgIndex,
+                  bgIndex: leadBgIndex,
+                  trailBgIndex,
+                  isWide: true,
+                  smoothAnsiArt,
+                  blockGrid,
+                  ansiBlockBuckets,
+                  textBuckets,
+                });
+              } else {
+                if (!isLeadHidden) {
+                  textBuckets[leadFgIndex].push(
+                    this.getTextItem(ch.ch, c * chw + chw, y + chh / 2, true, {
+                      x: c * chw,
+                      y,
+                      w: chw,
+                      h: chh,
+                    })
+                  );
+                }
+                if (!isTrailHidden) {
+                  textBuckets[trailFgIndex].push(
+                    this.getTextItem(ch.ch, c * chw + chw, y + chh / 2, true, {
+                      x: (c + 1) * chw,
+                      y,
+                      w: chw,
+                      h: chh,
+                    })
+                  );
+                }
+              }
+
+              if (ch.underLine && !isLeadHidden) {
+                underlineBuckets[leadFgIndex].push(
                   c * chw,
                   y + chh - 2,
-                  chw * 2,
+                  chw,
+                  1
+                );
+              }
+              if (trailCh.underLine && !isTrailHidden) {
+                underlineBuckets[trailFgIndex].push(
+                  (c + 1) * chw,
+                  y + chh - 2,
+                  chw,
                   1
                 );
               }
             }
             c++;
+            continue;
+          }
+
+          if (ch.isDBCSTrail || ch.ch === '') {
             continue;
           }
 

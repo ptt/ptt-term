@@ -569,7 +569,7 @@ export class TermView {
       const lines = this.buf.lines;
       const line = lines[this.buf.cur_y];
       const ch = line[this.buf.cur_x-2];
-      if (ch.isLeadByte)
+      if (ch.isDBCSLead)
         return true;
     }
     return false;
@@ -580,7 +580,7 @@ export class TermView {
       const lines = this.buf.lines;
       const line = lines[this.buf.cur_y];
       const ch = line[this.buf.cur_x];
-      if (ch.isLeadByte)
+      if (ch.isDBCSLead)
         return true;
     }
     return false;

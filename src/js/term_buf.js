@@ -2,7 +2,8 @@
 
 import { Event } from './event';
 import { ColorState } from './term_ui';
-import { u2b, b2u } from './string_util';
+import { isForceWidthCode } from './symbol_table';
+import { u2bTable } from '../conv/uao';
 import { getSite } from './sites';
 import cursorBack from '../cursor/back.png';
 import cursorPageup from '../cursor/pageup.png';
@@ -89,7 +90,9 @@ export class TermChar {
     /** @type {boolean} */
     this.needUpdate = false;
     /** @type {boolean} */
-    this.isLeadByte = false;
+    this.isDBCSLead = false;
+    /** @type {boolean} */
+    this.isDBCSTrail = false;
     /** @type {boolean} */
     this.startOfURL = false;
     /** @type {boolean} */
@@ -149,7 +152,8 @@ export class TermChar {
 
   copyFromNewChar() {
     this.ch = TermChar.newChar ? TermChar.newChar.ch : ' ';
-    this.isLeadByte = TermChar.newChar ? TermChar.newChar.isLeadByte : false;
+    this.isDBCSLead = TermChar.newChar ? TermChar.newChar.isDBCSLead : false;
+    this.isDBCSTrail = TermChar.newChar ? TermChar.newChar.isDBCSTrail : false;
     this.resetAttr();
   }
 
@@ -173,6 +177,29 @@ export class TermChar {
     this.invert = false;
     this.blink = false;
     this.underLine = false;
+  }
+
+  /**
+   * @param {TermChar} [oth]
+   * @returns {boolean}
+   */
+  equalsAttr(oth) {
+    if (!oth) return false;
+    return this.fg === oth.fg &&
+           this.bg === oth.bg &&
+           this.bright === Boolean(oth.bright) &&
+           this.invert === Boolean(oth.invert) &&
+           this.blink === Boolean(oth.blink) &&
+           this.underLine === Boolean(oth.underLine);
+  }
+
+  /**
+   * @returns {TermChar}
+   */
+  cloneAttr() {
+    const c = new TermChar(' ');
+    c.copyAttr(this);
+    return c;
   }
   
   getFg() {
@@ -352,8 +379,9 @@ export class TermBuf extends Event {
 
   /**
    * @param {string} str
+   * @param {TermChar} [attr]
    */
-  puts(str) {
+  puts(str, attr = null) {
     if (!str || typeof str !== 'string')
       return;
     const cols = this.cols;
@@ -408,24 +436,35 @@ export class TermBuf extends Event {
         this.tab();
         break;
       default: {
+        const isWide = this.isFullWidth(ch);
+        if (isWide && this.cur_x >= cols - 1) {
+          if (!this.disableLinefeed) this.lineFeed();
+          this.cur_x = 0;
+          line = lines[this.cur_y];
+          if (!line) line = lines[this.cur_y] = new Array(cols).fill(null).map(() => new TermChar(' '));
+          this.posChanged = true;
+        }
+
         if (this.cur_x >= cols) this.cur_x = cols - 1;
         let ch2 = line[this.cur_x];
         if (ch2) {
           ch2.ch = ch;
-          ch2.copyAttr(this.attr);
+          ch2.copyAttr(attr || this.attr);
           ch2.needUpdate = true;
+          ch2.isDBCSLead = isWide;
+          ch2.isDBCSTrail = false;
           ++this.cur_x;
-          if (ch2.isLeadByte && this.cur_x < cols && line[this.cur_x])
-            line[this.cur_x].needUpdate = true;
-          if (this.view && this.view.charset === 'UTF-8' && this.isFullWidth(ch) && this.cur_x < cols) {
-            ch2 = line[this.cur_x];
-            if (ch2) {
-              ch2.ch = '';
-              ch2.copyAttr(this.attr);
-              ch2.needUpdate = true;
+
+          if (isWide && this.cur_x < cols) {
+            let chTrail = line[this.cur_x];
+            if (chTrail) {
+              chTrail.ch = '';
+              chTrail.copyAttr(attr || this.attr);
+              chTrail.needUpdate = true;
+              chTrail.isDBCSLead = false;
+              chTrail.isDBCSTrail = true;
               ++this.cur_x;
             }
-            // assume server will handle mouse moving on full-width char
           }
           this.changed = true;
           this.posChanged = true;
@@ -433,6 +472,54 @@ export class TermBuf extends Event {
         break;
       }
       }
+    }
+    this.queueUpdate();
+  }
+
+  /**
+   * Put a DBCS character (occupying 2 cells) with lead and trail cell attributes.
+   * Lead cell has isDBCSLead=true, and trail cell has isDBCSTrail=true.
+   * @param {string} ch
+   * @param {TermChar} [leadAttr]
+   * @param {TermChar} [trailAttr]
+   */
+  putDBCS(ch, leadAttr, trailAttr) {
+    const cols = this.cols;
+    const lines = this.lines;
+    let line = lines[this.cur_y];
+    if (!line) line = lines[this.cur_y] = new Array(cols).fill(null).map(() => new TermChar(' '));
+
+    if (this.cur_x >= cols - 1) {
+      if (!this.disableLinefeed) this.lineFeed();
+      this.cur_x = 0;
+      line = lines[this.cur_y];
+      if (!line) line = lines[this.cur_y] = new Array(cols).fill(null).map(() => new TermChar(' '));
+      this.posChanged = true;
+    }
+
+    if (this.cur_x >= cols) this.cur_x = cols - 1;
+    let ch2 = line[this.cur_x];
+    if (ch2) {
+      ch2.ch = ch;
+      ch2.copyAttr(leadAttr || this.attr);
+      ch2.needUpdate = true;
+      ch2.isDBCSLead = true;
+      ch2.isDBCSTrail = false;
+      ++this.cur_x;
+
+      if (this.cur_x < cols) {
+        let chTrail = line[this.cur_x];
+        if (chTrail) {
+          chTrail.ch = '';
+          chTrail.copyAttr(trailAttr || this.attr);
+          chTrail.needUpdate = true;
+          chTrail.isDBCSLead = false;
+          chTrail.isDBCSTrail = true;
+          ++this.cur_x;
+        }
+      }
+      this.changed = true;
+      this.posChanged = true;
     }
     this.queueUpdate();
   }
@@ -448,24 +535,29 @@ export class TermBuf extends Event {
         let ch = line[col];
         if (ch.needUpdate)
             needUpdate=true;
-        // all chars > ASCII code are regarded as lead byte of DBCS.
-        // FIXME: this is not correct, but works most of the times.
-        if ( this.isFullWidth(ch.ch) && (col + 1) < cols ) {
-          ch.isLeadByte = true;
+
+        if ((ch.isDBCSLead || this.isFullWidth(ch.ch)) && (col + 1) < cols) {
+          ch.isDBCSLead = true;
+          ch.isDBCSTrail = false;
           ++col;
           const ch0 = ch;
           ch = line[col];
+          ch.isDBCSLead = false;
+          ch.isDBCSTrail = true;
           if (ch.needUpdate)
             needUpdate = true;
-          // ensure simutaneous redraw of both bytes
-          if ( ch0.needUpdate != ch.needUpdate ) {
+          // ensure simultaneous redraw of both bytes
+          if (ch0.needUpdate !== ch.needUpdate) {
             ch0.needUpdate = ch.needUpdate = true;
           }
-        } else if (ch.isLeadByte && (col+1) < cols) {
-          const ch2 = line[col+1];
-          ch2.needUpdate = true;
+        } else {
+          ch.isDBCSLead = false;
+          ch.isDBCSTrail = false;
+          if (ch.ch === '') {
+            ch.ch = ' ';
+            ch.needUpdate = true;
+          }
         }
-        ch.isLeadByte = false;
       }
 
       if (needUpdate) { // this line has been changed
@@ -493,19 +585,11 @@ export class TermBuf extends Event {
           line.uris=null;
         }
         let s = '';
-        for (let col = 0; col < cols; ++col)
-            s += line[col].ch;
-        if (this.view.charset != 'UTF-8')
-          s = s.replace(/[^\x00-\x7f]./g,'\xab\xcd');
-        else {
-          let str = '';
-          for (let i = 0; i < s.length; ++i) {
-            str += s.charAt(i);
-            if (this.isFullWidth(s.charAt(i)))
-              str += s.charAt(i);
-          }
-          s = str;
+        for (let col = 0; col < cols; ++col) {
+          const c = line[col];
+          s += (c && !c.isDBCSTrail && c.ch !== '') ? c.ch : ' ';
         }
+
         let res;
         let uris = null;
         // pairs of URI start and end positions are stored in line.uri.
@@ -533,24 +617,12 @@ export class TermBuf extends Event {
               line[col].partOfURL = true;
               line[col].needUpdate = true; //fix link bug
             }
-            let u;
-            if (this.view.charset != 'UTF-8')
-              u = urlTemp;//this.conv.convertStringToUTF8(urlTemp, this.view.charset,  true);
-            else {
-              let str = '';
-              for (let i = 0; i < urlTemp.length; ++i) {
-                str += urlTemp.charAt(i);
-                if (this.isFullWidth(urlTemp.charAt(i)))
-                  str += urlTemp.charAt(i);
-              }
-              u = str;
-            }
             const urlTemp2 = urlTemp.toLowerCase();
             line[uri[0]].startOfURL = true;
             if (urlTemp2.startsWith('pid://')) {
               line[uri[0]].fullurl = 'https://www.pixiv.net/artworks/' + urlTemp2.slice(6);
             } else {
-              line[uri[0]].fullurl = u;
+              line[uri[0]].fullurl = urlTemp;
             }
             line[uri[1]-1].endOfURL = true;
           }
@@ -689,7 +761,7 @@ export class TermBuf extends Event {
     const cols = this.cols;
     let cur_x = (typeof this.cur_x === 'number' && Number.isFinite(this.cur_x)) ? Math.floor(this.cur_x) : 0;
     cur_x = Math.max(0, Math.min(cols, cur_x));
-    if (cur_x > 0 && line[cur_x - 1] && line[cur_x - 1].isLeadByte) ++cur_x;
+    if (cur_x > 0 && line[cur_x - 1] && line[cur_x - 1].isDBCSLead) ++cur_x;
     if (cur_x >= cols) return;
     if (cur_x + p >= cols) {
       for (let col = cur_x; col < cols; ++col) {
@@ -725,7 +797,7 @@ export class TermBuf extends Event {
     const cols = this.cols;
     let cur_x = (typeof this.cur_x === 'number' && Number.isFinite(this.cur_x)) ? Math.floor(this.cur_x) : 0;
     cur_x = Math.max(0, Math.min(cols, cur_x));
-    if (cur_x > 0 && line[cur_x - 1] && line[cur_x - 1].isLeadByte) ++cur_x;
+    if (cur_x > 0 && line[cur_x - 1] && line[cur_x - 1].isDBCSLead) ++cur_x;
     if (cur_x >= cols) return;
     if (cur_x + p >= cols) {
       for (let col = cur_x; col < cols; ++col) {
@@ -762,7 +834,7 @@ export class TermBuf extends Event {
     const cols = this.cols;
     let cur_x = (typeof this.cur_x === 'number' && Number.isFinite(this.cur_x)) ? Math.floor(this.cur_x) : 0;
     cur_x = Math.max(0, Math.min(cols, cur_x));
-    if (cur_x > 0 && line[cur_x - 1] && line[cur_x - 1].isLeadByte) ++cur_x;
+    if (cur_x > 0 && line[cur_x - 1] && line[cur_x - 1].isDBCSLead) ++cur_x;
     if (cur_x >= cols) return;
     const n = (cur_x + p > cols) ? cols : cur_x + p;
     for (let col = cur_x; col < n; ++col) {
@@ -1034,14 +1106,15 @@ export class TermBuf extends Event {
     if (start === this.cols) return '';
 
     if (start > 0) {
-      if (text[start] && !text[start].isLeadByte && text[start - 1] && text[start - 1].isLeadByte) start--;
+      if (text[start] && (text[start].isDBCSTrail || text[start].ch === '') && text[start - 1] && text[start - 1].isDBCSLead) start--;
+      else if (text[start] && !text[start].isDBCSLead && text[start - 1] && text[start - 1].isDBCSLead) start--;
     } else {
       start = 0;
     }
 
-    if (end > 0 && end <= this.cols) {
-      if (text[end - 1] && text[end - 1].isLeadByte) end++;
-    } else {
+    if (end > 0 && end < this.cols) {
+      if (text[end - 1] && text[end - 1].isDBCSLead) end++;
+    } else if (end >= this.cols) {
       end = this.cols;
     }
 
@@ -1056,30 +1129,22 @@ export class TermBuf extends Event {
       let output = this.ansiCmp(TermChar.newChar, text[start], reset);
       for (let col = start; col < end - 1; ++col) {
         if (!text[col] || !text[col + 1]) continue;
-        if (isutf8 && text[col].isLeadByte && this.ansiCmp(text[col], text[col + 1]))
+        if (text[col].isDBCSLead && this.ansiCmp(text[col], text[col + 1]))
           output += this.ansiCmp(text[col], text[col + 1]).replace(/m$/g, ';50m') + text[col].ch;
         else
           output += text[col].ch + this.ansiCmp(text[col], text[col + 1]);
       }
       if (text[end - 1]) output += text[end - 1].ch + this.ansiCmp(text[end - 1], TermChar.newChar);
-      return (isutf8 && charset != 'UTF-8' ? b2u(output) : output);
+      return output;
     }
 
     const sliced = text.slice(start, end);
-    return sliced.map((c, col, line) => {
+    return sliced.map((c) => {
       if (!c) return ' ';
-      if (!c.isLeadByte) {
-        if (col >= 1 && line[col - 1] && line[col - 1].isLeadByte) { // second byte of DBCS char
-          const prevC = line[col - 1];
-          const b5 = prevC.ch + c.ch;
-          if (this.view.charset == 'UTF-8' || b5.length == 1)
-            return b5;
-          else
-            return b2u(b5);
-        } else
-          return c.ch;
+      if (c.isDBCSTrail || c.ch === '') {
+        return '';
       }
-      return '';
+      return c.ch;
     }).join('');
   }
 
@@ -1102,13 +1167,14 @@ export class TermBuf extends Event {
     end = Math.max(0, Math.min(this.cols, end));
 
     if (start > 0) {
-      if (text[start] && !text[start].isLeadByte && text[start - 1] && text[start - 1].isLeadByte) start--;
+      if (text[start] && (text[start].isDBCSTrail || text[start].ch === '') && text[start - 1] && text[start - 1].isDBCSLead) start--;
+      else if (text[start] && !text[start].isDBCSLead && text[start - 1] && text[start - 1].isDBCSLead) start--;
     } else {
       start = 0;
     }
 
     if (end < this.cols) {
-      if (text[end] && text[end].isLeadByte) end++;
+      if (text[end] && (text[end].isDBCSTrail || text[end].ch === '') && text[end - 1] && text[end - 1].isDBCSLead) end++;
     } else {
       end = this.cols;
     }
@@ -1116,20 +1182,12 @@ export class TermBuf extends Event {
     if (start >= end) return '';
 
     const sliced = text.slice(start, end);
-    return sliced.map((c, col, line) => {
+    return sliced.map((c) => {
       if (!c) return ' ';
-      if (!c.isLeadByte) {
-        if (col >= 1 && line[col - 1] && line[col - 1].isLeadByte) { // second byte of DBCS char
-          const prevC = line[col - 1];
-          const b5 = prevC.ch + c.ch;
-          if (this.view && this.view.charset == 'UTF-8' || b5.length == 1)
-            return b5;
-          else
-            return b2u(b5);
-        } else
-          return c.ch;
+      if (c.isDBCSTrail || c.ch === '') {
+        return '';
       }
-      return '';
+      return c.ch;
     }).join('');
   }
 
@@ -1173,23 +1231,28 @@ export class TermBuf extends Event {
   isFullWidth(str) {
     if (typeof str !== 'string' || str.length === 0) return false;
     const code = str.charCodeAt(0);
-    if ((this.view && this.view.charset != 'UTF-8') || this.forceFullWidth) { // PTT support
-      if (code > 0x7f) return true;
-      else return false;
-    }
+    if (code <= 0x7f) return false;
     if ((code >= 0x1100 && code <= 0x115f) || 
         (code >= 0x2329 && code <= 0x232a) || 
-        (code >= 0x2e80 && code <= 0x303e) || 
-        (code >= 0x3040 && code <= 0xa4cf) || 
-        (code >= 0xac00 && code <= 0xd7a3) || 
-        (code >= 0xf900 && code <= 0xfaff) || 
-        (code >= 0xfe30 && code <= 0xfe6f) || 
-        (code >= 0xff00 && code <= 0xff60) || 
-        (code >= 0xffe0 && code <= 0xffe6)) {
+        (code >= 0x2000 && code <= 0x243f) || // General punctuation, arrows, math, enclosed alphanumerics
+        (code >= 0x2500 && code <= 0x27bf) || // Box drawing, blocks, geometric shapes, misc symbols
+        (code >= 0x2e80 && code <= 0xa4cf) || // CJK radicals, CJK symbols/punctuation, ideographs
+        (code >= 0xac00 && code <= 0xd7a3) || // Hangul
+        (code >= 0xe000 && code <= 0xf8ff) || // UAO Private Use Area
+        (code >= 0xf900 && code <= 0xfaff) || // CJK Compatibility
+        (code >= 0xfe10 && code <= 0xfe6f) || // CJK compatibility forms
+        (code >= 0xff00 && code <= 0xff60) || // Fullwidth Forms
+        (code >= 0xffe0 && code <= 0xffe6) || // Fullwidth signs
+        (code >= 0x0370 && code <= 0x04ff) || // Greek, Cyrillic
+        (code >= 0x3000 && code <= 0x303f) || // CJK symbols and punctuation
+        isForceWidthCode(code) ||
+        (u2bTable && u2bTable[code] > 0)) {
       return true;
-    } else {
-      return false;
     }
+    if ((this.view && this.view.charset !== 'UTF-8') || this.forceFullWidth) {
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -1198,18 +1261,13 @@ export class TermBuf extends Event {
    */
   isTextWrappedRow(row) {
     if (typeof row !== 'number' || !Number.isFinite(row) || row < 0 || row >= this.rows) return false;
-    // determine whether it is wrapped by looking for the ending "\"
-    const rowText = this.getRowText(row, 0, this.cols);
-    const slashIndex = rowText.lastIndexOf('\\');
-    if (slashIndex > 0 ) {
-      const col = u2b(rowText.slice(0, slashIndex)).length;
-      if (col != 77 && col != 78) return false;
-      // check the color
-      const line = this.lines[row];
-      if (!line || !line[col]) return false;
+    const line = this.lines[row];
+    if (!line) return false;
+    for (const col of [78, 77]) {
       const ch = line[col];
-      if (ch.fg == 7 && ch.bg === 0 && ch.bright)
+      if (ch && ch.ch === '\\' && ch.fg == 7 && ch.bg === 0 && ch.bright) {
         return true;
+      }
     }
     return false;
   }

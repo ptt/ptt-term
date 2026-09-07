@@ -1,4 +1,3 @@
-import { b2u, isDBCSLead } from "../../js/string_util";
 
 export const LOWER_BLOCK_MAP = {
   "\uff3f": 0.03, // ＿ fullwidth low line
@@ -78,13 +77,6 @@ export function hasAnsiArt(lines, dirtyRows) {
       if (!ch || !ch.ch) continue;
       if (ANSI_BLOCK_SET.has(ch.ch)) {
         return true;
-      }
-      if (isDBCSLead(ch.ch) && c + 1 < line.length && line[c + 1]) {
-        const u = b2u(ch.ch + line[c + 1].ch);
-        if (u && ANSI_BLOCK_SET.has(u)) {
-          return true;
-        }
-        c++;
       }
     }
   }

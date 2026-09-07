@@ -91,20 +91,30 @@ export function u2b(it) {
 };
 
 export function b2u(it) {
+  if (!it) return '';
+  const isArray = it instanceof Uint8Array || Array.isArray(it);
+  const len = it.length;
   let str = '';
-  for (let i = 0; i < it.length; ++i) {
-    if (it.charAt(i) < '\x80' || i == it.length-1) {
-      str += it.charAt(i);
+  for (let i = 0; i < len; ++i) {
+    const c1 = isArray ? it[i] : it.charCodeAt(i);
+    if (c1 < 0x80 || c1 > 0xff || i === len - 1) {
+      str += isArray ? String.fromCharCode(c1) : it[i];
       continue;
     }
 
-    const pos = it.charCodeAt(i) << 8 | it.charCodeAt(i+1);
+    const c2 = isArray ? it[i + 1] : it.charCodeAt(i + 1);
+    if (c2 > 0xff) {
+      str += isArray ? String.fromCharCode(c1) : it[i];
+      continue;
+    }
+
+    const pos = (c1 << 8) | c2;
     const code = b2uTable[pos];
     if (code) {
       str += String.fromCharCode(code);
       ++i;
     } else { // Not a big5 char
-      str += it.charAt(i);
+      str += isArray ? String.fromCharCode(c1) : it[i];
     }
   }
   return str;

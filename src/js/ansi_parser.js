@@ -1,6 +1,7 @@
 // Parser for ANSI escape sequence
 
 import { b2u } from './string_util.js';
+import { b2uTable } from '../conv/uao.js';
 
 export class AnsiParser {
   static STATE_TEXT = 0;
@@ -19,11 +20,27 @@ export class AnsiParser {
     this.state = AnsiParser.STATE_TEXT;
     /** @type {string} */
     this.esc = '';
+    /** @type {number | null} */
+    this.pendingLead = null;
+    /** @type {any | null} */
+    this.pendingLeadAttr = null;
+  }
+
+  flushPendingLead() {
+    if (this.pendingLead === null) return;
+    const lead = this.pendingLead;
+    const leadAttr = this.pendingLeadAttr;
+    this.pendingLead = null;
+    this.pendingLeadAttr = null;
+    const term = this.termbuf;
+    if (term && typeof term.puts === 'function') {
+      term.puts(String.fromCharCode(lead), leadAttr);
+    }
   }
 
   /**
-   * Feed string data into the ANSI parser.
-   * @param {string} data
+   * Feed string or Uint8Array data into the ANSI parser.
+   * @param {string | Uint8Array} data
    */
   feed(data) {
     const term = this.termbuf;
@@ -32,24 +49,72 @@ export class AnsiParser {
     let s = '';
     const isArray = data instanceof Uint8Array;
     const n = data.length;
+    const isUtf8 = term.view && term.view.charset === 'UTF-8';
+
     for (let i = 0; i < n; ++i) {
-      let ch = isArray ? String.fromCharCode(data[i]) : data[i];
+      const b = isArray ? data[i] : data.charCodeAt(i);
+      let ch = isArray ? String.fromCharCode(b) : data[i];
+
       switch (this.state) {
       case AnsiParser.STATE_TEXT:
-        switch (ch) {
-        case '\x1b':
+        if (b === 0x1b) {
           if (s) {
             term.puts(s);
             s = '';
           }
           this.state = AnsiParser.STATE_ESC;
           break;
-        default:
+        }
+
+        if (isUtf8) {
           s += ch;
+        } else {
+          // Decode Big5 / UAO double-byte characters to Unicode at the entrance
+          if (this.pendingLead !== null) {
+            const lead = this.pendingLead;
+            const leadAttr = this.pendingLeadAttr;
+            const trail = b;
+            const pos = (lead << 8) | trail;
+            const isTrail = (trail >= 0x40 && trail <= 0xfe && (trail <= 0x7e || trail >= 0xa1));
+            const u = isTrail ? b2uTable[pos] : 0;
+
+            if (u) {
+              this.pendingLead = null;
+              this.pendingLeadAttr = null;
+              const charStr = String.fromCharCode(u);
+              if (s) {
+                term.puts(s);
+                s = '';
+              }
+              term.putDBCS(charStr, leadAttr, term.attr);
+            } else {
+              this.pendingLead = null;
+              this.pendingLeadAttr = null;
+              if (s) {
+                term.puts(s);
+                s = '';
+              }
+              term.puts(String.fromCharCode(lead), leadAttr);
+              if (b >= 0x81 && b <= 0xfe) {
+                this.pendingLead = b;
+                this.pendingLeadAttr = term.attr ? (term.attr.cloneAttr ? term.attr.cloneAttr() : Object.assign({}, term.attr)) : null;
+              } else {
+                s += ch;
+              }
+            }
+          } else if (b >= 0x81 && b <= 0xfe) {
+            this.pendingLead = b;
+            this.pendingLeadAttr = term.attr ? (term.attr.cloneAttr ? term.attr.cloneAttr() : Object.assign({}, term.attr)) : null;
+          } else {
+            s += ch;
+          }
         }
         break;
       case AnsiParser.STATE_CSI:
         if ( (ch >= '`' && ch <= 'z') || (ch >= '@' && ch <='Z') ) {
+          if (ch !== 'm') {
+            this.flushPendingLead();
+          }
           // if(ch != 'm')
           //    dump('CSI: ' + this.esc + ch + '\n');
           const rawParams = this.esc.split(';');
@@ -61,6 +126,7 @@ export class AnsiParser {
             }
           }
           if (firstChar && ch != 'h' && ch != 'l') { // unknown CSI
+            this.flushPendingLead();
             //dump('unknown CSI: ' + this.esc + ch + '\n');
             this.state = AnsiParser.STATE_TEXT;
             this.esc = '';
@@ -348,9 +414,11 @@ export class AnsiParser {
       case AnsiParser.STATE_ESC:
         if (ch == '[')
           this.state=AnsiParser.STATE_CSI;
-        else if (ch == ']')
+        else if (ch == ']') {
+          this.flushPendingLead();
           this.state=AnsiParser.STATE_OSC;
-        else {
+        } else {
+          this.flushPendingLead();
           this.state=AnsiParser.STATE_C1;
           --i;
         }
