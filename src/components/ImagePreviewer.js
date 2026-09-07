@@ -3,9 +3,19 @@ import {
   TRUSTED_IMAGE_DOMAINS,
   isTrustedImageDomain,
   resolveImageUrl,
+  getImageRenderedSize,
+  getTop,
+  getLeft,
 } from "../js/image_preview_util";
 
-export { TRUSTED_IMAGE_DOMAINS, isTrustedImageDomain, resolveImageUrl };
+export {
+  TRUSTED_IMAGE_DOMAINS,
+  isTrustedImageDomain,
+  resolveImageUrl,
+  getImageRenderedSize,
+  getTop,
+  getLeft,
+};
 
 const noop = () => {};
 
@@ -25,6 +35,7 @@ export const resolveWithImageDOM = ({ src }) =>
       resolve({
         src,
         height: img.height,
+        width: img.width,
       });
     img.onerror = reject;
     img.src = src;
@@ -108,41 +119,26 @@ export class ImagePreviewer extends React.PureComponent {
   }
 }
 
-const getTop = (top, height) => {
-  const pageHeight = window.innerHeight;
-  const safeTop = typeof top === "number" && !isNaN(top) ? top : 20;
-  const safeHeight = typeof height === "number" && !isNaN(height) ? height : 0;
-
-  // opening image would pass the bottom of the page
-  if (safeTop + safeHeight / 2 > pageHeight - 20) {
-    if (safeHeight / 2 < safeTop) {
-      return pageHeight - 20 - safeHeight;
-    }
-  } else if (safeTop - 20 > safeHeight / 2) {
-    return safeTop - safeHeight / 2;
-  }
-  return 20;
-};
-
 ImagePreviewer.OnHover = ({ left, top, value, error }) => {
-  const safeLeft = typeof left === "number" && !isNaN(left) ? left + 20 : 20;
+  const safeLeft = typeof left === "number" && !isNaN(left) ? left : 20;
   const safeTop = typeof top === "number" && !isNaN(top) ? top : 20;
 
   if (error) {
     return false;
   } else if (value) {
+    const renderedSize = getImageRenderedSize(value.width, value.height);
     return (
       <img
         src={value.src}
         referrerPolicy="no-referrer"
         style={{
           display: "block",
-          position: "absolute",
-          left: safeLeft,
-          top: getTop(safeTop, value.height),
-          maxHeight: "80%",
-          maxWidth: "90%",
-          zIndex: 2,
+          position: "fixed",
+          left: getLeft(safeLeft, renderedSize.width),
+          top: getTop(safeTop, renderedSize.height),
+          maxHeight: "80vh",
+          maxWidth: "90vw",
+          zIndex: 100,
         }}
       />
     );
@@ -150,10 +146,10 @@ ImagePreviewer.OnHover = ({ left, top, value, error }) => {
     return (
       <LoadingSpinner
         style={{
-          position: "absolute",
-          left: safeLeft,
+          position: "fixed",
+          left: safeLeft + 20,
           top: safeTop,
-          zIndex: 2,
+          zIndex: 100,
         }}
       />
     );

@@ -66,3 +66,60 @@ export function resolveImageUrl(href, whitelistOnly = true) {
 
   return null;
 }
+
+export function getImageRenderedSize(
+  width,
+  height,
+  pageWidth = typeof window !== "undefined" ? window.innerWidth : 1024,
+  pageHeight = typeof window !== "undefined" ? window.innerHeight : 768
+) {
+  const safeW = typeof width === "number" && !isNaN(width) && width > 0 ? width : null;
+  const safeH = typeof height === "number" && !isNaN(height) && height > 0 ? height : 0;
+
+  const maxW = pageWidth * 0.9;
+  const maxH = pageHeight * 0.8;
+
+  if (safeW && safeH) {
+    const scale = Math.min(1, maxW / safeW, maxH / safeH);
+    return {
+      width: safeW * scale,
+      height: safeH * scale,
+    };
+  }
+
+  return {
+    width: maxW,
+    height: Math.min(maxH, safeH),
+  };
+}
+
+export function getTop(
+  top,
+  height,
+  pageHeight = typeof window !== "undefined" ? window.innerHeight : 768
+) {
+  const safeTop = typeof top === "number" && !isNaN(top) ? top : 20;
+  const safeHeight = typeof height === "number" && !isNaN(height) ? height : 0;
+  const clampedHeight = Math.min(pageHeight * 0.8, safeHeight);
+
+  return Math.max(
+    20,
+    Math.min(pageHeight - 20 - clampedHeight, safeTop - clampedHeight / 2)
+  );
+}
+
+export function getLeft(
+  left,
+  width,
+  pageWidth = typeof window !== "undefined" ? window.innerWidth : 1024
+) {
+  const safeLeft = typeof left === "number" && !isNaN(left) ? left : 20;
+  const safeWidth = typeof width === "number" && !isNaN(width) ? width : 0;
+
+  // Place 20px to the right of cursor by default.
+  // If placing on the right would exceed the page margin, flip to the left of cursor.
+  if (safeLeft + 20 + safeWidth > pageWidth - 20) {
+    return Math.max(20, safeLeft - 20 - safeWidth);
+  }
+  return safeLeft + 20;
+}

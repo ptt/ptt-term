@@ -4,6 +4,9 @@ import {
   TRUSTED_IMAGE_DOMAINS,
   isTrustedImageDomain,
   resolveImageUrl,
+  getImageRenderedSize,
+  getTop,
+  getLeft,
 } from "../src/js/image_preview_util.js";
 
 test("isTrustedImageDomain correctly identifies trusted image domains and subdomains", () => {
@@ -103,4 +106,64 @@ test("resolveImageUrl rejects non-image or invalid URLs regardless of whitelist"
   assert.equal(resolveImageUrl("not-a-url", false), null);
   assert.equal(resolveImageUrl("", false), null);
   assert.equal(resolveImageUrl(null, false), null);
+});
+
+test("getImageRenderedSize accurately scales images based on aspect ratio and viewport", () => {
+  // 1. Image fits within bounds (no scaling)
+  const fit = getImageRenderedSize(400, 300, 1000, 1000);
+  assert.equal(fit.width, 400);
+  assert.equal(fit.height, 300);
+
+  // 2. Tall portrait mobile screenshot (1080x2400) constrained by maxH (80% of 1080 = 864)
+  const tall = getImageRenderedSize(1080, 2400, 1920, 1080);
+  assert.equal(tall.height, 864);
+  assert.equal(tall.width, 1080 * (864 / 2400));
+
+  // 3. Wide landscape image (2000x1000) constrained by maxW (90% of 1000 = 900)
+  const wide = getImageRenderedSize(2000, 1000, 1000, 800);
+  assert.equal(wide.width, 900);
+  assert.equal(wide.height, 450);
+
+  // 4. Missing width fallback
+  const fallback = getImageRenderedSize(undefined, 2000, 1000, 800);
+  assert.equal(fallback.height, 640);
+  assert.equal(fallback.width, 900);
+});
+
+test("getTop fixes Issue #120 and cleanly clamps image preview within page bounds", () => {
+  const pageHeight = 900;
+
+  // Issue #120 regression test: tall image hovered near bottom
+  // Old logic returned negative numbers (e.g. 900 - 20 - 2400 = -1520), jumping outside the top border.
+  // New logic clamps properly to stay inside [20, pageHeight - 20 - height]
+  const topBottomHover = getTop(850, 720, pageHeight);
+  assert.equal(topBottomHover, 160); // 900 - 20 - 720 = 160 >= 20
+  assert(topBottomHover >= 20);
+
+  // Unscaled height passed directly
+  const unscaled = getTop(850, 2400, pageHeight);
+  assert.equal(unscaled, 160);
+  assert(unscaled >= 20);
+
+  // Hover near top boundary: clamped to top margin 20
+  const topNearTop = getTop(50, 300, pageHeight);
+  assert.equal(topNearTop, 20);
+
+  // Hover in middle: perfectly centered on cursor
+  const topMiddle = getTop(500, 300, pageHeight);
+  assert.equal(topMiddle, 350); // 500 - 150 = 350
+});
+
+test("getLeft keeps preview in viewport and flips to cursor left if exceeding page width", () => {
+  const pageWidth = 1000;
+
+  // Normal position: 20px right of cursor
+  assert.equal(getLeft(200, 300, pageWidth), 220);
+
+  // Near right edge: flips to left of cursor
+  // 800 + 20 + 300 = 1120 > 980 -> flips to 800 - 20 - 300 = 480
+  assert.equal(getLeft(800, 300, pageWidth), 480);
+
+  // Very wide image near right edge: clamped to minimum margin 20
+  assert.equal(getLeft(900, 950, pageWidth), 20);
 });
