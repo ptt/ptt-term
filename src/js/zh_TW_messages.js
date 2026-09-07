@@ -166,6 +166,9 @@ export const zh_TW = {
   options_fontFaceAndPriority: {
     message: "字型與優先順序",
   },
+  options_mouse: {
+    message: "滑鼠",
+  },
   options_mouseBrowsing: {
     message: "滑鼠瀏覽",
   },

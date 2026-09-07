@@ -1,5 +1,5 @@
-import { en_US } from './en_US_messages';
-import { zh_TW } from './zh_TW_messages';
+import { en_US } from './en_US_messages.js';
+import { zh_TW } from './zh_TW_messages.js';
 
 const locale = {
   'en_us': en_US,
