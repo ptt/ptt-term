@@ -14,6 +14,7 @@ import {
   parseReqNotMetText,
   parseStatusRow,
   parseListRow,
+  parseWaterballRow,
   parseWaterball,
 } from '../src/js/sites/ptt.js';
 
@@ -115,20 +116,83 @@ test('PttSite parses board list status row', () => {
 });
 
 test('PttSite parses incoming waterball messages', () => {
-  // 1. ANSI colored waterball
+  const ptt = new PttSite();
+
+  // 1. Direct row parsing with parseWaterballRow
+  const rowResult1 = parseWaterballRow('★Sysop 這是測試訊息');
+  assert.ok(rowResult1);
+  assert.equal(rowResult1.userId, 'Sysop');
+  assert.equal(rowResult1.message, '這是測試訊息');
+
+  const rowResultColon = parseWaterballRow('★Sysop: 這是測試訊息');
+  assert.ok(rowResultColon);
+  assert.equal(rowResultColon.userId, 'Sysop');
+  assert.equal(rowResultColon.message, '這是測試訊息');
+
+  const rowResultFullColon = parseWaterballRow('★Sysop：這是測試訊息');
+  assert.ok(rowResultFullColon);
+  assert.equal(rowResultFullColon.userId, 'Sysop');
+  assert.equal(rowResultFullColon.message, '這是測試訊息');
+
+  const rowResultConsecutive = parseWaterballRow('★ 這是連續訊息');
+  assert.ok(rowResultConsecutive);
+  assert.equal(rowResultConsecutive.userId, undefined);
+  assert.equal(rowResultConsecutive.message, '這是連續訊息');
+
+  const rowResultPager = parseWaterballRow('[呼叫] 站長找你');
+  assert.ok(rowResultPager);
+  assert.equal(rowResultPager.userId, undefined);
+  assert.equal(rowResultPager.message, '[呼叫] 站長找你');
+
+  const rowResultPagerBrackets = parseWaterballRow('【呼叫】站長找你');
+  assert.ok(rowResultPagerBrackets);
+  assert.equal(rowResultPagerBrackets.message, '【呼叫】站長找你');
+
+  assert.equal(parseWaterballRow('普通字串無水球'), null);
+  assert.equal(parseWaterballRow('請按任意鍵繼續'), null);
+  assert.equal(parseWaterballRow(''), null);
+  assert.equal(parseWaterballRow(null), null);
+
+  // 2. TermBuf-based notification parsing
+  const mockBufWaterball = {
+    rows: 24,
+    getRowText(row) {
+      return row === 23 ? '★Sysop 嗨' : '';
+    }
+  };
+  const wbResult = ptt.parseNotification(mockBufWaterball);
+  assert.ok(wbResult);
+  assert.equal(wbResult.userId, 'Sysop');
+  assert.equal(wbResult.message, '嗨');
+
+  const mockBufNormal = {
+    rows: 24,
+    getRowText(row) {
+      return row === 23 ? '請按任意鍵繼續' : '';
+    }
+  };
+  assert.equal(ptt.parseNotification(mockBufNormal), null);
+
+  // 3. Legacy string waterball support
   const ansiWaterball = '\x1b[1;33;46m\u2605Sysop\x1b[0;1;37;45m 這是測試訊息 \x1b[m\x1b[K';
   const result1 = parseWaterball(ansiWaterball);
   assert.ok(result1);
   assert.equal(result1.userId, 'Sysop');
   assert.equal(result1.message, '這是測試訊息');
 
-  // 2. Unstyled row-based waterball
+  const siteResult1 = ptt.parseNotification(ansiWaterball);
+  assert.ok(siteResult1);
+  assert.equal(siteResult1.userId, 'Sysop');
+  assert.equal(siteResult1.message, '這是測試訊息');
+
   const unstyledWaterball = '\x1b[24;01H\x1b[1;37;45m[呼叫] 站長找你\x1b[24;18H\x1b[m';
   const result2 = parseWaterball(unstyledWaterball, 23);
   assert.ok(result2);
   assert.equal(result2.message, '[呼叫] 站長找你');
 
   assert.equal(parseWaterball('普通字串無水球'), null);
+  assert.equal(ptt.parseNotification('普通字串無水球'), null);
+  assert.equal(ptt.parseNotification(new Uint8Array([1, 2, 3])), null);
 });
 
 test('Maple3Site parses reading status and list patterns', () => {
@@ -163,6 +227,18 @@ test('Maple3Site parses reading status and list patterns', () => {
   const sent = [];
   maple3.sendAntiIdle({ send: (d) => sent.push(d) });
   assert.deepEqual(sent, ['\x00']);
+
+  // Maple3 parses incoming waterball notification via BaseSite
+  const mockBufWaterball = {
+    rows: 24,
+    getRowText(row) {
+      return row === 23 ? '★sysop  hello world ' : '';
+    }
+  };
+  const wbResult = maple3.parseNotification(mockBufWaterball);
+  assert.ok(wbResult);
+  assert.equal(wbResult.userId, 'sysop');
+  assert.equal(wbResult.message, 'hello world');
 });
 
 test('AutoSite detects and locks site profile based on Telnet options or explicit lock', () => {

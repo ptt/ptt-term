@@ -282,6 +282,7 @@ export class TermBuf extends Event {
     this.altScreen = '';
     this.changed = false;
     this.posChanged = false;
+    this.bellOccurred = false;
     this.pageState = 0;
     this.forceFullWidth = false;
 
@@ -402,6 +403,8 @@ export class TermBuf extends Event {
       case '\x07':
         // FIXME: beep (1)Sound (2)AlertNotification (3)change icon
         // should only play sound
+        this.bellOccurred = true;
+        this.dispatchEvent(new CustomEvent('bell'));
         continue;
       case '\b':
         this.back();

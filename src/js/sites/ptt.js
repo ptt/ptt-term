@@ -1,4 +1,6 @@
-import { BaseSite } from './base.js';
+import { BaseSite, parseWaterballRow } from './base.js';
+
+export { parseWaterballRow };
 
 export function parseReplyText(it) {
   return (it.indexOf('▲ 回應至 (F)看板 (M)作者信箱 (B)二者皆是 (Q)取消？[F] ') === 0 ||
@@ -231,8 +233,15 @@ export class PttSite extends BaseSite {
     return true;
   }
 
-  parseNotification(data, termBuf) {
-    let lastRowNum = termBuf ? this.getLastRowNum(termBuf) : 23;
-    return parseWaterball(data, lastRowNum);
+  parseNotification(bufOrData, termBuf) {
+    const res = super.parseNotification(bufOrData, termBuf);
+    if (res) return res;
+
+    if (typeof bufOrData === 'string') {
+      const lastRowNum = termBuf ? this.getLastRowNum(termBuf) : 23;
+      return parseWaterball(bufOrData, lastRowNum);
+    }
+
+    return null;
   }
 }

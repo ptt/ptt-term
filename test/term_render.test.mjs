@@ -377,4 +377,35 @@ test('TermView cursorStyle handles blink, reverse, and blink-reverse styles', ()
   assert.equal(mockCursor.style.top, '252px');
 });
 
+test('TermBuf puts handles bell (\\x07), setting bellOccurred and dispatching bell event', () => {
+  const putsMatch = termBufSource.match(
+    /puts\s*\([^)]*\)\s*\{([\s\S]*?\n    this\.queueUpdate\(\);)\n  \}/
+  );
+  assert.ok(putsMatch);
+  const putsBody = putsMatch[1];
+  let bellDispatched = 0;
+  const mockTerm = {
+    bellOccurred: false,
+    cols: 80,
+    rows: 24,
+    cur_x: 0,
+    cur_y: 0,
+    lines: [[]],
+    attr: {},
+    back() {},
+    carriageReturn() {},
+    lineFeed() {},
+    gotoPos() {},
+    isFullWidth() { return false; },
+    queueUpdate() {},
+    dispatchEvent(evt) {
+      if (evt.type === 'bell') bellDispatched++;
+    },
+  };
+  mockTerm.puts = new Function('str', 'attr = null', putsBody).bind(mockTerm);
 
+  assert.equal(mockTerm.bellOccurred, false);
+  mockTerm.puts('hello\x07world');
+  assert.equal(mockTerm.bellOccurred, true);
+  assert.equal(bellDispatched, 1);
+});

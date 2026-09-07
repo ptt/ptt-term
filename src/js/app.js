@@ -10,7 +10,7 @@ import { EasyReading } from './easy_reading';
 import { ConnectionLog } from './conn_log';
 import { TouchController } from './touch_controller';
 import { i18n } from './i18n';
-import { unescapeStr, b2u } from './string_util';
+import { unescapeStr } from './string_util';
 import { setTimer } from './util';
 import AppOverlay from '../components/AppOverlay';
 import { getSite } from './sites';
@@ -274,18 +274,20 @@ export class App {
   onData(data) {
   this.parser.feed(data);
 
-  if (!this.appFocused && this.view.enableNotifications) {
-    // parse received data for notification (e.g. waterball)
-    const str = (this.view.charset === 'UTF-8') ? data : b2u(data);
-    const wb = this.site.parseNotification(str, this.buf);
-    if (wb) {
-      if ('userId' in wb) {
-        this.waterball.userId = wb.userId;
+  if (this.buf.bellOccurred) {
+    this.buf.bellOccurred = false;
+    if (!this.appFocused && this.view.enableNotifications) {
+      // parse notification (e.g. waterball) delegated to site strategy
+      const wb = this.site.parseNotification(this.buf);
+      if (wb) {
+        if ('userId' in wb && wb.userId) {
+          this.waterball.userId = wb.userId;
+        }
+        if ('message' in wb && wb.message) {
+          this.waterball.message = wb.message;
+        }
+        this.view.showWaterballNotification();
       }
-      if ('message' in wb) {
-        this.waterball.message = wb.message;
-      }
-      this.view.showWaterballNotification();
     }
   }
   }
