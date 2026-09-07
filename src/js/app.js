@@ -1,6 +1,6 @@
 // Main Program
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { render } from 'preact';
 import { AnsiParser } from './ansi_parser';
 import { TermView } from './term_view';
 import { TermBuf } from './term_buf';
@@ -1380,7 +1380,7 @@ export class App {
   }
 
   setupOverlay() {
-    ReactDOM.render(
+    render(
       <AppOverlay
         app={this}
       />,

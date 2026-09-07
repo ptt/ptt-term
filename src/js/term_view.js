@@ -236,7 +236,9 @@ export class TermView {
 
   onBlinkToggle() {
     if (this.useCanvasEngine) {
-      this.componentScreen.onBlink();
+      if (this.componentScreen && typeof this.componentScreen.onBlink === 'function') {
+        this.componentScreen.onBlink();
+      }
     }
   }
 
@@ -306,13 +308,18 @@ export class TermView {
       const t0 = (this.showFps && this.fpsMeter.enabled && typeof performance !== 'undefined')
         ? performance.now()
         : 0;
-      this.componentScreen = renderScreen(
+      const screenInst = renderScreen(
         /* For Screen#componentDidUpdate */lines.slice(),
         this.chh,
         /* showsLinkPreview */false,
         this.enablePicPreview,
         this.screenContainer,
         {
+          ref: (inst) => {
+            if (inst) {
+              this.componentScreen = inst;
+            }
+          },
           useCanvas: this.useCanvasEngine,
           cols: this.buf.cols,
           rows: this.buf.rows,
@@ -332,6 +339,9 @@ export class TermView {
           picPreviewWhitelistOnly: this.picPreviewWhitelistOnly !== false,
         }
       );
+      if (screenInst) {
+        this.componentScreen = screenInst;
+      }
       this.setHighlightedRow(this.buf.nowHighlight);
       if (t0 > 0 && !this.useCanvasEngine) {
         this.fpsMeter.recordFrame(performance.now() - t0, false);
@@ -355,8 +365,8 @@ export class TermView {
 
   setHighlightedRow(row) {
     console.debug(`setHighlightedRow: ${row}, this.buf.highlightCursor:${ this.buf.highlightCursor}`);
-    if (this.buf.highlightCursor) {
-      this.componentScreen.setCurrentHighlighted(row)
+    if (this.buf.highlightCursor && this.componentScreen && typeof this.componentScreen.setCurrentHighlighted === 'function') {
+      this.componentScreen.setCurrentHighlighted(row);
     }
   }
 
@@ -761,7 +771,10 @@ export class TermView {
       return '';
     }
     if (this.useCanvasEngine) {
-      return this.componentScreen.getSelectedText();
+      if (this.componentScreen && typeof this.componentScreen.getSelectedText === 'function') {
+        return this.componentScreen.getSelectedText();
+      }
+      return '';
     }
     if (!window.getSelection().isCollapsed) {
       return window.getSelection().toString().replace(/\u00a0/g, " ");
@@ -774,9 +787,11 @@ export class TermView {
       return null;
     }
     if (this.useCanvasEngine) {
-      const sel = this.componentScreen.getSelectionColRow();
-      if (sel)
-        return sel;
+      if (this.componentScreen && typeof this.componentScreen.getSelectionColRow === 'function') {
+        const sel = this.componentScreen.getSelectionColRow();
+        if (sel)
+          return sel;
+      }
     }
     if (window.getSelection().isCollapsed || window.getSelection().rangeCount === 0)
       return null;
@@ -793,7 +808,9 @@ export class TermView {
       return;
     }
     if (this.useCanvasEngine) {
-      this.componentScreen.selectAll();
+      if (this.componentScreen && typeof this.componentScreen.selectAll === 'function') {
+        this.componentScreen.selectAll();
+      }
       return;
     }
     window.getSelection().selectAllChildren(this.screenContainer || this.mainDisplay);

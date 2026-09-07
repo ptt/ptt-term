@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import ReactDOM from "react-dom";
+import { createPortal } from "preact/compat";
 import ConnectionAlert from "./ConnectionAlert";
 import PasteShortcutAlert from "./PasteShortcutAlert";
 import DeveloperModeAlert from "./DeveloperModeAlert";
@@ -70,7 +70,7 @@ export const AlertContainer = ({ app, container }) => {
     return alertComponent;
   }
 
-  return ReactDOM.createPortal(alertComponent, target);
+  return createPortal(alertComponent, target);
 };
 
 export default AlertContainer;

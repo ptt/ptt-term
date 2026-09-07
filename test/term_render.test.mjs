@@ -2,9 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { h, Component, render } from 'preact';
 
 // Extract queueUpdate and notify directly from term_buf.js to test their exact implementation
 const termBufSource = fs.readFileSync(path.resolve('src/js/term_buf.js'), 'utf-8');
+const termViewSource = fs.readFileSync(path.resolve('src/js/term_view.js'), 'utf-8');
 
 function createHarness() {
   const harness = {
@@ -157,3 +159,138 @@ test('TermBuf queueUpdate falls back gracefully to setTimeout when requestAnimat
     globalThis.cancelAnimationFrame = originalCancelRaf;
   }
 });
+
+test('TermView setHighlightedRow safely guards when componentScreen is undefined, null, or unmounted', () => {
+  const setHighlightedRowBody = termViewSource.match(
+    /setHighlightedRow\(row\)\s*\{([\s\S]*?\n  )\}/
+  )[1];
+  const fn = new Function('row', setHighlightedRowBody);
+
+  // 1. componentScreen is undefined (reproducing the reported runtime crash)
+  const ctxUndefined = {
+    buf: { highlightCursor: true },
+    componentScreen: undefined,
+  };
+  assert.doesNotThrow(() => fn.call(ctxUndefined, 5));
+
+  // 2. componentScreen is null
+  const ctxNull = {
+    buf: { highlightCursor: true },
+    componentScreen: null,
+  };
+  assert.doesNotThrow(() => fn.call(ctxNull, 5));
+
+  // 3. componentScreen is dummy initial object
+  let calledWith = null;
+  const ctxValid = {
+    buf: { highlightCursor: true },
+    componentScreen: {
+      setCurrentHighlighted(row) {
+        calledWith = row;
+      },
+    },
+  };
+  fn.call(ctxValid, 12);
+  assert.equal(calledWith, 12);
+
+  // 4. highlightCursor is false
+  calledWith = null;
+  const ctxDisabled = {
+    buf: { highlightCursor: false },
+    componentScreen: {
+      setCurrentHighlighted(row) {
+        calledWith = row;
+      },
+    },
+  };
+  fn.call(ctxDisabled, 12);
+  assert.equal(calledWith, null);
+});
+
+test('renderScreen captures and returns component instance via ref in Preact', () => {
+  class MockScreen extends Component {
+    setCurrentHighlighted(row) {
+      this.highlighted = row;
+    }
+    render() {
+      return h('div', null, 'screen');
+    }
+  }
+
+  function renderScreen(lines, forceWidth, enableLinkInlinePreview, enableLinkHoverPreview, cont, options = {}, ref) {
+    let instance = null;
+    const { ref: optionsRef, ...restOptions } = options;
+    const targetRef = ref || optionsRef;
+    const setRef = (inst) => {
+      instance = inst;
+      if (typeof targetRef === 'function') {
+        targetRef(inst);
+      } else if (targetRef && 'current' in targetRef) {
+        targetRef.current = inst;
+      }
+    };
+
+    render(
+      h(MockScreen, {
+        ref: setRef,
+        lines,
+        forceWidth,
+        enableLinkInlinePreview,
+        enableLinkHoverPreview,
+        ...restOptions,
+      }),
+      cont
+    );
+
+    return instance;
+  }
+
+  const createMockEl = (tag) => ({
+    nodeType: 1,
+    tag,
+    childNodes: [],
+    style: {},
+    setAttribute() {},
+    removeAttribute() {},
+    appendChild(child) {
+      this.childNodes.push(child);
+      child.parentNode = this;
+      return child;
+    },
+    removeChild() {},
+    insertBefore() {},
+  });
+
+  const origDocument = globalThis.document;
+  try {
+    const container = createMockEl('div');
+    globalThis.document = {
+      createElement: (tag) => createMockEl(tag),
+      createElementNS: (ns, tag) => createMockEl(tag),
+      createTextNode: (text) => ({ nodeType: 3, text }),
+    };
+
+    let refCallbackInstance = null;
+    const inst = renderScreen([], 16, false, false, container, {
+      ref: (i) => {
+        refCallbackInstance = i;
+      },
+      cols: 80,
+      rows: 24,
+    });
+
+    assert.ok(inst, 'renderScreen should return the component instance');
+    assert.equal(inst, refCallbackInstance, 'ref callback should receive the same instance');
+    assert.equal(typeof inst.setCurrentHighlighted, 'function');
+
+    inst.setCurrentHighlighted(15);
+    assert.equal(inst.highlighted, 15);
+
+    // Re-render should also preserve and return the instance
+    const reInst = renderScreen(['updated line'], 16, false, false, container, {});
+    assert.equal(reInst, inst, 're-render returns the existing component instance');
+  } finally {
+    globalThis.document = origDocument;
+  }
+});
+
