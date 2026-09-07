@@ -32,7 +32,7 @@ export class AnsiParser {
     let s = '';
     const n = data.length;
     for (let i = 0; i < n; ++i) {
-      const ch = data[i];
+      let ch = data[i];
       switch (this.state) {
       case AnsiParser.STATE_TEXT:
         switch (ch) {
