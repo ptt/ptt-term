@@ -6,13 +6,21 @@ export const u2bTable = new Uint16Array(65536);
 let isInitialized = false;
 
 function decodeBase64ToUint16(b64) {
+  if (typeof Uint8Array.fromBase64 === "function") {
+    const bytes = Uint8Array.fromBase64(b64);
+    return new Uint16Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 2);
+  }
+  if (typeof Buffer !== "undefined" && typeof Buffer.from === "function") {
+    const buf = Buffer.from(b64, "base64");
+    return new Uint16Array(buf.buffer, buf.byteOffset, buf.byteLength / 2);
+  }
   const binary = atob(b64);
   const len = binary.length;
   const bytes = new Uint8Array(len);
   for (let i = 0; i < len; i++) {
     bytes[i] = binary.charCodeAt(i);
   }
-  return new Uint16Array(bytes.buffer);
+  return new Uint16Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 2);
 }
 
 export function initUAO() {
