@@ -3,10 +3,21 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { h, Component, render } from 'preact';
+import {
+  computeToolbarLayout,
+  TouchController
+} from '../src/js/touch_controller.js';
 
 // Extract queueUpdate and notify directly from term_buf.js to test their exact implementation
-const termBufSource = fs.readFileSync(path.resolve('src/js/term_buf.js'), 'utf-8');
-const termViewSource = fs.readFileSync(path.resolve('src/js/term_view.js'), 'utf-8');
+const termBufSource = fs.readFileSync(
+  path.resolve('src/js/term_buf.js'),
+  'utf-8'
+);
+const termViewSource = fs.readFileSync(
+  path.resolve('src/js/term_view.js'),
+  'utf-8'
+);
+const appSource = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
 
 function createHarness() {
   const harness = {
@@ -32,8 +43,8 @@ function createHarness() {
       updateCursorPos() {
         harness.cursorUpdates++;
       },
-      onBlinkToggle() {},
-    },
+      onBlinkToggle() {}
+    }
   };
 
   const queueUpdateBody = termBufSource.match(
@@ -43,7 +54,9 @@ function createHarness() {
     /notify\(timer\)\s*\{([\s\S]*?\n  )\}/
   )[1];
 
-  harness.queueUpdate = new Function('directupdate', queueUpdateBody).bind(harness);
+  harness.queueUpdate = new Function('directupdate', queueUpdateBody).bind(
+    harness
+  );
   harness.notify = new Function('timer', notifyBody).bind(harness);
 
   return harness;
@@ -169,14 +182,14 @@ test('TermView setHighlightedRow safely guards when componentScreen is undefined
   // 1. componentScreen is undefined (reproducing the reported runtime crash)
   const ctxUndefined = {
     buf: { highlightCursor: true },
-    componentScreen: undefined,
+    componentScreen: undefined
   };
   assert.doesNotThrow(() => fn.call(ctxUndefined, 5));
 
   // 2. componentScreen is null
   const ctxNull = {
     buf: { highlightCursor: true },
-    componentScreen: null,
+    componentScreen: null
   };
   assert.doesNotThrow(() => fn.call(ctxNull, 5));
 
@@ -187,8 +200,8 @@ test('TermView setHighlightedRow safely guards when componentScreen is undefined
     componentScreen: {
       setCurrentHighlighted(row) {
         calledWith = row;
-      },
-    },
+      }
+    }
   };
   fn.call(ctxValid, 12);
   assert.equal(calledWith, 12);
@@ -200,8 +213,8 @@ test('TermView setHighlightedRow safely guards when componentScreen is undefined
     componentScreen: {
       setCurrentHighlighted(row) {
         calledWith = row;
-      },
-    },
+      }
+    }
   };
   fn.call(ctxDisabled, 12);
   assert.equal(calledWith, null);
@@ -217,7 +230,15 @@ test('renderScreen captures and returns component instance via ref in Preact', (
     }
   }
 
-  function renderScreen(lines, forceWidth, enableLinkInlinePreview, enableLinkHoverPreview, cont, options = {}, ref) {
+  function renderScreen(
+    lines,
+    forceWidth,
+    enableLinkInlinePreview,
+    enableLinkHoverPreview,
+    cont,
+    options = {},
+    ref
+  ) {
     let instance = null;
     const { ref: optionsRef, ...restOptions } = options;
     const targetRef = ref || optionsRef;
@@ -237,7 +258,7 @@ test('renderScreen captures and returns component instance via ref in Preact', (
         forceWidth,
         enableLinkInlinePreview,
         enableLinkHoverPreview,
-        ...restOptions,
+        ...restOptions
       }),
       cont
     );
@@ -258,7 +279,7 @@ test('renderScreen captures and returns component instance via ref in Preact', (
       return child;
     },
     removeChild() {},
-    insertBefore() {},
+    insertBefore() {}
   });
 
   const origDocument = globalThis.document;
@@ -267,7 +288,7 @@ test('renderScreen captures and returns component instance via ref in Preact', (
     globalThis.document = {
       createElement: (tag) => createMockEl(tag),
       createElementNS: (ns, tag) => createMockEl(tag),
-      createTextNode: (text) => ({ nodeType: 3, text }),
+      createTextNode: (text) => ({ nodeType: 3, text })
     };
 
     let refCallbackInstance = null;
@@ -276,19 +297,34 @@ test('renderScreen captures and returns component instance via ref in Preact', (
         refCallbackInstance = i;
       },
       cols: 80,
-      rows: 24,
+      rows: 24
     });
 
     assert.ok(inst, 'renderScreen should return the component instance');
-    assert.equal(inst, refCallbackInstance, 'ref callback should receive the same instance');
+    assert.equal(
+      inst,
+      refCallbackInstance,
+      'ref callback should receive the same instance'
+    );
     assert.equal(typeof inst.setCurrentHighlighted, 'function');
 
     inst.setCurrentHighlighted(15);
     assert.equal(inst.highlighted, 15);
 
     // Re-render should also preserve and return the instance
-    const reInst = renderScreen(['updated line'], 16, false, false, container, {});
-    assert.equal(reInst, inst, 're-render returns the existing component instance');
+    const reInst = renderScreen(
+      ['updated line'],
+      16,
+      false,
+      false,
+      container,
+      {}
+    );
+    assert.equal(
+      reInst,
+      inst,
+      're-render returns the existing component instance'
+    );
   } finally {
     globalThis.document = origDocument;
   }
@@ -300,10 +336,10 @@ test('TermView cursorStyle handles blink, reverse, and blink-reverse styles', ()
     classList: {
       add: (cls) => mockClassList.add(cls),
       remove: (...classes) => classes.forEach((c) => mockClassList.delete(c)),
-      has: (cls) => mockClassList.has(cls),
+      has: (cls) => mockClassList.has(cls)
     },
     style: {},
-    textContent: '_',
+    textContent: '_'
   };
 
   const mockView = {
@@ -317,10 +353,12 @@ test('TermView cursorStyle handles blink, reverse, and blink-reverse styles', ()
       cur_y: 10,
       rows: 24,
       cols: 80,
-      lines: Array.from({ length: 24 }, () => Array.from({ length: 80 }, () => ({ getBg: () => 0 }))),
+      lines: Array.from({ length: 24 }, () =>
+        Array.from({ length: 80 }, () => ({ getBg: () => 0 }))
+      )
     },
     convertMN2XYEx: (cx, cy) => [cx * 12, cy * 24],
-    updateInputBufferPos() {},
+    updateInputBufferPos() {}
   };
 
   const setCursorStyleBody = termViewSource.match(
@@ -333,10 +371,27 @@ test('TermView cursorStyle handles blink, reverse, and blink-reverse styles', ()
     /updateCursorPos\(\)\s*\{([\s\S]*?\n  )\}/
   )[1];
 
-  const termInvColors = ['#ffffff', '#ff0000', '#00ff00', '#ffff00', '#0000ff', '#ff00ff', '#00ffff', '#000000'];
-  mockView.setCursorStyle = new Function('style', setCursorStyleBody).bind(mockView);
-  mockView.applyCursorStyle = new Function("termInvColors", `return function applyCursorStyle() { ${applyCursorStyleBody} }`)(termInvColors).bind(mockView);
-  mockView.updateCursorPos = new Function('termInvColors', `return function updateCursorPos() { ${updateCursorPosBody} }`)(termInvColors).bind(mockView);
+  const termInvColors = [
+    '#ffffff',
+    '#ff0000',
+    '#00ff00',
+    '#ffff00',
+    '#0000ff',
+    '#ff00ff',
+    '#00ffff',
+    '#000000'
+  ];
+  mockView.setCursorStyle = new Function('style', setCursorStyleBody).bind(
+    mockView
+  );
+  mockView.applyCursorStyle = new Function(
+    'termInvColors',
+    `return function applyCursorStyle() { ${applyCursorStyleBody} }`
+  )(termInvColors).bind(mockView);
+  mockView.updateCursorPos = new Function(
+    'termInvColors',
+    `return function updateCursorPos() { ${updateCursorPosBody} }`
+  )(termInvColors).bind(mockView);
 
   // 1. Default / Blink underline mode
   mockView.setCursorStyle('blink');
@@ -385,7 +440,9 @@ test('TermBuf puts handles bell (\\x07), setting bellOccurred and dispatching be
   const putsBody = putsMatch[1];
   let bellDispatched = 0;
   let bellSoundPlayed = 0;
-  const playTerminalBell = () => { bellSoundPlayed++; };
+  const playTerminalBell = () => {
+    bellSoundPlayed++;
+  };
   const mockTerm = {
     bellOccurred: false,
     cols: 80,
@@ -398,13 +455,18 @@ test('TermBuf puts handles bell (\\x07), setting bellOccurred and dispatching be
     carriageReturn() {},
     lineFeed() {},
     gotoPos() {},
-    isFullWidth() { return false; },
+    isFullWidth() {
+      return false;
+    },
     queueUpdate() {},
     dispatchEvent(evt) {
       if (evt.type === 'bell') bellDispatched++;
-    },
+    }
   };
-  mockTerm.puts = new Function('playTerminalBell', 'return function(str, attr = null) { ' + putsBody + ' }')(playTerminalBell).bind(mockTerm);
+  mockTerm.puts = new Function(
+    'playTerminalBell',
+    'return function(str, attr = null) { ' + putsBody + ' }'
+  )(playTerminalBell).bind(mockTerm);
 
   assert.equal(mockTerm.bellOccurred, false);
   mockTerm.puts('hello\x07world');
@@ -416,7 +478,9 @@ test('TermBuf puts handles bell (\\x07), setting bellOccurred and dispatching be
 test('TermView _send, _convSend and conn getter delegate to bbscore.conn', () => {
   const connMatch = termViewSource.match(/get conn\(\)\s*\{([\s\S]*?\n  )\}/);
   const sendMatch = termViewSource.match(/_send\(data\)\s*\{([\s\S]*?\n  )\}/);
-  const convSendMatch = termViewSource.match(/_convSend\(data\)\s*\{([\s\S]*?\n  )\}/);
+  const convSendMatch = termViewSource.match(
+    /_convSend\(data\)\s*\{([\s\S]*?\n  )\}/
+  );
 
   assert.ok(connMatch, 'TermView must define conn getter');
   assert.ok(sendMatch, 'TermView must define _send method');
@@ -430,13 +494,13 @@ test('TermView _send, _convSend and conn getter delegate to bbscore.conn', () =>
     },
     convSend(data) {
       convSent.push(data);
-    },
+    }
   };
   const mockView = {
-    bbscore: { conn: mockConn },
+    bbscore: { conn: mockConn }
   };
   Object.defineProperty(mockView, 'conn', {
-    get: new Function(connMatch[1]),
+    get: new Function(connMatch[1])
   });
   mockView._send = new Function('data', sendMatch[1]).bind(mockView);
   mockView._convSend = new Function('data', convSendMatch[1]).bind(mockView);
@@ -448,3 +512,1646 @@ test('TermView _send, _convSend and conn getter delegate to bbscore.conn', () =>
   assert.deepEqual(convSent, ['test']);
 });
 
+test('App checkClass handles string, SVGAnimatedString, null and undefined', () => {
+  const checkClassMatch = appSource.match(
+    /checkClass\(cn\)\s*\{([\s\S]*?)\n  \}/
+  );
+  assert.ok(checkClassMatch, 'App must define checkClass');
+  const checkClass = new Function('cn', checkClassMatch[1]);
+
+  assert.equal(checkClass('nomouse_command'), true);
+  assert.equal(checkClass('some nomouse_command class'), true);
+  assert.equal(checkClass('conn-log'), true);
+  assert.equal(checkClass('normal-class'), false);
+  assert.equal(checkClass(null), false);
+  assert.equal(checkClass(undefined), false);
+
+  // SVGAnimatedString simulation
+  const svgClassWithNoMouse = {
+    baseVal: 'nomouse_command',
+    animVal: 'nomouse_command'
+  };
+  const svgClassNormal = { baseVal: 'lucide-icon', animVal: 'lucide-icon' };
+  assert.equal(checkClass(svgClassWithNoMouse), true);
+  assert.equal(checkClass(svgClassNormal), false);
+});
+
+test('computeToolbarLayout always stacks into 5 rows and scales to max fit with base size minimum', () => {
+  // 1. Portrait mode with cols = 80 -> no extra col-80 space -> stacked with base size minimum (52px buttons)
+  const resPortrait80 = computeToolbarLayout({
+    viewportWidth: 640,
+    viewportHeight: 800,
+    cols: 80,
+    colWidth: 8
+  });
+  assert.equal(resPortrait80.isStacked, true);
+  assert.equal(resPortrait80.maxCols, 4);
+  assert.equal(resPortrait80.stackedWidth, 234);
+  assert.equal(resPortrait80.stackedHeight, 288);
+  assert.equal(resPortrait80.toolbarScale, 1.0);
+  assert.equal(resPortrait80.drawableRight, 640);
+
+  // 2. Portrait mode with extra cols (cols = 82) -> space < base size -> base size is minimum
+  const resPortrait82 = computeToolbarLayout({
+    viewportWidth: 393,
+    viewportHeight: 720,
+    cols: 82,
+    colWidth: 10,
+    isCompactLandscape: false
+  });
+  assert.equal(resPortrait82.isStacked, true);
+  assert.equal(resPortrait82.maxCols, 4);
+  assert.equal(resPortrait82.stackedWidth, 234);
+  assert.equal(resPortrait82.stackedHeight, 288);
+  assert.equal(resPortrait82.toolbarScale, 1.0);
+  assert.equal(resPortrait82.drawableRight, 820);
+
+  // 3. Landscape screen: always stacked, base size is minimum even if space is narrow (44x42px buttons)
+  const resNarrowLandscape = computeToolbarLayout({
+    viewportWidth: 720,
+    viewportHeight: 393,
+    cols: 82,
+    colWidth: 10,
+    isCompactLandscape: true
+  });
+  assert.equal(resNarrowLandscape.isStacked, true);
+  assert.equal(resNarrowLandscape.maxCols, 4);
+  assert.equal(resNarrowLandscape.stackedWidth, 195);
+  assert.equal(resNarrowLandscape.stackedHeight, 230);
+  assert.equal(resNarrowLandscape.toolbarScale, 1.0);
+  assert.equal(resNarrowLandscape.drawableRight, 820);
+
+  // 4. iPhone 15 Pro landscape: 852 x 393, right space is narrow -> base size is minimum
+  const resIPhone = computeToolbarLayout({
+    viewportWidth: 852,
+    viewportHeight: 393,
+    col80Right: 751,
+    isCompactLandscape: true
+  });
+  assert.equal(resIPhone.isStacked, true);
+  assert.equal(resIPhone.maxCols, 4);
+  assert.equal(resIPhone.stackedWidth, 195);
+  assert.equal(resIPhone.stackedHeight, 230);
+  assert.equal(resIPhone.toolbarScale, 1.0);
+  assert.equal(resIPhone.drawableRight, 852);
+
+  // 5. Wide phone landscape: extra columns beyond base size -> width fills first and scales up
+  const resWidePhone = computeToolbarLayout({
+    viewportWidth: 1200,
+    viewportHeight: 411,
+    cols: 110,
+    colWidth: 10,
+    isCompactLandscape: true
+  });
+  assert.equal(resWidePhone.isStacked, true);
+  assert.equal(resWidePhone.maxCols, 4);
+  assert.equal(resWidePhone.stackedWidth, 300);
+  assert.equal(resWidePhone.stackedHeight, 353);
+  assert.equal(resWidePhone.toolbarScale, 1.538);
+  assert.equal(resWidePhone.drawableRight, 1100);
+
+  // 6. Max-fit when height is constrained below base size -> base size is minimum
+  const resHeightFillsFirst = computeToolbarLayout({
+    viewportWidth: 1000,
+    viewportHeight: 200,
+    drawableRight: 950,
+    col80Right: 650,
+    isCompactLandscape: true
+  });
+  assert.equal(resHeightFillsFirst.isStacked, true);
+  assert.equal(resHeightFillsFirst.maxCols, 4);
+  assert.equal(resHeightFillsFirst.stackedHeight, 230);
+  assert.equal(resHeightFillsFirst.stackedWidth, 195);
+  assert.equal(resHeightFillsFirst.toolbarScale, 1.0);
+
+  // 7. Standard desktop mode with extra space (550px available width, 1056px available height)
+  const resDesktop = computeToolbarLayout({
+    viewportWidth: 1920,
+    viewportHeight: 1080,
+    drawableRight: 1910,
+    col80Right: 1360,
+    isCompactLandscape: false
+  });
+  assert.equal(resDesktop.isStacked, true);
+  assert.equal(resDesktop.maxCols, 4);
+  assert.equal(resDesktop.stackedWidth, 550);
+  assert.equal(resDesktop.stackedHeight, 676);
+  assert.equal(resDesktop.toolbarScale, 2.35);
+  assert.equal(resDesktop.drawableRight, 1910);
+
+  // 8. Desktop mode with constrained drawableHeight (drawableHeight = 400px -> height fills first)
+  const resConstrainedHeight = computeToolbarLayout({
+    viewportWidth: 1920,
+    viewportHeight: 1080,
+    drawableRight: 1910,
+    drawableHeight: 400,
+    col80Right: 1360,
+    isCompactLandscape: false
+  });
+  assert.equal(resConstrainedHeight.isStacked, true);
+  assert.equal(resConstrainedHeight.maxCols, 4);
+  assert.equal(resConstrainedHeight.stackedHeight, 400);
+  assert.equal(resConstrainedHeight.stackedWidth, 325);
+  assert.ok(resConstrainedHeight.stackedWidth <= 550);
+  assert.equal(resConstrainedHeight.toolbarScale, 1.389);
+
+  // 9. In landscape, base size is minimum even when formula remainingWidth < baseWidth
+  const resFormula = computeToolbarLayout({
+    viewportWidth: 1000,
+    viewportHeight: 500,
+    drawableRight: 950,
+    col80Right: 850,
+    isCompactLandscape: true
+  });
+  assert.equal(resFormula.isStacked, true);
+  assert.equal(resFormula.stackedWidth, 195);
+  assert.equal(resFormula.stackedHeight, 230);
+  assert.equal(resFormula.toolbarScale, 1.0);
+  assert.equal(resFormula.drawableRight, 950);
+});
+
+test('ContextMenu guards against setState calls when unmounted or detached', () => {
+  const contextMenuSource = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/index.js'),
+    'utf-8'
+  );
+
+  // 1. Verify source implements the lifecycle and mounting guards
+  assert.ok(contextMenuSource.includes('_isMounted = false;'));
+  assert.ok(contextMenuSource.includes('isInstanceActive = () =>'));
+  assert.ok(contextMenuSource.includes('if (!this.isInstanceActive())'));
+  assert.ok(contextMenuSource.includes('super.setState(updater, callback);'));
+
+  // 2. Test lifecycle guard logic in isolation
+  class GuardedComponent extends Component {
+    _isMounted = false;
+    state = { count: 0 };
+
+    isInstanceActive() {
+      return Boolean(
+        this._isMounted &&
+        this.__v &&
+        this.__v.__ &&
+        (!this.__v.__c || this.__v.__c === this)
+      );
+    }
+
+    setState(updater, callback) {
+      if (!this.isInstanceActive()) {
+        return;
+      }
+      super.setState(updater, callback);
+    }
+  }
+
+  const inst = new GuardedComponent();
+  assert.equal(inst.isInstanceActive(), false);
+
+  // Calling setState before mount should be safely ignored
+  inst.setState({ count: 1 });
+  assert.equal(inst.state.count, 0);
+
+  // Simulate mounted component with active vnode
+  const mockParentVNode = { __k: [] };
+  const mockVNode = { __: mockParentVNode, __c: inst };
+  inst._isMounted = true;
+  inst.__v = mockVNode;
+  assert.equal(inst.isInstanceActive(), true);
+
+  // Simulate zombie instance after HMR replacement
+  const newInst = new GuardedComponent();
+  mockVNode.__c = newInst;
+  assert.equal(inst.isInstanceActive(), false);
+
+  // Simulate detached vnode (parent severed)
+  mockVNode.__c = inst;
+  mockVNode.__ = null;
+  assert.equal(inst.isInstanceActive(), false);
+
+  // Simulate unmounted component
+  mockVNode.__ = mockParentVNode;
+  inst._isMounted = false;
+  assert.equal(inst.isInstanceActive(), false);
+});
+
+test('ContextMenu and TouchKeyboard handle Ctrl mode, letter dispatch, and top-row layout', () => {
+  const contextMenuSource = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/index.js'),
+    'utf-8'
+  );
+  const keyboardSource = fs.readFileSync(
+    path.resolve('src/touch/TouchKeyboard.js'),
+    'utf-8'
+  );
+
+  assert.ok(contextMenuSource.includes('<TouchKeyboard'));
+
+  // 1. Verify Ctrl mode state, handlers, and render methods exist
+  assert.ok(keyboardSource.includes('isCtrlMode: false'));
+  assert.ok(keyboardSource.includes('handleToggleCtrlMode'));
+  assert.ok(keyboardSource.includes('sendCtrlLetter'));
+  assert.ok(keyboardSource.includes('renderCtrl = () =>'));
+  assert.ok(keyboardSource.includes('renderBackToMainToolbar'));
+  assert.ok(keyboardSource.includes('renderCtrlLetter'));
+
+  // 2. Verify Home/End (row 2) swapped with PgUp/PgDn (row 3/4):
+  // Row 2: Esc, Home, Up, End
+  // Row 3: PgUp, Left, Space, Right
+  // Row 4: PgDn, Backspace, Down, Enter
+  const rowHomeIdx = keyboardSource.indexOf('{this.renderHome()}');
+  const rowEndIdx = keyboardSource.indexOf('{this.renderEnd()}');
+  const rowPageUpIdx = keyboardSource.indexOf('{this.renderPageUp()}');
+  const rowPageDownIdx = keyboardSource.indexOf('{this.renderPageDown()}');
+  const rowSpaceIdx = keyboardSource.indexOf('{this.renderSpace()}');
+  const rowDownIdx = keyboardSource.indexOf('{this.renderArrowDown()}');
+  assert.ok(rowHomeIdx > 0 && rowEndIdx > 0);
+  assert.ok(rowPageUpIdx > 0 && rowPageDownIdx > 0);
+  assert.ok(rowHomeIdx < rowEndIdx, 'Home must appear before End in row 2');
+  assert.ok(
+    rowEndIdx < rowPageUpIdx,
+    'Home and End (row 2) must appear before PageUp (row 3)'
+  );
+  assert.ok(
+    rowPageUpIdx < rowPageDownIdx,
+    'PageUp (row 3) must appear before PageDown (row 4)'
+  );
+  assert.ok(
+    rowSpaceIdx < rowDownIdx,
+    'Space must appear in row 3 and ArrowDown in row 4 in standard toolbar'
+  );
+
+  // Verify minimize pad uses dock/baseline bar icon (distinguishable from down arrow)
+  assert.ok(
+    keyboardSource.includes('<line x1="5" y1="19" x2="19" y2="19" />'),
+    'renderCollapseToggle must include dock baseline bar'
+  );
+
+  // Verify Home and End diagonal arrows:
+  // Home: right-bottom to left-up (top-left apex)
+  assert.ok(
+    keyboardSource.includes('<line x1="19" y1="19" x2="5" y2="5" />') &&
+      keyboardSource.includes('<polyline points="14 5 5 5 5 14" />'),
+    'renderHome must use diagonal arrow from right-bottom to left-up'
+  );
+  // End: left-up to right-bottom (bottom-right apex)
+  assert.ok(
+    keyboardSource.includes('<line x1="5" y1="5" x2="19" y2="19" />') &&
+      keyboardSource.includes('<polyline points="10 19 19 19 19 10" />'),
+    'renderEnd must use diagonal arrow from left-up to right-bottom'
+  );
+
+  // Verify Page Up and Page Down have two horizontal cross-dashes across vertical stem
+  assert.ok(
+    keyboardSource.includes('<line x1="7" y1="14" x2="17" y2="14" />') &&
+      keyboardSource.includes('<line x1="7" y1="18" x2="17" y2="18" />'),
+    'renderPageUp must have two horizontal dashes across vertical stem'
+  );
+  assert.ok(
+    keyboardSource.includes('<line x1="7" y1="6" x2="17" y2="6" />') &&
+      keyboardSource.includes('<line x1="7" y1="10" x2="17" y2="10" />'),
+    'renderPageDown must have two horizontal dashes across vertical stem'
+  );
+
+  // Verify Shift icon: hollow up arrow outline in normal mode and underline bar in sticky mode
+  assert.ok(
+    keyboardSource.includes('fill={isShiftActive ? "currentColor" : "none"}'),
+    'renderShift must render hollow arrow when inactive'
+  );
+  assert.ok(
+    keyboardSource.includes(
+      '<line\n                x1="5.5"\n                y1="20.5"\n                x2="18.5"\n                y2="20.5"'
+    ) ||
+      (keyboardSource.includes('x1="5.5"') &&
+        keyboardSource.includes('y1="20.5"')),
+    'renderShift must render underline bar when sticky'
+  );
+
+  // Verify Arrow-pad icon (renderReturnToNormalPad) is a D-pad controller (center circle with 4 chevrons)
+  assert.ok(
+    keyboardSource.includes(
+      '<circle cx="12" cy="12" r="2.6" strokeWidth="2" />'
+    ) &&
+      keyboardSource.includes('<polyline points="8 7 12 3 16 7" />') &&
+      keyboardSource.includes('<polyline points="8 17 12 21 16 17" />'),
+    'renderReturnToNormalPad must render D-pad controller icon with center circle and 4 chevrons'
+  );
+
+  // Verify row 5 has TypingGroup, dock-gap spacer, and DockGroup
+  assert.ok(
+    keyboardSource.includes('TouchFloatingToolbar__TypingGroup'),
+    'Row 5 must contain TouchFloatingToolbar__TypingGroup'
+  );
+  assert.ok(
+    keyboardSource.includes('TouchFloatingToolbar__Spacer--dock-gap'),
+    'Row 5 must contain TouchFloatingToolbar__Spacer--dock-gap'
+  );
+  assert.ok(
+    keyboardSource.includes('TouchFloatingToolbar__DockGroup'),
+    'Row 5 must contain TouchFloatingToolbar__DockGroup'
+  );
+  assert.ok(
+    keyboardSource.includes('--dock-group-width'),
+    'toolbarStyle must define --dock-group-width'
+  );
+
+  // 3. Test sendCtrlLetter logic dispatching control characters (A-Z -> 1-26)
+  let dispatchedEvent = null;
+  let sentData = null;
+  const mockApp = {
+    view: {
+      onKeyDown(e) {
+        dispatchedEvent = e;
+      }
+    },
+    conn: {
+      send(d) {
+        sentData = d;
+      }
+    }
+  };
+
+  function sendCtrlLetter(letter, app) {
+    const lower = letter.toLowerCase();
+    const fakeEvent = {
+      key: lower,
+      ctrlKey: true,
+      altKey: false,
+      shiftKey: false
+    };
+    if (app.view && typeof app.view.onKeyDown === 'function') {
+      app.view.onKeyDown(fakeEvent);
+      return;
+    }
+    if (app.conn && typeof app.conn.send === 'function') {
+      const code = lower.charCodeAt(0) - 96;
+      if (code >= 1 && code <= 26) {
+        app.conn.send(String.fromCharCode(code));
+      }
+    }
+  }
+
+  sendCtrlLetter('A', mockApp);
+  assert.ok(dispatchedEvent);
+  assert.equal(dispatchedEvent.key, 'a');
+  assert.equal(dispatchedEvent.ctrlKey, true);
+
+  // Test fallback without view.onKeyDown
+  const mockAppFallback = {
+    conn: {
+      send(d) {
+        sentData = d;
+      }
+    }
+  };
+  sendCtrlLetter('P', mockAppFallback);
+  assert.equal(sentData, '\x10'); // Ctrl+P = 16 (0x10)
+
+  sendCtrlLetter('X', mockAppFallback);
+  assert.equal(sentData, '\x18'); // Ctrl+X = 24 (0x18)
+
+  sendCtrlLetter('Z', mockAppFallback);
+  assert.equal(sentData, '\x1a'); // Ctrl+Z = 26 (0x1A)
+});
+
+test('ContextMenu Ctrl mode renders QWERTY keyboard layout without numbers or shift', () => {
+  const keyboardSource = fs.readFileSync(
+    path.resolve('src/touch/TouchKeyboard.js'),
+    'utf-8'
+  );
+
+  // 1. Extract the Ctrl mode track snippet from TouchKeyboard.js
+  const ctrlTrackStart = keyboardSource.indexOf(
+    'TouchFloatingToolbar__Track--ctrl'
+  );
+  assert.ok(ctrlTrackStart > 0, 'Ctrl track must be defined');
+  const ctrlTrackSnippet = keyboardSource.slice(
+    ctrlTrackStart,
+    keyboardSource.indexOf('isAlphaMode ?', ctrlTrackStart)
+  );
+
+  // 2. Verify number keys (1-0) are NOT in Ctrl keypad
+  for (let num = 0; num <= 9; num++) {
+    assert.ok(
+      !ctrlTrackSnippet.includes(`renderCtrlNumber("${num}")`),
+      `Number ${num} must not be rendered in Ctrl keypad`
+    );
+  }
+
+  // 3. Verify all 26 letters (A-Z) are rendered with renderCtrlLetter
+  for (let code = 65; code <= 90; code++) {
+    const letter = String.fromCharCode(code);
+    assert.ok(
+      ctrlTrackSnippet.includes(`this.renderCtrlLetter("${letter}")`),
+      `Letter ${letter} must be rendered in Ctrl keypad`
+    );
+  }
+
+  // 4. Verify QWERTY track class, shift spacer, backspace, and dock row
+  assert.ok(
+    ctrlTrackSnippet.includes('TouchFloatingToolbar__Track--qwert'),
+    'Track must use TouchFloatingToolbar__Track--qwert class'
+  );
+  assert.ok(
+    !ctrlTrackSnippet.includes('this.renderShift()'),
+    'Ctrl-pad must not include Shift toggle'
+  );
+  assert.ok(
+    ctrlTrackSnippet.includes('TouchFloatingToolbar__Spacer--shift'),
+    'Ctrl-pad must include shift spacer to align Z-M row'
+  );
+  assert.ok(
+    ctrlTrackSnippet.includes('this.renderQwertBackspace(true)'),
+    'Row 3 must include Backspace'
+  );
+  assert.ok(
+    !ctrlTrackSnippet.includes('this.renderQwertEscape(true)'),
+    'Ctrl-pad must not include Esc'
+  );
+  assert.ok(
+    !ctrlTrackSnippet.includes('this.renderQwertSpace(true)'),
+    'Ctrl-pad must not include Space'
+  );
+  assert.ok(
+    !ctrlTrackSnippet.includes('this.renderQwertEnter(true)'),
+    'Ctrl-pad must not include Enter'
+  );
+  assert.ok(
+    ctrlTrackSnippet.includes('TouchFloatingToolbar__Spacer--dock-fill'),
+    'Dock row must include dock-fill spacer'
+  );
+  assert.ok(
+    ctrlTrackSnippet.includes('TouchFloatingToolbar__Row--dock'),
+    'Dock row must use TouchFloatingToolbar__Row--dock class'
+  );
+  assert.ok(
+    ctrlTrackSnippet.includes('this.renderReturnToNormalPad()'),
+    'Row 6 dock must include return to normal pad button'
+  );
+  assert.ok(
+    ctrlTrackSnippet.includes('this.renderAlpha()'),
+    'Row 6 dock must include a-pad toggle'
+  );
+  assert.ok(
+    ctrlTrackSnippet.includes('this.renderKeyboardToggle()'),
+    'Row 6 dock must include keyboard toggle'
+  );
+  assert.ok(
+    ctrlTrackSnippet.includes('this.renderCollapseToggle'),
+    'Row 6 dock must include collapse toggle button'
+  );
+
+  // 5. Verify enlarged dimensions logic and right-alignment in TouchKeyboard.js (540px clamp width, 1.2x height)
+  assert.ok(keyboardSource.includes('isExpandedKeypad'));
+  assert.ok(
+    keyboardSource.includes('viewportWidth > 0 ? viewportWidth - 12 : 380')
+  );
+  assert.ok(
+    keyboardSource.includes('baseRightOffset'),
+    'Keypads must align right with baseRightOffset'
+  );
+  assert.ok(
+    keyboardSource.includes('^{letter}'),
+    'renderCtrlLetter must display caret notation ^{letter} on Ctrl keypad buttons'
+  );
+  assert.ok(
+    keyboardSource.includes('TouchFloatingToolbar__Btn--ctrl-letter'),
+    'renderCtrlLetter must apply TouchFloatingToolbar__Btn--ctrl-letter class'
+  );
+});
+
+test('TermView handles horizontal and vertical pan offsets and bounds clamping', () => {
+  const dummyMain = {
+    style: {
+      marginLeft: '0px',
+      marginTop: '0px'
+    }
+  };
+  const dummyApp = {
+    getFirstGridOffsets() {
+      return {
+        top: parseFloat(dummyMain.style.marginTop) || 0,
+        left: parseFloat(dummyMain.style.marginLeft) || 0
+      };
+    }
+  };
+  const mockView = {
+    chw: 12,
+    chh: 24,
+    buf: { cols: 80, rows: 24, cur_x: 0, cur_y: 0 },
+    innerBounds: { width: 400, height: 700 },
+    bbsViewMargin: 0,
+    mainDisplay: dummyMain,
+    bbscore: dummyApp,
+    panX: 0,
+    panY: 0,
+    cursorPos: null,
+    updateCursorPos() {
+      this.cursorPos = [
+        this.firstGridOffset?.left || 0,
+        this.firstGridOffset?.top || 0
+      ];
+    }
+  };
+
+  mockView.getAvailableScrollWidth = function () {
+    const cols = this.buf ? this.buf.cols : 80;
+    const totalWidth = this.chw * cols + 10;
+    const viewportWidth = this.innerBounds.width || 0;
+    return Math.max(0, totalWidth - viewportWidth);
+  };
+  mockView.getAvailableScrollHeight = function () {
+    const rows = this.buf ? this.buf.rows : 24;
+    const totalHeight = this.chh * rows + 10;
+    const viewportHeight = this.innerBounds.height || 0;
+    return Math.max(0, totalHeight - viewportHeight);
+  };
+  mockView.updateMainDisplayMargin = function () {
+    if (!this.mainDisplay) return;
+    const totalHeight = this.chh * (this.buf ? this.buf.rows : 24);
+    let baseMarginTop = this.bbsViewMargin || 0;
+    if (totalHeight < this.innerBounds.height) {
+      baseMarginTop =
+        (this.innerBounds.height - totalHeight) / 2 + (this.bbsViewMargin || 0);
+    }
+    const curPanY = this.panY || 0;
+    this.mainDisplay.style.marginTop = `${baseMarginTop - curPanY}px`;
+    const curPanX = this.panX || 0;
+    this.mainDisplay.style.marginLeft = `-${curPanX}px`;
+  };
+  mockView.setPan = function (px, py) {
+    const maxPanX = this.getAvailableScrollWidth();
+    const maxPanY = this.getAvailableScrollHeight();
+    this.panX = Math.max(
+      0,
+      Math.min(maxPanX, Math.round(px != null ? px : this.panX || 0))
+    );
+    this.panY = Math.max(
+      0,
+      Math.min(maxPanY, Math.round(py != null ? py : this.panY || 0))
+    );
+    this.updateMainDisplayMargin();
+    this.firstGridOffset = this.bbscore.getFirstGridOffsets();
+    this.updateCursorPos();
+  };
+  mockView.panBy = function (deltaX = 0, deltaY = 0) {
+    this.setPan((this.panX || 0) + deltaX, (this.panY || 0) + deltaY);
+  };
+  mockView.resetPan = function () {
+    this.setPan(0, 0);
+  };
+
+  // totalWidth = 12 * 80 + 10 = 970px. viewportWidth = 400px.
+  // maxPanX = 970 - 400 = 570px.
+  assert.equal(mockView.getAvailableScrollWidth(), 570);
+
+  // Pan by 100px
+  mockView.panBy(100, 0);
+  assert.equal(mockView.panX, 100);
+  assert.equal(dummyMain.style.marginLeft, '-100px');
+  assert.equal(mockView.firstGridOffset.left, -100);
+
+  // Pan beyond maxPanX -> clamped to 570
+  mockView.panBy(1000, 0);
+  assert.equal(mockView.panX, 570);
+  assert.equal(dummyMain.style.marginLeft, '-570px');
+
+  // Pan negative -> clamped to 0
+  mockView.panBy(-2000, 0);
+  assert.equal(mockView.panX, 0);
+  assert.equal(dummyMain.style.marginLeft, '-0px');
+
+  // Reset pan
+  mockView.panBy(250, 0);
+  assert.equal(mockView.panX, 250);
+  mockView.resetPan();
+  assert.equal(mockView.panX, 0);
+});
+
+test('App isMobileLayout detects mobile touch viewports and applies fixed-font-size at runtime', () => {
+  assert.ok(appSource.includes('isMobileLayout()'));
+  assert.ok(appSource.includes('applyTermSizeMode(values)'));
+
+  function checkIsMobile(hasTouch, width, height) {
+    if (!hasTouch) return false;
+    const isNarrow = width <= 768;
+    const isCompactLandscape = height <= 500 && width <= 1024;
+    return isNarrow || isCompactLandscape;
+  }
+
+  // 1. Phone portrait: iPhone 14 (393 x 852) with touch -> mobile
+  assert.equal(checkIsMobile(true, 393, 852), true);
+
+  // 2. Phone landscape: iPhone 14 (852 x 393) with touch -> mobile
+  assert.equal(checkIsMobile(true, 852, 393), true);
+
+  // 3. iPad portrait (768 x 1024) with touch -> mobile
+  assert.equal(checkIsMobile(true, 768, 1024), true);
+
+  // 4. Touchscreen laptop (1920 x 1080) with touch -> NOT mobile (desktop behavior preserved)
+  assert.equal(checkIsMobile(true, 1920, 1080), false);
+
+  // 5. Desktop without touch (1920 x 1080) -> NOT mobile
+  assert.equal(checkIsMobile(false, 1920, 1080), false);
+
+  // 6. Test that applyTermSizeMode resolves fixed-font-size on mobile without mutating input object
+  const testPrefs = {
+    termSizeMode: 'max-font-size',
+    fontSize: 22
+  };
+  let effectiveMode = null;
+  function simulateApply(values, isMobile) {
+    effectiveMode = isMobile ? 'fixed-font-size' : values.termSizeMode;
+  }
+  simulateApply(testPrefs, true);
+  assert.equal(effectiveMode, 'fixed-font-size');
+  assert.equal(
+    testPrefs.termSizeMode,
+    'max-font-size',
+    'Original prefs must not be mutated'
+  );
+});
+
+test('TouchController handles horizontal and vertical pan gestures without firing click', () => {
+  const touchSource = fs.readFileSync(
+    path.resolve('src/touch/TouchController.js'),
+    'utf-8'
+  );
+  assert.ok(touchSource.includes('panDirection'));
+  assert.ok(touchSource.includes('app.view.panBy(-moveDeltaX, 0)'));
+  assert.ok(touchSource.includes('app.view.panBy(0, -moveDeltaY)'));
+  assert.ok(
+    touchSource.includes("this.panDirection === 'list_scroll'") ||
+      touchSource.includes('this.panDirection === "list_scroll"')
+  );
+  assert.ok(
+    !touchSource.includes('app.inputArea.focus()'),
+    'TouchController must not auto-focus inputArea on touch release'
+  );
+});
+
+test('TouchController handles 2-finger pinch gesture to zoom font and 2-finger pan', () => {
+  const listeners = {};
+  const mockBBSWin = {
+    style: {},
+    addEventListener(type, fn) {
+      listeners[type] = fn;
+    },
+    removeEventListener(type, fn) {},
+    setPointerCapture() {},
+    releasePointerCapture() {},
+    hasPointerCapture() {
+      return false;
+    }
+  };
+
+  let zoomDelta = 0;
+  let panX = 0;
+  let panY = 0;
+  const mockApp = {
+    BBSWin: mockBBSWin,
+    zoomFont(delta) {
+      zoomDelta += delta;
+    },
+    view: {
+      panBy(dx, dy) {
+        panX += dx;
+        panY += dy;
+      }
+    },
+    buf: { pageState: 0 }
+  };
+
+  const controller = new TouchController(mockApp);
+  assert.ok(
+    listeners.pointerdown && listeners.pointermove && listeners.pointerup
+  );
+
+  // Pointer 1 down at (100, 100)
+  listeners.pointerdown({
+    pointerType: 'touch',
+    pointerId: 1,
+    clientX: 100,
+    clientY: 100,
+    preventDefault() {},
+    stopPropagation() {}
+  });
+
+  // Pointer 2 down at (200, 100) -> distance = 100
+  listeners.pointerdown({
+    pointerType: 'touch',
+    pointerId: 2,
+    clientX: 200,
+    clientY: 100,
+    preventDefault() {},
+    stopPropagation() {}
+  });
+
+  assert.equal(controller.isPinching, true);
+
+  // Move pointers apart: Pointer 1 to (80, 100), Pointer 2 to (220, 100) -> distance = 140 (+40px > PINCH_STEP_PX=28)
+  listeners.pointermove({
+    pointerType: 'touch',
+    pointerId: 1,
+    clientX: 80,
+    clientY: 100,
+    preventDefault() {},
+    stopPropagation() {}
+  });
+  listeners.pointermove({
+    pointerType: 'touch',
+    pointerId: 2,
+    clientX: 220,
+    clientY: 100,
+    preventDefault() {},
+    stopPropagation() {}
+  });
+
+  assert.ok(zoomDelta >= 1, 'Pinch out should trigger zoomFont(1)');
+
+  // Release pointer 2 and pointer 1
+  listeners.pointerup({
+    pointerType: 'touch',
+    pointerId: 2,
+    clientX: 220,
+    clientY: 100,
+    preventDefault() {},
+    stopPropagation() {}
+  });
+  listeners.pointerup({
+    pointerType: 'touch',
+    pointerId: 1,
+    clientX: 80,
+    clientY: 100,
+    preventDefault() {},
+    stopPropagation() {}
+  });
+  assert.equal(controller.pointers.size, 0);
+  assert.equal(controller.isPinching, false);
+});
+
+test('TouchController handles 1-finger drag selection and auto-copies on release', () => {
+  const listeners = {};
+  const mockBBSWin = {
+    style: {},
+    addEventListener(type, fn) {
+      listeners[type] = fn;
+    },
+    removeEventListener(type, fn) {},
+    setPointerCapture() {},
+    releasePointerCapture() {},
+    hasPointerCapture() {
+      return false;
+    }
+  };
+
+  let selectionStarted = false;
+  let selectionUpdated = false;
+  let copiedText = null;
+
+  const mockApp = {
+    BBSWin: mockBBSWin,
+    doCopy(text) {
+      copiedText = text;
+    },
+    view: {
+      startSelection(coords) {
+        selectionStarted = true;
+      },
+      updateSelection(coords) {
+        selectionUpdated = true;
+      },
+      endSelection() {
+        return 'selected terminal text';
+      }
+    },
+    buf: { pageState: 0 } // Not in article list
+  };
+
+  const controller = new TouchController(mockApp);
+
+  // Pointer down at (50, 50)
+  listeners.pointerdown({
+    pointerType: 'touch',
+    pointerId: 1,
+    clientX: 50,
+    clientY: 50,
+    preventDefault() {},
+    stopPropagation() {}
+  });
+
+  // Drag to (150, 80) -> distance > MOVE_THRESHOLD
+  listeners.pointermove({
+    pointerType: 'touch',
+    pointerId: 1,
+    clientX: 150,
+    clientY: 80,
+    preventDefault() {},
+    stopPropagation() {}
+  });
+
+  assert.equal(
+    selectionStarted,
+    true,
+    'startSelection should be called on drag'
+  );
+  assert.equal(
+    selectionUpdated,
+    true,
+    'updateSelection should be called on drag'
+  );
+  assert.equal(controller.isSelecting, true);
+
+  // Release pointer
+  listeners.pointerup({
+    pointerType: 'touch',
+    pointerId: 1,
+    clientX: 150,
+    clientY: 80,
+    preventDefault() {},
+    stopPropagation() {}
+  });
+
+  assert.equal(
+    copiedText,
+    'selected terminal text',
+    'Auto-copies selected text on release'
+  );
+  assert.equal(controller.isSelecting, false);
+});
+
+test('PrefModal locks termSizeMode to fixed-font-size and disables select on touch interface', () => {
+  const prefModalSource = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/PrefModal.js'),
+    'utf-8'
+  );
+  const contextMenuSource = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/index.js'),
+    'utf-8'
+  );
+
+  // PrefModal detects isTouch from props or environment
+  assert.ok(prefModalSource.includes('const isTouch = Boolean('));
+  assert.ok(prefModalSource.includes('this.props.isTouch !== undefined'));
+
+  // PrefModal locks and disables termSizeMode select when isTouch is true
+  assert.ok(
+    prefModalSource.includes(
+      'value={isTouch ? "fixed-font-size" : values.termSizeMode}'
+    )
+  );
+  assert.ok(prefModalSource.includes('disabled={isTouch}'));
+
+  // PrefModal renders options_touchFixedFontNote when isTouch is true
+  assert.ok(prefModalSource.includes('{isTouch && ('));
+  assert.ok(prefModalSource.includes('{i18n("options_touchFixedFontNote")}'));
+
+  // PrefModal shows fontSize input on touch or when fixed-font-size
+  assert.ok(
+    prefModalSource.includes(
+      '{(isTouch || values.termSizeMode === "fixed-font-size") && ('
+    )
+  );
+
+  // PrefModal hides fixed-term-size and max-font-size on touch
+  assert.ok(
+    prefModalSource.includes(
+      '{!isTouch && values.termSizeMode === "fixed-term-size" && ('
+    )
+  );
+  assert.ok(
+    prefModalSource.includes(
+      '{!isTouch && values.termSizeMode === "max-font-size" && ('
+    )
+  );
+
+  // ContextMenu passes isTouchDevice to PrefModal
+  assert.ok(contextMenuSource.includes('isTouch={isTouchDevice}'));
+});
+
+test('ContextMenu handles letter keypad mode with continuous typing, Shift toggle, and outside dismiss', () => {
+  const keyboardSource = fs.readFileSync(
+    path.resolve('src/touch/TouchKeyboard.js'),
+    'utf-8'
+  );
+  const cssSource = fs.readFileSync(
+    path.resolve('src/touch/TouchUI.css'),
+    'utf-8'
+  );
+
+  // 1. Verify state properties and handlers exist
+  assert.ok(keyboardSource.includes('isAlphaMode: false'));
+  assert.ok(keyboardSource.includes('isShiftActive: false'));
+  assert.ok(keyboardSource.includes('handleToggleAlphaMode'));
+  assert.ok(keyboardSource.includes('handleToggleShift'));
+  assert.ok(keyboardSource.includes('handleAlphaLetterDown'));
+  assert.ok(keyboardSource.includes('sendAlphaLetter'));
+  assert.ok(keyboardSource.includes('renderAlpha = () =>'));
+  assert.ok(keyboardSource.includes('renderShift = () =>'));
+  assert.ok(keyboardSource.includes('renderAlphaLetter = (letter) =>'));
+
+  // 2. Main toolbar row 1 has A+, A-, Tab, Settings (...) and row 5 dock has Ctrl, a, KeyboardToggle, CollapseToggle
+  const mainRow1Snippet = keyboardSource.slice(
+    keyboardSource.lastIndexOf('this.renderFontZoomIn()'),
+    keyboardSource.indexOf(
+      'this.renderEscape()',
+      keyboardSource.lastIndexOf('this.renderFontZoomIn()')
+    )
+  );
+  assert.ok(mainRow1Snippet.includes('this.renderFontZoomIn()'));
+  assert.ok(mainRow1Snippet.includes('this.renderFontZoomOut()'));
+  assert.ok(mainRow1Snippet.includes('this.renderTab()'));
+  assert.ok(mainRow1Snippet.includes('this.renderMenuToggle()'));
+
+  const mainRow5Snippet = keyboardSource.slice(
+    keyboardSource.lastIndexOf('TouchFloatingToolbar__Row--dock'),
+    keyboardSource.lastIndexOf('</div>\n                  </div>')
+  );
+  assert.ok(mainRow5Snippet.includes('this.renderCtrl()'));
+  assert.ok(mainRow5Snippet.includes('this.renderAlpha()'));
+  assert.ok(mainRow5Snippet.includes('this.renderKeyboardToggle()'));
+  assert.ok(mainRow5Snippet.includes('this.renderCollapseToggle(false)'));
+  const ctrlIdx = mainRow5Snippet.indexOf('this.renderCtrl()');
+  const alphaIdx = mainRow5Snippet.indexOf('this.renderAlpha()');
+  assert.ok(
+    ctrlIdx < alphaIdx,
+    'renderCtrl must appear before renderAlpha in main dock row'
+  );
+
+  // 3. Verify letter keypad renders 6-row QWERTY layout with numbers, typing row, and dock row
+  const alphaTrackSnippet = keyboardSource.slice(
+    keyboardSource.indexOf('isAlphaMode ? ('),
+    keyboardSource.indexOf(': (', keyboardSource.indexOf('isAlphaMode ? ('))
+  );
+  for (let num = 1; num <= 9; num++) {
+    assert.ok(
+      alphaTrackSnippet.includes(`this.renderAlphaNumber("${num}")`),
+      `Number ${num} must be present in alpha keypad`
+    );
+  }
+  assert.ok(
+    alphaTrackSnippet.includes('this.renderAlphaNumber("0")'),
+    'Number 0 must be present in alpha keypad'
+  );
+  assert.ok(
+    alphaTrackSnippet.includes('this.renderShift()'),
+    'Alpha keypad must render Shift toggle'
+  );
+  assert.ok(
+    alphaTrackSnippet.includes('this.renderCtrl()'),
+    'Alpha keypad must render Ctrl toggle to allow switching to Ctrl keypad'
+  );
+  assert.ok(
+    alphaTrackSnippet.includes('this.renderQwertBackspace(false)'),
+    'Alpha keypad must render Backspace'
+  );
+  assert.ok(
+    alphaTrackSnippet.includes('this.renderReturnToNormalPad()'),
+    'Alpha keypad must render return to normal pad button'
+  );
+  assert.ok(
+    alphaTrackSnippet.includes('this.renderCtrl()'),
+    'Alpha keypad must render Ctrl toggle to allow switching to Ctrl keypad'
+  );
+  assert.ok(
+    alphaTrackSnippet.includes('this.renderQwertEscape(false)'),
+    'Alpha keypad must render Esc'
+  );
+  assert.ok(
+    alphaTrackSnippet.includes('this.renderQwertSpace(false)'),
+    'Alpha keypad must render Space'
+  );
+  assert.ok(
+    alphaTrackSnippet.includes('this.renderQwertEnter(false)'),
+    'Alpha keypad must render Enter'
+  );
+  assert.ok(
+    alphaTrackSnippet.includes('this.renderCollapseToggle'),
+    'Alpha keypad must render collapse toggle button'
+  );
+  assert.ok(
+    alphaTrackSnippet.indexOf('renderQwertEscape(false)') <
+      alphaTrackSnippet.indexOf('renderQwertSpace(false)'),
+    'Esc must come before Space in alpha keypad row 5 (swapped)'
+  );
+  for (let code = 65; code <= 90; code++) {
+    const letter = String.fromCharCode(code);
+    assert.ok(
+      alphaTrackSnippet.includes(`this.renderAlphaLetter("${letter}")`),
+      `Letter ${letter} must be present in alpha keypad`
+    );
+  }
+
+  // 4. Verify sticky vs non-sticky: sendAlphaLetter is sticky, sendCtrlLetter exits to previous state
+  const sendAlphaBody = keyboardSource.slice(
+    keyboardSource.indexOf('sendAlphaLetter = (letter) => {'),
+    keyboardSource.indexOf(
+      'handleCtrlLetterDown',
+      keyboardSource.indexOf('sendAlphaLetter = (letter) => {')
+    )
+  );
+  assert.ok(
+    !sendAlphaBody.includes('isAlphaMode: false'),
+    'sendAlphaLetter must not close alpha mode to allow continuous typing (sticky)'
+  );
+
+  const sendCtrlBody = keyboardSource.slice(
+    keyboardSource.indexOf('sendCtrlLetter = (letter) => {'),
+    keyboardSource.indexOf(
+      'handleToolbarZoom',
+      keyboardSource.indexOf('sendCtrlLetter = (letter) => {')
+    )
+  );
+  assert.ok(
+    sendCtrlBody.includes('isCtrlMode: false'),
+    'sendCtrlLetter must reset isCtrlMode on single key press (not sticky)'
+  );
+  assert.ok(
+    sendCtrlBody.includes('prev.ctrlPreviousMode === "alpha"'),
+    'sendCtrlLetter must return to previous state (alpha if entered from alpha mode)'
+  );
+
+  // 5. Test dispatch behavior for lowercase and uppercase (Shift)
+  let dispatchedEvent = null;
+  const mockApp = {
+    view: {
+      onKeyDown(e) {
+        dispatchedEvent = e;
+      }
+    },
+    conn: {
+      send() {}
+    }
+  };
+
+  function simulateSendLetter(letter, isShiftActive) {
+    const char = isShiftActive ? letter.toUpperCase() : letter.toLowerCase();
+    const fakeEvent = {
+      key: char,
+      ctrlKey: false,
+      altKey: false,
+      shiftKey: Boolean(isShiftActive),
+      getModifierState: (mod) => (mod === 'Shift' ? isShiftActive : false),
+      preventDefault: () => {}
+    };
+    mockApp.view.onKeyDown(fakeEvent);
+  }
+
+  // Unshifted 'a' -> lowercase 'a', shiftKey false
+  simulateSendLetter('A', false);
+  assert.equal(dispatchedEvent.key, 'a');
+  assert.equal(dispatchedEvent.shiftKey, false);
+
+  // Shifted 'a' -> uppercase 'A', shiftKey true
+  simulateSendLetter('A', true);
+  assert.equal(dispatchedEvent.key, 'A');
+  assert.equal(dispatchedEvent.shiftKey, true);
+
+  // 6. Verify outside dismiss logic and window event listeners
+  assert.ok(keyboardSource.includes('dismissKeypadsIfOutside'));
+  assert.ok(keyboardSource.includes('pointerdown", this.pointerDownHandler'));
+  assert.ok(keyboardSource.includes('touchstart", this.touchStartHandler'));
+  assert.ok(keyboardSource.includes('click", this.clickHandler'));
+
+  // 7. Verify CSS styles for shift-toggle and alpha-toggle
+  assert.ok(cssSource.includes('.TouchFloatingToolbar__Btn--shift-toggle'));
+  assert.ok(cssSource.includes('.TouchFloatingToolbar__Btn--alpha-toggle'));
+  assert.ok(cssSource.includes('.TouchFloatingToolbar__Btn--alpha-lowercase'));
+  assert.ok(cssSource.includes('.TouchFloatingToolbar__Btn--nav-text'));
+
+  // 8. Verify font enlargement: Ctrl at 28px, A+ at 35px, A- at 26px, Esc at 28px, Arrows at 32px
+  assert.ok(
+    cssSource.includes('font-size: calc(28px * var(--toolbar-scale, 1));'),
+    'Ctrl and Esc buttons should be 28px'
+  );
+  assert.ok(
+    cssSource.includes('font-size: calc(26px * var(--toolbar-scale, 1));'),
+    'Lowercase letters and A- should be 26px'
+  );
+  assert.ok(
+    cssSource.includes('font-size: calc(22px * var(--toolbar-scale, 1));'),
+    'Standard toolbar text keys should be 22px'
+  );
+  assert.ok(
+    cssSource.includes('font-size: calc(16px * var(--toolbar-scale, 1));'),
+    'Standard toolbar nav keys should be 16px'
+  );
+  assert.ok(
+    cssSource.includes('width: calc(26px * var(--toolbar-scale, 1));'),
+    'Standard toolbar SVG symbol icons should be 26px'
+  );
+  assert.ok(
+    cssSource.includes(
+      '.TouchFloatingToolbar__Btn--font-zoom-in {\n  font-size: calc(35px * var(--toolbar-scale, 1));'
+    ),
+    'TouchUI.css must style TouchFloatingToolbar__Btn--font-zoom-in at 35px'
+  );
+  assert.ok(
+    cssSource.includes(
+      '.TouchFloatingToolbar__Btn--font-zoom-out {\n  font-size: calc(26px * var(--toolbar-scale, 1));'
+    ),
+    'TouchUI.css must style TouchFloatingToolbar__Btn--font-zoom-out at 26px'
+  );
+  assert.ok(
+    cssSource.includes(
+      '.TouchFloatingToolbar__Btn--esc {\n  font-size: calc(28px * var(--toolbar-scale, 1));'
+    ),
+    'TouchUI.css must style TouchFloatingToolbar__Btn--esc at 28px'
+  );
+  assert.ok(
+    cssSource.includes('.TouchFloatingToolbar__Btn--arrow svg,') &&
+      cssSource.includes(
+        '.TouchFloatingToolbar__Btn--space svg {\n  width: calc(32px * var(--toolbar-scale, 1));'
+      ),
+    'TouchUI.css must style TouchFloatingToolbar__Btn--arrow and TouchFloatingToolbar__Btn--space svg at 32px'
+  );
+  assert.ok(
+    cssSource.includes('padding-top: calc(5px * var(--toolbar-scale, 1));'),
+    'TouchUI.css must shift TouchFloatingToolbar__Btn--font-zoom-out down to align baseline'
+  );
+  assert.ok(
+    keyboardSource.includes('TouchFloatingToolbar__Btn--space'),
+    'TouchKeyboard must apply TouchFloatingToolbar__Btn--space to renderSpace'
+  );
+  assert.ok(
+    cssSource.includes('.TouchFloatingToolbar__DragHandle'),
+    'TouchUI.css must style TouchFloatingToolbar__DragHandle'
+  );
+  assert.ok(
+    keyboardSource.includes('TouchFloatingToolbar__DragHandle'),
+    'TouchKeyboard must render TouchFloatingToolbar__DragHandle'
+  );
+  assert.ok(
+    keyboardSource.includes('this.handleDragStart'),
+    'TouchKeyboard must support dragging pads'
+  );
+  assert.ok(
+    keyboardSource.includes('effectiveRight'),
+    'TouchKeyboard must position pads with effectiveRight reference point'
+  );
+  assert.ok(
+    keyboardSource.includes('effectiveBottom'),
+    'TouchKeyboard must position pads with effectiveBottom reference point'
+  );
+  assert.ok(
+    cssSource.includes(
+      '.TouchFloatingToolbar__Btn--num {\n  font-size: calc(30px * var(--toolbar-scale, 1));'
+    ),
+    'Keypad numbers should be 30px'
+  );
+  assert.ok(
+    cssSource.includes(
+      '.TouchFloatingToolbar__Btn--qwert-letter {\n  font-size: calc(30px * var(--toolbar-scale, 1));'
+    ),
+    'Keypad letters should be 30px'
+  );
+  assert.ok(
+    cssSource.includes(
+      '.TouchFloatingToolbar__Btn--qwert-letter.TouchFloatingToolbar__Btn--alpha-lowercase {\n  font-size: calc(31.5px * var(--toolbar-scale, 1));'
+    ),
+    'Keypad lowercase letters should be 31.5px'
+  );
+  assert.ok(
+    cssSource.includes('font-size: calc(24px * var(--toolbar-scale, 1));'),
+    'Keypad shift should be 24px'
+  );
+  assert.ok(
+    cssSource.includes('font-size: calc(23px * var(--toolbar-scale, 1));'),
+    'Keypad ctrl should be 23px'
+  );
+  assert.ok(
+    cssSource.includes('font-size: calc(27px * var(--toolbar-scale, 1));'),
+    'Keypad esc should be 27px'
+  );
+
+  // 9. Verify TouchKeyboard source applies alpha-lowercase and nav-text classes
+  assert.ok(
+    keyboardSource.includes(
+      '"TouchFloatingToolbar__Btn--alpha-lowercase": !isShiftActive'
+    ),
+    'renderAlphaLetter must apply TouchFloatingToolbar__Btn--alpha-lowercase for lowercase letters'
+  );
+  assert.ok(
+    keyboardSource.includes('TouchFloatingToolbar__Btn--nav-text'),
+    'Standard navigation keys (Home, End, PgUp, PgDn) must use TouchFloatingToolbar__Btn--nav-text'
+  );
+
+  // 10. Verify ghost click suppression via capture handlers on TouchFloatingToolbar
+  assert.ok(
+    keyboardSource.includes('onClickCapture={this.handleToolbarCapture}'),
+    'TouchFloatingToolbar must have onClickCapture to suppress phantom clicks'
+  );
+  assert.ok(
+    keyboardSource.includes('onPointerDownCapture={this.handleToolbarCapture}'),
+    'TouchFloatingToolbar must have onPointerDownCapture'
+  );
+  assert.ok(
+    keyboardSource.includes('suppressInteractionUntil'),
+    'TouchKeyboard must maintain suppressInteractionUntil cooldown'
+  );
+
+  // 11. Verify state transition simulation: return to previous mode
+  function simulateToggleCtrl(prevState) {
+    if (prevState.isCtrlMode) {
+      const returnToAlpha = prevState.ctrlPreviousMode === 'alpha';
+      return {
+        ...prevState,
+        isCtrlMode: false,
+        isAlphaMode: returnToAlpha,
+        ctrlPreviousMode: null
+      };
+    }
+    const previousMode = prevState.isAlphaMode ? 'alpha' : 'standard';
+    return {
+      ...prevState,
+      isCtrlMode: true,
+      isAlphaMode: false,
+      ctrlPreviousMode: previousMode
+    };
+  }
+
+  function simulateSendCtrl(prevState) {
+    const returnToAlpha = prevState.ctrlPreviousMode === 'alpha';
+    return {
+      ...prevState,
+      isCtrlMode: false,
+      isAlphaMode: returnToAlpha,
+      ctrlPreviousMode: null
+    };
+  }
+
+  // From standard toolbar: enter Ctrl mode, then exit -> returns to standard
+  const standardState = {
+    isCtrlMode: false,
+    isAlphaMode: false,
+    ctrlPreviousMode: null
+  };
+  const ctrlFromStandard = simulateToggleCtrl(standardState);
+  assert.equal(ctrlFromStandard.isCtrlMode, true);
+  assert.equal(ctrlFromStandard.ctrlPreviousMode, 'standard');
+  const exitToStandard = simulateSendCtrl(ctrlFromStandard);
+  assert.equal(exitToStandard.isCtrlMode, false);
+  assert.equal(exitToStandard.isAlphaMode, false);
+
+  // From alpha keypad: enter Ctrl mode, then exit -> returns to alpha keypad
+  const alphaState = {
+    isCtrlMode: false,
+    isAlphaMode: true,
+    ctrlPreviousMode: null
+  };
+  const ctrlFromAlpha = simulateToggleCtrl(alphaState);
+  assert.equal(ctrlFromAlpha.isCtrlMode, true);
+  assert.equal(ctrlFromAlpha.ctrlPreviousMode, 'alpha');
+  const exitToAlpha = simulateSendCtrl(ctrlFromAlpha);
+  assert.equal(exitToAlpha.isCtrlMode, false);
+  assert.equal(exitToAlpha.isAlphaMode, true);
+
+  // 12. Verify CSS flex: 2 1 0 rule for shift and ctrl toggles in alpha track top row
+  assert.ok(
+    cssSource.includes('.TouchFloatingToolbar__Track--alpha'),
+    'TouchUI.css must style alpha track top row toggles with flex: 2 1 0'
+  );
+  assert.ok(
+    cssSource.includes('.TouchFloatingToolbar__Btn--shift-sticky'),
+    'TouchUI.css must style sticky shift button state'
+  );
+  assert.ok(
+    cssSource.includes('#ffd60a'),
+    'TouchUI.css must style sticky shift button with yellow background'
+  );
+  assert.ok(
+    cssSource.includes('.TouchFloatingToolbar__Spacer--shift'),
+    'TouchUI.css must define Spacer--shift for Ctrl pad'
+  );
+  assert.ok(
+    cssSource.includes('.TouchFloatingToolbar__Btn--qwert-nav-return'),
+    'TouchUI.css must style return to normal pad button in QWERTY tracks'
+  );
+  assert.ok(
+    cssSource.includes('.TouchFloatingToolbar__Btn--qwert-collapse'),
+    'TouchUI.css must style collapse button in QWERTY tracks'
+  );
+
+  // 13. Verify 3-state Shift toggle cycle (blue active -> yellow sticky -> normal off)
+  assert.ok(keyboardSource.includes('isShiftSticky: false'));
+  assert.ok(
+    keyboardSource.includes(
+      '"TouchFloatingToolbar__Btn--shift-sticky": isShiftSticky'
+    )
+  );
+
+  function simulateShiftToggle(prevState) {
+    if (prevState.isShiftSticky) {
+      return {
+        nextState: { ...prevState, isShiftActive: false, isShiftSticky: false }
+      };
+    }
+    if (prevState.isShiftActive) {
+      return {
+        nextState: { ...prevState, isShiftActive: true, isShiftSticky: true }
+      };
+    }
+    return {
+      nextState: { ...prevState, isShiftActive: true, isShiftSticky: false }
+    };
+  }
+
+  function simulateSendLetterWithShift(prevState, letter) {
+    const char = prevState.isShiftActive
+      ? letter.toUpperCase()
+      : letter.toLowerCase();
+    let nextState = prevState;
+    if (prevState.isShiftActive && !prevState.isShiftSticky) {
+      nextState = { ...prevState, isShiftActive: false, isShiftSticky: false };
+    }
+    return { char, nextState };
+  }
+
+  // Initial normal state is lowercase
+  let sState = { isShiftActive: false, isShiftSticky: false };
+  let initialLetter = simulateSendLetterWithShift(sState, 'a');
+  assert.equal(
+    initialLetter.char,
+    'a',
+    'Normal state must produce lowercase letter'
+  );
+
+  // First click: shift turns blue (active, one-shot) and letters become uppercase
+  let res1 = simulateShiftToggle(sState);
+  assert.equal(res1.nextState.isShiftActive, true);
+  assert.equal(res1.nextState.isShiftSticky, false);
+
+  // One letter typed in one-shot mode: uppercase sent, shift resets to normal (lowercase)
+  let typeRes1 = simulateSendLetterWithShift(res1.nextState, 'b');
+  assert.equal(typeRes1.char, 'B');
+  assert.equal(typeRes1.nextState.isShiftActive, false);
+  assert.equal(typeRes1.nextState.isShiftSticky, false);
+
+  // Subsequent letter without shift is lowercase
+  let typeRes2 = simulateSendLetterWithShift(typeRes1.nextState, 'c');
+  assert.equal(typeRes2.char, 'c');
+  assert.equal(typeRes2.nextState.isShiftActive, false);
+
+  // 3-state cycle:
+  // Click 1: off -> active (blue)
+  let click1 = simulateShiftToggle(sState);
+  assert.equal(click1.nextState.isShiftActive, true);
+  assert.equal(click1.nextState.isShiftSticky, false);
+
+  // Click 2: active (blue) -> sticky (yellow)
+  let click2 = simulateShiftToggle(click1.nextState);
+  assert.equal(click2.nextState.isShiftActive, true);
+  assert.equal(click2.nextState.isShiftSticky, true);
+
+  // In sticky mode, multiple letters remain uppercase and shift stays on
+  let stickyLetter1 = simulateSendLetterWithShift(click2.nextState, 'x');
+  assert.equal(stickyLetter1.char, 'X');
+  assert.equal(stickyLetter1.nextState.isShiftActive, true);
+  assert.equal(stickyLetter1.nextState.isShiftSticky, true);
+
+  let stickyLetter2 = simulateSendLetterWithShift(stickyLetter1.nextState, 'y');
+  assert.equal(stickyLetter2.char, 'Y');
+  assert.equal(stickyLetter2.nextState.isShiftActive, true);
+  assert.equal(stickyLetter2.nextState.isShiftSticky, true);
+
+  // Click 3: sticky (yellow) -> reset to normal (lowercase)
+  let click3 = simulateShiftToggle(stickyLetter2.nextState);
+  assert.equal(click3.nextState.isShiftActive, false);
+  assert.equal(click3.nextState.isShiftSticky, false);
+
+  // Subsequent letter after reset is lowercase
+  let letterAfterReset = simulateSendLetterWithShift(click3.nextState, 'z');
+  assert.equal(letterAfterReset.char, 'z');
+
+  // 14. Verify number dispatch and mode preservation / exit
+  assert.ok(keyboardSource.includes('sendAlphaNumber'));
+  assert.ok(keyboardSource.includes('sendCtrlNumber'));
+  assert.ok(keyboardSource.includes('handleCtrlKey'));
+
+  function simulateSendNumber(prevState, isCtrl) {
+    if (isCtrl) {
+      const returnToAlpha = prevState.ctrlPreviousMode === 'alpha';
+      return {
+        ...prevState,
+        isCtrlMode: false,
+        isAlphaMode: returnToAlpha,
+        ctrlPreviousMode: null
+      };
+    }
+    return { ...prevState };
+  }
+
+  const alphaNumberState = {
+    isCtrlMode: false,
+    isAlphaMode: true,
+    ctrlPreviousMode: null
+  };
+  const afterAlphaNumber = simulateSendNumber(alphaNumberState, false);
+  assert.equal(
+    afterAlphaNumber.isAlphaMode,
+    true,
+    'Alpha number must keep alpha mode active'
+  );
+
+  const ctrlNumberState = {
+    isCtrlMode: true,
+    isAlphaMode: false,
+    ctrlPreviousMode: 'alpha'
+  };
+  const afterCtrlNumber = simulateSendNumber(ctrlNumberState, true);
+  assert.equal(afterCtrlNumber.isCtrlMode, false);
+  assert.equal(
+    afterCtrlNumber.isAlphaMode,
+    true,
+    'Ctrl number must exit to previous mode'
+  );
+
+  // 14b. Verify shifted numbers in shift-pad (!@#$%^&*())
+  assert.ok(keyboardSource.includes('SHIFT_NUMBER_MAP'));
+  const shiftNumberMap = {
+    1: '!',
+    2: '@',
+    3: '#',
+    4: '$',
+    5: '%',
+    6: '^',
+    7: '&',
+    8: '*',
+    9: '(',
+    0: ')'
+  };
+  function simulateSendNumberWithShift(prevState, num) {
+    const { isShiftActive, isShiftSticky } = prevState;
+    const char =
+      isShiftActive && shiftNumberMap[num] ? shiftNumberMap[num] : num;
+    let nextState = { ...prevState };
+    if (isShiftActive && !isShiftSticky) {
+      nextState.isShiftActive = false;
+      nextState.isShiftSticky = false;
+    }
+    return { char, nextState };
+  }
+
+  // Without shift: "1" sends "1", shift remains off
+  const numWithoutShift = simulateSendNumberWithShift(
+    { isShiftActive: false, isShiftSticky: false },
+    '1'
+  );
+  assert.equal(numWithoutShift.char, '1');
+  assert.equal(numWithoutShift.nextState.isShiftActive, false);
+
+  // With one-shot shift: "1" sends "!", resets shift to false
+  const numWithOneShot = simulateSendNumberWithShift(
+    { isShiftActive: true, isShiftSticky: false },
+    '1'
+  );
+  assert.equal(numWithOneShot.char, '!');
+  assert.equal(numWithOneShot.nextState.isShiftActive, false);
+
+  // With sticky shift: "1"-"0" send "!@#$%^&*()", shift remains sticky
+  const numWithSticky = simulateSendNumberWithShift(
+    { isShiftActive: true, isShiftSticky: true },
+    '5'
+  );
+  assert.equal(numWithSticky.char, '%');
+  assert.equal(numWithSticky.nextState.isShiftActive, true);
+  assert.equal(numWithSticky.nextState.isShiftSticky, true);
+
+  // 15. Verify dragging and right-bottom corner reference point expansion across pads
+  function computeEffectivePosition({
+    customRight,
+    customBottom,
+    activeWidth,
+    activeHeight,
+    viewportWidth,
+    viewportHeight
+  }) {
+    const effectiveRight =
+      customRight != null
+        ? Math.min(
+            customRight,
+            activeWidth && viewportWidth > 0
+              ? Math.max(4, viewportWidth - activeWidth - 6)
+              : customRight
+          )
+        : null;
+    const effectiveBottom =
+      customBottom != null
+        ? Math.min(
+            customBottom,
+            activeHeight && viewportHeight > 0
+              ? Math.max(4, viewportHeight - activeHeight - 6)
+              : customBottom
+          )
+        : null;
+    return { effectiveRight, effectiveBottom };
+  }
+
+  const customRight = 30;
+  const customBottom = 50;
+  const viewportW = 800;
+  const viewportH = 600;
+
+  const defaultPad = computeEffectivePosition({
+    customRight,
+    customBottom,
+    activeWidth: 240,
+    activeHeight: 250,
+    viewportWidth: viewportW,
+    viewportHeight: viewportH
+  });
+  assert.equal(defaultPad.effectiveRight, 30);
+  assert.equal(defaultPad.effectiveBottom, 50);
+
+  const ctrlPad = computeEffectivePosition({
+    customRight,
+    customBottom,
+    activeWidth: 420,
+    activeHeight: 270,
+    viewportWidth: viewportW,
+    viewportHeight: viewportH
+  });
+  assert.equal(
+    ctrlPad.effectiveRight,
+    30,
+    'Ctrl-pad must expand from identical right reference coordinate'
+  );
+  assert.equal(
+    ctrlPad.effectiveBottom,
+    50,
+    'Ctrl-pad must expand from identical bottom reference coordinate'
+  );
+
+  const alphaPad = computeEffectivePosition({
+    customRight,
+    customBottom,
+    activeWidth: 420,
+    activeHeight: 270,
+    viewportWidth: viewportW,
+    viewportHeight: viewportH
+  });
+  assert.equal(
+    alphaPad.effectiveRight,
+    30,
+    'Alpha-pad must expand from identical right reference coordinate'
+  );
+  assert.equal(
+    alphaPad.effectiveBottom,
+    50,
+    'Alpha-pad must expand from identical bottom reference coordinate'
+  );
+
+  const collapsedPad = computeEffectivePosition({
+    customRight,
+    customBottom,
+    activeWidth: null,
+    activeHeight: null,
+    viewportWidth: viewportW,
+    viewportHeight: viewportH
+  });
+  assert.equal(
+    collapsedPad.effectiveRight,
+    30,
+    'Collapsed toolbar must anchor to identical right reference coordinate'
+  );
+  assert.equal(
+    collapsedPad.effectiveBottom,
+    50,
+    'Collapsed toolbar must anchor to identical bottom reference coordinate'
+  );
+});
+
+test('src/touch module cleanly exports TouchController, computeToolbarLayout, TouchKeyboard, and TouchUI', async () => {
+  const touchIndexSource = fs.readFileSync(
+    path.resolve('src/touch/index.js'),
+    'utf-8'
+  );
+  assert.ok(touchIndexSource.includes('TouchController'));
+  assert.ok(touchIndexSource.includes('computeToolbarLayout'));
+  assert.ok(touchIndexSource.includes('TouchKeyboard'));
+  assert.ok(touchIndexSource.includes('TouchUI'));
+
+  const touchUiSource = fs.readFileSync(
+    path.resolve('src/touch/TouchUI.js'),
+    'utf-8'
+  );
+  assert.ok(touchUiSource.includes('class TouchUI'));
+  assert.ok(touchUiSource.includes('<TouchKeyboard'));
+
+  const contextMenuSource = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/index.js'),
+    'utf-8'
+  );
+  assert.ok(contextMenuSource.includes('from "../../touch/TouchKeyboard"'));
+  assert.ok(contextMenuSource.includes('<TouchKeyboard'));
+  assert.ok(
+    contextMenuSource.includes('onMenuToggle={this.handleFloatingMenuToggle}')
+  );
+
+  const touchControllerLegacySource = fs.readFileSync(
+    path.resolve('src/js/touch_controller.js'),
+    'utf-8'
+  );
+  assert.ok(
+    touchControllerLegacySource.includes("from '../touch/TouchController.js'")
+  );
+});

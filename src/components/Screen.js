@@ -40,6 +40,31 @@ export class Screen extends React.Component {
     }
   };
 
+  startSelection = (coords) => {
+    if (this.implRef.current && this.implRef.current.startSelection) {
+      this.implRef.current.startSelection(coords);
+    }
+  };
+
+  updateSelection = (coords) => {
+    if (this.implRef.current && this.implRef.current.updateSelection) {
+      this.implRef.current.updateSelection(coords);
+    }
+  };
+
+  endSelection = () => {
+    if (this.implRef.current && this.implRef.current.endSelection) {
+      return this.implRef.current.endSelection();
+    }
+    return "";
+  };
+
+  clearSelection = () => {
+    if (this.implRef.current && this.implRef.current.clearSelection) {
+      this.implRef.current.clearSelection();
+    }
+  };
+
   render() {
     if (this.props.useCanvas) {
       return <CanvasScreen ref={this.implRef} {...this.props} />;

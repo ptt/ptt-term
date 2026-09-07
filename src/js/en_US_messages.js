@@ -185,6 +185,9 @@ export const en_US = {
   options_maxFontSize: {
     message: "Maximum-limited font size",
   },
+  options_touchFixedFontNote: {
+    message: "Touch interface uses fixed font size with touch panning",
+  },
   options_fontFitWindowWidth: {
     message: "Stretch font to fill the view",
   },

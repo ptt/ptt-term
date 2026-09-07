@@ -96,6 +96,8 @@ export class TermView {
   // for cpu efficiency
   this.innerBounds = { width: 0, height: 0 };
   this.firstGridOffset = { top: 0, left: 0 };
+  this.panX = 0;
+  this.panY = 0;
 
   // for notifications
   this.enableNotifications = true;
@@ -390,6 +392,9 @@ export class TermView {
         this.hideEasyReading();
       }
 
+      if (this.buf.prevPageState !== this.buf.pageState && (this.panX > 0 || this.panY > 0)) {
+        this.resetPan();
+      }
       this.buf.prevPageState = this.buf.pageState;
     }
   }
@@ -526,10 +531,7 @@ export class TermView {
     this.mainDisplay.style.width = mainWidth;
     this.mainDisplay.style.height = (this.chh * this.buf.rows + 10) + 'px';
 
-    if (this.chh*this.buf.rows < innerBounds.height)
-      this.mainDisplay.style.marginTop = ((innerBounds.height-this.chh*this.buf.rows)/2) + this.bbsViewMargin + 'px';
-    else
-      this.mainDisplay.style.marginTop =  this.bbsViewMargin + 'px';
+    this.updateMainDisplayMargin();
     if (this.fontFitWindowWidth) {
       this.scaleX = Math.floor(innerBounds.width / (this.chw*this.buf.cols+10) * 100)/100;
       this.scaleY = Math.floor(innerBounds.height / (this.chh*this.buf.rows) * 100)/100;
@@ -549,8 +551,75 @@ export class TermView {
 
     this.updateReverseScaleCss();
     this.updateCursorPos();
+
+    if (this.panX > 0 || this.panY > 0) {
+      this.setPan(this.panX, this.panY);
+    }
   }
 
+
+  getAvailableScrollWidth() {
+    const cols = this.buf ? this.buf.cols : 80;
+    const totalWidth = this.chw * cols + 10;
+    const viewportWidth =
+      (this.innerBounds && this.innerBounds.width) ||
+      (typeof window !== 'undefined' ? window.innerWidth : 0);
+    return Math.max(0, totalWidth - viewportWidth);
+  }
+
+  getAvailableScrollHeight() {
+    const rows = this.buf ? this.buf.rows : 24;
+    const totalHeight = this.chh * rows + 10;
+    const viewportHeight =
+      (this.innerBounds && this.innerBounds.height) ||
+      (typeof window !== 'undefined' ? window.innerHeight : 0);
+    return Math.max(0, totalHeight - viewportHeight);
+  }
+
+  updateMainDisplayMargin() {
+    if (!this.mainDisplay) return;
+    const innerBounds = this.innerBounds || { width: 0, height: 0 };
+    const totalHeight = this.chh * (this.buf ? this.buf.rows : 24);
+    let baseMarginTop = this.bbsViewMargin || 0;
+    if (totalHeight < innerBounds.height) {
+      baseMarginTop =
+        (innerBounds.height - totalHeight) / 2 + (this.bbsViewMargin || 0);
+    }
+    const curPanY = this.panY || 0;
+    this.mainDisplay.style.marginTop = `${baseMarginTop - curPanY}px`;
+
+    const curPanX = this.panX || 0;
+    this.mainDisplay.style.marginLeft = `-${curPanX}px`;
+  }
+
+  setPan(px, py) {
+    const maxPanX = this.getAvailableScrollWidth();
+    const maxPanY = this.getAvailableScrollHeight();
+    this.panX = Math.max(
+      0,
+      Math.min(maxPanX, Math.round(px != null ? px : this.panX || 0))
+    );
+    this.panY = Math.max(
+      0,
+      Math.min(maxPanY, Math.round(py != null ? py : this.panY || 0))
+    );
+    this.updateMainDisplayMargin();
+    if (
+      this.bbscore &&
+      typeof this.bbscore.getFirstGridOffsets === 'function'
+    ) {
+      this.firstGridOffset = this.bbscore.getFirstGridOffsets();
+    }
+    this.updateCursorPos();
+  }
+
+  panBy(deltaX = 0, deltaY = 0) {
+    this.setPan((this.panX || 0) + deltaX, (this.panY || 0) + deltaY);
+  }
+
+  resetPan() {
+    this.setPan(0, 0);
+  }
   updateReverseScaleCss() {
     if (this.BBSWin && this.BBSWin.style) {
       const revScaleX = Math.floor((1 / this.scaleX) * 100) / 100;
@@ -858,6 +927,36 @@ export class TermView {
       return window.getSelection().toString().replace(/\u00a0/g, " ");
     }
     return '';
+  }
+
+  startSelection(coords) {
+    if (this.componentScreen && typeof this.componentScreen.startSelection === 'function') {
+      this.componentScreen.startSelection(coords);
+    }
+  }
+
+  updateSelection(coords) {
+    if (this.componentScreen && typeof this.componentScreen.updateSelection === 'function') {
+      this.componentScreen.updateSelection(coords);
+    }
+  }
+
+  endSelection() {
+    if (this.componentScreen && typeof this.componentScreen.endSelection === 'function') {
+      return this.componentScreen.endSelection();
+    }
+    return this.getSelectedText();
+  }
+
+  clearSelection() {
+    if (this.componentScreen && typeof this.componentScreen.clearSelection === 'function') {
+      this.componentScreen.clearSelection();
+    } else if (typeof window !== 'undefined' && window.getSelection) {
+      const sel = window.getSelection();
+      if (sel && sel.removeAllRanges) {
+        sel.removeAllRanges();
+      }
+    }
   }
 
   getSelectionColRow() {

@@ -1,6 +1,8 @@
 import cx from "classnames";
 import React from "react";
 import { i18n } from "../../js/i18n";
+import { readValuesWithDefault, writeValues } from "../../js/pref";
+import { TouchKeyboard } from "../../touch/TouchKeyboard";
 import DropdownMenu from "./DropdownMenu";
 import InputHelperModal from "./InputHelperModal";
 import LiveHelperModal from "./LiveHelperModal";
@@ -13,20 +15,18 @@ const EVENT_KEY_BY_HOT_KEY = {
   e: "copyLinkUrl",
   p: "paste",
   s: "searchGoogle",
-  t: "openUrlNewTab"
+  t: "openUrlNewTab",
 };
 
 const menuHandlerByEventKey = {
   copy: (app, { selectedText }) => app.doCopy(selectedText),
   copyAnsi: (app) => app.doCopyAnsi(),
   paste: (app) => app.doPaste(),
-  searchGoogle: (app, { selectedText }) =>
-    app.doSearchGoogle(selectedText),
-  openUrlNewTab: (app, { aElement }) =>
-    app.doOpenUrlNewTab(aElement),
+  searchGoogle: (app, { selectedText }) => app.doSearchGoogle(selectedText),
+  openUrlNewTab: (app, { aElement }) => app.doOpenUrlNewTab(aElement),
   copyLinkUrl: (app, { contextOnUrl }) => app.doCopy(contextOnUrl),
   selectAll: (app) => app.doSelectAll(),
-  mouseBrowsing: (app) => app.switchMouseBrowsing()
+  mouseBrowsing: (app) => app.switchMouseBrowsing(),
 };
 
 const onPrefSaveImpl = (app, values) => {
@@ -36,7 +36,7 @@ const onPrefSaveImpl = (app, values) => {
   app.switchToEasyReadingMode(app.view.useEasyReadingMode);
 
   return {
-    showsSettings: false
+    showsSettings: false,
   };
 };
 
@@ -57,14 +57,67 @@ const initialState = {
   showsSettings: false,
   // --- LiveHelper state ---
   liveHelperEnabled: false,
-  liveHelperSec: 1
+  liveHelperSec: 1,
 };
 
 export class ContextMenu extends React.Component {
-  state = { ...initialState };
+  _isMounted = false;
+
+  state = {
+    ...initialState,
+    isTouchDevice: false,
+  };
+
+  isInstanceActive = () => {
+    return Boolean(
+      this._isMounted &&
+      this.__v &&
+      this.__v.__ &&
+      (!this.__v.__c || this.__v.__c === this)
+    );
+  };
+
+  setState(updater, callback) {
+    if (!this.isInstanceActive()) {
+      return;
+    }
+    super.setState(updater, callback);
+  }
+
+  checkTouchDevice = () => {
+    if (typeof window === "undefined") return false;
+    return Boolean(
+      "ontouchstart" in window ||
+      (navigator && navigator.maxTouchPoints > 0) ||
+      (window.matchMedia &&
+        (window.matchMedia("(pointer: coarse)").matches ||
+          window.matchMedia("(max-width: 768px)").matches))
+    );
+  };
 
   componentDidMount() {
+    this._isMounted = true;
+    const { app } = this.props;
+
+    if (app) {
+      app.openContextMenu = (x, y) => {
+        if (!this.isInstanceActive()) return;
+        this.showMenuAt(x, y);
+      };
+    }
+
     this.contextMenuHandler = (event) => {
+      if (!this.isInstanceActive()) {
+        const bbsWindow = document.getElementById("BBSWindow");
+        if (bbsWindow) {
+          bbsWindow.removeEventListener(
+            "contextmenu",
+            this.contextMenuHandler,
+            true
+          );
+        }
+        return;
+      }
       this.handleContextMenu(event);
     };
     const bbsWindow = document.getElementById("BBSWindow");
@@ -72,13 +125,71 @@ export class ContextMenu extends React.Component {
       bbsWindow.addEventListener("contextmenu", this.contextMenuHandler, true);
     }
 
-    this.clickHandler = () => {
+    this.handleResizeOrTouch = () => {
+      if (!this.isInstanceActive()) {
+        window.removeEventListener("resize", this.handleResizeOrTouch, false);
+        window.removeEventListener(
+          "orientationchange",
+          this.handleResizeOrTouch,
+          false
+        );
+        window.removeEventListener("touchstart", this.handleResizeOrTouch, {
+          passive: true,
+        });
+        return;
+      }
+      const isTouch = this.checkTouchDevice();
+      if (isTouch !== this.state.isTouchDevice) {
+        this.setState({ isTouchDevice: isTouch });
+      }
+    };
+    window.addEventListener("resize", this.handleResizeOrTouch, false);
+    window.addEventListener(
+      "orientationchange",
+      this.handleResizeOrTouch,
+      false
+    );
+    window.addEventListener("touchstart", this.handleResizeOrTouch, {
+      passive: true,
+    });
+    if (this.checkTouchDevice()) {
+      this.setState({ isTouchDevice: true });
+    }
+
+    this.clickHandler = (event) => {
+      if (!this.isInstanceActive()) {
+        window.removeEventListener("click", this.clickHandler, false);
+        return;
+      }
+      if (
+        event &&
+        event.target &&
+        event.target.closest &&
+        (event.target.closest('[role="menuitem"]') ||
+          event.target.closest(".dropdown-menu") ||
+          event.target.closest(".modal-dialog") ||
+          event.target.closest(".TouchFloatingToolbar"))
+      ) {
+        return;
+      }
       this.handleHide();
     };
     window.addEventListener("click", this.clickHandler, false);
 
     this.touchStartHandler = (event) => {
-      if (event.target.getAttribute("role") === "menuitem") {
+      if (!this.isInstanceActive()) {
+        window.removeEventListener("touchstart", this.touchStartHandler, false);
+        return;
+      }
+      if (
+        event &&
+        event.target &&
+        event.target.closest &&
+        (event.target.closest('[role="menuitem"]') ||
+          event.target.closest(".dropdown-menu") ||
+          event.target.closest(".modal-dialog") ||
+          event.target.closest(".TouchFloatingToolbar"))
+      ) {
         return;
       }
       this.handleHide();
@@ -86,6 +197,10 @@ export class ContextMenu extends React.Component {
     window.addEventListener("touchstart", this.touchStartHandler, false);
 
     this.hotKeyUpHandler = (event) => {
+      if (!this.isInstanceActive()) {
+        window.removeEventListener("keyup", this.hotKeyUpHandler, false);
+        return;
+      }
       if (!this.state.open) {
         return;
       }
@@ -115,6 +230,20 @@ export class ContextMenu extends React.Component {
   }
 
   componentWillUnmount() {
+    this._isMounted = false;
+    const { app } = this.props;
+    if (app && app.openContextMenu) {
+      app.openContextMenu = null;
+    }
+    window.removeEventListener("resize", this.handleResizeOrTouch, false);
+    window.removeEventListener(
+      "orientationchange",
+      this.handleResizeOrTouch,
+      false
+    );
+    window.removeEventListener("touchstart", this.handleResizeOrTouch, {
+      passive: true,
+    });
     window.removeEventListener("keyup", this.hotKeyUpHandler, false);
     window.removeEventListener("touchstart", this.touchStartHandler, false);
     window.removeEventListener("click", this.clickHandler, false);
@@ -135,23 +264,77 @@ export class ContextMenu extends React.Component {
       app.onToggleLiveHelperModalState = () => {
         this.handleLiveHelperChange({
           enabled: !this.state.liveHelperEnabled,
-          sec: this.state.liveHelperSec
+          sec: this.state.liveHelperSec,
         });
       };
       app.onDisableLiveHelperModalState = () => {
         this.handleLiveHelperChange({
           enabled: false,
-          sec: this.state.liveHelperSec
+          sec: this.state.liveHelperSec,
         });
       };
     } else {
-      app.onToggleLiveHelperModalState = app.onDisableLiveHelperModalState = noop;
+      app.onToggleLiveHelperModalState = app.onDisableLiveHelperModalState =
+        noop;
     }
   }
+
+  handleFloatingMenuToggle = (event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    if (this.state.open) {
+      this.handleHide();
+      return;
+    }
+
+    const { app } = this.props;
+    if (app.inputAreaFocusTimer) {
+      app.inputAreaFocusTimer.cancel();
+      app.inputAreaFocusTimer = null;
+    }
+    app.contextMenuShown = true;
+
+    const selColRow = app.view.getSelectionColRow();
+    app.lastSelection = selColRow || null;
+
+    let selectedText = app.view.getSelectedText();
+    if (!selectedText && !window.getSelection().isCollapsed) {
+      selectedText = window
+        .getSelection()
+        .toString()
+        .replace(/\u00a0/g, " ");
+    }
+    const urlEnabled = false;
+    const normalEnabled = !selectedText;
+    const selEnabled = !!selectedText;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const pageX = Math.min(
+      rect.right,
+      (typeof window !== "undefined" ? window.innerWidth : 800) - 8
+    );
+    const pageY = rect.top - 4;
+
+    this.setState({
+      open: true,
+      pageX,
+      pageY,
+      contextOnUrl: "",
+      aElement: null,
+      selectedText,
+      urlEnabled,
+      normalEnabled,
+      selEnabled,
+    });
+  };
 
   handleContextMenu = (event) => {
     event.stopPropagation();
     event.preventDefault();
+    this.showMenuAt(event.pageX, event.pageY, event.target);
+  };
+
+  showMenuAt = (pageX, pageY, targetEl) => {
     const { app } = this.props;
     if (app.preventContextMenuOnMouseUp) {
       app.preventContextMenuOnMouseUp = false;
@@ -162,14 +345,12 @@ export class ContextMenu extends React.Component {
       app.inputAreaFocusTimer = null;
     }
     app.contextMenuShown = true;
-    // just in case the selection get de-selected
     const selColRow = app.view.getSelectionColRow();
     app.lastSelection = selColRow || null;
 
-    const aElement = event.target ? event.target.closest("a") : null;
+    const aElement = targetEl ? targetEl.closest("a") : null;
     const contextOnUrl = aElement ? aElement.getAttribute("href") || "" : "";
 
-    // replace the &nbsp;
     let selectedText = app.view.getSelectedText();
     if (!selectedText && !window.getSelection().isCollapsed) {
       selectedText = window
@@ -183,14 +364,14 @@ export class ContextMenu extends React.Component {
 
     this.setState({
       open: true,
-      pageX: event.pageX,
-      pageY: event.pageY,
+      pageX,
+      pageY,
       contextOnUrl,
       aElement,
       selectedText,
       urlEnabled,
       normalEnabled,
-      selEnabled
+      selEnabled,
     });
   };
 
@@ -223,7 +404,7 @@ export class ContextMenu extends React.Component {
     this.props.app.contextMenuShown = false;
     this.setState({
       ...initialState,
-      showsInputHelper: true
+      showsInputHelper: true,
     });
   };
 
@@ -232,7 +413,7 @@ export class ContextMenu extends React.Component {
     this.props.app.contextMenuShown = false;
     this.setState({
       ...initialState,
-      showsLiveArticleHelper: true
+      showsLiveArticleHelper: true,
     });
   };
 
@@ -244,7 +425,7 @@ export class ContextMenu extends React.Component {
     app.modalShown = true;
     this.setState({
       ...initialState,
-      showsSettings: true
+      showsSettings: true,
     });
   };
 
@@ -264,61 +445,59 @@ export class ContextMenu extends React.Component {
       const resetCmd = app.site.getEditorColorResetCommand();
       let y = app.buf.cur_y;
       let selCmd = "";
-      // move cursor to end and send reset code
       selCmd += "\x1b[H";
       if (y > sel.end.row) {
         selCmd += "\x1b[A".repeat(y - sel.end.row);
       } else if (y < sel.end.row) {
         selCmd += "\x1b[B".repeat(sel.end.row - y);
       }
-      let repeats = app.buf.getRowText(sel.end.row, 0, sel.end.col).length;
-      selCmd += "\x1b[C".repeat(repeats) + resetCmd;
-
-      // move cursor to start and send color code
-      y = sel.end.row;
-      selCmd += "\x1b[H";
-      if (y > sel.start.row) {
-        selCmd += "\x1b[A".repeat(y - sel.start.row);
-      } else if (y < sel.start.row) {
-        selCmd += "\x1b[B".repeat(sel.start.row - y);
+      let x = app.buf.cur_x;
+      if (x > sel.end.col) {
+        selCmd += "\x1b[D".repeat(x - sel.end.col);
+      } else if (x < sel.end.col) {
+        selCmd += "\x1b[C".repeat(sel.end.col - x);
       }
-      repeats = app.buf.getRowText(sel.start.row, 0, sel.start.col).length;
-      selCmd += "\x1b[C".repeat(repeats);
-      cmd = selCmd + cmd;
-    }
-    app.conn.send(cmd);
-  };
-
-  handleInputHelperConvSend = (value) => {
-    this.props.app.conn.convSend(value);
-  };
-
-  handleLiveHelperHide = () => {
-    this.props.app.setAutoPushthreadUpdate(-1);
-    this.setState({
-      showsLiveArticleHelper: false,
-      liveHelperEnabled: false
-    });
-  };
-
-  handleLiveHelperChange = (nextState) => {
-    const { app } = this.props;
-    if (nextState.enabled) {
-      // cancel easy reading mode first
-      app.view.useEasyReadingMode = false;
-      app.switchToEasyReadingMode();
-      app.setAutoPushthreadUpdate(nextState.sec);
+      app.conn.send(cmd + resetCmd + selCmd);
     } else {
-      app.setAutoPushthreadUpdate(-1);
+      app.conn.send(cmd);
+    }
+  };
+
+  handleInputHelperConvSend = (str) => {
+    const { app } = this.props;
+    app.conn.convSend(str);
+  };
+
+  handleLiveArticleHelperHide = () => {
+    this.setState({ showsLiveArticleHelper: false });
+  };
+
+  handleLiveHelperChange = (params) => {
+    const { app } = this.props;
+    const { enabled, sec } = params;
+    app.onDisableLiveHelperModalState();
+    if (enabled) {
+      app.liveArticleHelperTimer = setInterval(() => {
+        if (app.buf.pageState == 3) {
+          app.conn.send("r");
+        }
+      }, sec * 1000);
+    } else {
+      if (app.liveArticleHelperTimer) {
+        clearInterval(app.liveArticleHelperTimer);
+        app.liveArticleHelperTimer = null;
+      }
     }
     this.setState({
-      liveHelperEnabled: nextState.enabled,
-      liveHelperSec: nextState.sec
+      liveHelperEnabled: enabled,
+      liveHelperSec: sec,
     });
   };
 
   handlePrefSave = (values) => {
-    this.setState(onPrefSaveImpl(this.props.app, values));
+    const { app } = this.props;
+    const nextState = onPrefSaveImpl(app, values);
+    this.setState(nextState);
   };
 
   handlePrefReset = (values) => {
@@ -329,7 +508,6 @@ export class ContextMenu extends React.Component {
   };
 
   render() {
-    const { app } = this.props;
     const {
       open,
       pageX,
@@ -342,11 +520,20 @@ export class ContextMenu extends React.Component {
       showsLiveArticleHelper,
       showsSettings,
       liveHelperEnabled,
-      liveHelperSec
+      liveHelperSec,
+      isTouchDevice,
     } = this.state;
+    const { app } = this.props;
+    const anyModalShown =
+      showsInputHelper || showsLiveArticleHelper || showsSettings;
 
     return (
       <React.Fragment>
+        <TouchKeyboard
+          app={app}
+          onMenuToggle={this.handleFloatingMenuToggle}
+          anyModalShown={anyModalShown}
+        />
         <div className={cx({ open })}>
           <DropdownMenu
             pageX={pageX}
@@ -354,7 +541,9 @@ export class ContextMenu extends React.Component {
             urlEnabled={urlEnabled}
             normalEnabled={normalEnabled}
             selEnabled={selEnabled}
-            mouseBrowsingEnabled={app.buf.useMouseBrowsing}
+            mouseBrowsingEnabled={
+              app && app.buf ? app.buf.useMouseBrowsing : false
+            }
             selectedText={selectedText}
             onMenuSelect={this.handleMenuSelect}
             onInputHelperClick={this.handleInputHelperClick}
@@ -364,7 +553,7 @@ export class ContextMenu extends React.Component {
         </div>
         <InputHelperModal
           show={showsInputHelper}
-          site={app.site}
+          site={app ? app.site : null}
           onHide={this.handleInputHelperHide}
           onReset={this.handleInputHelperReset}
           onCmdSend={this.handleInputHelperCmdSend}
@@ -379,6 +568,7 @@ export class ContextMenu extends React.Component {
         />
         <PrefModal
           show={showsSettings}
+          isTouch={isTouchDevice}
           onSave={this.handlePrefSave}
           onReset={this.handlePrefReset}
         />

@@ -188,6 +188,16 @@ export class PrefModal extends React.Component {
   render() {
     const { show } = this.props;
     const { navActiveKey, values } = this.state;
+    const isTouch = Boolean(
+      this.props.isTouch !== undefined
+        ? this.props.isTouch
+        : typeof window !== 'undefined' &&
+            ('ontouchstart' in window ||
+              (navigator && navigator.maxTouchPoints > 0) ||
+              (window.matchMedia &&
+                (window.matchMedia('(pointer: coarse)').matches ||
+                  window.matchMedia('(max-width: 768px)').matches)))
+    );
 
     return (
       <NativeDialog
@@ -418,7 +428,8 @@ export class PrefModal extends React.Component {
                   <select
                     className="form-control"
                     name="termSizeMode"
-                    value={values.termSizeMode}
+                    value={isTouch ? "fixed-font-size" : values.termSizeMode}
+                    disabled={isTouch}
                     onChange={this.handleTextInputChange}
                   >
                     <option key="options_fixedTermSize" value="fixed-term-size">
@@ -431,8 +442,21 @@ export class PrefModal extends React.Component {
                       {i18n("options_maxFontSize")}
                     </option>
                   </select>
+                  {isTouch && (
+                    <span
+                      className="help-block"
+                      style={{
+                        fontSize: '12px',
+                        opacity: 0.7,
+                        marginTop: '4px',
+                        display: 'block'
+                      }}
+                    >
+                      {i18n("options_touchFixedFontNote")}
+                    </span>
+                  )}
                 </div>
-                {values.termSizeMode === "fixed-term-size" && (
+                {!isTouch && values.termSizeMode === "fixed-term-size" && (
                   <div>
                     <div className="form-group" id="termSize_cols">
                       <label className="control-label">
@@ -471,7 +495,7 @@ export class PrefModal extends React.Component {
                     </div>
                   </div>
                 )}
-                {values.termSizeMode === "fixed-font-size" && (
+                {(isTouch || values.termSizeMode === "fixed-font-size") && (
                   <div className="form-group" id="fontSize">
                     <label className="control-label">
                       {i18n("options_fontSize")}
@@ -485,7 +509,7 @@ export class PrefModal extends React.Component {
                     />
                   </div>
                 )}
-                {values.termSizeMode === "max-font-size" && (
+                {!isTouch && values.termSizeMode === "max-font-size" && (
                   <div className="form-group" id="maxFontSize">
                     <label className="control-label">
                       {i18n("options_fontSizeMax")}

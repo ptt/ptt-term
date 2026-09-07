@@ -1,0 +1,609 @@
+/* Termius-style Touch Accessory Toolbar (iOS HIG Glassmorphic Dock) */
+.TouchFloatingToolbar {
+  position: fixed;
+  bottom: calc(
+    max(12px, env(safe-area-inset-bottom, 12px)) + var(--keyboard-offset, 0px)
+  );
+  right: max(12px, env(safe-area-inset-right, 12px));
+  z-index: 990;
+  display: none;
+  align-items: center;
+  max-width: calc(100vw - 24px);
+  box-sizing: border-box;
+  padding: 4px 6px;
+  background: rgba(28, 28, 30, 0.84);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.1) inset;
+  opacity: 0.68;
+  transition:
+    opacity 0.2s ease,
+    transform 0.15s ease,
+    bottom 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+@media (pointer: coarse), (hover: none), (max-width: 768px) {
+  .TouchFloatingToolbar {
+    display: inline-flex;
+  }
+}
+
+.TouchFloatingToolbar--force-show {
+  display: inline-flex;
+}
+
+.TouchFloatingToolbar:hover,
+.TouchFloatingToolbar:active,
+.TouchFloatingToolbar--active,
+.TouchFloatingToolbar:focus-within {
+  opacity: 0.98;
+}
+
+.TouchFloatingToolbar--collapsed {
+  padding: 4px;
+  border-radius: 999px;
+  gap: 2px;
+}
+
+.TouchFloatingToolbar__Track {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.TouchFloatingToolbar__Track::-webkit-scrollbar {
+  display: none;
+}
+
+.TouchFloatingToolbar__Group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.TouchFloatingToolbar__Btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: calc(48px * var(--toolbar-scale, 1));
+  height: calc(48px * var(--toolbar-scale, 1));
+  padding: 0 calc(4px * var(--toolbar-scale, 1));
+  margin: 0;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: calc(10px * var(--toolbar-scale, 1));
+  color: #f2f2f7;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    monospace;
+  font-size: calc(22px * var(--toolbar-scale, 1));
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+  transition:
+    background-color 0.12s ease,
+    transform 0.08s ease,
+    color 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  flex: 1 1 auto;
+}
+
+.TouchFloatingToolbar__Btn svg {
+  width: calc(26px * var(--toolbar-scale, 1));
+  height: calc(26px * var(--toolbar-scale, 1));
+}
+
+.TouchFloatingToolbar__Btn--arrow svg,
+.TouchFloatingToolbar__Btn--space svg {
+  width: calc(32px * var(--toolbar-scale, 1));
+  height: calc(32px * var(--toolbar-scale, 1));
+  stroke-width: 3.5px;
+}
+
+.TouchFloatingToolbar__Btn:active,
+.TouchFloatingToolbar__Btn--pressed {
+  background: rgba(255, 255, 255, 0.26);
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: scale(0.92);
+  color: #ffffff;
+}
+
+.TouchFloatingToolbar__Btn--active {
+  background: rgba(10, 132, 255, 0.45);
+  border-color: rgba(10, 132, 255, 0.65);
+  color: #ffffff;
+}
+
+.TouchFloatingToolbar__Btn--text {
+  font-size: calc(22px * var(--toolbar-scale, 1));
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  padding: 0 calc(2px * var(--toolbar-scale, 1));
+}
+
+.TouchFloatingToolbar__Btn--font-zoom {
+  font-size: calc(35px * var(--toolbar-scale, 1));
+}
+
+.TouchFloatingToolbar__Btn--font-zoom-in {
+  font-size: calc(35px * var(--toolbar-scale, 1));
+}
+
+.TouchFloatingToolbar--stacked .TouchFloatingToolbar__Btn--font-zoom-out,
+.TouchFloatingToolbar__Btn--font-zoom-out {
+  font-size: calc(26px * var(--toolbar-scale, 1));
+  padding-top: calc(5px * var(--toolbar-scale, 1));
+}
+
+.TouchFloatingToolbar__Btn--esc {
+  font-size: calc(28px * var(--toolbar-scale, 1));
+}
+
+.TouchFloatingToolbar__Btn--ctrl {
+  font-weight: 700;
+  font-size: calc(28px * var(--toolbar-scale, 1));
+}
+
+.TouchFloatingToolbar__Btn--alpha-lowercase {
+  font-size: calc(26px * var(--toolbar-scale, 1));
+}
+
+.TouchFloatingToolbar__Btn--nav-text {
+  font-size: calc(16px * var(--toolbar-scale, 1));
+  font-weight: 500;
+  letter-spacing: -0.3px;
+}
+
+.TouchFloatingToolbar__Spacer {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+}
+
+.TouchFloatingToolbar__Btn--system {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.05);
+  color: #d1d1d6;
+}
+
+.TouchFloatingToolbar__Btn--system:active {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.TouchFloatingToolbar__Btn--system svg {
+  width: calc(26px * var(--toolbar-scale, 1));
+  height: calc(26px * var(--toolbar-scale, 1));
+}
+
+.TouchFloatingToolbar__Divider {
+  width: 1px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.14);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .TouchFloatingToolbar {
+    bottom: calc(
+      max(6px, env(safe-area-inset-bottom, 6px)) + var(--keyboard-offset, 0px)
+    );
+    right: max(10px, env(safe-area-inset-right, 10px));
+    padding: calc(3px * var(--toolbar-scale, 1))
+      calc(5px * var(--toolbar-scale, 1));
+    border-radius: calc(12px * var(--toolbar-scale, 1));
+    gap: calc(2px * var(--toolbar-scale, 1));
+  }
+  .TouchFloatingToolbar__Btn {
+    min-width: calc(40px * var(--toolbar-scale, 1));
+    height: calc(38px * var(--toolbar-scale, 1));
+    font-size: calc(12.1px * var(--toolbar-scale, 1));
+    border-radius: calc(8px * var(--toolbar-scale, 1));
+    padding: 0 calc(3px * var(--toolbar-scale, 1));
+  }
+  .TouchFloatingToolbar__Btn svg,
+  .TouchFloatingToolbar__Btn--system svg {
+    width: calc(20px * var(--toolbar-scale, 1));
+    height: calc(20px * var(--toolbar-scale, 1));
+  }
+  .TouchFloatingToolbar__Btn--arrow svg,
+  .TouchFloatingToolbar__Btn--space svg {
+    width: calc(24px * var(--toolbar-scale, 1));
+    height: calc(24px * var(--toolbar-scale, 1));
+  }
+  .TouchFloatingToolbar__Divider {
+    height: calc(18px * var(--toolbar-scale, 1));
+    margin: 0 calc(1px * var(--toolbar-scale, 1));
+  }
+}
+
+/* Stacked 5-rows mode with minimum base size referencing virtual keyboards */
+.TouchFloatingToolbar--stacked {
+  width: var(--stacked-toolbar-width, auto);
+  max-width: var(--stacked-toolbar-width, auto);
+  flex-direction: column;
+  padding: 4px 7px 6px 7px;
+  box-sizing: border-box;
+}
+
+.TouchFloatingToolbar--dragging {
+  transition: none !important;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.TouchFloatingToolbar__DragHandle {
+  width: 100%;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+  margin-bottom: 2px;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.TouchFloatingToolbar__DragHandle:active,
+.TouchFloatingToolbar--dragging .TouchFloatingToolbar__DragHandle {
+  cursor: grabbing;
+}
+
+.TouchFloatingToolbar__DragHandleBar {
+  width: 38px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.38);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  transition:
+    background-color 0.15s ease,
+    width 0.15s ease;
+}
+
+.TouchFloatingToolbar__DragHandle:hover .TouchFloatingToolbar__DragHandleBar,
+.TouchFloatingToolbar--dragging .TouchFloatingToolbar__DragHandleBar {
+  background: rgba(255, 255, 255, 0.75);
+  width: 46px;
+}
+
+.TouchFloatingToolbar__DragGrip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 32px;
+  cursor: grab;
+  touch-action: none;
+  color: rgba(255, 255, 255, 0.4);
+  margin-right: 2px;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.TouchFloatingToolbar__DragGrip:active,
+.TouchFloatingToolbar--dragging .TouchFloatingToolbar__DragGrip {
+  cursor: grabbing;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.TouchFloatingToolbar__DragGrip svg {
+  width: 6px;
+  height: 16px;
+  pointer-events: none;
+}
+
+.TouchFloatingToolbar__Track--stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.TouchFloatingToolbar__Row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  width: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.TouchFloatingToolbar__Row--ctrl-top {
+  flex: 0 0 calc(32px * var(--toolbar-scale, 1));
+  min-height: 0;
+}
+
+.TouchFloatingToolbar__Row--ctrl-top .TouchFloatingToolbar__Btn--ctrl-toggle,
+.TouchFloatingToolbar__Row--ctrl-top .TouchFloatingToolbar__Btn--shift-toggle {
+  flex: 4 1 0;
+  font-size: calc(20px * var(--toolbar-scale, 1));
+  letter-spacing: 0.5px;
+}
+
+.TouchFloatingToolbar__Track--alpha
+  .TouchFloatingToolbar__Row--ctrl-top
+  .TouchFloatingToolbar__Btn--shift-toggle,
+.TouchFloatingToolbar__Track--alpha
+  .TouchFloatingToolbar__Row--ctrl-top
+  .TouchFloatingToolbar__Btn--ctrl-toggle {
+  flex: 2 1 0;
+}
+
+.TouchFloatingToolbar__Btn--shift-sticky,
+.TouchFloatingToolbar__Btn--shift-sticky:active,
+.TouchFloatingToolbar__Btn--shift-sticky.TouchFloatingToolbar__Btn--pressed {
+  background: #ffd60a;
+  border-color: #ffb300;
+  box-shadow: 0 0 6px rgba(255, 214, 10, 0.6);
+  color: #000000;
+}
+
+/* QWERTY Keypad styles for Ctrl and Alpha keypads */
+.TouchFloatingToolbar__Track--qwert {
+  gap: 4px;
+}
+
+.TouchFloatingToolbar__Spacer--half {
+  flex: 0.5 1 0;
+  min-width: 0;
+  height: 100%;
+}
+
+.TouchFloatingToolbar__Spacer--shift {
+  flex: 1.5 1 0;
+  min-width: 0;
+  height: 100%;
+}
+
+.TouchFloatingToolbar__Btn--num {
+  font-size: calc(30px * var(--toolbar-scale, 1));
+  font-weight: 600;
+  padding: 0 1px;
+}
+
+.TouchFloatingToolbar__Btn--qwert-letter {
+  font-size: calc(30px * var(--toolbar-scale, 1));
+  font-weight: 600;
+  padding: 0 1px;
+}
+
+.TouchFloatingToolbar__Btn--ctrl-letter {
+  font-size: calc(24px * var(--toolbar-scale, 1));
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+
+.TouchFloatingToolbar__Btn--qwert-letter.TouchFloatingToolbar__Btn--alpha-lowercase {
+  font-size: calc(31.5px * var(--toolbar-scale, 1));
+}
+
+.TouchFloatingToolbar__Track--qwert .TouchFloatingToolbar__Btn--shift-toggle {
+  flex: 1.5 1 0;
+  font-size: calc(24px * var(--toolbar-scale, 1));
+  letter-spacing: -0.3px;
+  padding: 0 1px;
+}
+
+.TouchFloatingToolbar__Track--qwert
+  .TouchFloatingToolbar__Btn--qwert-backspace {
+  flex: 1.5 1 0;
+  padding: 0 2px;
+}
+
+.TouchFloatingToolbar__TypingGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+.TouchFloatingToolbar__Spacer--dock-gap {
+  flex: 0 0 6px;
+  min-width: 6px;
+  height: 100%;
+}
+
+.TouchFloatingToolbar__Spacer--dock-fill {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+}
+
+.TouchFloatingToolbar__DockGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 var(--dock-group-width, 220px);
+  width: var(--dock-group-width, 220px);
+  max-width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.TouchFloatingToolbar__DockGroup--full {
+  flex: 1 1 0;
+  width: 100%;
+}
+
+.TouchFloatingToolbar__DockGroup .TouchFloatingToolbar__Btn {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  padding: 0 1px;
+}
+
+.TouchFloatingToolbar__TypingGroup .TouchFloatingToolbar__Btn--qwert-esc {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  font-size: calc(27px * var(--toolbar-scale, 1));
+  letter-spacing: -0.3px;
+  padding: 0 1px;
+}
+
+.TouchFloatingToolbar__TypingGroup .TouchFloatingToolbar__Btn--qwert-space {
+  flex: 3.5 1 0;
+  min-width: 0;
+  height: 100%;
+  padding: 0 2px;
+}
+
+.TouchFloatingToolbar__TypingGroup .TouchFloatingToolbar__Btn--qwert-enter {
+  flex: 2 1 0;
+  min-width: 0;
+  height: 100%;
+  padding: 0 2px;
+}
+
+.TouchFloatingToolbar__Track--qwert
+  .TouchFloatingToolbar__Row--dock
+  .TouchFloatingToolbar__Btn {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  padding: 0 1px;
+}
+
+.TouchFloatingToolbar__Track--qwert
+  .TouchFloatingToolbar__Btn--qwert-nav-return {
+  flex: 1 1 0;
+  padding: 0 1px;
+}
+
+.TouchFloatingToolbar__Track--qwert .TouchFloatingToolbar__Btn--ctrl-toggle {
+  flex: 1 1 0;
+  font-size: calc(23px * var(--toolbar-scale, 1));
+  letter-spacing: -0.3px;
+  padding: 0 1px;
+}
+
+.TouchFloatingToolbar__Track--qwert .TouchFloatingToolbar__Btn--qwert-collapse {
+  flex: 1 1 0;
+  padding: 0 1px;
+}
+
+.TouchFloatingToolbar__Btn--alpha-toggle {
+  font-size: calc(22px * var(--toolbar-scale, 1));
+  font-weight: 700;
+}
+
+.TouchFloatingToolbar--stacked .TouchFloatingToolbar__Btn {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  padding: 0 1px;
+}
+
+.TouchFloatingToolbar__ColSplit {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+.TouchFloatingToolbar__ColSplit .TouchFloatingToolbar__Btn {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  font-size: calc(20px * var(--toolbar-scale, 1));
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .TouchFloatingToolbar--stacked {
+    padding: 4px 5px;
+  }
+  .TouchFloatingToolbar__Track--stacked {
+    gap: 3px;
+  }
+  .TouchFloatingToolbar__Row {
+    gap: 3px;
+  }
+  .TouchFloatingToolbar__Row--ctrl-top {
+    flex: 0 0 calc(28px * var(--toolbar-scale, 1));
+  }
+  .TouchFloatingToolbar__Row--ctrl-top .TouchFloatingToolbar__Btn--ctrl-toggle,
+  .TouchFloatingToolbar__Row--ctrl-top
+    .TouchFloatingToolbar__Btn--shift-toggle {
+    font-size: calc(16px * var(--toolbar-scale, 1));
+  }
+  .TouchFloatingToolbar__Btn--font-zoom,
+  .TouchFloatingToolbar__Btn--font-zoom-in {
+    font-size: calc(19.3px * var(--toolbar-scale, 1));
+  }
+  .TouchFloatingToolbar--stacked .TouchFloatingToolbar__Btn--font-zoom-out,
+  .TouchFloatingToolbar__Btn--font-zoom-out {
+    font-size: calc(14.3px * var(--toolbar-scale, 1));
+    padding-top: calc(2.5px * var(--toolbar-scale, 1));
+  }
+  .TouchFloatingToolbar__Btn--esc {
+    font-size: calc(16px * var(--toolbar-scale, 1));
+  }
+  .TouchFloatingToolbar__Btn--ctrl {
+    font-size: calc(16px * var(--toolbar-scale, 1));
+  }
+  .TouchFloatingToolbar__Btn--alpha-lowercase {
+    font-size: calc(22px * var(--toolbar-scale, 1));
+  }
+  .TouchFloatingToolbar__Btn--nav-text {
+    font-size: calc(12.8px * var(--toolbar-scale, 1));
+    font-weight: 500;
+  }
+  .TouchFloatingToolbar--stacked .TouchFloatingToolbar__Btn {
+    min-width: 0;
+    height: 100%;
+  }
+  .TouchFloatingToolbar__ColSplit {
+    gap: 2px;
+  }
+  .TouchFloatingToolbar__ColSplit .TouchFloatingToolbar__Btn {
+    font-size: calc(16px * var(--toolbar-scale, 1));
+  }
+  .TouchFloatingToolbar__Btn--num,
+  .TouchFloatingToolbar__Btn--qwert-letter {
+    font-size: calc(22.5px * var(--toolbar-scale, 1));
+  }
+  .TouchFloatingToolbar__Btn--qwert-letter.TouchFloatingToolbar__Btn--alpha-lowercase {
+    font-size: calc(24px * var(--toolbar-scale, 1));
+  }
+  .TouchFloatingToolbar__Btn--ctrl-letter {
+    font-size: calc(18px * var(--toolbar-scale, 1));
+    letter-spacing: -0.5px;
+  }
+  .TouchFloatingToolbar__Track--qwert .TouchFloatingToolbar__Btn--shift-toggle,
+  .TouchFloatingToolbar__Track--qwert .TouchFloatingToolbar__Btn--qwert-esc {
+    font-size: calc(19.5px * var(--toolbar-scale, 1));
+  }
+  .TouchFloatingToolbar__Track--qwert .TouchFloatingToolbar__Btn--ctrl-toggle {
+    font-size: calc(17.5px * var(--toolbar-scale, 1));
+  }
+}

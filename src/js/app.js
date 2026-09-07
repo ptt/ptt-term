@@ -14,6 +14,7 @@ import { i18n } from './i18n';
 import { unescapeStr } from './string_util';
 import { setTimer, parseConnectUrl } from './util';
 import { setTerminalBellEnabled, setWindowFocused } from './bell.js';
+import { readValuesWithDefault, writeValues } from './pref.js';
 import AppOverlay from '../components/AppOverlay';
 import { getSite } from './sites';
 import iconLogo from 'Icon/logo.png';
@@ -154,6 +155,7 @@ export class App {
   this.timerEverySec=null;
   this.pushthreadAutoUpdateCount = 0;
   this.maxPushthreadAutoUpdateCount = -1;
+  this.prefValues = null;
   this.onWindowResize();
   this.setupOverlay();
   this.contextMenuShown = false;
@@ -556,8 +558,12 @@ export class App {
   if (this.resizer) {
     this.resizeTimeout = setTimeout(() => {
       this.resizeTimeout = null;
-      if (this.resizer) {
+      if (this.prefValues) {
+        this.applyTermSizeMode(this.prefValues);
+      } else if (this.resizer) {
         this.resizer();
+      } else {
+        this.view.fontResize();
       }
     }, 500);
   } else {
@@ -784,16 +790,22 @@ export class App {
   this.buf.mouseCursor = 11;
   }
 
-  onValuesPrefChange(values) {
-  for (const name in values) {
-    this.onPrefChange(name, values[name]);
+  isMobileLayout() {
+    if (typeof window === 'undefined') return false;
+    const hasTouch = ('ontouchstart' in window) || (navigator && navigator.maxTouchPoints > 0);
+    if (!hasTouch) return false;
+    const isNarrow = window.innerWidth <= 768;
+    const isCompactLandscape = window.innerHeight <= 500 && window.innerWidth <= 1024;
+    return isNarrow || isCompactLandscape;
   }
 
-  // These prefs have to be processed as a whole.
-  try {
+  applyTermSizeMode(values) {
+    if (!values) return;
     this.resizer = null;
+    const isMobile = this.isMobileLayout();
+    const effectiveMode = isMobile ? 'fixed-font-size' : values.termSizeMode;
 
-    switch (values.termSizeMode) {
+    switch (effectiveMode) {
       case 'fixed-term-size':
         this.view.fontFitWindowWidth = values.fontFitWindowWidth;
 
@@ -842,6 +854,17 @@ export class App {
     if (mainEl) {
       mainEl.classList.toggle('trans-fix', !!this.view.fontFitWindowWidth);
     }
+  }
+
+  onValuesPrefChange(values) {
+  this.prefValues = values;
+  for (const name in values) {
+    this.onPrefChange(name, values[name]);
+  }
+
+  // These prefs have to be processed as a whole.
+  try {
+    this.applyTermSizeMode(values);
   } catch (e) {}
   }
 
@@ -977,7 +1000,9 @@ export class App {
   }
 
   checkClass(cn) {
-    return cn.indexOf("nomouse_command") >= 0 || cn.indexOf("conn-log") >= 0;
+    if (!cn) return false;
+    const str = typeof cn === 'string' ? cn : (typeof cn.baseVal === 'string' ? cn.baseVal : '');
+    return str.indexOf('nomouse_command') >= 0 || str.indexOf('conn-log') >= 0;
   }
 
   mouse_click(e) {
@@ -1409,6 +1434,24 @@ export class App {
     this.activeAlert = null;
     if (this.onAlertChange) {
       this.onAlertChange(null);
+    }
+  }
+
+  zoomFont(delta) {
+    if (!this.view) return;
+    const currentSize = this.view.chh || 24;
+    const newSize = Math.max(12, Math.min(60, currentSize + delta * 2));
+    if (newSize === currentSize) return;
+
+    const currentPrefs = readValuesWithDefault();
+    const nextPrefs = {
+      ...currentPrefs,
+      fontSize: newSize
+    };
+    writeValues(nextPrefs);
+    this.onValuesPrefChange(nextPrefs);
+    if (this.view.redraw) {
+      this.view.redraw(true);
     }
   }
 

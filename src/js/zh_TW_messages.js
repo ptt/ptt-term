@@ -184,6 +184,9 @@ export const zh_TW = {
   options_maxFontSize: {
     message: "限制最大字體大小",
   },
+  options_touchFixedFontNote: {
+    message: "觸控介面固定使用字體大小並支援平移",
+  },
   options_fontFitWindowWidth: {
     message: "把字體拉大來補滿畫面",
   },

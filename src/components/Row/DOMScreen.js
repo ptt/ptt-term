@@ -46,6 +46,21 @@ export class DOMScreen extends React.Component {
     }
   };
 
+  startSelection = () => {};
+  updateSelection = () => {};
+  endSelection = () => {
+    return this.getSelectedText();
+  };
+
+  clearSelection = () => {
+    if (typeof window !== "undefined") {
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+      }
+    }
+  };
+
   componentDidUpdate(prevProps) {
     if (
       this.props.lines !== prevProps.lines &&

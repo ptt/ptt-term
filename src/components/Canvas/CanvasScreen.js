@@ -181,6 +181,50 @@ export class CanvasScreen extends React.Component {
     );
   };
 
+  startSelection = (coords) => {
+    const pos = this.getGridPos(coords);
+    this.isMouseDown = true;
+    this.dragStarted = false;
+    this.startPos = pos;
+    this.setState({ selStart: pos, selEnd: pos });
+  };
+
+  updateSelection = (coords) => {
+    if (!this.startPos) {
+      this.startSelection(coords);
+      return;
+    }
+    const pos = this.getGridPos(coords);
+    if (
+      !this.dragStarted &&
+      (pos.col !== this.startPos.col || pos.row !== this.startPos.row)
+    ) {
+      this.dragStarted = true;
+    }
+    if (this.dragStarted) {
+      const selEnd = this.state.selEnd;
+      if (!selEnd || selEnd.col !== pos.col || selEnd.row !== pos.row) {
+        this.setState({ selEnd: pos });
+      }
+    }
+  };
+
+  endSelection = () => {
+    this.isMouseDown = false;
+    if (!this.dragStarted) {
+      this.setState({ selStart: null, selEnd: null });
+      return "";
+    }
+    return this.getSelectedText() || "";
+  };
+
+  clearSelection = () => {
+    this.isMouseDown = false;
+    this.dragStarted = false;
+    this.startPos = null;
+    this.setState({ selStart: null, selEnd: null });
+  };
+
   handleMouseDown = (e) => {
     if (e.button !== 0) return;
     this.props.setInputAreaFocus();
