@@ -56,17 +56,3 @@ export function isBadDBCSCode(code) {
 export function isForceWidthCode(code) {
   return forceWidthSet.has(typeof code === 'string' ? code.charCodeAt(0) : code);
 }
-
-// Backward-compatible dictionary lookup
-export const symbolTable = {};
-for (let i = 0; i < G1.length; i++) {
-  symbolTable['x' + G1[i].toString(16)] = 1;
-}
-for (let i = 0; i < G2.length; i++) {
-  symbolTable['x' + G2[i].toString(16)] = 2;
-}
-for (let i = 0; i < G3.length; i++) {
-  symbolTable['x' + G3[i].toString(16)] = 3;
-}
-
-export default symbolTable;
