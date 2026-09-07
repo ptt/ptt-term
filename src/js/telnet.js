@@ -185,8 +185,34 @@ export class TelnetConnection extends Event {
   }
 
   send(str) {
-    // XXX Should do escape on IAC.
-    this._sendRaw(str);
+    this._sendEscaped(str);
+  }
+
+  _sendEscaped(data) {
+    if (!data) return;
+    if (typeof data === 'string') {
+      this._sendRaw(data.indexOf(IAC) < 0 ? data : data.split(IAC).join(IAC + IAC));
+    } else if (data instanceof Uint8Array) {
+      if (!data.includes(0xff)) {
+        this._sendRaw(data);
+      } else {
+        let count = 0;
+        for (let i = 0; i < data.length; ++i) {
+          if (data[i] === 0xff) count++;
+        }
+        const out = new Uint8Array(data.length + count);
+        let pos = 0;
+        for (let i = 0; i < data.length; ++i) {
+          out[pos++] = data[i];
+          if (data[i] === 0xff) {
+            out[pos++] = 0xff;
+          }
+        }
+        this._sendRaw(out);
+      }
+    } else {
+      this._sendRaw(data);
+    }
   }
 
   _sendRaw(data) {
@@ -203,7 +229,7 @@ export class TelnetConnection extends Event {
     // detect ;50m (half color) and then convert accordingly
     if (s) {
       s = ansiHalfColorConv(s);
-      this._sendRaw(s);
+      this._sendEscaped(s);
     }
   }
 
