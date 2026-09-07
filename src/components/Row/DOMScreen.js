@@ -66,11 +66,15 @@ export class DOMScreen extends React.Component {
     if (this.props.enableLinkHoverPreview) {
       const href = e && e.currentTarget ? e.currentTarget.href : undefined;
       if (href) {
-        this.setState({
-          currentImagePreview: createImagePreviewRequest(href),
-          left: e.clientX,
-          top: e.clientY,
-        });
+        const whitelistOnly = this.props.picPreviewWhitelistOnly !== false;
+        const request = createImagePreviewRequest(href, whitelistOnly);
+        if (request) {
+          this.setState({
+            currentImagePreview: request,
+            left: e.clientX,
+            top: e.clientY,
+          });
+        }
       }
     }
   };

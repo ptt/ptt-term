@@ -78,6 +78,9 @@ export const zh_TW = {
   "options_enablePicPreview": {
     "message": "當滑鼠在圖片連結上時顯示圖片預覽"
   },
+  "options_picPreviewWhitelistOnly": {
+    "message": "僅預覽受信任圖床的圖片 (建議開啟，維護隱私與安全)"
+  },
   "options_enableNotifications": {
     "message": "啟用水球通知"
   },

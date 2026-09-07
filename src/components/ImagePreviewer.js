@@ -1,31 +1,30 @@
 import React from "react";
+import {
+  TRUSTED_IMAGE_DOMAINS,
+  isTrustedImageDomain,
+  resolveImageUrl,
+} from "../js/image_preview_util";
 
-const B58_ALPHABET = "123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ";
-
-function base58Decode(str) {
-  let num = 0;
-  for (let i = 0; i < str.length; i++) {
-    const idx = B58_ALPHABET.indexOf(str[i]);
-    if (idx === -1) return 0;
-    num = num * 58 + idx;
-  }
-  return num;
-}
+export { TRUSTED_IMAGE_DOMAINS, isTrustedImageDomain, resolveImageUrl };
 
 const noop = () => {};
 
-export const of = async src => ({ src });
+export const of = async (src) => ({ src });
 
-export const resolveSrcToImageUrl = async ({ src }) =>
-  await imageUrlResolvers.find(r => r.test(src)).request(src);
+export const resolveSrcToImageUrl = async ({ src }, whitelistOnly = true) => {
+  const directSrc = resolveImageUrl(src, whitelistOnly);
+  if (!directSrc) throw new Error("Unsupported image URL");
+  return { src: directSrc };
+};
 
 export const resolveWithImageDOM = ({ src }) =>
   new Promise((resolve, reject) => {
     const img = new Image();
+    img.referrerPolicy = "no-referrer";
     img.onload = () =>
       resolve({
         src,
-        height: img.height
+        height: img.height,
       });
     img.onerror = reject;
     img.src = src;
@@ -61,7 +60,7 @@ export class ImagePreviewer extends React.PureComponent {
   state = {
     pending: undefined,
     value: undefined,
-    error: undefined
+    error: undefined,
   };
 
   componentDidMount() {
@@ -80,7 +79,7 @@ export class ImagePreviewer extends React.PureComponent {
     this.setState({
       pending: request,
       value: undefined,
-      error: undefined
+      error: undefined,
     });
     this.loadRequest(request);
   }
@@ -104,7 +103,7 @@ export class ImagePreviewer extends React.PureComponent {
       component: undefined,
       request: undefined,
       value: this.state.value,
-      error: this.state.error
+      error: this.state.error,
     });
   }
 }
@@ -135,6 +134,7 @@ ImagePreviewer.OnHover = ({ left, top, value, error }) => {
     return (
       <img
         src={value.src}
+        referrerPolicy="no-referrer"
         style={{
           display: "block",
           position: "absolute",
@@ -142,7 +142,7 @@ ImagePreviewer.OnHover = ({ left, top, value, error }) => {
           top: getTop(safeTop, value.height),
           maxHeight: "80%",
           maxWidth: "90%",
-          zIndex: 2
+          zIndex: 2,
         }}
       />
     );
@@ -153,7 +153,7 @@ ImagePreviewer.OnHover = ({ left, top, value, error }) => {
           position: "absolute",
           left: safeLeft,
           top: safeTop,
-          zIndex: 2
+          zIndex: 2,
         }}
       />
     );
@@ -164,7 +164,13 @@ ImagePreviewer.Inline = ({ value, error }) => {
   if (error) {
     return false;
   } else if (value) {
-    return <img className="easyReadingImg hyperLinkPreview" src={value.src} />;
+    return (
+      <img
+        className="easyReadingImg hyperLinkPreview"
+        src={value.src}
+        referrerPolicy="no-referrer"
+      />
+    );
   } else {
     return <LoadingSpinner />;
   }
@@ -182,76 +188,10 @@ ImagePreviewer.HoverPreview = ({ request, left, top }) => {
   );
 };
 
-const imageUrlResolvers = [
-  {
-    /*
-     * Default
-     */
-    test() {
-      return true;
-    },
-    async request() {
-      throw new Error("Unimplemented");
-    }
-  }
-];
-
-const registerImageUrlResolver = imageUrlResolvers.unshift.bind(
-  imageUrlResolvers
-);
-
-registerImageUrlResolver({
-  /*
-   * Flic.kr
-   */
-  regex: /flic\.kr\/p\/(\w+)|flickr\.com\/photos\/[\w@]+\/(\d+)/,
-  test(src) {
-    return this.regex.test(src);
-  },
-  async request(src) {
-    const [, flickrBase58Id, flickrPhotoId] = src.match(this.regex);
-    const photoId = flickrBase58Id ? base58Decode(flickrBase58Id) : flickrPhotoId;
-
-    const params = new URLSearchParams({
-      method: "flickr.photos.getInfo",
-      api_key: "c8c95356e465b8d7398ff2847152740e",
-      photo_id: photoId,
-      format: "json",
-      nojsoncallback: "1"
-    });
-    const apiURL = `https://api.flickr.com/services/rest/?${params.toString()}`;
-    const res = await fetch(apiURL, { mode: "cors" });
-    const data = await res.json();
-    if (!data.photo) {
-      throw new Error("Not found");
-    }
-    const { farm, server: svr, id, secret } = data.photo;
-    return {
-      src: `https://farm${farm}.staticflickr.com/${svr}/${id}_${secret}.jpg`
-    };
-  }
-});
-
-registerImageUrlResolver({
-  /*
-   * imgur.com
-   */
-  regex: /^https?:\/\/(?:i\.)?imgur\.com\/([^.]+)(?:\.(.*))?/,
-  test(src) {
-    return this.regex.test(src);
-  },
-  async request(src) {
-    const [_, photoId, extension = "jpg"] = this.regex.exec(src);
-    return {
-      src: `https://i.imgur.com/${photoId}.${extension}`
-    };
-  }
-});
-
-export const createImagePreviewRequest = async (href) => {
-  const { src } = await of(href);
-  const resolved = await resolveSrcToImageUrl({ src });
-  return await resolveWithImageDOM(resolved);
+export const createImagePreviewRequest = (href, whitelistOnly = true) => {
+  const directSrc = resolveImageUrl(href, whitelistOnly);
+  if (!directSrc) return null;
+  return resolveWithImageDOM({ src: directSrc });
 };
 
 export const initialImagePreviewState = {

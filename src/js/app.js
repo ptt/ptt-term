@@ -887,6 +887,9 @@ export class App {
       // TODO: move this to ImagePreview.
       this.view.enablePicPreview = value;
       break;
+    case 'picPreviewWhitelistOnly':
+      this.view.picPreviewWhitelistOnly = value;
+      break;
     case 'enableNotifications':
       this.view.enableNotifications = value;
       if (value && typeof Notification !== 'undefined' && Notification.requestPermission && Notification.permission === 'default') {
