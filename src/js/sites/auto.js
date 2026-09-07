@@ -1,6 +1,6 @@
-import { BaseSite } from './base';
-import { PttSite } from './ptt';
-import { Maple3Site } from './maple3';
+import { BaseSite } from './base.js';
+import { PttSite } from './ptt.js';
+import { Maple3Site } from './maple3.js';
 
 export class AutoSite extends BaseSite {
   constructor() {

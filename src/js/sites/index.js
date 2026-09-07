@@ -1,11 +1,11 @@
-import { PttSite } from './ptt';
-import { Maple3Site } from './maple3';
-import { AutoSite } from './auto';
+import { PttSite } from './ptt.js';
+import { Maple3Site } from './maple3.js';
+import { AutoSite } from './auto.js';
 
-export { BaseSite } from './base';
-export { PttSite } from './ptt';
-export { Maple3Site } from './maple3';
-export { AutoSite } from './auto';
+export { BaseSite } from './base.js';
+export { PttSite } from './ptt.js';
+export { Maple3Site } from './maple3.js';
+export { AutoSite } from './auto.js';
 
 const sites = {
   ptt: () => new PttSite(),

@@ -1,4 +1,4 @@
-import { BaseSite } from './base';
+import { BaseSite } from './base.js';
 
 export class Maple3Site extends BaseSite {
   constructor() {

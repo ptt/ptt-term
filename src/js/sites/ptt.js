@@ -1,4 +1,4 @@
-import { BaseSite } from './base';
+import { BaseSite } from './base.js';
 
 export function parseReplyText(it) {
   return (it.indexOf('▲ 回應至 (F)看板 (M)作者信箱 (B)二者皆是 (Q)取消？[F] ') === 0 ||
