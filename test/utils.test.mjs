@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Event } from '../src/js/event.js';
-import { setTimer, getQueryVariable } from '../src/js/util.js';
+import { setTimer, getQueryVariable, resolveWebSocketUrl, parseConnectUrl } from '../src/js/util.js';
 import { uint8ArrayToBinaryString } from '../src/js/websocket.js';
 import { bytesToHex, ConnectionLog } from '../src/js/conn_log.js';
 
@@ -247,4 +247,62 @@ test('Websocket chunks outgoing data and pauses on bufferedAmount backpressure',
   } finally {
     globalThis.WebSocket = originalWs;
   }
+});
+
+test('parseConnectUrl parses absolute, relative, and legacy protocol URLs', () => {
+  assert.equal(parseConnectUrl(''), null);
+  assert.equal(parseConnectUrl(null), null);
+
+  const p1 = parseConnectUrl('wss://ws.ptt.cc/bbs');
+  assert.deepEqual(p1, {
+    url: 'wss://ws.ptt.cc/bbs',
+    protocol: 'wss',
+    host: 'ws.ptt.cc',
+    hostname: 'ws.ptt.cc',
+    port: 443,
+    path: '/bbs'
+  });
+
+  const p2 = parseConnectUrl('wsstelnet://ws.ptt.cc:8443/bbs');
+  assert.deepEqual(p2, {
+    url: 'wss://ws.ptt.cc:8443/bbs',
+    protocol: 'wss',
+    host: 'ws.ptt.cc:8443',
+    hostname: 'ws.ptt.cc',
+    port: 8443,
+    path: '/bbs'
+  });
+
+  const loc = { protocol: 'https:', host: 'term.ptt.cc' };
+  const p3 = parseConnectUrl('/bbs', loc);
+  assert.deepEqual(p3, {
+    url: 'wss://term.ptt.cc/bbs',
+    protocol: 'wss',
+    host: 'term.ptt.cc',
+    hostname: 'term.ptt.cc',
+    port: 443,
+    path: '/bbs'
+  });
+});
+
+test('resolveWebSocketUrl resolves absolute and relative WebSocket URLs', () => {
+  // Empty or invalid inputs
+  assert.equal(resolveWebSocketUrl(''), '');
+  assert.equal(resolveWebSocketUrl(null), '');
+
+  // Absolute URLs are preserved / normalized
+  assert.equal(resolveWebSocketUrl('ws://localhost:8080/bbs'), 'ws://localhost:8080/bbs');
+  assert.equal(resolveWebSocketUrl('wss://ws.ptt.cc/bbs'), 'wss://ws.ptt.cc/bbs');
+  assert.equal(resolveWebSocketUrl('wsstelnet://ws.ptt.cc/bbs'), 'wss://ws.ptt.cc/bbs');
+
+  // Relative URLs with custom location (HTTP -> ws, HTTPS -> wss)
+  const locHttp = { protocol: 'http:', host: '192.168.1.100:8080' };
+  assert.equal(resolveWebSocketUrl('/bbs', locHttp), 'ws://192.168.1.100:8080/bbs');
+  assert.equal(resolveWebSocketUrl('bbs', locHttp), 'ws://192.168.1.100:8080/bbs');
+
+  const locHttps = { protocol: 'https:', host: 'term.ptt.cc' };
+  assert.equal(resolveWebSocketUrl('/bbs', locHttps), 'wss://term.ptt.cc/bbs');
+
+  // Node environment fallback when location is null
+  assert.equal(resolveWebSocketUrl('/bbs', null), 'ws://localhost/bbs');
 });

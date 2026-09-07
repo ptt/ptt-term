@@ -11,7 +11,7 @@ import { ConnectionLog } from './conn_log';
 import { TouchController } from './touch_controller';
 import { i18n } from './i18n';
 import { unescapeStr } from './string_util';
-import { setTimer, resolveWebSocketUrl } from './util';
+import { setTimer, parseConnectUrl } from './util';
 import { setTerminalBellEnabled, setWindowFocused } from './bell.js';
 import AppOverlay from '../components/AppOverlay';
 import { getSite } from './sites';
@@ -169,13 +169,11 @@ export class App {
   this.connectState = 0;
   console.log('connect: ' + url + ', siteType: ' + siteType);
 
-  const parsed = this._parseURLSimple(url);
+  const parsed = parseConnectUrl(url);
   if (!parsed) {
     console.log('failed to parse connect url: ' + url);
     return;
   }
-  // TODO(hungte): Should we handle the 'port'?
-  const ws_url = parsed.protocol + '://' + parsed.host + parsed.path;
   switch (parsed.protocol) {
   case 'ws':
   case 'wss':
@@ -188,7 +186,7 @@ export class App {
   this.site = getSite(siteType || process.env.SITE_TYPE || 'auto');
   this.buf.site = this.site;
 
-  this._setupWebsocketConn(ws_url);
+  this._setupWebsocketConn(parsed.url);
   this.connectedUrl = {
     url: url,
     hostname: parsed.hostname,
@@ -197,45 +195,6 @@ export class App {
     type: this.site.name,
     siteType: this.site.name,
     easyReadingSupported: true
-  };
-  }
-
-  _parseURLSimple(url) {
-  if (!url)
-    return null;
-  url = resolveWebSocketUrl(url);
-  const tokens = url.split(/:\/\//, 2);
-  if (tokens.length != 2)
-    return null;
-  let protocol = tokens[0];
-  // Convert proprietary protocol names.
-  switch (protocol) {
-  case 'wstelnet':
-      protocol = 'ws';
-      break;
-  case 'wsstelnet':
-      protocol = 'wss';
-      break;
-  }
-
-  const hostAndPath = tokens[1].split(/\//, 2);
-  const host = hostAndPath[0];
-  const hostport = host.split(/:/);
-  if (hostport.length > 2)
-    return null;
-  const hostname = hostport[0];
-  const port = hostport.length > 1 ? parseInt(hostport[1], 10) : {
-    'ws': 80,
-    'wss': 443,
-    'telnet': 23,
-    'ssh': 22
-  }[protocol];
-  return {
-    protocol,
-    host,
-    hostname,
-    port,
-    path: '/' + (hostAndPath.length > 1 ? hostAndPath[1] : '')
   };
   }
 
