@@ -2,7 +2,7 @@
 .DropdownMenu--reset > li > a {
   padding: 3px 20px 3px 30px;
   cursor: default;
-  -webkit-user-select: none;
+  user-select: none;
 }
 
 .DropdownMenu--reset > li > a:hover,
@@ -18,7 +18,7 @@
 /* Boostrap overrides -- END */
 
 .DropdownMenu--reset {
-  -webkit-user-select: none;
+  user-select: none;
 }
 
 .DropdownMenu__Item__HotKey {

@@ -505,15 +505,10 @@ export class TermView {
 
     let scaleCss = 'none';
     if (this.scaleX != 1 || this.scaleY != 1) {
-      //this.mainDisplay.style.transform = 'scaleX('+this.scaleX+')'; // chrome not stable support yet!
-      scaleCss = 'scale('+this.scaleX+','+this.scaleY+')';
-      let transOrigin = 'left';
-      {
-        transOrigin = 'center';
-      }
-      this.mainDisplay.style.webkitTransformOriginX = transOrigin;
+      scaleCss = 'scale(' + this.scaleX + ',' + this.scaleY + ')';
+      this.mainDisplay.style.transformOrigin = 'center top';
     }
-    this.mainDisplay.style.webkitTransform = scaleCss;
+    this.mainDisplay.style.transform = scaleCss;
 
     this.firstGridOffset = this.bbscore.getFirstGridOffsets();
 
@@ -579,12 +574,12 @@ export class TermView {
     const bg = ch.getBg();
 
     if (this.scaleX == 1 && this.scaleY == 1) {
-      this.bbsCursor.style.webkitTransform = 'none';
+      this.bbsCursor.style.transform = 'none';
     } else {
       const scaleCss = 'scale('+this.scaleX+','+this.scaleY+')';
-      this.mainDisplay.style.webkitTransform = scaleCss;
-      this.bbsCursor.style.webkitTransform = scaleCss;
-      this.bbsCursor.style.webkitTransformOriginX = 'left';
+      this.mainDisplay.style.transform = scaleCss;
+      this.bbsCursor.style.transform = scaleCss;
+      this.bbsCursor.style.transformOrigin = 'left top';
     }
 
     this.bbsCursor.style.left = pos[0] + 'px';

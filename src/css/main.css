@@ -12,7 +12,7 @@
   overflow: hidden;
   z-index: 1;
 
-  -webkit-user-select: none;
+  user-select: none;
   touch-action: none;
 }
 
@@ -42,10 +42,12 @@ img.hyperLinkPreview {
   margin-left: 0px;
   margin-right: 0px;
   margin-bottom: 0px;
-  -webkit-user-select: text;
+  user-select: text;
   background-color: black;
   position: relative;
   overflow: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
   /* box-shadow: 0 0 60px 50px black; */
 }
 
@@ -109,11 +111,12 @@ a:hover {
   bottom: 1.2em;
   overflow-y: auto;
   overflow-x: hidden;
-  -webkit-user-select: text;
   user-select: text;
   padding: 0 8px;
   box-sizing: border-box;
   overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) rgba(0, 0, 0, 0.2);
 }
 
 #easyReadingContent::-webkit-scrollbar {
@@ -153,7 +156,6 @@ a:hover {
   height: 1.2em;
   display: none;
   overflow: hidden;
-  -webkit-user-select: none;
   user-select: none;
   background-color: #b8b8b8;
   padding: 0 8px;
@@ -174,7 +176,6 @@ a:hover {
   height: 1.2em;
   display: none;
   overflow: hidden;
-  -webkit-user-select: none;
   user-select: none;
   background-color: black;
   padding: 0 8px;
@@ -206,7 +207,7 @@ a:hover {
   position: absolute;
   color: #ffffff;
   text-decoration: blink;
-  -webkit-user-select: none;
+  user-select: none;
   height: 0px;
   z-index: 2;
 }
@@ -281,15 +282,6 @@ span {
   }
 }
 
-@-webkit-keyframes spin {
-  from {
-    -webkit-transform: rotate(0deg);
-  }
-  to {
-    -webkit-transform: rotate(360deg);
-  }
-}
-
 .modal-backdrop {
   z-index: 1 !important;
 }
@@ -349,7 +341,6 @@ span {
   font-size: 11px;
   color: #888;
   user-select: none;
-  -webkit-user-select: none;
   cursor: pointer;
 }
 
@@ -409,8 +400,9 @@ span {
   box-sizing: border-box;
   font-size: 12px;
   line-height: 1.5;
-  -webkit-user-select: text;
   user-select: text;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) rgba(0, 0, 0, 0.2);
 }
 
 #connLogContent::-webkit-scrollbar {

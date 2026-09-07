@@ -6,7 +6,6 @@ dialog.PrefModal {
   border-radius: 6px;
   overflow: hidden;
   padding: 0;
-  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -122,8 +121,6 @@ dialog.PrefModal .NativeDialog__content {
 .PrefModal__Grid__Col--right__MouseBrowsingHighlightColor > select {
   margin: 5px 0 10px;
   width: 70px;
-  -webkit-appearance: none;
-  -moz-appearance: none;
   appearance: none;
 }
 

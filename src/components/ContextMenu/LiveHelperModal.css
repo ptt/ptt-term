@@ -20,7 +20,6 @@ dialog.LiveHelperModal__Dialog {
   align-items: center;
   padding: 15px;
   user-select: none;
-  -webkit-user-select: none;
 }
 
 .LiveHelperModal__Body__Text {

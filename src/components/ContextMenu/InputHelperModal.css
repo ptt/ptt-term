@@ -20,7 +20,6 @@ dialog.InputHelperModal__Dialog {
   padding: 15px;
   border-bottom: 1px solid #e5e5e5;
   user-select: none;
-  -webkit-user-select: none;
 }
 
 .InputHelperModal__Dialog .modal-body {
@@ -41,7 +40,7 @@ dialog.InputHelperModal__Dialog {
   height: 37px;
 }
 .InputHelperModal__ColorList li:hover {
-  -webkit-transform: scale(1.2, 1.2);
+  transform: scale(1.2);
   box-shadow: 0 0 15px 0 rgba(0, 0, 0, 0.4);
 }
 
@@ -82,7 +81,7 @@ dialog.InputHelperModal__Dialog {
   margin-right: -1px;
 }
 .InputHelperModal__SymbolList > li:hover {
-  -webkit-transform: scale(1.4, 1.4);
+  transform: scale(1.4);
   border: 2px solid black;
 }
 
@@ -102,7 +101,7 @@ dialog.InputHelperModal__Dialog {
   text-overflow: ellipsis;
 }
 .InputHelperModal__EmoticonList > li:hover {
-  -webkit-transform: scale(1.1, 1.1);
+  transform: scale(1.1);
   border: 2px solid black;
 }
 
