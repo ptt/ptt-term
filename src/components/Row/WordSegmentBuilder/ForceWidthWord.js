@@ -1,11 +1,8 @@
-/**
- * FIXME: css solution??
- */
-export const forceWidthStyle = forceWidth =>
-  forceWidth
+export const forceWidthStyle = (forceWidth) =>
+  typeof forceWidth === "number"
     ? {
         display: "inline-block",
-        width: `${forceWidth}px`
+        width: `${forceWidth}px`,
       }
     : undefined;
 

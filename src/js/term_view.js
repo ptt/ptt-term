@@ -77,10 +77,6 @@ export class TermView {
 
   this.updateHighlightColor();
 
-  const dynamicStyle = document.createElement('style');
-  document.head.appendChild(dynamicStyle);
-  this.dynamicCss = dynamicStyle.sheet;
-
   // for cpu efficiency
   this.innerBounds = { width: 0, height: 0 };
   this.firstGridOffset = { top: 0, left: 0 };
@@ -474,6 +470,11 @@ export class TermView {
     this.chh = ch;
     const fontSize = this.chh + 'px';
     const mainWidth = (this.chw * this.buf.cols + 10) + 'px';
+    if (this.BBSWin && this.BBSWin.style) {
+      this.BBSWin.style.setProperty('--term-font-size', fontSize);
+      this.BBSWin.style.setProperty('--term-chw', this.chw + 'px');
+      this.BBSWin.style.setProperty('--term-chh', this.chh + 'px');
+    }
     this.mainDisplay.style.fontSize = fontSize;
     this.mainDisplay.style.lineHeight = fontSize;
     if (this.easyReadingOverlay) {
@@ -519,14 +520,12 @@ export class TermView {
   }
 
   updateReverseScaleCss() {
-    const rule = 'img.hyperLinkPreview { ' +
-      '-webkit-transform: scale(' + Math.floor(1/this.scaleX*100)/100 + ',' +
-      Math.floor(1/this.scaleY*100)/100+');' +
-      ' }';
-    while (this.dynamicCss.cssRules.length > 0) {
-      this.dynamicCss.deleteRule(0);
+    if (this.BBSWin && this.BBSWin.style) {
+      const revScaleX = Math.floor((1 / this.scaleX) * 100) / 100;
+      const revScaleY = Math.floor((1 / this.scaleY) * 100) / 100;
+      this.BBSWin.style.setProperty('--preview-scale-x', revScaleX);
+      this.BBSWin.style.setProperty('--preview-scale-y', revScaleY);
     }
-    this.dynamicCss.insertRule(rule, 0);
   }
 
   convertMN2XYEx(cx, cy) {
@@ -690,12 +689,6 @@ export class TermView {
     let chh = fontSizePx;
 
     this.setTermFontSize(chw, chh);
-
-    const forceWidthElems = document.querySelectorAll('.wpadding');
-    for (let i = 0; i < forceWidthElems.length; ++i) {
-      const forceWidthElem = forceWidthElems[i];
-      forceWidthElem.style.width = chh + 'px';
-    }
   }
 
   calcTermSizeFromFont(fontSizePx) {

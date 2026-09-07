@@ -24,6 +24,15 @@
   display: block;
 }
 
+.wpadding {
+  display: inline-block;
+  width: var(--term-chh, 1em);
+}
+
+img.hyperLinkPreview {
+  transform: scale(var(--preview-scale-x, 1), var(--preview-scale-y, 1));
+}
+
 .main {
   font-family:
     MingLiu, SymMingLiu, "Noto Sans Mono CJK TC", "PingFang TC", monospace;
