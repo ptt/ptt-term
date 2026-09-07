@@ -9,33 +9,26 @@ permissions:
   contents: read
 
 jobs:
+  load-sites:
+    name: Load site configurations
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Load site configurations
+        id: set-matrix
+        run: |
+          python3 -c "import yaml" 2>/dev/null || pip install pyyaml
+          python3 .github/workflows/load_sites.py >> "$GITHUB_OUTPUT"
+
   deploy:
+    name: Deploy ${{ matrix.site.SITE_ID }} (${{ matrix.site.CNAME }})
+    needs: load-sites
     strategy:
       fail-fast: false
-      matrix:
-        site:
-          - CNAME: 'term.ptt.cc'
-            TARGET_REPO: 'ptt/term.ptt.cc'
-            THEME: 'ptt.cc'
-            PAGE_TITLE: '批踢踢實業坊'
-            PAGE_SHORT_NAME: 'PTT'
-            PAGE_DESCRIPTION: '使用網頁版終端機連線至批踢踢實業坊(ptt.cc) -- 以學術性質為目的，提供各專業學生實習的平台，而以電子佈告欄系統為主的一系列服務。期許在網際網路上建立起一個快速、即時、平等、免費，開放且自由的言論空間。'
-            DYNAMIC_TITLE: 'false'
-            DEFAULT_SITE: 'wsstelnet://ws.ptt.cc/bbs'
-            SITE_TYPE: 'ptt'
-            DEV_PROXY_TARGET: 'https://ws.ptt.cc'
-            DEV_PROXY_HEADER: 'https://term.ptt.cc'
-          - CNAME: 'term.ptt2.cc'
-            TARGET_REPO: 'ptt/term.ptt2.cc'
-            THEME: 'ptt2.cc'
-            PAGE_TITLE: '批踢踢兔'
-            PAGE_SHORT_NAME: 'PTT2'
-            PAGE_DESCRIPTION: '批踢踢兔(PTT2)是批踢踢實業坊(ptt.cc)的電子佈告欄服務站之一，主要提供個人看板與團體社團看板，為使用者打造專屬的發表與交流空間。'
-            DYNAMIC_TITLE: 'false'
-            DEFAULT_SITE: 'wsstelnet://ws.ptt2.cc/bbs'
-            SITE_TYPE: 'ptt'
-            DEV_PROXY_TARGET: 'https://ws.ptt2.cc'
-            DEV_PROXY_HEADER: 'https://term.ptt2.cc'
+      matrix: ${{ fromJson(needs.load-sites.outputs.matrix) }}
     uses: ./.github/workflows/deploy-ghpage.yml
     with:
       THEME: ${{ matrix.site.THEME }}
@@ -51,4 +44,4 @@ jobs:
       DEV_PROXY_HEADER: ${{ matrix.site.DEV_PROXY_HEADER }}
       BRANCH: ${{ matrix.site.BRANCH }}
     secrets:
-      deploy-token: ${{ secrets[matrix.secrets-id.deploy-token] || secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+      deploy-token: ${{ matrix.site.DEPLOY_TOKEN_SECRET != '' && secrets[matrix.site.DEPLOY_TOKEN_SECRET] || secrets.GH_PAT || secrets.GITHUB_TOKEN }}
