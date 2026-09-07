@@ -1,13 +1,21 @@
 import { Event } from './event.js';
 
 export function uint8ArrayToBinaryString(bytes) {
-  const CHUNK_SIZE = 8192;
-  if (bytes.length <= CHUNK_SIZE) {
-    return String.fromCharCode.apply(null, bytes);
+  const len = bytes.length;
+  // Fast path for small packets (< 1KB) without apply/stack overhead
+  if (len < 1024) {
+    let str = "";
+    for (let i = 0; i < len; i++) str += String.fromCharCode(bytes[i]);
+    return str;
   }
+  // For large packets, chunk at 8192 to avoid call stack limits
+  const CHUNK_SIZE = 8192;
   let str = "";
-  for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
-    str += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK_SIZE));
+  for (let i = 0; i < len; i += CHUNK_SIZE) {
+    str += String.fromCharCode.apply(
+      null,
+      bytes.subarray(i, Math.min(i + CHUNK_SIZE, len))
+    );
   }
   return str;
 }
