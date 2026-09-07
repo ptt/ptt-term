@@ -1,4 +1,4 @@
-import { Event } from './event';
+import { Event } from './event.js';
 
 export function uint8ArrayToBinaryString(bytes) {
   const CHUNK_SIZE = 8192;

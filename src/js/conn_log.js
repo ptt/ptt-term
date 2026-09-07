@@ -1,4 +1,4 @@
-import { readValuesWithDefault, updatePref } from "./pref";
+import { readValuesWithDefault, updatePref } from "./pref.js";
 
 export function bytesToHex(bytes) {
   if (!bytes || bytes.length === 0) return "";
