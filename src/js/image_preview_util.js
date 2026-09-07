@@ -216,9 +216,7 @@ export function registerImageIntersection(element, callback) {
 
 export function resetSharedImageObserverForTest() {
   if (sharedImageObserver) {
-    if (typeof sharedImageObserver.disconnect === "function") {
-      sharedImageObserver.disconnect();
-    }
+    sharedImageObserver.disconnect();
     sharedImageObserver = null;
   }
 }

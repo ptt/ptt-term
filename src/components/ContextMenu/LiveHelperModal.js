@@ -35,7 +35,8 @@ export class LiveHelperModal extends React.Component {
       e.button !== 0 ||
       e.target.tagName === "BUTTON" ||
       e.target.tagName === "INPUT" ||
-      (e.target.closest && (e.target.closest("button") || e.target.closest("input")))
+      e.target.closest("button") ||
+      e.target.closest("input")
     ) {
       return;
     }

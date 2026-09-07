@@ -589,7 +589,7 @@ export class InputHelperModal extends React.Component {
     if (
       e.button !== 0 ||
       e.target.tagName === "BUTTON" ||
-      (e.target.closest && e.target.closest("button"))
+      e.target.closest("button")
     ) {
       return;
     }

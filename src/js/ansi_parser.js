@@ -32,10 +32,7 @@ export class AnsiParser {
     const leadAttr = this.pendingLeadAttr;
     this.pendingLead = null;
     this.pendingLeadAttr = null;
-    const term = this.termbuf;
-    if (term && typeof term.puts === 'function') {
-      term.puts(String.fromCharCode(lead), leadAttr);
-    }
+    this.termbuf.puts(String.fromCharCode(lead), leadAttr);
   }
 
   /**
@@ -344,7 +341,7 @@ export class AnsiParser {
           case 2:
             if (params[1] == '?')
               ; // elicits a response; not implemented
-            else if (params[1] !== undefined && typeof term.setTitle === 'function') {
+            else if (params[1] !== undefined) {
               let title = String(params[1]);
               if (term.view && term.view.charset != 'UTF-8')
                 title = b2u(title);

@@ -187,7 +187,7 @@ export class FpsMeter {
 
   toggleCanvas() {
     this.isCanvas = !this.isCanvas;
-    if (typeof this.onToggleCanvas === 'function') {
+    if (this.onToggleCanvas) {
       this.onToggleCanvas(this.isCanvas);
     }
     const now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
@@ -202,7 +202,7 @@ export class FpsMeter {
 
   toggleSmoothAnsi() {
     this.smoothAnsiArt = !this.smoothAnsiArt;
-    if (typeof this.onToggleSmoothAnsi === 'function') {
+    if (this.onToggleSmoothAnsi) {
       this.onToggleSmoothAnsi(this.smoothAnsiArt);
     }
     const now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
