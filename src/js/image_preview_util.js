@@ -15,7 +15,7 @@ export function isTrustedImageDomain(hostname) {
   if (!hostname) return false;
   const host = hostname.toLowerCase();
   return TRUSTED_IMAGE_DOMAINS.some(
-    (domain) => host === domain || host.endsWith("." + domain)
+    (domain) => host === domain || host.endsWith("." + domain),
   );
 }
 
@@ -42,7 +42,7 @@ export function resolveImageUrl(href, whitelistOnly = true) {
 
   // 1. Imgur resolver (supports with or without extension)
   const imgurMatch = href.match(
-    /^https?:\/\/(?:[im]\.)?imgur\.com\/(?:gallery\/|a\/)?([a-zA-Z0-9]+)(?:\.([a-zA-Z0-9]+))?(?:[?#].*)?$/i
+    /^https?:\/\/(?:[im]\.)?imgur\.com\/(?:gallery\/|a\/)?([a-zA-Z0-9]+)(?:\.([a-zA-Z0-9]+))?(?:[?#].*)?$/i,
   );
   if (imgurMatch) {
     const photoId = imgurMatch[1];
@@ -71,10 +71,12 @@ export function getImageRenderedSize(
   width,
   height,
   pageWidth = typeof window !== "undefined" ? window.innerWidth : 1024,
-  pageHeight = typeof window !== "undefined" ? window.innerHeight : 768
+  pageHeight = typeof window !== "undefined" ? window.innerHeight : 768,
 ) {
-  const safeW = typeof width === "number" && !isNaN(width) && width > 0 ? width : null;
-  const safeH = typeof height === "number" && !isNaN(height) && height > 0 ? height : 0;
+  const safeW =
+    typeof width === "number" && !isNaN(width) && width > 0 ? width : null;
+  const safeH =
+    typeof height === "number" && !isNaN(height) && height > 0 ? height : 0;
 
   const maxW = pageWidth * 0.9;
   const maxH = pageHeight * 0.8;
@@ -96,7 +98,7 @@ export function getImageRenderedSize(
 export function getTop(
   top,
   height,
-  pageHeight = typeof window !== "undefined" ? window.innerHeight : 768
+  pageHeight = typeof window !== "undefined" ? window.innerHeight : 768,
 ) {
   const safeTop = typeof top === "number" && !isNaN(top) ? top : 20;
   const safeHeight = typeof height === "number" && !isNaN(height) ? height : 0;
@@ -104,14 +106,14 @@ export function getTop(
 
   return Math.max(
     20,
-    Math.min(pageHeight - 20 - clampedHeight, safeTop - clampedHeight / 2)
+    Math.min(pageHeight - 20 - clampedHeight, safeTop - clampedHeight / 2),
   );
 }
 
 export function getLeft(
   left,
   width,
-  pageWidth = typeof window !== "undefined" ? window.innerWidth : 1024
+  pageWidth = typeof window !== "undefined" ? window.innerWidth : 1024,
 ) {
   const safeLeft = typeof left === "number" && !isNaN(left) ? left : 20;
   const safeWidth = typeof width === "number" && !isNaN(width) ? width : 0;
@@ -130,7 +132,7 @@ export function getPopupPosition(
   popupWidth = 200,
   popupHeight = 36,
   pageWidth = typeof window !== "undefined" ? window.innerWidth : 1024,
-  pageHeight = typeof window !== "undefined" ? window.innerHeight : 768
+  pageHeight = typeof window !== "undefined" ? window.innerHeight : 768,
 ) {
   const safeLeft = typeof left === "number" && !isNaN(left) ? left : 20;
   const safeTop = typeof top === "number" && !isNaN(top) ? top : 20;
@@ -171,4 +173,52 @@ export const updateImagePreviewMove = (state, clientX, clientY) => {
   return null;
 };
 
+let sharedImageObserver = null;
+const observerCallbacks = new WeakMap();
 
+export function getSharedImageObserver() {
+  if (!sharedImageObserver && typeof IntersectionObserver !== "undefined") {
+    sharedImageObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const cb = observerCallbacks.get(entry.target);
+            if (cb) {
+              cb();
+              observerCallbacks.delete(entry.target);
+              sharedImageObserver.unobserve(entry.target);
+            }
+          }
+        }
+      },
+      {
+        rootMargin: "300px 0px",
+      },
+    );
+  }
+  return sharedImageObserver;
+}
+
+export function registerImageIntersection(element, callback) {
+  if (!element) return () => {};
+  const observer = getSharedImageObserver();
+  if (!observer) {
+    callback();
+    return () => {};
+  }
+  observerCallbacks.set(element, callback);
+  observer.observe(element);
+  return () => {
+    observerCallbacks.delete(element);
+    observer.unobserve(element);
+  };
+}
+
+export function resetSharedImageObserverForTest() {
+  if (sharedImageObserver) {
+    if (typeof sharedImageObserver.disconnect === "function") {
+      sharedImageObserver.disconnect();
+    }
+    sharedImageObserver = null;
+  }
+}

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   TRUSTED_IMAGE_DOMAINS,
   isTrustedImageDomain,
@@ -10,6 +10,9 @@ import {
   initialImagePreviewState,
   resetImagePreviewState,
   updateImagePreviewMove,
+  getSharedImageObserver,
+  registerImageIntersection,
+  resetSharedImageObserverForTest,
 } from "../js/image_preview_util";
 import { i18n } from "../js/i18n";
 
@@ -24,6 +27,9 @@ export {
   initialImagePreviewState,
   resetImagePreviewState,
   updateImagePreviewMove,
+  LazyInlineImage,
+  getSharedImageObserver,
+  resetSharedImageObserverForTest,
 };
 
 const noop = () => {};
@@ -240,6 +246,7 @@ ImagePreviewer.OnHover = ({ left, top, value, error, href }) => {
         <img
           src={value.src}
           referrerPolicy="no-referrer"
+          loading="lazy"
           style={{
             display: "block",
             width: renderedSize.width,
@@ -289,17 +296,48 @@ ImagePreviewer.OnHover = ({ left, top, value, error, href }) => {
   }
 };
 
+const LazyInlineImage = ({ src }) => {
+  const [isVisible, setIsVisible] = useState(() => {
+    return typeof IntersectionObserver === "undefined";
+  });
+  const [hasError, setHasError] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (isVisible || !containerRef.current) return;
+    return registerImageIntersection(containerRef.current, () => {
+      setIsVisible(true);
+    });
+  }, [isVisible]);
+
+  if (hasError) {
+    return null;
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      className="easyReadingImgContainer"
+      style={{ minHeight: isVisible ? undefined : "24px" }}
+    >
+      {isVisible ? (
+        <img
+          className="easyReadingImg hyperLinkPreview"
+          src={src}
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          onError={() => setHasError(true)}
+        />
+      ) : null}
+    </div>
+  );
+};
+
 ImagePreviewer.Inline = ({ value, error }) => {
   if (error) {
     return false;
   } else if (value) {
-    return (
-      <img
-        className="easyReadingImg hyperLinkPreview"
-        src={value.src}
-        referrerPolicy="no-referrer"
-      />
-    );
+    return <LazyInlineImage src={value.src} />;
   } else {
     return <LoadingSpinner />;
   }
@@ -325,5 +363,3 @@ export const createImagePreviewRequest = (href, whitelistOnly = true) => {
 };
 
 export default ImagePreviewer;
-
-

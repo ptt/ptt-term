@@ -11,6 +11,9 @@ import {
   updateImagePreviewMove,
   initialImagePreviewState,
   resetImagePreviewState,
+  getSharedImageObserver,
+  registerImageIntersection,
+  resetSharedImageObserverForTest,
 } from "../src/js/image_preview_util.js";
 
 test("isTrustedImageDomain correctly identifies trusted image domains and subdomains", () => {
@@ -47,42 +50,42 @@ test("resolveImageUrl resolves Imgur links with or without extension", () => {
   // With extension
   assert.equal(
     resolveImageUrl("https://i.imgur.com/abc1234.png"),
-    "https://i.imgur.com/abc1234.png"
+    "https://i.imgur.com/abc1234.png",
   );
   // Without extension (defaults to jpg)
   assert.equal(
     resolveImageUrl("https://imgur.com/abc1234"),
-    "https://i.imgur.com/abc1234.jpg"
+    "https://i.imgur.com/abc1234.jpg",
   );
   assert.equal(
     resolveImageUrl("http://m.imgur.com/gallery/xyz987"),
-    "https://i.imgur.com/xyz987.jpg"
+    "https://i.imgur.com/xyz987.jpg",
   );
 });
 
 test("resolveImageUrl resolves modern PTT trusted hosts when whitelist is ON", () => {
   assert.equal(
     resolveImageUrl("https://meee.com.tw/photo1.png", true),
-    "https://meee.com.tw/photo1.png"
+    "https://meee.com.tw/photo1.png",
   );
   assert.equal(
     resolveImageUrl("https://imgtok.com/i/abc.jpg", true),
-    "https://imgtok.com/i/abc.jpg"
+    "https://imgtok.com/i/abc.jpg",
   );
   assert.equal(
     resolveImageUrl("https://duk.tw/demo.webp", true),
-    "https://duk.tw/demo.webp"
+    "https://duk.tw/demo.webp",
   );
   assert.equal(
     resolveImageUrl("https://upload.cc/i1/2024/test.jpg", true),
-    "https://upload.cc/i1/2024/test.jpg"
+    "https://upload.cc/i1/2024/test.jpg",
   );
   assert.equal(
     resolveImageUrl(
       "https://pbs.twimg.com/media/F12345?format=jpg&name=orig",
-      true
+      true,
     ),
-    "https://pbs.twimg.com/media/F12345?format=jpg&name=orig"
+    "https://pbs.twimg.com/media/F12345?format=jpg&name=orig",
   );
 });
 
@@ -95,11 +98,11 @@ test("resolveImageUrl blocks untrusted domains when whitelist is ON", () => {
 test("resolveImageUrl allows untrusted image extensions when whitelist is OFF", () => {
   assert.equal(
     resolveImageUrl("https://arbitrary-host.com/picture.jpg", false),
-    "https://arbitrary-host.com/picture.jpg"
+    "https://arbitrary-host.com/picture.jpg",
   );
   assert.equal(
     resolveImageUrl("https://arbitrary-host.com/picture.png?w=800", false),
-    "https://arbitrary-host.com/picture.png?w=800"
+    "https://arbitrary-host.com/picture.png?w=800",
   );
 });
 
@@ -189,7 +192,14 @@ test("getPopupPosition positions popup next to cursor and flips if near right ed
   const topClamped = getPopupPosition(100, 10, 200, 36, pageWidth, pageHeight);
   assert.equal(topClamped.top, 20);
 
-  const bottomClamped = getPopupPosition(100, 790, 200, 36, pageWidth, pageHeight);
+  const bottomClamped = getPopupPosition(
+    100,
+    790,
+    200,
+    36,
+    pageWidth,
+    pageHeight,
+  );
   assert.equal(bottomClamped.top, 744); // 800 - 20 - 36 = 744
 });
 
@@ -217,6 +227,108 @@ test("updateImagePreviewMove anchors position and avoids jittering on mouse move
   });
 
   // If no preview is active, returns null
-  assert.equal(updateImagePreviewMove(initialImagePreviewState, 205, 305), null);
+  assert.equal(
+    updateImagePreviewMove(initialImagePreviewState, 205, 305),
+    null,
+  );
 });
 
+test("registerImageIntersection falls back gracefully when IntersectionObserver is undefined", () => {
+  resetSharedImageObserverForTest();
+  const prevObserver = globalThis.IntersectionObserver;
+  try {
+    delete globalThis.IntersectionObserver;
+    assert.equal(getSharedImageObserver(), null);
+
+    let called = false;
+    const dummyElement = {};
+    const unregister = registerImageIntersection(dummyElement, () => {
+      called = true;
+    });
+
+    assert.equal(called, true);
+    assert.equal(typeof unregister, "function");
+  } finally {
+    if (prevObserver) {
+      globalThis.IntersectionObserver = prevObserver;
+    }
+  }
+});
+
+test("getSharedImageObserver manages shared singleton with rootMargin", () => {
+  resetSharedImageObserverForTest();
+
+  class MockIntersectionObserver {
+    constructor(callback, options) {
+      this.callback = callback;
+      this.options = options;
+      this.observed = new Set();
+      this.disconnected = false;
+    }
+    observe(el) {
+      this.observed.add(el);
+    }
+    unobserve(el) {
+      this.observed.delete(el);
+    }
+    disconnect() {
+      this.disconnected = true;
+      this.observed.clear();
+    }
+  }
+
+  const prevObserver = globalThis.IntersectionObserver;
+  try {
+    globalThis.IntersectionObserver = MockIntersectionObserver;
+
+    const obs1 = getSharedImageObserver();
+    assert(obs1 instanceof MockIntersectionObserver);
+    assert.equal(obs1.options.rootMargin, "300px 0px");
+
+    const obs2 = getSharedImageObserver();
+    assert.equal(obs1, obs2, "should reuse shared singleton");
+
+    const element = {};
+    let triggered = false;
+    const unregister = registerImageIntersection(element, () => {
+      triggered = true;
+    });
+
+    assert.equal(obs1.observed.has(element), true);
+    assert.equal(triggered, false);
+
+    // Simulate element entering viewport
+    obs1.callback([{ target: element, isIntersecting: true }]);
+    assert.equal(triggered, true);
+    assert.equal(
+      obs1.observed.has(element),
+      false,
+      "should unobserve after intersecting",
+    );
+
+    // Test unregister cleanup before intersecting
+    const element2 = {};
+    let triggered2 = false;
+    const unregister2 = registerImageIntersection(element2, () => {
+      triggered2 = true;
+    });
+    assert.equal(obs1.observed.has(element2), true);
+    unregister2();
+    assert.equal(
+      obs1.observed.has(element2),
+      false,
+      "should unobserve on cleanup",
+    );
+    assert.equal(triggered2, false);
+
+    resetSharedImageObserverForTest();
+    assert.equal(obs1.disconnected, true);
+  } finally {
+    if (prevObserver) {
+      globalThis.IntersectionObserver = prevObserver;
+    } else {
+      delete globalThis.IntersectionObserver;
+    }
+    resetSharedImageObserverForTest();
+  }
+});

@@ -1,16 +1,16 @@
 @font-face {
   font-family: SymMingLiu;
-  src: url('../fonts/symmingliu.woff') format("woff");
+  src: url("../fonts/symmingliu.woff") format("woff");
 }
 
 #BBSWindow {
-  position:fixed;
-  width:100%;
-  height:100%;
-  top:0px;
-  left:0px;
-  overflow:hidden;
-  z-index:1;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  top: 0px;
+  left: 0px;
+  overflow: hidden;
+  z-index: 1;
 
   -webkit-user-select: none;
   touch-action: none;
@@ -25,13 +25,14 @@
 }
 
 .main {
-  font-family: MingLiu, SymMingLiu, "Noto Sans Mono CJK TC", "PingFang TC", monospace;
+  font-family:
+    MingLiu, SymMingLiu, "Noto Sans Mono CJK TC", "PingFang TC", monospace;
   font-size: 26px;
   line-height: 100%;
-  margin-top:0px;
-  margin-left:0px;
-  margin-right:0px;
-  margin-bottom:0px;
+  margin-top: 0px;
+  margin-left: 0px;
+  margin-right: 0px;
+  margin-bottom: 0px;
   -webkit-user-select: text;
   background-color: black;
   position: relative;
@@ -40,26 +41,29 @@
 }
 
 .main * {
-  font-family: inherit!important;
+  font-family: inherit !important;
 }
 
 .linkurl {
-  text-decoration:underline;
-  color:#FF00FF;
+  text-decoration: underline;
+  color: #ff00ff;
 }
 
-a:link,a:visited,a:active,a:hover {
+a:link,
+a:visited,
+a:active,
+a:hover {
   background-position: 0% 90%;
-  text-decoration:none;
+  text-decoration: none;
 }
 
-.main > span, 
-#mainContainer > span, 
+.main > span,
+#mainContainer > span,
 #easyReadingContent > span,
 #easyReadingLastRow > span,
 #easyReadingReplyRow > span {
-  display:block;
-  color:#C0C0C0;
+  display: block;
+  color: #c0c0c0;
   white-space: pre;
 }
 
@@ -80,7 +84,8 @@ a:link,a:visited,a:active,a:hover {
   z-index: 10;
   background-color: #242424;
   display: none;
-  font-family: MingLiu, SymMingLiu, "Noto Sans Mono CJK TC", "PingFang TC", monospace;
+  font-family:
+    MingLiu, SymMingLiu, "Noto Sans Mono CJK TC", "PingFang TC", monospace;
 }
 
 #easyReadingOverlay * {
@@ -118,7 +123,6 @@ a:link,a:visited,a:active,a:hover {
 #easyReadingContent::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.4);
 }
-
 
 #easyReadingFooter {
   position: absolute;
@@ -168,6 +172,10 @@ a:link,a:visited,a:active,a:hover {
   box-sizing: border-box;
 }
 
+.easyReadingImgContainer {
+  margin: 0.5em auto;
+  text-align: center;
+}
 .easyReadingImg {
   max-height: 19em;
   max-width: 39em;
@@ -181,13 +189,13 @@ a:link,a:visited,a:active,a:hover {
 }
 
 .terminal_display {
-  font-family : MingLiu, monospace;
-  font-size    : 26px;
-  line-height:26px;
+  font-family: MingLiu, monospace;
+  font-size: 26px;
+  line-height: 26px;
   white-space: pre;
   cursor: text;
   position: absolute;
-  color: #FFFFFF;
+  color: #ffffff;
   text-decoration: blink;
   -webkit-user-select: none;
   height: 0px;
@@ -195,9 +203,9 @@ a:link,a:visited,a:active,a:hover {
 }
 
 img {
-  background:white; 
-  color:black; 
-  padding:5px 5px;
+  background: white;
+  color: black;
+  padding: 5px 5px;
 }
 
 .main img {
@@ -209,13 +217,13 @@ body {
   /* background-color: #101010; */
   background-color: black;
   margin: 0px;
-  overflow:hidden;
+  overflow: hidden;
 }
 
 span [link="true"] {
-  margin: 0px; 
-  background-image: inherit; 
-  background-repeat: inherit; 
+  margin: 0px;
+  background-image: inherit;
+  background-repeat: inherit;
   background-position: inherit;
 }
 
@@ -243,7 +251,7 @@ span {
 
 .loading-spinner {
   display: inline-block;
-  animation: spin .7s infinite linear;
+  animation: spin 0.7s infinite linear;
   pointer-events: none;
 }
 
@@ -252,17 +260,25 @@ span {
 }
 
 .glyphicon-refresh-animate {
-  animation: spin .7s infinite linear;
+  animation: spin 0.7s infinite linear;
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @-webkit-keyframes spin {
-  from { -webkit-transform: rotate(0deg); }
-  to { -webkit-transform: rotate(360deg); }
+  from {
+    -webkit-transform: rotate(0deg);
+  }
+  to {
+    -webkit-transform: rotate(360deg);
+  }
 }
 
 .modal-backdrop {
