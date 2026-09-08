@@ -1,38 +1,51 @@
 .PageTopAlert {
-  margin-top: 15px;
+  margin-top: 16px;
   position: relative;
   z-index: 2;
-
   width: 400px;
+  max-width: 90vw;
   left: 50%;
   margin-left: -200px;
-  box-shadow: 0px 0px 20px black;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.25),
+    0 3px 8px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(25px) saturate(190%);
+  -webkit-backdrop-filter: blur(25px) saturate(190%);
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang TC", sans-serif;
 }
 
 .alert-purple {
   color: #3b0764;
-  background-color: #f3e8ff;
-  border-color: #d8b4fe;
+  background-color: rgba(243, 232, 255, 0.94);
+  border-color: rgba(216, 180, 254, 0.4);
 }
 
 .alert-purple h4 {
   color: #581c87;
-  font-weight: bold;
+  font-weight: 600;
+  font-size: 15px;
 }
 
 .alert-purple .close {
-  color: #3b0764;
-  opacity: 0.4;
+  color: #6e6e73;
+  background: rgba(0, 0, 0, 0.06);
+  opacity: 1;
 }
 
 .alert-purple .close:hover {
-  opacity: 0.8;
+  background: rgba(0, 0, 0, 0.12);
+  color: #1d1d1f;
 }
 
 .btn-purple {
   color: #fff;
   background-color: #7e22ce;
   border-color: #6b21a8;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(126, 34, 206, 0.25);
 }
 
 .btn-purple:hover,
@@ -42,3 +55,4 @@
   background-color: #6b21a8;
   border-color: #581c87;
 }
+
