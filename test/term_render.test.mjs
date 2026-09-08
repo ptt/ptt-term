@@ -430,6 +430,130 @@ test('TermView cursorStyle handles blink, reverse, and blink-reverse styles', ()
   assert.equal(mockCursor.style.width, '12px');
   assert.equal(mockCursor.style.height, '12px');
   assert.equal(mockCursor.style.top, '252px');
+
+  // 5. Block mode (solid full-cell block, steady)
+  mockView.setCursorStyle('block');
+  assert.equal(mockView.cursorStyle, 'block');
+  assert.ok(mockClassList.has('cursor--block'));
+  assert.equal(mockClassList.has('cursor--blink'), false);
+  assert.equal(mockCursor.textContent, '');
+  assert.equal(mockCursor.style.width, '12px');
+  assert.equal(mockCursor.style.height, '24px');
+  assert.equal(mockCursor.style.top, '240px');
+
+  // 6. Blink-block mode
+  mockView.setCursorStyle('blink-block');
+  assert.equal(mockView.cursorStyle, 'blink-block');
+  assert.ok(mockClassList.has('cursor--block'));
+  assert.ok(mockClassList.has('cursor--blink'));
+  assert.equal(mockCursor.textContent, '');
+  assert.equal(mockCursor.style.width, '12px');
+  assert.equal(mockCursor.style.height, '24px');
+  assert.equal(mockCursor.style.top, '240px');
+
+  // 7. Half-block mode (steady)
+  mockView.setCursorStyle('half-block');
+  assert.equal(mockView.cursorStyle, 'half-block');
+  assert.ok(mockClassList.has('cursor--half-block'));
+  assert.ok(mockClassList.has('cursor--reverse'));
+  assert.equal(mockClassList.has('cursor--blink'), false);
+  assert.equal(mockCursor.textContent, '');
+  assert.equal(mockCursor.style.width, '12px');
+  assert.equal(mockCursor.style.height, '12px');
+  assert.equal(mockCursor.style.top, '252px');
+
+  // 8. Blink-half-block mode
+  mockView.setCursorStyle('blink-half-block');
+  assert.equal(mockView.cursorStyle, 'blink-half-block');
+  assert.ok(mockClassList.has('cursor--half-block'));
+  assert.ok(mockClassList.has('cursor--blink'));
+  assert.equal(mockCursor.textContent, '');
+  assert.equal(mockCursor.style.width, '12px');
+  assert.equal(mockCursor.style.height, '12px');
+  assert.equal(mockCursor.style.top, '252px');
+
+  // 9. I-beam mode (vertical line, steady)
+  mockView.setCursorStyle('ibeam');
+  assert.equal(mockView.cursorStyle, 'ibeam');
+  assert.ok(mockClassList.has('cursor--ibeam'));
+  assert.equal(mockClassList.has('cursor--blink'), false);
+  assert.equal(mockCursor.textContent, '');
+  assert.equal(mockCursor.style.width, '2px');
+  assert.equal(mockCursor.style.height, '24px');
+  assert.equal(mockCursor.style.top, '240px');
+
+  // 10. Blink-ibeam mode
+  mockView.setCursorStyle('blink-ibeam');
+  assert.equal(mockView.cursorStyle, 'blink-ibeam');
+  assert.ok(mockClassList.has('cursor--ibeam'));
+  assert.ok(mockClassList.has('cursor--blink'));
+  assert.equal(mockCursor.textContent, '');
+  assert.equal(mockCursor.style.width, '2px');
+  assert.equal(mockCursor.style.height, '24px');
+  assert.equal(mockCursor.style.top, '240px');
+});
+
+test('pref parseCaretStyle and serializeCaretStyle support 4 shapes and blink toggle', async () => {
+  const { parseCaretStyle, serializeCaretStyle, CARET_SHAPES } = await import(
+    '../src/js/pref.js'
+  );
+
+  // Legacy mappings
+  assert.deepEqual(parseCaretStyle('blink'), {
+    shape: CARET_SHAPES.UNDERLINE,
+    blink: true
+  });
+  assert.deepEqual(parseCaretStyle('underline'), {
+    shape: CARET_SHAPES.UNDERLINE,
+    blink: false
+  });
+  assert.deepEqual(parseCaretStyle('reverse'), {
+    shape: CARET_SHAPES.HALF_BLOCK,
+    blink: false
+  });
+  assert.deepEqual(parseCaretStyle('blink-reverse'), {
+    shape: CARET_SHAPES.HALF_BLOCK,
+    blink: true
+  });
+
+  // Modern mappings
+  assert.deepEqual(parseCaretStyle('block'), {
+    shape: CARET_SHAPES.BLOCK,
+    blink: false
+  });
+  assert.deepEqual(parseCaretStyle('blink-block'), {
+    shape: CARET_SHAPES.BLOCK,
+    blink: true
+  });
+  assert.deepEqual(parseCaretStyle('ibeam'), {
+    shape: CARET_SHAPES.IBEAM,
+    blink: false
+  });
+  assert.deepEqual(parseCaretStyle('blink-ibeam'), {
+    shape: CARET_SHAPES.IBEAM,
+    blink: true
+  });
+  assert.deepEqual(parseCaretStyle('half-block'), {
+    shape: CARET_SHAPES.HALF_BLOCK,
+    blink: false
+  });
+  assert.deepEqual(parseCaretStyle('blink-half-block'), {
+    shape: CARET_SHAPES.HALF_BLOCK,
+    blink: true
+  });
+
+  // Serialization preserves single saved preference format
+  assert.equal(serializeCaretStyle(CARET_SHAPES.UNDERLINE, true), 'blink');
+  assert.equal(serializeCaretStyle(CARET_SHAPES.UNDERLINE, false), 'underline');
+  assert.equal(
+    serializeCaretStyle(CARET_SHAPES.HALF_BLOCK, true),
+    'blink-reverse'
+  );
+  assert.equal(serializeCaretStyle(CARET_SHAPES.HALF_BLOCK, false), 'reverse');
+  assert.equal(serializeCaretStyle(CARET_SHAPES.BLOCK, true), 'blink-block');
+  assert.equal(serializeCaretStyle(CARET_SHAPES.BLOCK, false), 'block');
+  assert.equal(serializeCaretStyle(CARET_SHAPES.IBEAM, true), 'blink-ibeam');
+  assert.equal(serializeCaretStyle(CARET_SHAPES.IBEAM, false), 'ibeam');
 });
 
 test('TermBuf puts handles bell (\\x07), setting bellOccurred and dispatching bell event', () => {

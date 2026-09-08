@@ -21,38 +21,34 @@
   display: none;
 }
 
-#cursor.cursor--blink {
-  display: none;
-  background-color: transparent;
-  mix-blend-mode: normal;
-}
-
-.blink--active #cursor.cursor--blink,
-.blink--active #cursor:not(.cursor--underline):not(.cursor--reverse):not(.cursor--blink-reverse) {
-  display: block;
-}
-
 #cursor.cursor--underline {
   display: block;
   background-color: transparent;
   mix-blend-mode: normal;
+  pointer-events: none;
 }
 
-#cursor.cursor--reverse {
+#cursor.cursor--reverse,
+#cursor.cursor--half-block,
+#cursor.cursor--block,
+#cursor.cursor--ibeam {
   display: block;
   background-color: #ffffff;
   mix-blend-mode: difference;
   pointer-events: none;
 }
 
+#cursor.cursor--blink,
 #cursor.cursor--blink-reverse {
   display: none;
-  background-color: #ffffff;
-  mix-blend-mode: difference;
-  pointer-events: none;
 }
 
+.blink--active #cursor.cursor--blink,
 .blink--active #cursor.cursor--blink-reverse {
+  display: block;
+}
+
+.blink--active #cursor:not(.cursor--underline):not(.cursor--reverse):not(.cursor--half-block):not(.cursor--block):not(.cursor--ibeam):not(.cursor--blink-reverse) {
   display: block;
 }
 

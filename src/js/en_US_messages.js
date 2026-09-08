@@ -161,7 +161,25 @@ export const en_US = {
     message: "Appearance",
   },
   options_cursorStyle: {
-    message: "Cursor style",
+    message: "Caret style",
+  },
+  options_caretStyle: {
+    message: "Caret style",
+  },
+  options_caretIbeam: {
+    message: "I-beam (vertical line)",
+  },
+  options_caretBlock: {
+    message: "Block (solid)",
+  },
+  options_caretHalfBlock: {
+    message: "Half-block",
+  },
+  options_caretUnderline: {
+    message: "Underline",
+  },
+  options_caretBlink: {
+    message: "Blink Caret",
   },
   options_cursorBlink: {
     message: "Blinking underline",

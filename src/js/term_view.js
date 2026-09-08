@@ -629,32 +629,57 @@ export class TermView {
       'cursor--blink',
       'cursor--underline',
       'cursor--reverse',
-      'cursor--blink-reverse'
+      'cursor--blink-reverse',
+      'cursor--block',
+      'cursor--half-block',
+      'cursor--ibeam'
     );
 
-    const isBlock = style === 'reverse' || style === 'blink-reverse';
-    const blockHeight = isBlock ? Math.round(this.chh / 2) : 0;
+    const isBlink = style === 'blink' || style.startsWith('blink-') || style.endsWith('-blink');
+    let shape = 'underline';
+    if (style === 'ibeam' || style === 'blink-ibeam') {
+      shape = 'ibeam';
+    } else if (style === 'block' || style === 'blink-block') {
+      shape = 'block';
+    } else if (style === 'half-block' || style === 'blink-half-block' || style === 'reverse' || style === 'blink-reverse') {
+      shape = 'half-block';
+    } else {
+      shape = 'underline';
+    }
 
-    if (style === 'reverse') {
-      this.cursor.classList.add('cursor--reverse');
-      this.cursor.textContent = '';
-      if (this.chw) this.cursor.style.width = this.chw + 'px';
-      if (blockHeight) this.cursor.style.height = blockHeight + 'px';
-    } else if (style === 'blink-reverse') {
-      this.cursor.classList.add('cursor--blink-reverse');
-      this.cursor.textContent = '';
-      if (this.chw) this.cursor.style.width = this.chw + 'px';
-      if (blockHeight) this.cursor.style.height = blockHeight + 'px';
-    } else if (style === 'underline') {
+    if (isBlink) {
+      this.cursor.classList.add('cursor--blink');
+      if (shape === 'half-block') {
+        this.cursor.classList.add('cursor--blink-reverse');
+      }
+    }
+
+    if (shape === 'underline') {
       this.cursor.classList.add('cursor--underline');
       this.cursor.textContent = '_';
       this.cursor.style.width = '';
       this.cursor.style.height = '0px';
+    } else if (shape === 'ibeam') {
+      this.cursor.classList.add('cursor--ibeam');
+      this.cursor.textContent = '';
+      const ibeamWidth = Math.max(2, Math.round((this.chw || 12) / 8));
+      if (this.chw) this.cursor.style.width = ibeamWidth + 'px';
+      if (this.chh) this.cursor.style.height = this.chh + 'px';
+    } else if (shape === 'block') {
+      this.cursor.classList.add('cursor--block');
+      this.cursor.textContent = '';
+      if (this.chw) this.cursor.style.width = this.chw + 'px';
+      if (this.chh) this.cursor.style.height = this.chh + 'px';
     } else {
-      this.cursor.classList.add('cursor--blink');
-      this.cursor.textContent = '_';
-      this.cursor.style.width = '';
-      this.cursor.style.height = '0px';
+      // half-block
+      this.cursor.classList.add('cursor--half-block');
+      if (!isBlink) {
+        this.cursor.classList.add('cursor--reverse');
+      }
+      this.cursor.textContent = '';
+      const blockHeight = Math.round(this.chh / 2);
+      if (this.chw) this.cursor.style.width = this.chw + 'px';
+      if (blockHeight) this.cursor.style.height = blockHeight + 'px';
     }
   }
 
@@ -679,16 +704,41 @@ export class TermView {
       this.cursor.style.transformOrigin = 'left top';
     }
 
-    const isBlock = this.cursorStyle === 'reverse' || this.cursorStyle === 'blink-reverse';
-    const blockHeight = isBlock ? Math.round(this.chh / 2) : 0;
-    const topOffset = isBlock ? ((this.chh - blockHeight) * this.scaleY) : -this.scaleY;
+    const style = this.cursorStyle || 'blink';
+    let shape = 'underline';
+    if (style === 'ibeam' || style === 'blink-ibeam') {
+      shape = 'ibeam';
+    } else if (style === 'block' || style === 'blink-block') {
+      shape = 'block';
+    } else if (style === 'half-block' || style === 'blink-half-block' || style === 'reverse' || style === 'blink-reverse') {
+      shape = 'half-block';
+    } else {
+      shape = 'underline';
+    }
 
-    this.cursor.style.left = pos[0] + 'px';
-    this.cursor.style.top = (pos[1] + topOffset) + 'px';
-    if (isBlock) {
+    if (shape === 'block') {
+      this.cursor.style.left = pos[0] + 'px';
+      this.cursor.style.top = pos[1] + 'px';
+      if (this.chw) this.cursor.style.width = this.chw + 'px';
+      if (this.chh) this.cursor.style.height = this.chh + 'px';
+    } else if (shape === 'half-block') {
+      const blockHeight = Math.round(this.chh / 2);
+      const topOffset = (this.chh - blockHeight) * this.scaleY;
+      this.cursor.style.left = pos[0] + 'px';
+      this.cursor.style.top = (pos[1] + topOffset) + 'px';
       if (this.chw) this.cursor.style.width = this.chw + 'px';
       if (blockHeight) this.cursor.style.height = blockHeight + 'px';
+    } else if (shape === 'ibeam') {
+      const ibeamWidth = Math.max(2, Math.round((this.chw || 12) / 8));
+      this.cursor.style.left = pos[0] + 'px';
+      this.cursor.style.top = pos[1] + 'px';
+      if (this.chw) this.cursor.style.width = ibeamWidth + 'px';
+      if (this.chh) this.cursor.style.height = this.chh + 'px';
     } else {
+      // underline
+      const topOffset = -this.scaleY;
+      this.cursor.style.left = pos[0] + 'px';
+      this.cursor.style.top = (pos[1] + topOffset) + 'px';
       this.cursor.style.color = termInvColors[bg];
     }
     this.updateInputBufferPos();

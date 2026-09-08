@@ -160,7 +160,25 @@ export const zh_TW = {
     message: "介面",
   },
   options_cursorStyle: {
-    message: "游標樣式",
+    message: "文字游標 (Caret) 樣式",
+  },
+  options_caretStyle: {
+    message: "文字游標 (Caret) 樣式",
+  },
+  options_caretIbeam: {
+    message: "垂直線",
+  },
+  options_caretBlock: {
+    message: "實心方塊",
+  },
+  options_caretHalfBlock: {
+    message: "半高方塊",
+  },
+  options_caretUnderline: {
+    message: "底線",
+  },
+  options_caretBlink: {
+    message: "閃爍游標 (Blink Caret)",
   },
   options_cursorBlink: {
     message: "閃爍底線",

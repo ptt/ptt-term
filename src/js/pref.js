@@ -106,3 +106,55 @@ export const updatePrefs = (patch) => {
 export const updatePref = (key, value) => {
   return updatePrefs({ [key]: value });
 };
+
+export const CARET_SHAPES = {
+  IBEAM: "ibeam",
+  BLOCK: "block",
+  HALF_BLOCK: "half-block",
+  UNDERLINE: "underline",
+};
+
+/**
+ * Parse a cursorStyle preference string into shape and blink boolean.
+ * Backward compatible with legacy strings: 'blink', 'underline', 'reverse', 'blink-reverse'.
+ * @param {string} style
+ * @returns {{ shape: string, blink: boolean }}
+ */
+export function parseCaretStyle(style) {
+  if (!style) {
+    return { shape: CARET_SHAPES.UNDERLINE, blink: true };
+  }
+  const s = String(style).toLowerCase();
+  const blink = s === "blink" || s.startsWith("blink-") || s.endsWith("-blink");
+  let shape = CARET_SHAPES.UNDERLINE;
+  if (s.includes("ibeam") || s.includes("i-beam") || s.includes("bar")) {
+    shape = CARET_SHAPES.IBEAM;
+  } else if (
+    s.includes("half-block") ||
+    s.includes("reverse") ||
+    s.includes("half")
+  ) {
+    shape = CARET_SHAPES.HALF_BLOCK;
+  } else if (s.includes("block")) {
+    shape = CARET_SHAPES.BLOCK;
+  } else if (s.includes("underline") || s === "blink") {
+    shape = CARET_SHAPES.UNDERLINE;
+  }
+  return { shape, blink };
+}
+
+/**
+ * Serialize caret shape and blink boolean into a single cursorStyle string.
+ * @param {string} shape
+ * @param {boolean} blink
+ * @returns {string}
+ */
+export function serializeCaretStyle(shape, blink) {
+  if (blink) {
+    if (shape === CARET_SHAPES.UNDERLINE) return "blink";
+    if (shape === CARET_SHAPES.HALF_BLOCK) return "blink-reverse";
+    return `blink-${shape}`;
+  }
+  if (shape === CARET_SHAPES.HALF_BLOCK) return "reverse";
+  return shape;
+}

@@ -10,6 +10,8 @@ import {
   getDefaultPrefs,
   readValuesWithDefault,
   writeValues,
+  parseCaretStyle,
+  serializeCaretStyle,
 } from "../../js/pref";
 import { getAvailablePlugins } from "../../plugins/index.js";
 
@@ -226,6 +228,22 @@ export class PrefModal extends React.Component {
     }));
   };
 
+  handleCaretShapeChange = ({ target: { value: shape } }) => {
+    const { blink } = parseCaretStyle(this.state.values.cursorStyle);
+    const newStyle = serializeCaretStyle(shape, blink);
+    this.setState((prevState) => ({
+      values: changeNestedValue(prevState.values, "cursorStyle", newStyle),
+    }));
+  };
+
+  handleCaretBlinkChange = ({ target: { checked: blink } }) => {
+    const { shape } = parseCaretStyle(this.state.values.cursorStyle);
+    const newStyle = serializeCaretStyle(shape, blink);
+    this.setState((prevState) => ({
+      values: changeNestedValue(prevState.values, "cursorStyle", newStyle),
+    }));
+  };
+
   getPlugins() {
     const { app } = this.props;
     return getAvailablePlugins(app);
@@ -244,6 +262,9 @@ export class PrefModal extends React.Component {
               (window.matchMedia &&
                 (window.matchMedia('(pointer: coarse)').matches ||
                   window.matchMedia('(max-width: 768px)').matches)))
+    );
+    const { shape: caretShape, blink: caretBlink } = parseCaretStyle(
+      values.cursorStyle
     );
 
     return (
@@ -429,26 +450,34 @@ export class PrefModal extends React.Component {
                   </label>
                   <select
                     className="form-control"
-                    name="cursorStyle"
-                    value={values.cursorStyle || "blink"}
-                    onChange={this.handleTextInputChange}
+                    name="caretShape"
+                    value={caretShape}
+                    onChange={this.handleCaretShapeChange}
                   >
-                    <option key="options_cursorBlink" value="blink">
-                      {i18n("options_cursorBlink")}
+                    <option key="options_caretIbeam" value="ibeam">
+                      {i18n("options_caretIbeam")}
                     </option>
-                    <option key="options_cursorUnderline" value="underline">
-                      {i18n("options_cursorUnderline")}
+                    <option key="options_caretBlock" value="block">
+                      {i18n("options_caretBlock")}
                     </option>
-                    <option key="options_cursorReverse" value="reverse">
-                      {i18n("options_cursorReverse")}
+                    <option key="options_caretHalfBlock" value="half-block">
+                      {i18n("options_caretHalfBlock")}
                     </option>
-                    <option
-                      key="options_cursorBlinkReverse"
-                      value="blink-reverse"
-                    >
-                      {i18n("options_cursorBlinkReverse")}
+                    <option key="options_caretUnderline" value="underline">
+                      {i18n("options_caretUnderline")}
                     </option>
                   </select>
+                </div>
+                <div className="checkbox" id="caretBlink">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="caretBlink"
+                      checked={caretBlink}
+                      onChange={this.handleCaretBlinkChange}
+                    />
+                    {i18n("options_caretBlink")}
+                  </label>
                 </div>
                 <div className="form-group" id="termMargin">
                   <label className="control-label">
