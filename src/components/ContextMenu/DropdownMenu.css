@@ -1,40 +1,90 @@
-/* Boostrap overrides -- BEGIN */
+/* macOS Translucent Acrylic Context Menu */
+.DropdownMenu--reset {
+  visibility: hidden;
+  user-select: none;
+  min-width: 180px;
+  padding: 5px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(25px) saturate(190%);
+  -webkit-backdrop-filter: blur(25px) saturate(190%);
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.22),
+    0 3px 8px rgba(0, 0, 0, 0.08);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "PingFang TC", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.DropdownMenu--reset > li {
+  position: relative;
+}
+
 .DropdownMenu--reset > li > a {
-  padding: 3px 20px 3px 30px;
+  display: flex;
+  align-items: center;
+  padding: 4px 10px 4px 26px;
   cursor: default;
   user-select: none;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #1d1d1f;
+  border-radius: 5px;
+  margin: 1px 0;
+  text-decoration: none;
+  transition:
+    background-color 0.1s ease,
+    color 0.1s ease;
 }
 
 .DropdownMenu--reset > li > a:hover,
 .DropdownMenu--reset > li > a:focus {
-  color: white;
-  background-color: #428bca;
+  color: #ffffff;
+  background-color: #007aff;
+  text-decoration: none;
+  outline: none;
 }
 
 .DropdownMenu--reset > li > a:hover span,
 .DropdownMenu--reset > li > a:focus span {
-  color: white;
-}
-/* Boostrap overrides -- END */
-
-.DropdownMenu--reset {
-  visibility: hidden;
-  user-select: none;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .DropdownMenu__Item__HotKey {
-  float: right;
-  font-size: 14px;
+  margin-left: auto;
+  padding-left: 16px;
+  font-size: 12px;
   font-weight: 400;
-  line-height: 1.42857143;
-  color: #aaa;
-  margin-left: 15px;
+  line-height: 1.4;
+  color: #86868b;
+  text-align: right;
+  letter-spacing: -0.01em;
 }
 
 .DropdownMenu__Item--checked::before {
   content: "✓";
-  font-weight: bold;
+  font-weight: 600;
   position: absolute;
-  left: 10px;
-  color: black;
+  left: 9px;
+  top: 4px;
+  font-size: 12px;
+  color: #1d1d1f;
+  line-height: 1.4;
+  pointer-events: none;
+  z-index: 2;
 }
+
+.DropdownMenu__Item--checked:hover::before,
+.DropdownMenu__Item--checked:focus-within::before {
+  color: #ffffff;
+}
+
+.DropdownMenu--reset .divider {
+  height: 1px;
+  margin: 4px 6px;
+  overflow: hidden;
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
