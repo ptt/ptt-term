@@ -16,8 +16,8 @@ const DEFINE_INPUT_BUFFER_SIZE = 12;
 export class TermView {
   constructor() {
   //new pref - start
-  this.bbsWidth = 0;
-  this.bbsHeight = 0;
+  this.termWidth = 0;
+  this.termHeight = 0;
   this.dbcsDetect = true;
   this.highlightBG = 2;
   this._charset = 'big5';
@@ -47,10 +47,10 @@ export class TermView {
   });
   //new pref - end
 
-  this.bbsViewMargin = 0;
+  this.viewMargin = 0;
 
   this.buf = null;
-  this.bbscore = null;
+  this.app = null;
   this.page = null;
 
   // Cursor
@@ -59,8 +59,8 @@ export class TermView {
 
   // TODO Move this into easy_reading.js
   this._useEasyReadingMode = false;
-  this.easyReadingKeyDownKeyCode = 0;
-  this.easyReadingKeyDownIsComposing = false;
+  this._easyReadingKeyDownKeyCode = 0;
+  this._easyReadingKeyDownIsComposing = false;
 
   this.curRow = 0;
   this.curCol = 0;
@@ -83,8 +83,8 @@ export class TermView {
 
   this.selection = null;
   this.input = document.getElementById('t');
-  this.bbsCursor = document.getElementById('cursor');
-  this.BBSWin = document.getElementById('BBSWindow');
+  this.cursor = document.getElementById('cursor');
+  this.termWin = document.getElementById('TermWindow');
   this.cursorStyle = 'blink';
   this.enablePicPreview = true;
   this.picPreviewWhitelistOnly = true;
@@ -107,7 +107,7 @@ export class TermView {
 
   const mainDisplay = document.createElement('div');
   mainDisplay.setAttribute('class', 'main');
-  this.BBSWin.appendChild(mainDisplay);
+  this.termWin.appendChild(mainDisplay);
   this.mainDisplay = mainDisplay;
 
   const screenContainer = document.createElement('div');
@@ -125,12 +125,12 @@ export class TermView {
 
   this.input.addEventListener('compositionstart', (e) => {
     this.onCompositionStart(e);
-    this.bbscore.setInputAreaFocus();
+    this.app.setInputAreaFocus();
   }, false);
 
   this.input.addEventListener('compositionend', (e) => {
     this.onCompositionEnd(e);
-    this.bbscore.setInputAreaFocus();
+    this.app.setInputAreaFocus();
     // Some browsers fire another input event after composition; some not.
     // The strategy here is to ignore the inputs during composition.
     // Instead, we pull all input text at composition end, and clear input text.
@@ -138,7 +138,7 @@ export class TermView {
     this.onInput(e);
   }, false);
 
-  let shouldAcceptInput = () => !this.bbscore.modalShown && !this.bbscore.contextMenuShown;
+  let shouldAcceptInput = () => !this.app.modalShown && !this.app.contextMenuShown;
   let keyEventFilter = (e) => {
     // On both Mac and Windows, control/alt+key will be sent as original key
     // code even under IME.
@@ -170,7 +170,7 @@ export class TermView {
       return;
 
     // disable auto update pushthread if any command is issued;
-    if (!e.altKey) this.bbscore.onDisableLiveHelperModalState();
+    if (!e.altKey) this.app.onDisableLiveHelperModalState();
 
     if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || (e.keyCode > 15 && e.keyCode < 19))
       return; // Shift Ctrl Alt
@@ -185,7 +185,7 @@ export class TermView {
     if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || (e.keyCode > 15 && e.keyCode < 19))
       return; // Shift Ctrl Alt
     // set input area focus whenever key down even if there is selection
-    this.bbscore.setInputAreaFocus();
+    this.app.setInputAreaFocus();
   }, false);
 
   this.input.addEventListener('input', (e) => {
@@ -216,42 +216,42 @@ export class TermView {
   }
 
   setCore(core) {
-    this.bbscore=core;
+    this.app=core;
   }
 
   get conn() {
-    return this.bbscore ? this.bbscore.conn : null;
+    return this.app ? this.app.conn : null;
   }
 
   get charset() {
-    if (this.bbscore && this.bbscore.stream) {
-      return this.bbscore.stream.charset;
+    if (this.app && this.app.stream) {
+      return this.app.stream.charset;
     }
-    return (this.bbscore && this.bbscore.site) ? this.bbscore.site.charset : (this._charset || 'big5');
+    return (this.app && this.app.site) ? this.app.site.charset : (this._charset || 'big5');
   }
 
   set charset(val) {
     this._charset = val;
-    if (this.bbscore && this.bbscore.stream) {
-      this.bbscore.stream.charset = val;
+    if (this.app && this.app.stream) {
+      this.app.stream.charset = val;
     }
-    if (this.bbscore && this.bbscore.site) {
-      this.bbscore.site.charset = val;
+    if (this.app && this.app.site) {
+      this.app.site.charset = val;
     }
   }
 
   _send(data) {
-    if (this.bbscore && this.bbscore.stream)
-      this.bbscore.stream.send(data);
-    else if (this.bbscore && this.bbscore.conn)
-      this.bbscore.conn.send(data);
+    if (this.app && this.app.stream)
+      this.app.stream.send(data);
+    else if (this.app && this.app.conn)
+      this.app.conn.send(data);
   }
 
   _convSend(data) {
-    if (this.bbscore && this.bbscore.stream)
-      this.bbscore.stream.send(data);
-    else if (this.bbscore && this.bbscore.conn)
-      this.bbscore.conn.convSend(data);
+    if (this.app && this.app.stream)
+      this.app.stream.send(data);
+    else if (this.app && this.app.conn)
+      this.app.conn.convSend(data);
   }
 
   setFontFace(fontFace) {
@@ -322,9 +322,9 @@ export class TermView {
           nowHighlight: this.buf.nowHighlight,
           buf: this.buf,
           charset: this.charset,
-          copyOnSelect: this.bbscore.copyOnSelect,
-          doCopy: this.bbscore.doCopy.bind(this.bbscore),
-          setInputAreaFocus: this.bbscore.setInputAreaFocus.bind(this.bbscore),
+          copyOnSelect: this.app.copyOnSelect,
+          doCopy: this.app.doCopy.bind(this.app),
+          setInputAreaFocus: this.app.setInputAreaFocus.bind(this.app),
           fpsMeter: this.fpsMeter,
           smoothAnsiArt: this.smoothAnsiArt,
           changedRows: changedRows,
@@ -339,8 +339,8 @@ export class TermView {
         this.fpsMeter.recordFrame(performance.now() - t0, false);
       }
 
-      if (this.bbscore?.easyReading) {
-        this.bbscore.easyReading.updatePage(changedLineHtmlStrs);
+      if (this.app?.easyReading) {
+        this.app.easyReading.updatePage(changedLineHtmlStrs);
       } else if (this.useEasyReadingMode) {
         if (this.buf.startedEasyReading && this.buf.easyReadingShowReplyText) {
           this.updateEasyReadingReplyRow(changedLineHtmlStrs[changedLineHtmlStrs.length-1]);
@@ -368,12 +368,14 @@ export class TermView {
   }
 
   updateHighlightColor() {
-    this.BBSWin.style.setProperty('--highlightBG', termColors[this.highlightBG]);
-    //this.BBSWin.style.setProperty('--highlightFG', termColors[this.highlightFG]);
+    if (this.termWin && this.termWin.style) {
+      this.termWin.style.setProperty('--highlightBG', termColors[this.highlightBG]);
+      //this.termWin.style.setProperty('--highlightFG', termColors[this.highlightFG]);
+    }
   }
 
   onInput(e) {
-    if (this.bbscore.modalShown || this.bbscore.contextMenuShown)
+    if (this.app.modalShown || this.app.contextMenuShown)
       return;
     if (this.isComposition) {
       // beginning chrome 55, we no longer can update input buffer width on compositionupdate
@@ -382,12 +384,7 @@ export class TermView {
       return;
     }
 
-    const isEasyReadingPrompt = this.bbscore?.easyReading?.isPromptActive?.() ??
-      (this.buf?.easyReadingShowReplyText || this.buf?.easyReadingShowPushInitText || false);
-    if (this.isEasyReadingActive() && 
-        !isEasyReadingPrompt &&
-        (this.easyReadingKeyDownIsComposing || this.easyReadingKeyDownKeyCode == 229) && e.target.value != 'X') { // only use on chinese IME
-      e.target.value = '';
+    if (this.app?.dispatchTextInput?.(e)) {
       return;
     }
     if (e.target.value) {
@@ -414,14 +411,8 @@ export class TermView {
   }
 
   onKeyDown(e) {
-    const isEasyReadingPrompt = this.bbscore?.easyReading?.isPromptActive?.() ??
-      (this.buf?.easyReadingShowReplyText || this.buf?.easyReadingShowPushInitText || false);
-    if (this.isEasyReadingActive() && !isEasyReadingPrompt) {
-      this.easyReadingKeyDownKeyCode = e.keyCode;
-      this.easyReadingKeyDownIsComposing = e.isComposing || e.key === 'Process' || e.keyCode === 229;
-      this.bbscore.easyReading._onKeyDown(e);
-      if (e.defaultPrevented)
-        return;
+    if (this.app?.dispatchKeyDown?.(e)) {
+      return;
     }
 
     // TODO: Move this. Make a key event mapper.
@@ -429,9 +420,9 @@ export class TermView {
     if (!e.ctrlKey && !e.altKey) {
       switch (e.key) {
         case 'End': //End
-          if ((this.bbscore.buf.pageState == 2 || this.bbscore.buf.pageState == 3) &&
-            this.bbscore.endTurnsOnLiveUpdate) {
-            this.bbscore.onToggleLiveHelperModalState();
+          if ((this.app.buf.pageState == 2 || this.app.buf.pageState == 3) &&
+            this.app.endTurnsOnLiveUpdate) {
+            this.app.onToggleLiveHelperModalState();
             stop = true;
           }
           break;
@@ -441,20 +432,20 @@ export class TermView {
         case 'c': {
           const selectedText = this.getSelectedText();
           if (selectedText) { //^C , do copy
-            this.bbscore.doCopy(selectedText);
+            this.app.doCopy(selectedText);
             stop = true;
           }
           break;
         }
         case 'a':
-          this.bbscore.doSelectAll();
+          this.app.doSelectAll();
           stop = true;
           break;
       }
     } else if (e.ctrlKey && !e.altKey && e.shiftKey) {
       switch (e.key.toLowerCase()) {
         case 'V':
-          this.bbscore.doPaste();
+          this.app.doPaste();
           stop = true;
           break;
       }
@@ -475,10 +466,10 @@ export class TermView {
     this.chh = ch;
     const fontSize = this.chh + 'px';
     const mainWidth = (this.chw * this.buf.cols + 10) + 'px';
-    if (this.BBSWin && this.BBSWin.style) {
-      this.BBSWin.style.setProperty('--term-font-size', fontSize);
-      this.BBSWin.style.setProperty('--term-chw', this.chw + 'px');
-      this.BBSWin.style.setProperty('--term-chh', this.chh + 'px');
+    if (this.termWin && this.termWin.style) {
+      this.termWin.style.setProperty('--term-font-size', fontSize);
+      this.termWin.style.setProperty('--term-chw', this.chw + 'px');
+      this.termWin.style.setProperty('--term-chh', this.chh + 'px');
     }
     this.mainDisplay.style.fontSize = fontSize;
     this.mainDisplay.style.lineHeight = fontSize;
@@ -486,8 +477,8 @@ export class TermView {
       this.easyReadingOverlay.style.fontSize = fontSize;
       this.easyReadingOverlay.style.lineHeight = fontSize;
     }
-    this.bbsCursor.style.fontSize = fontSize;
-    this.bbsCursor.style.lineHeight = fontSize;
+    this.cursor.style.fontSize = fontSize;
+    this.cursor.style.lineHeight = fontSize;
     this.applyCursorStyle();
     this.mainDisplay.style.overflowX = 'hidden';
     this.mainDisplay.style.overflowY = 'hidden';
@@ -511,7 +502,7 @@ export class TermView {
     }
     this.mainDisplay.style.transform = scaleCss;
 
-    this.firstGridOffset = this.bbscore.getFirstGridOffsets();
+    this.firstGridOffset = this.app.getFirstGridOffsets();
 
     this.updateReverseScaleCss();
     this.updateCursorPos();
@@ -544,10 +535,10 @@ export class TermView {
     if (!this.mainDisplay) return;
     const innerBounds = this.innerBounds || { width: 0, height: 0 };
     const totalHeight = this.chh * (this.buf ? this.buf.rows : 24);
-    let baseMarginTop = this.bbsViewMargin || 0;
+    let baseMarginTop = this.viewMargin || 0;
     if (totalHeight < innerBounds.height) {
       baseMarginTop =
-        (innerBounds.height - totalHeight) / 2 + (this.bbsViewMargin || 0);
+        (innerBounds.height - totalHeight) / 2 + (this.viewMargin || 0);
     }
     const curPanY = this.panY || 0;
     this.mainDisplay.style.marginTop = `${baseMarginTop - curPanY}px`;
@@ -568,8 +559,8 @@ export class TermView {
       Math.min(maxPanY, Math.round(py != null ? py : this.panY || 0))
     );
     this.updateMainDisplayMargin();
-    if (this.bbscore) {
-      this.firstGridOffset = this.bbscore.getFirstGridOffsets();
+    if (this.app) {
+      this.firstGridOffset = this.app.getFirstGridOffsets();
     }
     this.updateCursorPos();
   }
@@ -582,11 +573,11 @@ export class TermView {
     this.setPan(0, 0);
   }
   updateReverseScaleCss() {
-    if (this.BBSWin && this.BBSWin.style) {
+    if (this.termWin && this.termWin.style) {
       const revScaleX = Math.floor((1 / this.scaleX) * 100) / 100;
       const revScaleY = Math.floor((1 / this.scaleY) * 100) / 100;
-      this.BBSWin.style.setProperty('--preview-scale-x', revScaleX);
-      this.BBSWin.style.setProperty('--preview-scale-y', revScaleY);
+      this.termWin.style.setProperty('--preview-scale-x', revScaleX);
+      this.termWin.style.setProperty('--preview-scale-y', revScaleY);
     }
   }
 
@@ -595,7 +586,7 @@ export class TermView {
     const w = this.innerBounds.width;
     const h = this.innerBounds.height;
     if(this.scaleX!=1 || this.scaleY!=1)
-      origin = [((w - (this.chw*this.buf.cols+10)*this.scaleX)/2) + this.bbsViewMargin, ((h - (this.chh*this.buf.rows)*this.scaleY)/2) + this.bbsViewMargin];
+      origin = [((w - (this.chw*this.buf.cols+10)*this.scaleX)/2) + this.viewMargin, ((h - (this.chh*this.buf.rows)*this.scaleY)/2) + this.viewMargin];
     else
       origin = [this.firstGridOffset.left, this.firstGridOffset.top];
     const realX = origin[0] + (cx) * this.chw * this.scaleX;
@@ -633,13 +624,13 @@ export class TermView {
   }
 
   applyCursorStyle() {
-    if (!this.bbsCursor) {
-      this.bbsCursor = (typeof document !== 'undefined') ? document.getElementById('cursor') : null;
+    if (!this.cursor) {
+      this.cursor = (typeof document !== 'undefined') ? document.getElementById('cursor') : null;
     }
-    if (!this.bbsCursor) return;
+    if (!this.cursor) return;
 
     const style = this.cursorStyle || 'blink';
-    this.bbsCursor.classList.remove(
+    this.cursor.classList.remove(
       'cursor--blink',
       'cursor--underline',
       'cursor--reverse',
@@ -650,30 +641,30 @@ export class TermView {
     const blockHeight = isBlock ? Math.round(this.chh / 2) : 0;
 
     if (style === 'reverse') {
-      this.bbsCursor.classList.add('cursor--reverse');
-      this.bbsCursor.textContent = '';
-      if (this.chw) this.bbsCursor.style.width = this.chw + 'px';
-      if (blockHeight) this.bbsCursor.style.height = blockHeight + 'px';
+      this.cursor.classList.add('cursor--reverse');
+      this.cursor.textContent = '';
+      if (this.chw) this.cursor.style.width = this.chw + 'px';
+      if (blockHeight) this.cursor.style.height = blockHeight + 'px';
     } else if (style === 'blink-reverse') {
-      this.bbsCursor.classList.add('cursor--blink-reverse');
-      this.bbsCursor.textContent = '';
-      if (this.chw) this.bbsCursor.style.width = this.chw + 'px';
-      if (blockHeight) this.bbsCursor.style.height = blockHeight + 'px';
+      this.cursor.classList.add('cursor--blink-reverse');
+      this.cursor.textContent = '';
+      if (this.chw) this.cursor.style.width = this.chw + 'px';
+      if (blockHeight) this.cursor.style.height = blockHeight + 'px';
     } else if (style === 'underline') {
-      this.bbsCursor.classList.add('cursor--underline');
-      this.bbsCursor.textContent = '_';
-      this.bbsCursor.style.width = '';
-      this.bbsCursor.style.height = '0px';
+      this.cursor.classList.add('cursor--underline');
+      this.cursor.textContent = '_';
+      this.cursor.style.width = '';
+      this.cursor.style.height = '0px';
     } else {
-      this.bbsCursor.classList.add('cursor--blink');
-      this.bbsCursor.textContent = '_';
-      this.bbsCursor.style.width = '';
-      this.bbsCursor.style.height = '0px';
+      this.cursor.classList.add('cursor--blink');
+      this.cursor.textContent = '_';
+      this.cursor.style.width = '';
+      this.cursor.style.height = '0px';
     }
   }
 
   updateCursorPos() {
-    if (!this.bbsCursor) return;
+    if (!this.cursor) return;
     const pos = this.convertMN2XYEx(this.buf.cur_x, this.buf.cur_y);
     // if you want to set cursor color by now background, use this.
     if (this.buf.cur_y >= this.buf.rows || this.buf.cur_x >= this.buf.cols)
@@ -685,25 +676,25 @@ export class TermView {
     const bg = ch ? ch.getBg() : 0;
 
     if (this.scaleX == 1 && this.scaleY == 1) {
-      this.bbsCursor.style.transform = 'none';
+      this.cursor.style.transform = 'none';
     } else {
       const scaleCss = 'scale('+this.scaleX+','+this.scaleY+')';
       this.mainDisplay.style.transform = scaleCss;
-      this.bbsCursor.style.transform = scaleCss;
-      this.bbsCursor.style.transformOrigin = 'left top';
+      this.cursor.style.transform = scaleCss;
+      this.cursor.style.transformOrigin = 'left top';
     }
 
     const isBlock = this.cursorStyle === 'reverse' || this.cursorStyle === 'blink-reverse';
     const blockHeight = isBlock ? Math.round(this.chh / 2) : 0;
     const topOffset = isBlock ? ((this.chh - blockHeight) * this.scaleY) : -this.scaleY;
 
-    this.bbsCursor.style.left = pos[0] + 'px';
-    this.bbsCursor.style.top = (pos[1] + topOffset) + 'px';
+    this.cursor.style.left = pos[0] + 'px';
+    this.cursor.style.top = (pos[1] + topOffset) + 'px';
     if (isBlock) {
-      if (this.chw) this.bbsCursor.style.width = this.chw + 'px';
-      if (blockHeight) this.bbsCursor.style.height = blockHeight + 'px';
+      if (this.chw) this.cursor.style.width = this.chw + 'px';
+      if (blockHeight) this.cursor.style.height = blockHeight + 'px';
     } else {
-      this.bbsCursor.style.color = termInvColors[bg];
+      this.cursor.style.color = termInvColors[bg];
     }
     this.updateInputBufferPos();
   }
@@ -722,15 +713,15 @@ export class TermView {
         }
       }
       const innerBounds = this.innerBounds;
-      const bbswinheight = innerBounds.height;
-      const bbswinwidth = innerBounds.width;
-      if(bbswinheight < pos[1] + parseFloat(this.input.style.height) + this.chh)
+      const termwinheight = innerBounds.height;
+      const termwinwidth = innerBounds.width;
+      if(termwinheight < pos[1] + parseFloat(this.input.style.height) + this.chh)
         this.input.style.top = (pos[1] - parseFloat(this.input.style.height) - this.chh)+ 4 +'px';
       else
         this.input.style.top = (pos[1] + this.chh) +'px';
 
-      if(bbswinwidth < pos[0] + parseFloat(this.input.style.width))
-        this.input.style.left = bbswinwidth - parseFloat(this.input.style.width)- 10 +'px';
+      if(termwinwidth < pos[0] + parseFloat(this.input.style.width))
+        this.input.style.left = termwinwidth - parseFloat(this.input.style.width)- 10 +'px';
       else
         this.input.style.left = pos[0] +'px';
 
@@ -777,8 +768,8 @@ export class TermView {
     const rows = this.buf ? this.buf.rows : 24;
 
     {
-      let width = this.bbsWidth ? this.bbsWidth : this.innerBounds.width;
-      let height = this.bbsHeight ? this.bbsHeight : this.innerBounds.height;
+      let width = this.termWidth ? this.termWidth : this.innerBounds.width;
+      let height = this.termHeight ? this.termHeight : this.innerBounds.height;
       if (width === 0 || height === 0) return; // errors for openning in a new window
       width -= 10; // for scroll bar
 
@@ -808,8 +799,8 @@ export class TermView {
 
   calcTermSizeFromFont(fontSizePx) {
     fontSizePx = Math.floor((fontSizePx + 1) / 2) * 2;
-    let width = this.bbsWidth ? this.bbsWidth : this.innerBounds.width;
-    let height = this.bbsHeight ? this.bbsHeight : this.innerBounds.height;
+    let width = this.termWidth ? this.termWidth : this.innerBounds.width;
+    let height = this.termHeight ? this.termHeight : this.innerBounds.height;
     let cols = Math.max(80, Math.min(200, Math.floor(2 * (width - 10) / fontSizePx)));
     let rows = Math.max(24, Math.min(100, Math.floor(height / fontSizePx)));
     return this.buf.site.clampTermSize(cols, rows);
@@ -818,8 +809,8 @@ export class TermView {
   calcFontSizeFromTerm(termCols, termRows) {
     termCols = Math.max(80, Math.min(200, termCols));
     termRows = Math.max(24, Math.min(100, termRows));
-    let width = this.bbsWidth ? this.bbsWidth : this.innerBounds.width;
-    let height = this.bbsHeight ? this.bbsHeight : this.innerBounds.height;
+    let width = this.termWidth ? this.termWidth : this.innerBounds.width;
+    let height = this.termHeight ? this.termHeight : this.innerBounds.height;
     let sizeX = Math.floor(2 * (width - 10) / termCols);
     let sizeY = Math.floor(height / termRows);
     return Math.min(sizeX, sizeY);
@@ -828,7 +819,7 @@ export class TermView {
   getRowLineElement(node) {
     for (let r = node; r && r != r.parentNode; r = r.parentNode) {
       if (r instanceof Element &&
-        r.getAttribute('data-type') == 'bbsline') {
+        r.getAttribute('data-type') == 'termline') {
         return r;
       }
     }
@@ -867,16 +858,14 @@ export class TermView {
   }
 
   getSelectedText() {
-    if (this.bbscore.connLog.hasSelection()) {
+    if (this.app?.connLog?.hasSelection?.()) {
       if (!window.getSelection().isCollapsed) {
         return window.getSelection().toString();
       }
     }
-    if (this.isEasyReadingActive()) {
-      if (!window.getSelection().isCollapsed) {
-        return window.getSelection().toString().replace(/\u00a0/g, " ");
-      }
-      return '';
+    const interceptorText = this.app?.getInterceptorSelectedText?.();
+    if (interceptorText !== null && interceptorText !== undefined) {
+      return interceptorText;
     }
     if (this.useCanvasEngine) {
       if (this.componentScreen) {
@@ -921,8 +910,9 @@ export class TermView {
   }
 
   getSelectionColRow() {
-    if (this.isEasyReadingActive()) {
-      return null;
+    const interceptorColRow = this.app?.getInterceptorSelectionColRow?.();
+    if (interceptorColRow !== undefined) {
+      return interceptorColRow;
     }
     if (this.useCanvasEngine) {
       if (this.componentScreen) {
@@ -941,8 +931,7 @@ export class TermView {
   }
 
   selectAll() {
-    if (this.isEasyReadingActive()) {
-      window.getSelection().selectAllChildren(this.easyReadingContent);
+    if (this.app?.dispatchSelectAll?.()) {
       return;
     }
     if (this.useCanvasEngine) {
@@ -958,7 +947,7 @@ export class TermView {
     if (!this.enableNotifications) {
       return;
     }
-    const app = this.bbscore;
+    const app = this.app;
     //console.log('message from ' + this.waterball.userId + ': ' + this.waterball.message); 
     const title = app.waterball.userId + ' ' + i18n('notification_said');
     if (this.titleTimer) {
@@ -1013,98 +1002,114 @@ export class TermView {
   }
 
   get useEasyReadingMode() {
-    return this.bbscore?.easyReading ? this.bbscore.easyReading.enabled : (this._easyReading ? this._easyReading.enabled : this._useEasyReadingMode);
+    return this.app?.easyReading ? this.app.easyReading.enabled : (this._easyReading ? this._easyReading.enabled : this._useEasyReadingMode);
   }
   set useEasyReadingMode(val) {
-    if (this.bbscore?.easyReading) {
-      this.bbscore.easyReading.enabled = val;
+    if (this.app?.easyReading) {
+      this.app.easyReading.enabled = val;
     } else if (this._easyReading) {
       this._easyReading.enabled = val;
     }
     this._useEasyReadingMode = val;
   }
 
+  get easyReadingKeyDownKeyCode() {
+    return this.app?.easyReading?._keyDownKeyCode ?? this._easyReadingKeyDownKeyCode ?? 0;
+  }
+  set easyReadingKeyDownKeyCode(val) {
+    if (this.app?.easyReading) this.app.easyReading._keyDownKeyCode = val;
+    this._easyReadingKeyDownKeyCode = val;
+  }
+
+  get easyReadingKeyDownIsComposing() {
+    return this.app?.easyReading?._keyDownIsComposing ?? this._easyReadingKeyDownIsComposing ?? false;
+  }
+  set easyReadingKeyDownIsComposing(val) {
+    if (this.app?.easyReading) this.app.easyReading._keyDownIsComposing = val;
+    this._easyReadingKeyDownIsComposing = val;
+  }
+
   get easyReadingOverlay() {
-    return this.bbscore?.easyReading?.overlay || this._easyReadingOverlay || null;
+    return this.app?.easyReading?.overlay || this._easyReadingOverlay || null;
   }
   set easyReadingOverlay(val) {
     this._easyReadingOverlay = val;
   }
 
   get easyReadingContent() {
-    return this.bbscore?.easyReading?.content || this._easyReadingContent || null;
+    return this.app?.easyReading?.content || this._easyReadingContent || null;
   }
   set easyReadingContent(val) {
     this._easyReadingContent = val;
   }
 
   get easyReadingFooter() {
-    return this.bbscore?.easyReading?.footer || this._easyReadingFooter || null;
+    return this.app?.easyReading?.footer || this._easyReadingFooter || null;
   }
   set easyReadingFooter(val) {
     this._easyReadingFooter = val;
   }
 
   get lastRowDiv() {
-    return this.bbscore?.easyReading?.lastRowDiv || this._lastRowDiv || null;
+    return this.app?.easyReading?.lastRowDiv || this._lastRowDiv || null;
   }
   set lastRowDiv(val) {
     this._lastRowDiv = val;
   }
 
   get replyRowDiv() {
-    return this.bbscore?.easyReading?.replyRowDiv || this._replyRowDiv || null;
+    return this.app?.easyReading?.replyRowDiv || this._replyRowDiv || null;
   }
   set replyRowDiv(val) {
     this._replyRowDiv = val;
   }
 
   get actualRowIndex() {
-    return this.bbscore?.easyReading?.actualRowIndex ?? this._actualRowIndex ?? 0;
+    return this.app?.easyReading?.actualRowIndex ?? this._actualRowIndex ?? 0;
   }
   set actualRowIndex(val) {
-    if (this.bbscore?.easyReading) {
-      this.bbscore.easyReading.actualRowIndex = val;
+    if (this.app?.easyReading) {
+      this.app.easyReading.actualRowIndex = val;
     }
     this._actualRowIndex = val;
   }
 
   isEasyReadingActive() {
-    if (this.bbscore?.easyReading) {
-      return this.bbscore.easyReading.isActive();
+    if (this.app?.easyReading) {
+      return this.app.easyReading.isActive();
     }
     return !!(this.easyReadingOverlay && this.easyReadingOverlay.style.display !== 'none');
   }
 
   showEasyReading() {
-    if (this.bbscore?.easyReading) {
-      this.bbscore.easyReading.show();
+    if (this.app?.easyReading) {
+      this.app.easyReading.show();
       return;
     }
     if (this.easyReadingOverlay) {
       this.easyReadingOverlay.style.display = 'block';
     }
-    if (this.bbscore) {
-      this.bbscore.lastEasyReadingWheelTime = 0;
-      this.bbscore.lastEasyReadingHideTime = 0;
+    if (this.app) {
+      this.app.lastEasyReadingWheelTime = 0;
+      this.app.lastEasyReadingHideTime = 0;
     }
   }
 
   populateEasyReadingPage() {
-    if (this.bbscore?.easyReading) {
-      this.bbscore.easyReading.populatePage();
+    if (this.app?.easyReading) {
+      this.app.easyReading.populatePage();
     }
   }
 
   updateEasyReadingProgress() {
-    if (this.bbscore?.easyReading) {
-      this.bbscore.easyReading.updateProgress();
+    if (this.app?.easyReading) {
+      this.app.easyReading.updateProgress();
     }
   }
 
   clearRows() {
-    if (this.bbscore?.easyReading) {
-      this.bbscore.easyReading.clearRows();
+    if (this.app?.easyReading) {
+      this.app.easyReading.clearRows();
       return;
     }
     if (this.easyReadingContent) {
@@ -1113,8 +1118,8 @@ export class TermView {
   }
 
   appendRows(lines, showsLinkPreview) {
-    if (this.bbscore?.easyReading) {
-      this.bbscore.easyReading.appendRows(lines, showsLinkPreview);
+    if (this.app?.easyReading) {
+      this.app.easyReading.appendRows(lines, showsLinkPreview);
       return;
     }
   }
@@ -1125,23 +1130,23 @@ export class TermView {
 
   renderSingleRow(target, row) {
     const el = document.createElement('span');
-    el.setAttribute('type', 'bbsrow');
+    el.setAttribute('type', 'termrow');
     el.setAttribute('srow', '0');
     target.appendChild(el);
     return renderRowHtml(row, 0, this.chh, false, el);
   }
 
   hideEasyReading() {
-    if (this.bbscore?.easyReading) {
-      this.bbscore.easyReading.hide();
+    if (this.app?.easyReading) {
+      this.app.easyReading.hide();
       return;
     }
     if (this.easyReadingOverlay) {
       this.easyReadingOverlay.style.display = 'none';
     }
-    if (this.bbscore) {
-      this.bbscore.lastEasyReadingHideTime = Date.now();
-      this.bbscore.suppressInertialWheel?.();
+    if (this.app) {
+      this.app.lastEasyReadingHideTime = Date.now();
+      this.app.suppressInertialWheel?.();
     }
     this.clearRows();
     if (this.lastRowDiv) {
@@ -1157,15 +1162,15 @@ export class TermView {
   }
 
   updateEasyReadingReplyRow(row) {
-    if (this.bbscore?.easyReading) {
-      this.bbscore.easyReading.updateReplyRow(row);
+    if (this.app?.easyReading) {
+      this.app.easyReading.updateReplyRow(row);
       return;
     }
   }
 
   updateEasyReadingPushInitRow(row) {
-    if (this.bbscore?.easyReading) {
-      this.bbscore.easyReading.updatePushInitRow(row);
+    if (this.app?.easyReading) {
+      this.app.easyReading.updatePushInitRow(row);
       return;
     }
   }

@@ -9,7 +9,7 @@ export const Row = ({
   onHyperLinkMouseOver,
   onHyperLinkMouseOut,
 }) => (
-  <span type="bbsrow" srow={row}>
+  <span type="termrow" srow={row}>
     {chars
       .reduce(
         LinkSegmentBuilder.accumulator,

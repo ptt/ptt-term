@@ -409,15 +409,15 @@ export class PrefModal extends React.Component {
                     </option>
                   </select>
                 </div>
-                <div className="form-group" id="bbsMargin">
+                <div className="form-group" id="termMargin">
                   <label className="control-label">
-                    {i18n("options_bbsMargin")}
+                    {i18n("options_termMargin")}
                   </label>
                   <input
                     className="form-control"
-                    name="bbsMargin"
+                    name="termMargin"
                     type="number"
-                    value={values.bbsMargin}
+                    value={values.termMargin ?? 0}
                     onChange={this.handleNumberInputChange}
                   />
                 </div>

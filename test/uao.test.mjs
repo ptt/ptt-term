@@ -23,7 +23,7 @@ test('initUAO initializes Big5 tables and applies UAO 2.50 patches', () => {
   assert.equal(b2uTable[0xc77c], 0x30a2);
   assert.equal(u2bTable[0x30a2], 0xc77c);
 
-  // 3. Special BBS drawing symbols in UAO
+  // 3. Special drawing symbols in UAO
   // ★ = U+2605 -> 0xa1b9
   assert.equal(b2uTable[0xa1b9], 0x2605);
   assert.equal(u2bTable[0x2605], 0xa1b9);

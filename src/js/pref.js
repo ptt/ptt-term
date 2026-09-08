@@ -31,7 +31,7 @@ export const DEFAULT_PREFS = {
   maxFontSize: 999,
   termSize: { cols: 80, rows: 24 },
   termSizeMode: "max-font-size",
-  bbsMargin: 0,
+  termMargin: 0,
 };
 
 export const PREF_STORAGE_KEY = "pttchrome.pref.v1";

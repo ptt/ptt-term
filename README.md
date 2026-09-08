@@ -1,6 +1,7 @@
 # ptt-term
 
-An HTML5-based web client for connecting to ANSI terminal-based BBS sites.
+An HTML5-based web client for connecting to ANSI terminal-based sites
+(especially finetuned for Taiwan BBS sites).
 This repository contains the source code running behind
 [term.ptt.cc](https://term.ptt.cc/) and [term.ptt2.cc](https://term.ptt2.cc/).
 

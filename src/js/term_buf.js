@@ -316,7 +316,7 @@ export class TermBuf extends Event {
       this.lines[r] = line;
       //this.keyWordLine[rows]=false;
     }
-    this.BBSWin = document.getElementById('BBSWindow');
+    this.termWin = document.getElementById('TermWindow');
     this.titleBase = process.env.APP_TITLE;
     this.titleSite = null;
     this.titleConn = null;
@@ -1512,8 +1512,8 @@ export class TermBuf extends Event {
       break;
     }
 
-    if (this.BBSWin && this.BBSWin.style) {
-      this.BBSWin.style.cursor = mouseCursorMap[this.mouseCursor];
+    if (this.termWin && this.termWin.style) {
+      this.termWin.style.cursor = mouseCursorMap[this.mouseCursor];
     }
   }
 

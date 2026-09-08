@@ -48,7 +48,7 @@ test('E2E Build: Vite production build succeeds and generates complete PWA distr
   assert.ok(html.includes('manifest.webmanifest'), 'HTML must link to Web App Manifest');
   assert.ok(html.includes('icon-192.png'), 'HTML must link to apple-touch-icon');
   assert.ok(html.includes('id="cmenuReact"'), 'Missing context menu root');
-  assert.ok(html.includes('id="BBSWindow"'), 'Missing BBSWindow container');
+  assert.ok(html.includes('id="TermWindow"'), 'Missing TermWindow container');
   assert.ok(html.includes('id="t"'), 'Missing hidden input area');
   assert.ok(html.includes('id="fpsOverlay"'), 'Missing FPS overlay');
   assert.ok(html.includes('id="connLogOverlay"'), 'Missing Connection Log overlay');
@@ -73,7 +73,7 @@ test('E2E Build: Vite production build succeeds and generates complete PWA distr
       { encoding: 'utf-8', timeout: 10000 }
     );
 
-    assert.ok(renderedHtml.includes('id="BBSWindow"'), 'BBSWindow element missing in browser DOM');
+    assert.ok(renderedHtml.includes('id="TermWindow"'), 'TermWindow element missing in browser DOM');
     assert.ok(renderedHtml.includes('id="cmenuReact"'), 'Context menu element missing in browser DOM');
     assert.ok(renderedHtml.includes('WebSocket Terminal'), 'Page title missing in browser DOM');
   }

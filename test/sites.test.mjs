@@ -471,7 +471,7 @@ test('AutoSite replaces termBuf.site and app.site on lock and proxies calls tran
     cols: 80,
     rows: 24,
     site: auto,
-    view: { bbscore: mockApp },
+    view: { app: mockApp },
     getRowText: (r) => (r === 0 ? '【主功能表】 批踢踢實業坊' : ''),
   };
 
@@ -1244,6 +1244,169 @@ test('EasyReading decouples state tracking and removes TermBuf property injectio
   easyReading.hide();
   assert.deepEqual(easyReading.pageLines, []);
   assert.deepEqual(easyReading.pageWrappedLines, []);
+});
+
+test('EasyReading and App input interceptor pipeline decouples navigation, wheel, keydown, and text input', () => {
+  const sent = [];
+  const mockCore = {
+    inputInterceptors: [],
+    site: {
+      getThreadCommand: (type) => (type === 'prevThread' ? '\x1b[D\x1b[A\x1b[C' : '\x1b[D\x1b[B\x1b[C'),
+    },
+    send: (data) => sent.push(data),
+    suppressInertialWheel: (duration) => { mockCore.lastSuppressedDuration = duration; },
+  };
+
+  mockCore.registerInputInterceptor = (interceptor) => {
+    if (!interceptor || mockCore.inputInterceptors.includes(interceptor)) return;
+    mockCore.inputInterceptors.push(interceptor);
+  };
+  mockCore.unregisterInputInterceptor = (interceptor) => {
+    const idx = mockCore.inputInterceptors.indexOf(interceptor);
+    if (idx !== -1) mockCore.inputInterceptors.splice(idx, 1);
+  };
+  mockCore.dispatchNavCmd = (cmd) => {
+    for (const interceptor of mockCore.inputInterceptors) {
+      if (interceptor.handleNavCmd?.(cmd)) return true;
+    }
+    return false;
+  };
+  mockCore.dispatchWheel = (e) => {
+    for (const interceptor of mockCore.inputInterceptors) {
+      if (interceptor.handleWheel) {
+        const res = interceptor.handleWheel(e);
+        if (res) return res;
+      }
+    }
+    return false;
+  };
+  mockCore.dispatchKeyDown = (e) => {
+    for (const interceptor of mockCore.inputInterceptors) {
+      if (interceptor.handleKeyDown?.(e)) return true;
+      if (e.defaultPrevented) return true;
+    }
+    return false;
+  };
+  mockCore.dispatchTextInput = (e) => {
+    for (const interceptor of mockCore.inputInterceptors) {
+      if (interceptor.handleTextInput?.(e)) return true;
+    }
+    return false;
+  };
+  mockCore.getInterceptorSelectedText = () => {
+    for (const interceptor of mockCore.inputInterceptors) {
+      if (interceptor.getSelectedText) {
+        const text = interceptor.getSelectedText();
+        if (text !== undefined && text !== null) return text;
+      }
+    }
+    return null;
+  };
+  mockCore.getInterceptorSelectionColRow = () => {
+    for (const interceptor of mockCore.inputInterceptors) {
+      if (interceptor.getSelectionColRow) {
+        const res = interceptor.getSelectionColRow();
+        if (res !== undefined) return res;
+      }
+    }
+    return undefined;
+  };
+  mockCore.dispatchSelectAll = () => {
+    for (const interceptor of mockCore.inputInterceptors) {
+      if (interceptor.selectAll?.()) return true;
+    }
+    return false;
+  };
+  mockCore.hasActiveInputInterceptor = () => {
+    for (const interceptor of mockCore.inputInterceptors) {
+      if (interceptor.isActive?.()) return true;
+    }
+    return false;
+  };
+
+  const mockTermBuf = {
+    site: mockCore.site,
+    addEventListener: () => {},
+  };
+  const mockView = {
+    useEasyReadingMode: true,
+    chh: 16,
+    conn: { send: (d) => sent.push(d) },
+  };
+
+  const easyReading = new EasyReading(mockCore, mockView, mockTermBuf);
+  assert.ok(mockCore.inputInterceptors.includes(easyReading));
+
+  // 1. Inactive: interceptor returns false / undefined
+  assert.equal(easyReading.isActive(), false);
+  assert.equal(mockCore.hasActiveInputInterceptor(), false);
+  assert.equal(mockCore.dispatchNavCmd('doArrowUp'), false);
+  assert.equal(mockCore.dispatchWheel({ deltaY: 100 }), false);
+  assert.equal(mockCore.getInterceptorSelectedText(), null);
+  assert.equal(mockCore.getInterceptorSelectionColRow(), undefined);
+  assert.equal(mockCore.dispatchSelectAll(), false);
+
+  // 2. Active mode
+  easyReading._overlay = { style: { display: 'block' } };
+  easyReading._content = { scrollTop: 0, scrollHeight: 500, clientHeight: 200 };
+  easyReading.enabled = true;
+  easyReading.started = true;
+  assert.equal(easyReading.isActive(), true);
+  assert.equal(mockCore.hasActiveInputInterceptor(), true);
+
+  // Wheel handling when active: returns true and updates lastWheelTime
+  const wheelRes = mockCore.dispatchWheel({ deltaY: 50 });
+  assert.equal(wheelRes, true);
+  assert.ok(easyReading.lastWheelTime > 0);
+
+  // Navigation commands when active
+  // doArrowDown: scrollable, scrolls by 1 line (16px) and returns true without sending terminal keys
+  const navDown = mockCore.dispatchNavCmd('doArrowDown');
+  assert.equal(navDown, true);
+  assert.equal(easyReading._content.scrollTop, 16);
+  assert.equal(sent.length, 0);
+
+  // doArrowUp: scrollable (scrollTop=16), scrolls up by 1 line to 0
+  const navUp = mockCore.dispatchNavCmd('doArrowUp');
+  assert.equal(navUp, true);
+  assert.equal(easyReading._content.scrollTop, 0);
+  assert.equal(sent.length, 0);
+
+  // doArrowUp again at scrollTop=0: cannot scroll further, leaves current post and sends escape sequence
+  const navUpBoundary = mockCore.dispatchNavCmd('doArrowUp');
+  assert.equal(navUpBoundary, true);
+  assert.deepEqual(sent, ['\x1b[D\x1b[A\x1b[C']);
+  sent.length = 0;
+
+  // previousThread / nextThread
+  mockCore.dispatchNavCmd('nextThread');
+  assert.deepEqual(sent, ['\x1b[D\x1b[B\x1b[C']);
+  sent.length = 0;
+
+  // KeyDown and text input handling (Chinese IME composition suppression)
+  const keyDownEvent = { keyCode: 229, isComposing: true, defaultPrevented: false, preventDefault() { this.defaultPrevented = true; } };
+  mockCore.dispatchKeyDown(keyDownEvent);
+  assert.equal(easyReading._keyDownKeyCode, 229);
+  assert.equal(easyReading._keyDownIsComposing, true);
+
+  const textInputEvent = { target: { value: '注' } };
+  const inputHandled = mockCore.dispatchTextInput(textInputEvent);
+  assert.equal(inputHandled, true);
+  assert.equal(textInputEvent.target.value, ''); // Swallowed composition string!
+
+  // Selection col/row is null during easy reading (grid coordinates suppressed)
+  assert.equal(mockCore.getInterceptorSelectionColRow(), null);
+
+  // Wheel suppression upon exit
+  easyReading.hide();
+  assert.equal(easyReading.isActive(), false);
+  // Recently scrolled in EasyReading: dispatchWheel returns 'suppress'
+  const suppressedWheel = mockCore.dispatchWheel({ deltaY: 50 });
+  assert.equal(suppressedWheel, 'suppress');
+
+  // Unregister interceptor
+  mockCore.unregisterInputInterceptor(easyReading);
+  assert.equal(mockCore.inputInterceptors.includes(easyReading), false);
 });
 
 

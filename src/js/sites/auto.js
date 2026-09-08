@@ -76,8 +76,9 @@ export class AutoSite extends BaseSite {
       this.isLocked = true;
       if (termBuf && termBuf.rows > 24) {
         console.log(`[AutoSite] Clamping terminal rows from ${termBuf.rows} to 24`);
-        if (termBuf.view && termBuf.view.bbscore && termBuf.view.bbscore.resizer) {
-          termBuf.view.bbscore.resizer();
+        const app = termBuf.view && (termBuf.view.app || termBuf.view.bbscore);
+        if (app && app.resizer) {
+          app.resizer();
         } else if (termBuf.resize) {
           termBuf.resize(termBuf.cols, 24);
           if (termBuf.view) {
@@ -96,7 +97,7 @@ export class AutoSite extends BaseSite {
 
     if (termBuf) {
       termBuf.site = this.detectedSite;
-      const app = termBuf.view && termBuf.view.bbscore;
+      const app = termBuf.view && (termBuf.view.app || termBuf.view.bbscore);
       if (app) {
         app.site = this.detectedSite;
         if (app.conn) {

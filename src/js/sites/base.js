@@ -83,7 +83,7 @@ export class BaseSite {
   }
 
   /**
-   * Get the effective status/last row number for this BBS.
+   * Get the effective status/last row number for this site.
    * @param {TermBuf} termBuf 
    * @returns {number} 0-based row index
    */

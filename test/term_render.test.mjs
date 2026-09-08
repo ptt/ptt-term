@@ -343,7 +343,7 @@ test('TermView cursorStyle handles blink, reverse, and blink-reverse styles', ()
   };
 
   const mockView = {
-    bbsCursor: mockCursor,
+    cursor: mockCursor,
     chw: 12,
     chh: 24,
     scaleX: 1,
@@ -475,7 +475,7 @@ test('TermBuf puts handles bell (\\x07), setting bellOccurred and dispatching be
   assert.equal(bellSoundPlayed, 1);
 });
 
-test('TermView _send, _convSend and conn getter delegate to bbscore.conn', () => {
+test('TermView _send, _convSend and conn getter delegate to app.conn', () => {
   const connMatch = termViewSource.match(/get conn\(\)\s*\{([\s\S]*?\n  )\}/);
   const sendMatch = termViewSource.match(/_send\(data\)\s*\{([\s\S]*?\n  )\}/);
   const convSendMatch = termViewSource.match(
@@ -497,7 +497,7 @@ test('TermView _send, _convSend and conn getter delegate to bbscore.conn', () =>
     }
   };
   const mockView = {
-    bbscore: { conn: mockConn }
+    app: { conn: mockConn }
   };
   Object.defineProperty(mockView, 'conn', {
     get: new Function(connMatch[1])
@@ -1009,9 +1009,9 @@ test('TermView handles horizontal and vertical pan offsets and bounds clamping',
     chh: 24,
     buf: { cols: 80, rows: 24, cur_x: 0, cur_y: 0 },
     innerBounds: { width: 400, height: 700 },
-    bbsViewMargin: 0,
+    viewMargin: 0,
     mainDisplay: dummyMain,
-    bbscore: dummyApp,
+    app: dummyApp,
     panX: 0,
     panY: 0,
     cursorPos: null,
@@ -1038,10 +1038,10 @@ test('TermView handles horizontal and vertical pan offsets and bounds clamping',
   mockView.updateMainDisplayMargin = function () {
     if (!this.mainDisplay) return;
     const totalHeight = this.chh * (this.buf ? this.buf.rows : 24);
-    let baseMarginTop = this.bbsViewMargin || 0;
+    let baseMarginTop = this.viewMargin || 0;
     if (totalHeight < this.innerBounds.height) {
       baseMarginTop =
-        (this.innerBounds.height - totalHeight) / 2 + (this.bbsViewMargin || 0);
+        (this.innerBounds.height - totalHeight) / 2 + (this.viewMargin || 0);
     }
     const curPanY = this.panY || 0;
     this.mainDisplay.style.marginTop = `${baseMarginTop - curPanY}px`;
@@ -1060,7 +1060,7 @@ test('TermView handles horizontal and vertical pan offsets and bounds clamping',
       Math.min(maxPanY, Math.round(py != null ? py : this.panY || 0))
     );
     this.updateMainDisplayMargin();
-    this.firstGridOffset = this.bbscore.getFirstGridOffsets();
+    this.firstGridOffset = this.app.getFirstGridOffsets();
     this.updateCursorPos();
   };
   mockView.panBy = function (deltaX = 0, deltaY = 0) {
@@ -1161,7 +1161,7 @@ test('TouchController handles horizontal and vertical pan gestures without firin
 
 test('TouchController handles 2-finger pinch gesture to zoom font and 2-finger pan', () => {
   const listeners = {};
-  const mockBBSWin = {
+  const mockTermWin = {
     style: {},
     addEventListener(type, fn) {
       listeners[type] = fn;
@@ -1178,7 +1178,7 @@ test('TouchController handles 2-finger pinch gesture to zoom font and 2-finger p
   let panX = 0;
   let panY = 0;
   const mockApp = {
-    BBSWin: mockBBSWin,
+    termWin: mockTermWin,
     zoomFont(delta) {
       zoomDelta += delta;
     },
@@ -1261,7 +1261,7 @@ test('TouchController handles 2-finger pinch gesture to zoom font and 2-finger p
 
 test('TouchController handles 1-finger drag selection and auto-copies on release', () => {
   const listeners = {};
-  const mockBBSWin = {
+  const mockTermWin = {
     style: {},
     addEventListener(type, fn) {
       listeners[type] = fn;
@@ -1279,7 +1279,7 @@ test('TouchController handles 1-finger drag selection and auto-copies on release
   let copiedText = null;
 
   const mockApp = {
-    BBSWin: mockBBSWin,
+    termWin: mockTermWin,
     doCopy(text) {
       copiedText = text;
     },
@@ -1362,7 +1362,7 @@ test('TouchController prevents default on touch pointerdown and blurs inputArea 
       blurred = true;
     }
   };
-  const mockBBSWin = {
+  const mockTermWin = {
     style: {},
     addEventListener(type, fn) {
       listeners[type] = fn;
@@ -1371,7 +1371,7 @@ test('TouchController prevents default on touch pointerdown and blurs inputArea 
     setPointerCapture() {}
   };
   const mockApp = {
-    BBSWin: mockBBSWin,
+    termWin: mockTermWin,
     buf: { highlightCursor: false },
     inputArea: mockInputArea,
     view: null,
@@ -2307,7 +2307,7 @@ test('TouchKeyboard uses term.touchui.* localStorage keys for persistence', () =
 
 test('TouchController suppresses native contextmenu events on touch', () => {
   const listeners = {};
-  const mockBBSWin = {
+  const mockTermWin = {
     style: {},
     addEventListener(type, fn) {
       listeners[type] = fn;
@@ -2318,14 +2318,14 @@ test('TouchController suppresses native contextmenu events on touch', () => {
   };
   let menuOpened = false;
   const mockApp = {
-    BBSWin: mockBBSWin,
+    termWin: mockTermWin,
     openContextMenu() {
       menuOpened = true;
     }
   };
 
   const controller = new TouchController(mockApp);
-  assert.ok(typeof listeners.contextmenu === 'function', 'Should attach contextmenu listener on BBSWin');
+  assert.ok(typeof listeners.contextmenu === 'function', 'Should attach contextmenu listener on termWin');
 
   let prevented = false;
   let stopped = false;
@@ -2504,4 +2504,10 @@ test('DropdownMenu and ContextMenu guard against ghost clicks and position clear
   );
 });
 
-
+test('App setNavCmd dispatches navigation commands and replaces legacy setBBSCmd', () => {
+  const currentAppSource = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+  assert.ok(!currentAppSource.includes('setBBSCmd'), 'App must not contain legacy setBBSCmd');
+  assert.ok(currentAppSource.includes('setNavCmd(cmd)'), 'App should declare setNavCmd(cmd)');
+  assert.ok(currentAppSource.includes('this.setNavCmd(action)'), 'App wheel handler should call setNavCmd');
+  assert.ok(currentAppSource.includes("this.setNavCmd('doEnter')"), 'App left click handler should call setNavCmd');
+});

@@ -109,9 +109,9 @@ export class ContextMenu extends React.Component {
 
     this.contextMenuHandler = (event) => {
       if (!this.isInstanceActive()) {
-        const bbsWindow = document.getElementById("BBSWindow");
-        if (bbsWindow) {
-          bbsWindow.removeEventListener(
+        const termWindow = document.getElementById("TermWindow");
+        if (termWindow) {
+          termWindow.removeEventListener(
             "contextmenu",
             this.contextMenuHandler,
             true
@@ -121,9 +121,9 @@ export class ContextMenu extends React.Component {
       }
       this.handleContextMenu(event);
     };
-    const bbsWindow = document.getElementById("BBSWindow");
-    if (bbsWindow) {
-      bbsWindow.addEventListener("contextmenu", this.contextMenuHandler, true);
+    const termWindow = document.getElementById("TermWindow");
+    if (termWindow) {
+      termWindow.addEventListener("contextmenu", this.contextMenuHandler, true);
     }
 
     this.handleResizeOrTouch = () => {
@@ -248,9 +248,9 @@ export class ContextMenu extends React.Component {
     window.removeEventListener("keyup", this.hotKeyUpHandler, false);
     window.removeEventListener("touchstart", this.touchStartHandler, false);
     window.removeEventListener("click", this.clickHandler, false);
-    const bbsWindow = document.getElementById("BBSWindow");
-    if (bbsWindow) {
-      bbsWindow.removeEventListener(
+    const termWindow = document.getElementById("TermWindow");
+    if (termWindow) {
+      termWindow.removeEventListener(
         "contextmenu",
         this.contextMenuHandler,
         true

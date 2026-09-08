@@ -57,7 +57,7 @@ export class TouchController {
 
   setupHandlers() {
     const app = this.app;
-    const target = app.BBSWin;
+    const target = app.termWin;
     if (!target) return;
 
     target.style.touchAction = "none";
@@ -249,7 +249,7 @@ export class TouchController {
           });
           app.buf.nowHighlight = -1;
           app.buf.highlightCursor = this.highlightCopy;
-          app.BBSWin.style.cursor = "auto";
+          if (target && target.style) target.style.cursor = "auto";
         }
       } else {
         e.preventDefault();
@@ -263,7 +263,7 @@ export class TouchController {
         app.onMouse_click(e);
         app.buf.nowHighlight = -1;
         app.buf.highlightCursor = this.highlightCopy;
-        app.BBSWin.style.cursor = "auto";
+        if (target && target.style) target.style.cursor = "auto";
         console.debug("pointer tap (touch)");
       }
 
@@ -298,7 +298,7 @@ export class TouchController {
       if (app.buf && app.buf.highlightCursor) {
         app.buf.nowHighlight = -1;
         app.buf.highlightCursor = this.highlightCopy;
-        app.BBSWin.style.cursor = "auto";
+        if (target && target.style) target.style.cursor = "auto";
       }
 
       if (this.pointers.size === 0) {

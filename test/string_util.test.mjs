@@ -26,7 +26,7 @@ test('b2u and u2b round-trip standard Big5 characters', () => {
   assert.equal(u2b(uWen), big5Wen);
 });
 
-test('b2u decodes BBS box-drawing characters and common Big5 symbols correctly', () => {
+test('b2u decodes terminal box-drawing characters and common Big5 symbols correctly', () => {
   const cases = [
     { big5: '\xa2\x77', expected: '─' },
     { big5: '\xa2\x7a', expected: '┌' },

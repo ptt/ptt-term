@@ -61,10 +61,10 @@ test('AnsiParser feeds plain text', () => {
   const term = new MockTermBuf();
   const parser = new AnsiParser(term);
 
-  parser.feed('Hello BBS');
+  parser.feed('Hello Term');
   // Parser flushes text on escape or when fed; in text state, it appends to s
-  parser.feed('\x1b[0m'); // ESC flushes 'Hello BBS'
-  assert.equal(term.output.join(''), 'Hello BBS');
+  parser.feed('\x1b[0m'); // ESC flushes 'Hello Term'
+  assert.equal(term.output.join(''), 'Hello Term');
 });
 
 test('AnsiParser parses SGR color parameters', () => {
@@ -91,7 +91,7 @@ test('AnsiParser parses cursor movement commands', () => {
   assert.equal(term.cur_x, 5);
 });
 
-test('AnsiParser parses real-world ANSI BBS art fixtures without throwing', async () => {
+test('AnsiParser parses real-world ANSI art fixtures without throwing', async () => {
   const fs = await import('node:fs');
   const path = await import('node:path');
   const fixtures = ['ptt1.txt', 'ptt2.txt'];
@@ -188,7 +188,7 @@ test('AnsiParser flushes pending lead byte on non-SGR ESC sequence, control char
   assert.equal(term.output.join(''), '\xa7A\xa7\nB\xa7 ');
 });
 
-test('AnsiParser preserves real-world BBS ANSI art with mixed single-color and two-color blocks', () => {
+test('AnsiParser preserves real-world ANSI art with mixed single-color and two-color blocks', () => {
   const term = new MockTermBuf();
   const parser = new AnsiParser(term);
 

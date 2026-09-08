@@ -4,7 +4,7 @@ export const en_US = {
     description: "The title of the application, displayed in the web store.",
   },
   appDesc: {
-    message: "An HTML5 terminal client specifically designed for BBS browsing.",
+    message: "An HTML5 terminal client.",
     description:
       "The description of the application, displayed in the web store.",
   },
@@ -158,11 +158,11 @@ export const en_US = {
   options_cursorBlinkReverse: {
     message: "Reverse color half-block (blinking)",
   },
-  options_bbsMargin: {
-    message: "Margins around BBS view (px)",
+  options_termMargin: {
+    message: "Margins around terminal view (px)",
   },
   options_termSize: {
-    message: "BBS terminal size",
+    message: "Terminal size",
   },
   options_cols: {
     message: "Columns",
@@ -254,7 +254,7 @@ export const en_US = {
 
   // about page
   about_appName_subtitle: {
-    message: "An open source BBS client",
+    message: "An open source terminal client",
   },
   about_description: {
     message:
@@ -456,7 +456,7 @@ export const en_US = {
     message: "+ Add",
   },
   options_fontList_preview: {
-    message: "PTT BBS 123 ABC",
+    message: "PTT Term 123 ABC",
   },
   options_fontList_moveUp: {
     message: "Move Up",

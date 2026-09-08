@@ -30,7 +30,7 @@ async function startApp() {
   console.log("load pref from storage");
   app.onValuesPrefChange(readValuesWithDefault());
   app.setInputAreaFocus();
-  document.getElementById('BBSWindow').style.display = '';
+  document.getElementById('TermWindow').style.display = '';
   app.onWindowResize();
 }
 

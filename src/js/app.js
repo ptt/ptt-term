@@ -46,10 +46,12 @@ export class App {
   this.stream.registerFilter(this.telnetFilter);
   this.stream.registerFilter(this.ansiFilter);
   this.parser = this.ansiFilter;
+  this.inputInterceptors = [];
   this.easyReading = new EasyReading(this, this.view, this.buf);
+  this.registerInputInterceptor(this.easyReading);
   this.connLog = new ConnectionLog(this);
-  this.lastEasyReadingWheelTime = 0;
-  this.lastEasyReadingHideTime = 0;
+  this._lastEasyReadingWheelTime = 0;
+  this._lastEasyReadingHideTime = 0;
   this.suppressWheelUntil = 0;
   this.suppressWheelContinuous = false;
   this.suppressWheelStartedAt = 0;
@@ -63,10 +65,10 @@ export class App {
   //new pref - end
 
   this.inputArea = document.getElementById('t');
-  this.BBSWin = document.getElementById('BBSWindow');
+  this.termWin = document.getElementById('TermWindow');
 
-  // horizontally center bbs window
-  this.BBSWin.setAttribute("align", "center");
+  // horizontally center term window
+  this.termWin.setAttribute("align", "center");
   this.view.mainDisplay.style.transformOrigin = 'center';
 
   this.mouseLeftButtonDown = false;
@@ -175,6 +177,128 @@ export class App {
     this.inputArea.setAttribute('inputmode', 'none');
     this.inputArea.setAttribute('virtualkeyboardpolicy', 'manual');
   }
+  }
+
+  get lastEasyReadingWheelTime() {
+    return this.easyReading ? this.easyReading.lastWheelTime : (this._lastEasyReadingWheelTime || 0);
+  }
+  set lastEasyReadingWheelTime(val) {
+    if (this.easyReading) this.easyReading.lastWheelTime = val;
+    this._lastEasyReadingWheelTime = val;
+  }
+
+  get lastEasyReadingHideTime() {
+    return this.easyReading ? this.easyReading.lastHideTime : (this._lastEasyReadingHideTime || 0);
+  }
+  set lastEasyReadingHideTime(val) {
+    if (this.easyReading) this.easyReading.lastHideTime = val;
+    this._lastEasyReadingHideTime = val;
+  }
+
+  registerInputInterceptor(interceptor) {
+    if (!interceptor || this.inputInterceptors.includes(interceptor)) return;
+    this.inputInterceptors.push(interceptor);
+  }
+
+  unregisterInputInterceptor(interceptor) {
+    const idx = this.inputInterceptors.indexOf(interceptor);
+    if (idx !== -1) {
+      this.inputInterceptors.splice(idx, 1);
+    }
+  }
+
+  dispatchNavCmd(cmd) {
+    for (const interceptor of this.inputInterceptors) {
+      if (interceptor.handleNavCmd?.(cmd)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  dispatchWheel(e) {
+    for (const interceptor of this.inputInterceptors) {
+      if (interceptor.handleWheel) {
+        const res = interceptor.handleWheel(e);
+        if (res) return res;
+      }
+    }
+    return false;
+  }
+
+  dispatchMouseClick(e) {
+    for (const interceptor of this.inputInterceptors) {
+      if (interceptor.handleMouseClick?.(e)) {
+        return true;
+      }
+      if (e.defaultPrevented) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  dispatchKeyDown(e) {
+    for (const interceptor of this.inputInterceptors) {
+      if (interceptor.handleKeyDown?.(e)) {
+        return true;
+      }
+      if (e.defaultPrevented) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  dispatchTextInput(e) {
+    for (const interceptor of this.inputInterceptors) {
+      if (interceptor.handleTextInput?.(e)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  getInterceptorSelectedText() {
+    for (const interceptor of this.inputInterceptors) {
+      if (interceptor.getSelectedText) {
+        const text = interceptor.getSelectedText();
+        if (text !== undefined && text !== null) {
+          return text;
+        }
+      }
+    }
+    return null;
+  }
+
+  getInterceptorSelectionColRow() {
+    for (const interceptor of this.inputInterceptors) {
+      if (interceptor.getSelectionColRow) {
+        const res = interceptor.getSelectionColRow();
+        if (res !== undefined) {
+          return res;
+        }
+      }
+    }
+    return undefined;
+  }
+
+  dispatchSelectAll() {
+    for (const interceptor of this.inputInterceptors) {
+      if (interceptor.selectAll?.()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  hasActiveInputInterceptor() {
+    for (const interceptor of this.inputInterceptors) {
+      if (interceptor.isActive?.()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   isConnected() {
@@ -412,10 +536,13 @@ export class App {
   }
 
   isSelectionCollapsed() {
-  if (this.view.useCanvasEngine && !this.view.isEasyReadingActive()) {
-    return !this.view.getSelectionColRow();
-  }
-  return window.getSelection().isCollapsed;
+    if (this.hasActiveInputInterceptor()) {
+      return typeof window !== 'undefined' && window.getSelection ? window.getSelection().isCollapsed : true;
+    }
+    if (this.view && this.view.useCanvasEngine) {
+      return !this.view.getSelectionColRow();
+    }
+    return typeof window !== 'undefined' && window.getSelection ? window.getSelection().isCollapsed : true;
   }
 
 // FIXME: Injected when enabled. See: src/components/ContextMenu/index.js
@@ -424,21 +551,27 @@ export class App {
   onDisableLiveHelperModalState() {}
 
   switchToEasyReadingMode(doSwitch) {
-  this.easyReading.leaveCurrentPost();
-  if (doSwitch) {
-    this.onDisableLiveHelperModalState();
-    // clear the deep cloned copy of lines
-    this.buf.pageLines = [];
-    if (this.buf.pageState == 3 && (this.stream || this.conn)) {
-      const cmd = this.site.getReenterArticleCommand(this.buf);
-      this.send(cmd);
+    if (this.easyReading) {
+      this.easyReading.leaveCurrentPost();
     }
-  } else {
-    this.view.hideEasyReading();
-  }
-  // request the full screen
-  if (this.stream || this.conn)
-    this.send(unescapeStr('^L'));
+    if (doSwitch) {
+      this.onDisableLiveHelperModalState();
+      // clear the deep cloned copy of lines
+      this.buf.pageLines = [];
+      if (this.buf.pageState == 3 && (this.stream || this.conn)) {
+        const cmd = this.site.getReenterArticleCommand(this.buf);
+        this.send(cmd);
+      }
+    } else {
+      if (this.easyReading) {
+        this.easyReading.hide();
+      } else {
+        this.view.hideEasyReading();
+      }
+    }
+    // request the full screen
+    if (this.stream || this.conn)
+      this.send(unescapeStr('^L'));
   }
 
   async doCopy(str) {
@@ -469,8 +602,8 @@ export class App {
 
   const selection = this.lastSelection;
   let pageLines = null;
-  if (this.view.isEasyReadingActive() && this.buf.pageState == 3) {
-    pageLines = this.buf.pageLines;
+  if (this.hasActiveInputInterceptor() && this.buf.pageState == 3) {
+    pageLines = this.easyReading?.pageLines || this.buf.pageLines;
   }
 
   let ansiText = '';
@@ -639,7 +772,7 @@ export class App {
     this.buf.useMouseBrowsing = this.useMouseBrowsing;
 
   if (!this.buf.useMouseBrowsing) {
-    this.buf.BBSWin.style.cursor = 'auto';
+    if (this.buf.termWin) this.buf.termWin.style.cursor = 'auto';
     this.buf.clearHighlight();
     this.buf.mouseCursor=0;
     this.buf.nowHighlight=-1;
@@ -691,8 +824,8 @@ export class App {
 
 // use this method to get better window size in case of page zoom != 100%
   getWindowInnerBounds() {
-  const width = document.documentElement.clientWidth - this.view.bbsViewMargin * 2;
-  const height = document.documentElement.clientHeight - this.view.bbsViewMargin * 2;
+  const width = document.documentElement.clientWidth - (this.view.viewMargin || 0) * 2;
+  const height = document.documentElement.clientHeight - (this.view.viewMargin || 0) * 2;
   const bounds = {
     width: width,
     height: height
@@ -751,9 +884,7 @@ export class App {
   // disable auto update pushthread if any command is issued;
   this.onDisableLiveHelperModalState();
 
-  // TODO make a responder stack.
-  this.easyReading._onMouseClick(e);
-  if (e.defaultPrevented)
+  if (this.dispatchMouseClick(e))
     return;
 
   // TODO Move this to mouse browsing module.
@@ -828,7 +959,7 @@ export class App {
   }
 
   resetMouseCursor(cX, cY) {
-  this.buf.BBSWin.style.cursor = 'auto';
+  if (this.buf.termWin) this.buf.termWin.style.cursor = 'auto';
   this.buf.mouseCursor = 11;
   }
 
@@ -928,7 +1059,7 @@ export class App {
       this.buf.useMouseBrowsing = useMouseBrowsing;
 
       if (!this.buf.useMouseBrowsing) {
-        this.buf.BBSWin.style.cursor = 'auto';
+        if (this.buf.termWin) this.buf.termWin.style.cursor = 'auto';
         this.buf.clearHighlight();
         this.buf.mouseCursor = 0;
         this.buf.nowHighlight = -1;
@@ -1015,9 +1146,9 @@ export class App {
       this.view.setFontFace(fontFace);
       break;
     }
-    case 'bbsMargin': {
+    case 'termMargin': {
       const margin = value;
-      this.view.bbsViewMargin = margin;
+      this.view.viewMargin = margin;
       this.onWindowResize();
       break;
     }
@@ -1100,11 +1231,11 @@ export class App {
         }
       } else if (this.view.leftButtonFunction) {
         if (this.view.leftButtonFunction == 1) {
-          this.setBBSCmd('doEnter');
+          this.setNavCmd('doEnter');
           e.preventDefault();
           this.setInputAreaFocus();
         } else if (this.view.leftButtonFunction == 2) {
-          this.setBBSCmd('doRight');
+          this.setNavCmd('doRight');
           e.preventDefault();
           this.setInputAreaFocus();
         }
@@ -1154,14 +1285,6 @@ export class App {
     //this.setInputAreaFocus();
     if (!this.isSelectionCollapsed())
       this.skipMouseClick = true;
-
-    let onbbsarea = true;
-    if (e.target.className)
-      if (this.checkClass(e.target.className))
-        onbbsarea = false;
-    if (e.target.tagName)
-      if (e.target.tagName.indexOf("menuitem") >= 0 )
-        onbbsarea = false;
   } else if(e.button == 2) {
     this.mouseRightButtonDown = true;
   }
@@ -1196,8 +1319,8 @@ export class App {
       if (preventDefault)
         e.preventDefault();
     } else { //something has be select
-      if (this.copyOnSelect && (!this.view || !this.view.useCanvasEngine || this.view.isEasyReadingActive())) {
-        this.doCopy(this.view ? this.view.getSelectedText() : window.getSelection().toString().replace(/\u00a0/g, " "));
+      if (this.copyOnSelect && (this.hasActiveInputInterceptor() || !this.view || !this.view.useCanvasEngine)) {
+        this.doCopy(this.view ? this.view.getSelectedText() : (typeof window !== 'undefined' && window.getSelection ? window.getSelection().toString().replace(/\u00a0/g, " ") : ""));
       }
     }
     this.inputAreaFocusTimer = setTimer(false, () => {
@@ -1240,66 +1363,53 @@ export class App {
   }
 
   suppressInertialWheel(durationMs) {
-  const now = Date.now();
-  const duration = durationMs || ((this.lastEasyReadingWheelTime && (now - this.lastEasyReadingWheelTime < 1000)) ? 1200 : 300);
-  this.suppressWheelUntil = Math.max(this.suppressWheelUntil || 0, now + duration);
-  this.suppressWheelContinuous = true;
-  this.suppressWheelStartedAt = now;
-  this.wheelDeltaYAccum = 0;
+    const now = Date.now();
+    const duration = durationMs || 300;
+    this.suppressWheelUntil = Math.max(this.suppressWheelUntil || 0, now + duration);
+    this.suppressWheelContinuous = true;
+    this.suppressWheelStartedAt = now;
+    this.wheelDeltaYAccum = 0;
   }
 
   mouse_scroll(e) {
-  if (this.modalShown) 
-    return;
-  if (this.connLog && this.connLog.contains(e.target))
-    return;
+    if (this.modalShown) 
+      return;
+    if (this.connLog && this.connLog.contains(e.target))
+      return;
 
-  const now = Date.now();
-
-  // 1. If currently in Easy Reading, allow native browser scrolling within overlay
-  if (this.view.isEasyReadingActive()) {
-    this.lastEasyReadingWheelTime = now;
-    return;
-  }
-
-  // 2. Target check: if event target is still the easyReadingOverlay (e.g. while fading/hiding)
-  const isOverlayTarget = !!(this.view.easyReadingOverlay && e.target &&
-    (e.target === this.view.easyReadingOverlay || this.view.easyReadingOverlay.contains(e.target)));
-
-  // 3. Suppression check (after exiting easy reading or explicit suppression)
-  // Trackpad inertia can coast for 1-2 seconds after swiping.
-  const recentlyScrolledInEasyReading = this.lastEasyReadingWheelTime && (now - this.lastEasyReadingWheelTime < 1000);
-  const recentlyExited = this.lastEasyReadingHideTime && (now - this.lastEasyReadingHideTime < 600);
-  const isSuppressed = isOverlayTarget ||
-                     (this.suppressWheelUntil && now < this.suppressWheelUntil) ||
-                     recentlyScrolledInEasyReading ||
-                     recentlyExited;
-
-  if (isSuppressed) {
-    // If events are continuing continuously (< 200ms between events),
-    // inertia is still coasting. Extend suppression window (capped at 2500ms total).
-    if (this.lastWheelEventTime && (now - this.lastWheelEventTime < 200)) {
-      if (!this.suppressWheelStartedAt) {
-        this.suppressWheelStartedAt = now;
-      }
-      if (now - this.suppressWheelStartedAt < 2500) {
-        this.suppressWheelUntil = Math.max(this.suppressWheelUntil || 0, now + 350);
-      }
+    const interceptorHandled = this.dispatchWheel(e);
+    if (interceptorHandled === true) {
+      return;
     }
-    this.lastWheelEventTime = now;
-    this.wheelDeltaYAccum = 0;
-    e.stopPropagation();
-    e.preventDefault();
-    return;
-  }
 
-  // Suppression period ended
-  this.suppressWheelUntil = 0;
-  this.suppressWheelContinuous = false;
-  this.suppressWheelStartedAt = 0;
-  this.lastEasyReadingWheelTime = 0;
+    const now = Date.now();
+    const isSuppressed = (interceptorHandled === 'suppress') ||
+                       (this.suppressWheelUntil && now < this.suppressWheelUntil);
 
-  // 4. Normal BBS Terminal Wheel Handling with Pixel Accumulation & Throttling
+    if (isSuppressed) {
+      // If events are continuing continuously (< 200ms between events),
+      // inertia is still coasting. Extend suppression window (capped at 2500ms total).
+      if (this.lastWheelEventTime && (now - this.lastWheelEventTime < 200)) {
+        if (!this.suppressWheelStartedAt) {
+          this.suppressWheelStartedAt = now;
+        }
+        if (now - this.suppressWheelStartedAt < 2500) {
+          this.suppressWheelUntil = Math.max(this.suppressWheelUntil || 0, now + 350);
+        }
+      }
+      this.lastWheelEventTime = now;
+      this.wheelDeltaYAccum = 0;
+      e.stopPropagation();
+      e.preventDefault();
+      return;
+    }
+
+    // Suppression period ended
+    this.suppressWheelUntil = 0;
+    this.suppressWheelContinuous = false;
+    this.suppressWheelStartedAt = 0;
+
+  // 4. Normal Terminal Wheel Handling with Pixel Accumulation & Throttling
   let deltaY = e.deltaY;
   if (e.deltaMode === 1) { // DOM_DELTA_LINE
     deltaY *= 30;
@@ -1318,7 +1428,7 @@ export class App {
   this.lastWheelEventTime = now;
   this.wheelDeltaYAccum = (this.wheelDeltaYAccum || 0) + deltaY;
 
-  // Threshold in pixels before triggering 1 BBS step
+  // Threshold in pixels before triggering 1 terminal step
   const threshold = Math.max(35, this.view.chh || 35);
 
   if (Math.abs(this.wheelDeltaYAccum) < threshold) {
@@ -1327,7 +1437,7 @@ export class App {
     return;
   }
 
-  // Rate limit BBS commands: at least 60ms between commands to avoid telnet buffer queueing
+  // Rate limit terminal commands: at least 60ms between commands to avoid telnet buffer queueing
   if (this.lastWheelCmdTime && (now - this.lastWheelCmdTime < 60)) {
     e.stopPropagation();
     e.preventDefault();
@@ -1353,24 +1463,24 @@ export class App {
   if (isScrollUp) {
     if (this.mouseRightButtonDown) {
       const action = mouseWheelActionsUp[this.view.mouseWheelFunction2];
-      this.setBBSCmd(action);
+      this.setNavCmd(action);
     } else if (this.mouseLeftButtonDown) {
       const action = mouseWheelActionsUp[this.view.mouseWheelFunction3];
-      this.setBBSCmd(action);
+      this.setNavCmd(action);
     } else {
       const action = mouseWheelActionsUp[this.view.mouseWheelFunction1];
-      this.setBBSCmd(action);
+      this.setNavCmd(action);
     }
   } else {
     if (this.mouseRightButtonDown) {
       const action = mouseWheelActionsDown[this.view.mouseWheelFunction2];
-      this.setBBSCmd(action);
+      this.setNavCmd(action);
     } else if (this.mouseLeftButtonDown) {
       const action = mouseWheelActionsDown[this.view.mouseWheelFunction3];
-      this.setBBSCmd(action);
+      this.setNavCmd(action);
     } else {
       const action = mouseWheelActionsDown[this.view.mouseWheelFunction1];
-      this.setBBSCmd(action);
+      this.setNavCmd(action);
     }
   }
 
@@ -1386,89 +1496,46 @@ export class App {
   }
   }
 
-  setBBSCmd(cmd) {
-  switch (cmd) {
-    case "doArrowUp":
-      if (this.view.isEasyReadingActive()) {
-        if (!this.easyReading._scrollBy(-1)) {
-          this.easyReading.leaveCurrentPost();
-          this.send('\x1b[D\x1b[A\x1b[C');
-        }
-      } else {
+  setNavCmd(cmd) {
+    if (this.dispatchNavCmd(cmd)) {
+      return;
+    }
+    switch (cmd) {
+      case "doArrowUp":
         this.send('\x1b[A');
-      }
-      break;
-    case "doArrowDown":
-      if (this.view.isEasyReadingActive()) {
-        if (!this.easyReading._scrollBy(1)) {
-          this.easyReading.leaveCurrentPost();
-          this.send('\x1b[B');
-        }
-      } else {
+        break;
+      case "doArrowDown":
         this.send('\x1b[B');
-      }
-      break;
-    case "doPageUp":
-      if (this.view.isEasyReadingActive()) {
-        this.easyReading._scrollBy(-this.easyReading._turnPageLines);
-      } else {
+        break;
+      case "doPageUp":
         this.send('\x1b[5~');
-      }
-      break;
-    case "doPageDown":
-      if (this.view.isEasyReadingActive()) {
-        this.easyReading._scrollBy(this.easyReading._turnPageLines);
-      } else {
+        break;
+      case "doPageDown":
         this.send('\x1b[6~');
-      }
-      break;
-    case "previousThread": {
-      const cmd = this.site.getThreadCommand("prevThread");
-      if (cmd) {
-        if (this.view.isEasyReadingActive()) {
-          this.easyReading.leaveCurrentPost();
-          this.send(cmd);
-        } else if (this.buf && (this.buf.pageState == 2 || this.buf.pageState == 3 || this.buf.pageState == 4)) {
+        break;
+      case "previousThread": {
+        const cmd = this.site.getThreadCommand("prevThread");
+        if (cmd && this.buf && (this.buf.pageState == 2 || this.buf.pageState == 3 || this.buf.pageState == 4)) {
           this.send(cmd);
         }
+        break;
       }
-      break;
-    }
-    case "nextThread": {
-      const cmd = this.site.getThreadCommand("nextThread");
-      if (cmd) {
-        if (this.view.isEasyReadingActive()) {
-          this.easyReading.leaveCurrentPost();
-          this.send(cmd);
-        } else if (this.buf && (this.buf.pageState == 2 || this.buf.pageState == 3 || this.buf.pageState == 4)) {
+      case "nextThread": {
+        const cmd = this.site.getThreadCommand("nextThread");
+        if (cmd && this.buf && (this.buf.pageState == 2 || this.buf.pageState == 3 || this.buf.pageState == 4)) {
           this.send(cmd);
         }
+        break;
       }
-      break;
-    }
-    case "doEnter":
-      if (this.view.isEasyReadingActive()) {
-        if (!this.easyReading._scrollBy(1)) {
-          this.easyReading.leaveCurrentPost();
-          this.send('\r');
-        }
-      } else {
+      case "doEnter":
         this.send('\r');
-      }
-      break;
-    case "doRight":
-      if (this.view.isEasyReadingActive()) {
-        if (!this.easyReading._scrollBy(this.easyReading._turnPageLines)) {
-          this.easyReading.leaveCurrentPost();
-          this.send('\x1b[C');
-        }
-      } else {
+        break;
+      case "doRight":
         this.send('\x1b[C');
-      }
-      break;
-    default:
-      break;
-  }
+        break;
+      default:
+        break;
+    }
   }
 
   showAlert(type, options = {}) {

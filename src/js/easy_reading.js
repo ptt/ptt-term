@@ -8,8 +8,11 @@ export class EasyReading {
     this._core = core;
     this._view = view;
     this._termBuf = termBuf;
-    if (core && !core.easyReading) {
-      core.easyReading = this;
+    if (core) {
+      if (!core.easyReading) {
+        core.easyReading = this;
+      }
+      core.registerInputInterceptor?.(this);
     }
     if (termBuf) {
       termBuf._easyReading = this;
@@ -27,6 +30,11 @@ export class EasyReading {
     this.showPushInitText = false;
     this.pageLines = [];
     this.pageWrappedLines = [];
+
+    this.lastWheelTime = 0;
+    this.lastHideTime = 0;
+    this._keyDownKeyCode = 0;
+    this._keyDownIsComposing = false;
 
     this._overlay = null;
     this._content = null;
@@ -51,8 +59,10 @@ export class EasyReading {
     this._inFlightTimer = null;
     this._inFlightRetries = 0;
 
-    this._termBuf.addEventListener('change', (e) => this._onChanged(e));
-    this._termBuf.addEventListener('viewUpdate', (e) => this._onViewUpdated(e));
+    if (this._termBuf?.addEventListener) {
+      this._termBuf.addEventListener('change', (e) => this._onChanged(e));
+      this._termBuf.addEventListener('viewUpdate', (e) => this._onViewUpdated(e));
+    }
 
     if (typeof document !== 'undefined') {
       const container = this._view?.termWin || document.getElementById('TermWindow');
@@ -206,6 +216,8 @@ export class EasyReading {
     if (this.overlay) {
       this.overlay.style.display = 'block';
     }
+    this.lastWheelTime = 0;
+    this.lastHideTime = 0;
     if (this._core) {
       this._core.lastEasyReadingWheelTime = 0;
       this._core.lastEasyReadingHideTime = 0;
@@ -220,9 +232,10 @@ export class EasyReading {
     if (this.overlay) {
       this.overlay.style.display = 'none';
     }
+    this.lastHideTime = Date.now();
     if (this._core) {
-      this._core.lastEasyReadingHideTime = Date.now();
-      this._core.suppressInertialWheel?.();
+      this._core.lastEasyReadingHideTime = this.lastHideTime;
+      this._core.suppressInertialWheel?.(600);
     }
     this.clearRows();
     if (this.lastRowDiv) {
@@ -270,7 +283,7 @@ export class EasyReading {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const el = document.createElement('span');
-      el.setAttribute('type', 'bbsrow');
+      el.setAttribute('type', 'termrow');
       el.setAttribute('srow', this.content.childNodes.length);
       this.content.appendChild(el);
       this.renderRow(
@@ -285,7 +298,7 @@ export class EasyReading {
       return this._view.renderSingleRow(target, row);
     }
     const el = document.createElement('span');
-    el.setAttribute('type', 'bbsrow');
+    el.setAttribute('type', 'termrow');
     el.setAttribute('srow', '0');
     target.appendChild(el);
     const chh = (this._view && this._view.chh) || 16;
@@ -618,7 +631,9 @@ export class EasyReading {
   leaveCurrentPost() {
     console.debug('leave current post');
     this._resetInFlight();
-    this._core.suppressInertialWheel();
+    const now = Date.now();
+    const duration = (this.lastWheelTime && (now - this.lastWheelTime < 1000)) ? 1200 : 300;
+    this._core?.suppressInertialWheel?.(duration);
     if (!this.easyReadingReachedPageEnd) {
       this.ignoreOneUpdate = true;
     }
@@ -629,11 +644,17 @@ export class EasyReading {
     console.debug('stop easy reading');
     this.sendCommandAfterUpdate = 'skipOne';
     this._resetInFlight();
-    this._core.suppressInertialWheel();
+    const now = Date.now();
+    const duration = (this.lastWheelTime && (now - this.lastWheelTime < 1000)) ? 1200 : 300;
+    this._core?.suppressInertialWheel?.(duration);
   }
 
   _send(data) {
-    this._view.conn.send(data);
+    if (this._core?.send) {
+      this._core.send(data);
+    } else if (this._view?.conn?.send) {
+      this._view.conn.send(data);
+    }
   }
 
   send(data) {
@@ -648,25 +669,25 @@ export class EasyReading {
     if (e.defaultPrevented)
       return;
 
-    const site = this._termBuf.site;
+    const site = this._termBuf?.site;
     let stop = false;
     if (!e.ctrlKey && !e.altKey) {
       switch (e.key) {
         case 'Backspace':
         case 'ArrowUp':
-          if (site.navigatePrevPost(this))
+          if (site?.navigatePrevPost?.(this))
             stop = true;
           break;
         case 'Enter':
         case 'ArrowDown':
-          if (site.navigateNextPost(this))
+          if (site?.navigateNextPost?.(this))
             stop = true;
           break;
       }
     } else if (e.ctrlKey && !e.altKey) {
       switch (e.key) {
         case 'h':
-          if (site.navigatePrevPost(this))
+          if (site?.navigatePrevPost?.(this))
             stop = true;
           break;
       }
@@ -705,8 +726,8 @@ export class EasyReading {
   }
 
   _onKeyDownProcessUI(e) {
-    const site = this._termBuf.site;
-    if (site.handleEasyReadingKeyDown(this, e)) {
+    const site = this._termBuf?.site;
+    if (site?.handleEasyReadingKeyDown?.(this, e)) {
       e.preventDefault();
       return;
     }
@@ -846,5 +867,126 @@ export class EasyReading {
     }
     if (stop)
       e.preventDefault();
+  }
+
+  // --- Input Interceptor Interface ---
+
+  handleNavCmd(cmd) {
+    if (!this.isActive()) return false;
+    switch (cmd) {
+      case "doArrowUp":
+        if (!this._scrollBy(-1)) {
+          this.leaveCurrentPost();
+          this._send('\x1b[D\x1b[A\x1b[C');
+        }
+        return true;
+      case "doArrowDown":
+        if (!this._scrollBy(1)) {
+          this.leaveCurrentPost();
+          this._send('\x1b[B');
+        }
+        return true;
+      case "doPageUp":
+        this._scrollBy(-this._turnPageLines);
+        return true;
+      case "doPageDown":
+        this._scrollBy(this._turnPageLines);
+        return true;
+      case "previousThread": {
+        const tCmd = this._core?.site?.getThreadCommand?.("prevThread");
+        if (tCmd) {
+          this.leaveCurrentPost();
+          this._send(tCmd);
+        }
+        return true;
+      }
+      case "nextThread": {
+        const tCmd = this._core?.site?.getThreadCommand?.("nextThread");
+        if (tCmd) {
+          this.leaveCurrentPost();
+          this._send(tCmd);
+        }
+        return true;
+      }
+      case "doEnter":
+        if (!this._scrollBy(1)) {
+          this.leaveCurrentPost();
+          this._send('\r');
+        }
+        return true;
+      case "doRight":
+        if (!this._scrollBy(this._turnPageLines)) {
+          this.leaveCurrentPost();
+          this._send('\x1b[C');
+        }
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  handleWheel(e) {
+    const now = Date.now();
+    if (this.isActive()) {
+      this.lastWheelTime = now;
+      return true;
+    }
+    const isOverlayTarget = !!(this.overlay && e?.target &&
+      (e.target === this.overlay || this.overlay.contains(e.target)));
+    const recentlyScrolled = this.lastWheelTime && (now - this.lastWheelTime < 1000);
+    const recentlyExited = this.lastHideTime && (now - this.lastHideTime < 600);
+    if (isOverlayTarget || recentlyScrolled || recentlyExited) {
+      return 'suppress';
+    }
+    return false;
+  }
+
+  handleMouseClick(e) {
+    this._onMouseClick(e);
+    return !!e.defaultPrevented;
+  }
+
+  handleKeyDown(e) {
+    if (!this.isActive() || this.isPromptActive())
+      return false;
+    this._keyDownKeyCode = e.keyCode;
+    this._keyDownIsComposing = !!(e.isComposing || e.key === 'Process' || e.keyCode === 229);
+    this._onKeyDown(e);
+    return !!e.defaultPrevented;
+  }
+
+  handleTextInput(e) {
+    if (!this.isActive() || this.isPromptActive())
+      return false;
+    if ((this._keyDownIsComposing || this._keyDownKeyCode === 229) && e?.target && e.target.value !== 'X') {
+      e.target.value = '';
+      return true;
+    }
+    return false;
+  }
+
+  getSelectedText() {
+    if (!this.isActive())
+      return undefined;
+    if (typeof window !== 'undefined' && window.getSelection && !window.getSelection().isCollapsed) {
+      return window.getSelection().toString().replace(/\u00a0/g, " ");
+    }
+    return '';
+  }
+
+  getSelectionColRow() {
+    if (!this.isActive())
+      return undefined;
+    return null;
+  }
+
+  selectAll() {
+    if (!this.isActive())
+      return false;
+    if (typeof window !== 'undefined' && window.getSelection && this.content) {
+      window.getSelection().selectAllChildren(this.content);
+      return true;
+    }
+    return false;
   }
 }

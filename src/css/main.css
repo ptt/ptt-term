@@ -3,7 +3,7 @@
   src: url("../fonts/symmingliu.woff2") format("woff2");
 }
 
-#BBSWindow {
+#TermWindow {
   position: fixed;
   width: 100%;
   height: 100%;

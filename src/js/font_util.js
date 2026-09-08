@@ -52,7 +52,7 @@ export function serializeFontList(fontList) {
 }
 
 /**
- * Curated preset fonts popular for BBS and terminal rendering.
+ * Curated preset fonts popular for terminal rendering.
  */
 export const PRESET_FONTS = [
   "MingLiu",

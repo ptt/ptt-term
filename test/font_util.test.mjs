@@ -63,7 +63,7 @@ test("parseFontList and serializeFontList round-trip without data loss", () => {
   assert.deepEqual(reParsed, original);
 });
 
-test("PRESET_FONTS includes standard BBS and terminal fonts", () => {
+test("PRESET_FONTS includes standard terminal fonts", () => {
   assert(PRESET_FONTS.includes("MingLiu"));
   assert(PRESET_FONTS.includes("SymMingLiu"));
   assert(PRESET_FONTS.includes("Noto Sans Mono CJK TC"));

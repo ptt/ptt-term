@@ -168,7 +168,7 @@ test('Stream correctly decodes PTT1 welcome screen across chunk boundaries witho
 
     const output = term.output.join('');
     assert.equal(output.includes(';31m'), false, `chunkSize ${chunkSize} leaked ;31m to terminal`);
-    assert.ok(output.includes('批踢踢實業坊'), `chunkSize ${chunkSize} missing BBS title`);
+    assert.ok(output.includes('批踢踢實業坊'), `chunkSize ${chunkSize} missing site title`);
   }
 });
 

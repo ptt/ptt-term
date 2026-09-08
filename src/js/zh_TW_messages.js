@@ -4,7 +4,7 @@ export const zh_TW = {
     description: "The title of the application, displayed in the web store.",
   },
   appDesc: {
-    message: "使用 HTML5 技術，專為 BBS 瀏覽設計的終端機連線程式套件",
+    message: "使用 HTML5 技術的終端機連線程式",
     description:
       "The description of the application, displayed in the web store.",
   },
@@ -157,11 +157,11 @@ export const zh_TW = {
   options_cursorBlinkReverse: {
     message: "反色半格方塊 (閃爍)",
   },
-  options_bbsMargin: {
-    message: "BBS 周圍邊距 (像素)",
+  options_termMargin: {
+    message: "周圍邊距 (像素)",
   },
   options_termSize: {
-    message: "BBS 終端機大小",
+    message: "終端機大小",
   },
   options_cols: {
     message: "寬",
@@ -253,7 +253,7 @@ export const zh_TW = {
 
   // about page
   about_appName_subtitle: {
-    message: "開放原始碼的 BBS 瀏覽軟體",
+    message: "開放原始碼的終端機連線軟體",
   },
   about_description: {
     message:
@@ -450,7 +450,7 @@ export const zh_TW = {
     message: "+ 新增",
   },
   options_fontList_preview: {
-    message: "細明中英 123 BBS",
+    message: "細明中英 123 Term",
   },
   options_fontList_moveUp: {
     message: "上移",

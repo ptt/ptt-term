@@ -34,7 +34,7 @@ class MockTermBuf {
   tab() {}
 }
 
-test('E2E Session: Mock BBS WebSocket server negotiates Telnet and feeds ANSI terminal', async () => {
+test('E2E Session: Mock Terminal WebSocket server negotiates Telnet and feeds ANSI terminal', async () => {
   let clientRawSocket = null;
   const serverReceivedChunks = [];
   let server = null;
@@ -97,8 +97,8 @@ test('E2E Session: Mock BBS WebSocket server negotiates Telnet and feeds ANSI te
         SUPRESS_GO_AHEAD,
       ];
 
-      // ANSI BBS Login Banner
-      const ansiBanner = Buffer.from('\x1b[1;33;44mHello BBS\x1b[0m\r\n');
+      // ANSI Terminal Login Banner
+      const ansiBanner = Buffer.from('\x1b[1;33;44mHello Term\x1b[0m\r\n');
       const combined = Buffer.concat([Buffer.from(telnetOpts), ansiBanner]);
 
       const frame = Buffer.concat([Buffer.from([0x82, combined.length]), combined]);
@@ -144,7 +144,7 @@ test('E2E Session: Mock BBS WebSocket server negotiates Telnet and feeds ANSI te
 
     // Verify ANSI parsing and terminal output
     const allOutput = term.output.join('');
-    assert.ok(allOutput.includes('Hello BBS'), `Expected 'Hello BBS' in output, got: '${allOutput}'`);
+    assert.ok(allOutput.includes('Hello Term'), `Expected 'Hello Term' in output, got: '${allOutput}'`);
     assert.ok(term.attrs.some((attr) => attr.includes(33) && attr.includes(44)));
 
     // Verify server received client input

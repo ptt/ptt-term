@@ -80,7 +80,7 @@ export class LinkSegmentBuilder {
       <div>
         <span
           className={cx({ hl: this.highlighted })}
-          data-type="bbsline"
+          data-type="termline"
           data-row={this.row}
         >
           {this.segs}

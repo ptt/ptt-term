@@ -347,9 +347,9 @@ export class TouchKeyboard extends React.Component {
           "--keyboard-offset",
           `${offset}px`
         );
-        const bbsWin = document.getElementById("BBSWindow");
-        if (bbsWin) {
-          bbsWin.style.setProperty("--keyboard-offset", `${offset}px`);
+        const termWin = document.getElementById("TermWindow");
+        if (termWin) {
+          termWin.style.setProperty("--keyboard-offset", `${offset}px`);
         }
         if (
           typeof window !== "undefined" &&
