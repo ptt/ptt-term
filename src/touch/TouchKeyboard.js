@@ -1082,10 +1082,42 @@ export class TouchKeyboard extends React.Component {
     event.preventDefault();
     const { app } = this.props;
     if (!app || !app.inputArea) return;
-    if (document.activeElement === app.inputArea) {
+    const isInputFocused =
+      document.activeElement === app.inputArea &&
+      app.inputArea.getAttribute("inputmode") !== "none";
+    if (isInputFocused) {
+      if (typeof app.inputArea.setAttribute === "function") {
+        app.inputArea.setAttribute("inputmode", "none");
+        app.inputArea.setAttribute("virtualkeyboardpolicy", "manual");
+      }
+      if (typeof navigator !== "undefined" && navigator.virtualKeyboard && typeof navigator.virtualKeyboard.hide === "function") {
+        try {
+          navigator.virtualKeyboard.hide();
+        } catch (err) {}
+      }
       app.inputArea.blur();
     } else {
-      app.inputArea.focus();
+      if (typeof app.inputArea.removeAttribute === "function") {
+        app.inputArea.removeAttribute("inputmode");
+        app.inputArea.removeAttribute("virtualkeyboardpolicy");
+      }
+      if (typeof app.inputArea.setAttribute === "function") {
+        app.inputArea.setAttribute("inputmode", "text");
+        app.inputArea.setAttribute("virtualkeyboardpolicy", "auto");
+      }
+      if (typeof app.setInputAreaFocus === "function") {
+        app.setInputAreaFocus(true);
+      } else {
+        if (document.activeElement === app.inputArea) {
+          app.inputArea.blur();
+        }
+        app.inputArea.focus();
+      }
+      if (typeof navigator !== "undefined" && navigator.virtualKeyboard && typeof navigator.virtualKeyboard.show === "function") {
+        try {
+          navigator.virtualKeyboard.show();
+        } catch (err) {}
+      }
     }
   };
 

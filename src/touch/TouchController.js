@@ -25,6 +25,7 @@ export class TouchController {
     this.pinchAccumulatedDelta = 0;
     this.lastMidX = 0;
     this.lastMidY = 0;
+    this.lastTouchTime = 0;
 
     this.setupHandlers();
   }
@@ -67,6 +68,14 @@ export class TouchController {
     target.addEventListener("pointerdown", (e) => {
       if (e.pointerType !== "touch") return;
 
+      const isLink = Boolean(
+        e.target && e.target.closest && e.target.closest("a")
+      );
+      if (!isLink) {
+        e.preventDefault();
+      }
+
+      this.lastTouchTime = Date.now();
       this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
       if (this.pointers.size === 1) {
@@ -84,6 +93,9 @@ export class TouchController {
         this.highlightCopy = app.buf.highlightCursor;
 
         if (app.inputArea && typeof app.inputArea.blur === "function") {
+          if (typeof app.inputArea.setAttribute === "function") {
+            app.inputArea.setAttribute("inputmode", "none");
+          }
           app.inputArea.blur();
         }
         console.debug("pointerdown (touch)");
@@ -131,6 +143,7 @@ export class TouchController {
       if (e.pointerType !== "touch") return;
       if (!this.pointers.has(e.pointerId)) return;
 
+      this.lastTouchTime = Date.now();
       this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
       if (this.pointers.size >= 2) {
@@ -213,6 +226,7 @@ export class TouchController {
       if (e.pointerType !== "touch") return;
       if (!this.pointers.has(e.pointerId)) return;
 
+      this.lastTouchTime = Date.now();
       this.clearLongPressTimer();
       this.pointers.delete(e.pointerId);
 
@@ -309,6 +323,7 @@ export class TouchController {
       if (e.pointerType !== "touch") return;
       if (!this.pointers.has(e.pointerId)) return;
 
+      this.lastTouchTime = Date.now();
       this.clearLongPressTimer();
       this.longPressed = false;
       this.pointers.delete(e.pointerId);

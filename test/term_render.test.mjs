@@ -1379,6 +1379,118 @@ test('TouchController handles 1-finger drag selection and auto-copies on release
   assert.equal(controller.isSelecting, false);
 });
 
+test('TouchController prevents default on touch pointerdown and blurs inputArea with inputmode none', () => {
+  const listeners = {};
+  let defaultPrevented = false;
+  let blurred = false;
+  let setInputModeVal = null;
+  const mockInputArea = {
+    setAttribute(name, val) {
+      if (name === 'inputmode') setInputModeVal = val;
+    },
+    blur() {
+      blurred = true;
+    }
+  };
+  const mockBBSWin = {
+    style: {},
+    addEventListener(type, fn) {
+      listeners[type] = fn;
+    },
+    removeEventListener() {},
+    setPointerCapture() {}
+  };
+  const mockApp = {
+    BBSWin: mockBBSWin,
+    buf: { highlightCursor: false },
+    inputArea: mockInputArea,
+    view: null,
+    openContextMenu() {}
+  };
+
+  const controller = new TouchController(mockApp);
+  assert.equal(typeof controller.lastTouchTime, 'number');
+
+  listeners.pointerdown({
+    pointerType: 'touch',
+    pointerId: 1,
+    clientX: 100,
+    clientY: 100,
+    preventDefault() {
+      defaultPrevented = true;
+    },
+    stopPropagation() {}
+  });
+
+  assert.equal(defaultPrevented, true, 'Touch pointerdown should preventDefault to suppress synthetic mouse events');
+  assert.equal(blurred, true, 'Touch pointerdown should blur inputArea');
+  assert.equal(setInputModeVal, 'none', 'Touch pointerdown should set inputmode="none"');
+  assert.ok(controller.lastTouchTime > 0, 'lastTouchTime should be updated on touch');
+  controller.clearLongPressTimer();
+});
+
+test('App setInputAreaFocus guards against auto-focusing on mobile layout or recent touch', () => {
+  const updatedAppSource = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+  assert.ok(
+    updatedAppSource.includes("this.isMobileLayout() && !force"),
+    'setInputAreaFocus should suppress focus on mobile layout unless forced'
+  );
+  assert.ok(
+    updatedAppSource.includes("lastTouchTime"),
+    'setInputAreaFocus should check lastTouchTime'
+  );
+
+  // Behavior simulation of setInputAreaFocus
+  function simulateSetInputAreaFocus(app, force = false) {
+    if (app.modalShown || app.contextMenuShown) return false;
+    if (app.isMobileLayout() && !force) return false;
+    if (app.touch && (app.touch.touchStarted || (Date.now() - (app.touch.lastTouchTime || 0) < 500)) && !force) return false;
+    return true;
+  }
+
+  // 1. Mobile phone: touches screen -> suppressed
+  const mobileApp = {
+    modalShown: false,
+    contextMenuShown: false,
+    isMobileLayout: () => true,
+    touch: { touchStarted: false, lastTouchTime: Date.now() - 1000 }
+  };
+  assert.equal(simulateSetInputAreaFocus(mobileApp, false), false, 'Should be suppressed on mobile phone');
+  assert.equal(simulateSetInputAreaFocus(mobileApp, true), true, 'Should allow focus when force is true');
+
+  // 2. Desktop: no touch, not mobile -> allowed
+  const desktopApp = {
+    modalShown: false,
+    contextMenuShown: false,
+    isMobileLayout: () => false,
+    touch: null
+  };
+  assert.equal(simulateSetInputAreaFocus(desktopApp, false), true, 'Should allow focus on desktop');
+
+  // 3. Tablet (non-mobile layout) with recent touch (<500ms) -> suppressed
+  const tabletApp = {
+    modalShown: false,
+    contextMenuShown: false,
+    isMobileLayout: () => false,
+    touch: { touchStarted: false, lastTouchTime: Date.now() - 50 }
+  };
+  assert.equal(simulateSetInputAreaFocus(tabletApp, false), false, 'Should suppress focus right after touch');
+});
+
+test('TouchKeyboard handleFloatingKeyboardToggle toggles inputmode and forces focus', () => {
+  const touchKbSource = fs.readFileSync(path.resolve('src/touch/TouchKeyboard.js'), 'utf-8');
+  assert.ok(touchKbSource.includes('handleFloatingKeyboardToggle'));
+  assert.ok(touchKbSource.includes('inputArea.removeAttribute("inputmode")') || touchKbSource.includes("inputArea.removeAttribute('inputmode')"));
+  assert.ok(touchKbSource.includes('app.setInputAreaFocus(true)'));
+});
+
+test('index.html contains inputmode="none" and does not have autofocus', () => {
+  const indexHtml = fs.readFileSync(path.resolve('index.html'), 'utf-8');
+  assert.ok(!indexHtml.includes('autofocus'), 'index.html should not have autofocus attribute');
+  assert.ok(indexHtml.includes('inputmode="none"'), 'index.html should specify inputmode="none"');
+  assert.ok(indexHtml.includes('virtualkeyboardpolicy="manual"'), 'index.html should specify virtualkeyboardpolicy="manual"');
+});
+
 test('PrefModal locks termSizeMode to fixed-font-size and disables select on touch interface', () => {
   const prefModalSource = fs.readFileSync(
     path.resolve('src/components/ContextMenu/PrefModal.js'),

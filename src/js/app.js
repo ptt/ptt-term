@@ -136,6 +136,13 @@ export class App {
   this.inputArea.addEventListener('paste', (e) => {
     this.onDOMPaste(e);
   });
+  this.inputArea.addEventListener('blur', () => {
+    if (this.isMobileLayout() || this.touch) {
+      if (typeof this.inputArea.setAttribute === 'function') {
+        this.inputArea.setAttribute('inputmode', 'none');
+      }
+    }
+  });
 
   this.view.innerBounds = this.getWindowInnerBounds();
   this.view.firstGridOffset = this.getFirstGridOffsets();
@@ -165,6 +172,12 @@ export class App {
     (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
   if (hasTouch) {
     this.touch = new TouchController(this);
+  }
+  if (this.inputArea && (hasTouch || this.isMobileLayout())) {
+    if (typeof this.inputArea.setAttribute === 'function') {
+      this.inputArea.setAttribute('inputmode', 'none');
+      this.inputArea.setAttribute('virtualkeyboardpolicy', 'manual');
+    }
   }
   }
 
@@ -360,11 +373,18 @@ export class App {
   }, 350);
   }
 
-  setInputAreaFocus() {
-  if (this.modalShown || this.contextMenuShown || (this.touch && this.touch.touchStarted))
+  setInputAreaFocus(force = false) {
+  if (this.modalShown || this.contextMenuShown)
     return;
-  if (document.activeElement === this.inputArea)
+  if (this.isMobileLayout() && !force)
     return;
+  if (this.touch && (this.touch.touchStarted || (Date.now() - (this.touch.lastTouchTime || 0) < 500)) && !force)
+    return;
+  if (document.activeElement === this.inputArea && !force)
+    return;
+  if (force && document.activeElement === this.inputArea) {
+    this.inputArea.blur();
+  }
   //this.DocInputArea.disabled="";
   this.inputArea.focus();
   }
