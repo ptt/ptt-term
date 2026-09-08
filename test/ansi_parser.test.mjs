@@ -388,6 +388,36 @@ test('AnsiParser parses DEC Private Mode 2026 Synchronized Output sequences', ()
   assert.deepEqual(syncState, ['begin', 'end']);
 });
 
+test('TermBuf isFrameReady manages DEC 2026 frame sync and falls back to site isCursorParked', () => {
+  const isFrameReadyMatch = termBufSource.match(/(isFrameReady\(\)\s*\{[\s\S]*?\n  \})/);
+  assert.ok(isFrameReadyMatch, 'isFrameReady method found');
+  const isFrameReady = new Function('return function ' + isFrameReadyMatch[1])();
+
+  const buf = {
+    hasFrameSync: true,
+    inSyncUpdate: true,
+    site: {
+      isCursorParked: () => false,
+    },
+  };
+  buf.isFrameReady = isFrameReady.bind(buf);
+
+  // DEC 2026 active: inSyncUpdate -> false regardless of site
+  assert.equal(buf.isFrameReady(), false);
+
+  // DEC 2026 active: frame complete (!inSyncUpdate) -> true regardless of site
+  buf.inSyncUpdate = false;
+  assert.equal(buf.isFrameReady(), true);
+
+  // Legacy mode: fallback to site.isCursorParked
+  buf.hasFrameSync = false;
+  let siteParked = false;
+  buf.site.isCursorParked = () => siteParked;
+  assert.equal(buf.isFrameReady(), false);
+  siteParked = true;
+  assert.equal(buf.isFrameReady(), true);
+});
+
 test('TermBuf defers rendering during synchronized update and flushes atomically on endSyncUpdate', () => {
   const beginSyncUpdateMatch = termBufSource.match(/(beginSyncUpdate\(\)\s*\{[\s\S]*?\n  \})/);
   const endSyncUpdateMatch = termBufSource.match(/(endSyncUpdate\(\)\s*\{[\s\S]*?\n  \})/);

@@ -194,9 +194,6 @@ export class BaseSite {
    * @returns {boolean}
    */
   isCursorParked(termBuf) {
-    if (termBuf && termBuf.hasFrameSync && termBuf.inSyncUpdate) {
-      return false;
-    }
     let lastRowNum = this.getLastRowNum(termBuf);
     return termBuf.cur_y === lastRowNum;
   }

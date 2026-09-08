@@ -123,13 +123,6 @@ export class PttSite extends BaseSite {
   }
 
   isCursorParked(termBuf) {
-    if (termBuf && termBuf.hasFrameSync) {
-      if (termBuf.inSyncUpdate) {
-        return false;
-      }
-      let lastRowNum = this.getLastRowNum(termBuf);
-      return termBuf.cur_y === lastRowNum;
-    }
     let lastColNum = termBuf.cols - 1;
     let lastRowNum = this.getLastRowNum(termBuf);
     return termBuf.cur_y == lastRowNum && termBuf.cur_x == lastColNum;

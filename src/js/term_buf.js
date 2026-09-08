@@ -1038,6 +1038,16 @@ export class TermBuf extends Event {
     }
   }
 
+  isFrameReady() {
+    if (this.hasFrameSync) {
+      return !this.inSyncUpdate;
+    }
+    if (this.site && typeof this.site.isCursorParked === 'function') {
+      return this.site.isCursorParked(this);
+    }
+    return true;
+  }
+
   beginSyncUpdate() {
     this.inSyncUpdate = true;
     this.hasFrameSync = true;

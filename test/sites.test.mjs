@@ -882,41 +882,21 @@ test('EasyReading in-flight watchdog handles dropped response with retries and b
   }
 });
 
-test('PttSite isCursorParked respects DEC 2026 synchronized update frames', () => {
+test('PttSite isCursorParked requires cursor at bottom-right corner', () => {
   const ptt = new PttSite();
 
-  // Legacy mode (no frame sync): requires cur_x === 79 (last column)
   const legacyBuf = {
     cols: 80,
     rows: 24,
     cur_x: 79,
     cur_y: 23,
-    hasFrameSync: false,
-    inSyncUpdate: false
   };
   assert.equal(ptt.isCursorParked(legacyBuf), true);
   legacyBuf.cur_x = 0;
   assert.equal(ptt.isCursorParked(legacyBuf), false);
-
-  // Synchronized update mode:
-  // While inside frame (inSyncUpdate = true), must return false regardless of cursor pos
-  const syncBuf = {
-    cols: 80,
-    rows: 24,
-    cur_x: 20,
-    cur_y: 23,
-    hasFrameSync: true,
-    inSyncUpdate: true
-  };
-  assert.equal(ptt.isCursorParked(syncBuf), false);
-
-  // Once frame completes (inSyncUpdate = false), any cursor pos on status row is valid
-  syncBuf.inSyncUpdate = false;
-  assert.equal(ptt.isCursorParked(syncBuf), true);
-
-  // Non-status row returns false
-  syncBuf.cur_y = 10;
-  assert.equal(ptt.isCursorParked(syncBuf), false);
+  legacyBuf.cur_x = 79;
+  legacyBuf.cur_y = 10;
+  assert.equal(ptt.isCursorParked(legacyBuf), false);
 });
 
 test('EasyReading captures complete frames with DEC 2026 synchronized update', () => {
@@ -971,6 +951,10 @@ test('EasyReading captures complete frames with DEC 2026 synchronized update', (
       site: ptt,
       hasFrameSync: true,
       inSyncUpdate: false,
+      isFrameReady() {
+        if (this.hasFrameSync) return !this.inSyncUpdate;
+        return this.site.isCursorParked(this);
+      },
       lines: Array.from({ length: 24 }, () => []),
       statusText: '  瀏覽 第 1/3 頁 ( 33%)  目前顯示: 第 01~22 行 (y)回應(X%)推文(h)說明 (←)離開 ',
       getRowText(row) {

@@ -86,8 +86,9 @@ export class EasyReading {
       this._resetInFlight();
     }
     if (this.startedEasyReading) {
-      console.debug('easy reading cursor pos: ' + this._termBuf.cur_y + ':' + this._termBuf.cur_x);
-      const isParked = site.isCursorParked(this._termBuf);
+      const isParked = (typeof this._termBuf.isFrameReady === 'function')
+        ? this._termBuf.isFrameReady()
+        : (this._termBuf.hasFrameSync ? !this._termBuf.inSyncUpdate : (site && site.isCursorParked ? site.isCursorParked(this._termBuf) : true));
 
       if (isParked) {
         if (this.ignoreOneUpdate) {
