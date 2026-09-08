@@ -20,7 +20,7 @@ export class TermView {
   this.bbsHeight = 0;
   this.dbcsDetect = true;
   this.highlightBG = 2;
-  this.charset = 'big5';
+  this._charset = 'big5';
   this.middleButtonFunction = 0;
   this.leftButtonFunction = false;
   this.mouseWheelFunction1 = 1;
@@ -262,6 +262,17 @@ export class TermView {
 
   get conn() {
     return this.bbscore ? this.bbscore.conn : null;
+  }
+
+  get charset() {
+    return (this.bbscore && this.bbscore.site) ? this.bbscore.site.charset : (this._charset || 'big5');
+  }
+
+  set charset(val) {
+    this._charset = val;
+    if (this.bbscore && this.bbscore.site) {
+      this.bbscore.site.charset = val;
+    }
   }
 
   _send(data) {

@@ -10,6 +10,7 @@ const TermChar = new Function(termCharMatch[1] + '\nreturn TermChar;')();
 
 class MockTermBuf {
   constructor() {
+    this.site = { isUtf8: false };
     this.output = [];
     this.attrs = [];
     this.cells = [];
@@ -243,6 +244,26 @@ test('AnsiParser preserves raw stream in UTF-8 mode', () => {
   // In UTF-8 mode, raw UTF-8 bytes or string are passed directly
   parser.feed('中文測試');
   assert.equal(term.output.join(''), '中文測試');
+});
+
+test('AnsiParser decodes UTF-8 Uint8Array stream when term.site.isUtf8 is true', () => {
+  const term = new MockTermBuf();
+  term.site = { isUtf8: true };
+  const parser = new AnsiParser(term);
+
+  // Decodes UTF-8 bytes into characters
+  parser.feed(new TextEncoder().encode('中文測試'));
+  assert.equal(term.output.join(''), '中文測試');
+
+  // Handles character split across chunks
+  const term2 = new MockTermBuf();
+  term2.site = { isUtf8: true };
+  const parser2 = new AnsiParser(term2);
+  const bytes = new TextEncoder().encode('你'); // 3 bytes
+  parser2.feed(bytes.subarray(0, 2));
+  assert.equal(term2.output.join(''), '');
+  parser2.feed(bytes.subarray(2));
+  assert.equal(term2.output.join(''), '你');
 });
 
 test('TermChar supports isDBCSLead and isDBCSTrail', () => {

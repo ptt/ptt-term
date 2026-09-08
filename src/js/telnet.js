@@ -42,9 +42,10 @@ const STATE_DONT=5;
 const STATE_SB=6;
 
 export class TelnetConnection extends Event {
-  constructor(socket) {
+  constructor(socket, site = null) {
     super();
     this.socket = socket;
+    this.site = site;
     this.socket.addEventListener('open', (e) => this._onOpen(e));
     this.socket.addEventListener('data', (e) => this._onDataAvailable(e));
     this.socket.addEventListener('close', (e) => this._onClose(e));
@@ -53,6 +54,10 @@ export class TelnetConnection extends Event {
     this.iac_sb = [];
 
     this.termType = 'VT100';
+  }
+
+  get isUtf8() {
+    return this.site ? this.site.isUtf8 : false;
   }
 
   _onOpen(e) {
@@ -248,9 +253,15 @@ export class TelnetConnection extends Event {
   }
 
   convSend(unicode_str) {
+    if (!unicode_str) return;
+    if (this.isUtf8) {
+      const bytes = new TextEncoder().encode(unicode_str);
+      this._sendEscaped(bytes);
+      return;
+    }
+
     // supports UAO
     // when converting unicode to big5, use UAO.
-
     let s = u2b(unicode_str);
     // detect ;50m (half color) and then convert accordingly
     if (s) {

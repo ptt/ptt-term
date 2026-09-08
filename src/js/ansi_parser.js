@@ -24,9 +24,20 @@ export class AnsiParser {
     this.pendingLead = null;
     /** @type {any | null} */
     this.pendingLeadAttr = null;
+    /** @type {number[]} */
+    this.utf8Bytes = [];
+    /** @type {TextDecoder | null} */
+    this.utf8Decoder = typeof TextDecoder !== 'undefined' ? new TextDecoder('utf-8') : null;
   }
 
   flushPendingLead() {
+    if (this.utf8Bytes.length > 0) {
+      const bytes = new Uint8Array(this.utf8Bytes);
+      this.utf8Bytes = [];
+      if (this.utf8Decoder && this.termbuf) {
+        this.termbuf.puts(this.utf8Decoder.decode(bytes));
+      }
+    }
     if (this.pendingLead === null) return;
     const lead = this.pendingLead;
     const leadAttr = this.pendingLeadAttr;
@@ -46,7 +57,7 @@ export class AnsiParser {
     let s = '';
     const isArray = data instanceof Uint8Array;
     const n = data.length;
-    const isUtf8 = term.view && term.view.charset === 'UTF-8';
+    const isUtf8 = term.site.isUtf8;
 
     for (let i = 0; i < n; ++i) {
       const b = isArray ? data[i] : data.charCodeAt(i);
@@ -55,6 +66,13 @@ export class AnsiParser {
       switch (this.state) {
       case AnsiParser.STATE_TEXT:
         if (b === 0x1b) {
+          if (this.utf8Bytes.length > 0) {
+            const bytes = new Uint8Array(this.utf8Bytes);
+            this.utf8Bytes = [];
+            if (this.utf8Decoder) {
+              s += this.utf8Decoder.decode(bytes);
+            }
+          }
           if (s) {
             term.puts(s);
             s = '';
@@ -64,7 +82,30 @@ export class AnsiParser {
         }
 
         if (isUtf8) {
-          s += ch;
+          if (isArray && b >= 0x80) {
+            this.utf8Bytes.push(b);
+            const first = this.utf8Bytes[0];
+            let expectedLen = 1;
+            if ((first & 0xe0) === 0xc0) expectedLen = 2;
+            else if ((first & 0xf0) === 0xe0) expectedLen = 3;
+            else if ((first & 0xf8) === 0xf0) expectedLen = 4;
+            else expectedLen = 1;
+
+            if (this.utf8Bytes.length >= expectedLen) {
+              const decoded = this.utf8Decoder ? this.utf8Decoder.decode(new Uint8Array(this.utf8Bytes)) : '';
+              this.utf8Bytes = [];
+              s += decoded;
+            }
+          } else {
+            if (this.utf8Bytes.length > 0) {
+              const bytes = new Uint8Array(this.utf8Bytes);
+              this.utf8Bytes = [];
+              if (this.utf8Decoder) {
+                s += this.utf8Decoder.decode(bytes);
+              }
+            }
+            s += ch;
+          }
         } else {
           // Decode Big5 / UAO double-byte characters to Unicode at the entrance
           if (this.pendingLead !== null) {
@@ -343,7 +384,7 @@ export class AnsiParser {
               ; // elicits a response; not implemented
             else if (params[1] !== undefined) {
               let title = String(params[1]);
-              if (term.view && term.view.charset != 'UTF-8')
+              if (!isUtf8)
                 title = b2u(title);
               term.setTitle({site: title});
             }

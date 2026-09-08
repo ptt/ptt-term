@@ -77,3 +77,20 @@ test('TelnetConnection escapes outgoing IAC in send() and convSend()', () => {
   assert.deepEqual(socket.sent[3], new Uint8Array([0x01, 0xff, 0xff, 0x02]));
 });
 
+test('TelnetConnection convSend encodes via UTF-8 when site isUtf8 is true', () => {
+  const socket = new MockSocket();
+  const site = { isUtf8: true };
+  const conn = new TelnetConnection(socket, site);
+
+  assert.equal(conn.isUtf8, true);
+
+  // convSend with UTF-8 string encodes to Uint8Array
+  conn.convSend('測試');
+  const expectedBytes = new TextEncoder().encode('測試');
+  assert.deepEqual(socket.sent[0], expectedBytes);
+
+  conn.convSend('ABC');
+  assert.deepEqual(socket.sent[1], new Uint8Array([0x41, 0x42, 0x43]));
+});
+
+

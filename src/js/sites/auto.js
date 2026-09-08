@@ -74,6 +74,7 @@ export class AutoSite extends BaseSite {
       console.log('[AutoSite] Confirmed and locked Maple 3 site');
       this.detectedSite = this.maple3Site;
       this.name = 'maple3';
+      this.charset = this.maple3Site.charset;
       this.isLocked = true;
       if (termBuf && termBuf.rows > 24) {
         console.log(`[AutoSite] Clamping terminal rows from ${termBuf.rows} to 24`);
@@ -91,6 +92,7 @@ export class AutoSite extends BaseSite {
       console.log('[AutoSite] Confirmed and locked PTT site');
       this.detectedSite = this.pttSite;
       this.name = 'ptt';
+      this.charset = this.pttSite.charset;
       this.isLocked = true;
     }
 
@@ -99,6 +101,9 @@ export class AutoSite extends BaseSite {
       const app = termBuf.view && termBuf.view.bbscore;
       if (app) {
         app.site = this.detectedSite;
+        if (app.conn) {
+          app.conn.site = this.detectedSite;
+        }
       }
     }
   }

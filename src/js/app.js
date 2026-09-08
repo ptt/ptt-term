@@ -201,11 +201,12 @@ export class App {
   _setupWebsocketConn(url) {
   const wsConn = new Websocket(url);
   this.connLog.attachSocket(wsConn);
-  this._attachConn(new TelnetConnection(wsConn));
+  this._attachConn(new TelnetConnection(wsConn, this.site));
   }
 
   _attachConn(conn) {
   this.conn = conn;
+  this.conn.site = this.site;
   this.conn.addEventListener('open', () => this.onConnect());
   this.conn.addEventListener('close', () => this.onClose());
   this.conn.addEventListener('telopt', (e) => {

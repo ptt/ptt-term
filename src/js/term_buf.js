@@ -1138,8 +1138,6 @@ export class TermBuf extends Event {
 
     if (!this.view) return '';
 
-    const charset = this.view.charset;
-
     // generate texts with ansi color
     if (color) {
       let output = this.ansiCmp(TermChar.newChar, text[start], reset);
@@ -1265,7 +1263,8 @@ export class TermBuf extends Event {
         (u2bTable && u2bTable[code] > 0)) {
       return true;
     }
-    if ((this.view && this.view.charset !== 'UTF-8') || this.forceFullWidth) {
+    const isUtf8 = this.site.isUtf8;
+    if (!isUtf8 || this.forceFullWidth) {
       return true;
     }
     return false;

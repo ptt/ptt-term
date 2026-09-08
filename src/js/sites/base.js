@@ -26,12 +26,41 @@ export function parseWaterballRow(rowText) {
   return null;
 }
 
+export const CHARSETS = Object.freeze({
+  BIG5: 'big5',
+  UTF8: 'utf-8',
+});
+
 export class BaseSite {
-  constructor(name = 'base') {
+  constructor(name = 'base', charset = CHARSETS.BIG5) {
     this.name = name;
+    this.charset = charset;
     this.fixed_last_row = null;
     this.max_rows = null;
     this.max_cols = null;
+  }
+
+  set charset(val) {
+    if (typeof val === 'string') {
+      const lower = val.toLowerCase();
+      if (lower === 'utf-8' || lower === 'utf8') {
+        this._charset = CHARSETS.UTF8;
+        return;
+      }
+      if (lower === 'big5') {
+        this._charset = CHARSETS.BIG5;
+        return;
+      }
+    }
+    this._charset = val || CHARSETS.BIG5;
+  }
+
+  get charset() {
+    return this._charset || CHARSETS.BIG5;
+  }
+
+  get isUtf8() {
+    return this.charset === CHARSETS.UTF8;
   }
 
   /**

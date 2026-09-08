@@ -7,6 +7,7 @@ import {
   PttSite,
   Maple3Site,
   AutoSite,
+  CHARSETS,
 } from '../src/js/sites/index.js';
 import {
   parseReplyText,
@@ -566,4 +567,44 @@ test('BaseSite resolves URLs including pid:// scheme', () => {
   assert.equal(site.resolveUrl('https://example.com/test'), 'https://example.com/test');
   assert.equal(site.resolveUrl('http://ptt.cc'), 'http://ptt.cc');
 });
+
+test('CHARSETS defines pre-defined constants and BaseSite handles isUtf8 without toUpper', () => {
+  assert.equal(CHARSETS.BIG5, 'big5');
+  assert.equal(CHARSETS.UTF8, 'utf-8');
+
+  // BaseSite defaults to BIG5
+  const base = new BaseSite();
+  assert.equal(base.charset, CHARSETS.BIG5);
+  assert.equal(base.isUtf8, false);
+
+  // Set to UTF-8 via pre-defined constant
+  base.charset = CHARSETS.UTF8;
+  assert.equal(base.charset, CHARSETS.UTF8);
+  assert.equal(base.isUtf8, true);
+
+  // Set to uppercase string 'UTF-8' canonicalizes to CHARSETS.UTF8
+  base.charset = 'UTF-8';
+  assert.equal(base.charset, CHARSETS.UTF8);
+  assert.equal(base.isUtf8, true);
+
+  // Set back to 'big5'
+  base.charset = 'big5';
+  assert.equal(base.charset, CHARSETS.BIG5);
+  assert.equal(base.isUtf8, false);
+
+  // PttSite and Maple3Site default to Big5
+  const ptt = new PttSite();
+  assert.equal(ptt.charset, CHARSETS.BIG5);
+  assert.equal(ptt.isUtf8, false);
+
+  const maple = new Maple3Site();
+  assert.equal(maple.charset, CHARSETS.BIG5);
+  assert.equal(maple.isUtf8, false);
+
+  // AutoSite proxies charset and isUtf8
+  const auto = new AutoSite();
+  assert.equal(auto.charset, CHARSETS.BIG5);
+  assert.equal(auto.isUtf8, false);
+});
+
 

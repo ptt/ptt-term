@@ -15,6 +15,7 @@ import { Event } from '../src/js/event.js';
 
 class MockTermBuf {
   constructor() {
+    this.site = { isUtf8: false };
     this.output = [];
     this.attrs = [];
   }
