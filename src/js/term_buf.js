@@ -1323,23 +1323,6 @@ export class TermBuf extends Event {
     return false;
   }
 
-  /**
-   * @param {number} row
-   * @returns {boolean}
-   */
-  isTextWrappedRow(row) {
-    if (typeof row !== 'number' || !Number.isFinite(row) || row < 0 || row >= this.rows) return false;
-    const line = this.lines[row];
-    if (!line) return false;
-    for (const col of [78, 77]) {
-      const ch = line[col];
-      if (ch && ch.ch === '\\' && ch.fg == 7 && ch.bg === 0 && ch.bright) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   setPageState() {
     let lastRowNum = this.site.getLastRowNum(this);
     let cols = this.cols;
@@ -1377,32 +1360,6 @@ export class TermBuf extends Event {
       //console.log('pageState = 0 (NORMAL)');
       this.pageState = 0;
     }
-  }
-
-  /**
-   * @param {number} lineindex
-   * @param {number} start
-   * @param {number} end
-   * @returns {boolean}
-   */
-  isUnicolor(lineindex, start, end) {
-    if (typeof lineindex !== 'number' || !Number.isFinite(lineindex) || lineindex < 0 || lineindex >= this.rows) return false;
-    const lines = this.lines;
-    const line = lines[lineindex];
-    if (!line) return false;
-    const s = Math.max(0, Math.min(this.cols, (typeof start === 'number' && Number.isFinite(start)) ? Math.floor(start) : 0));
-    const e = Math.max(0, Math.min(this.cols, (typeof end === 'number' && Number.isFinite(end)) ? Math.floor(end) : this.cols));
-    if (s >= e || !line[s]) return false;
-    const clr = line[s].getBg();
-
-    // a dirty hacking, because of the difference between maple and firebird bbs.
-    for (let i = s; i < e; i++) {
-      if (!line[i]) return false;
-      const clr1 = line[i].getBg();
-      if (clr1 != clr || clr1 === 0)
-        return false;
-    }
-    return true;
   }
 
   /**

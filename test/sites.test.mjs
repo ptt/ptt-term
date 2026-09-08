@@ -138,7 +138,6 @@ test('BaseSite detects pass/continue prompt screen', () => {
     cols: 80,
     cur_y: 23,
     cur_x: 79,
-    isUnicolor: () => true,
     getRowText: (r) => (r === 23 ? '  瀏覽 第 1/1 頁 (100%)  目前顯示: 第 01~24 行  (y)回應(X)推文(^X)轉錄 (=[?]說明' : ''),
   };
   assert.equal(ptt.isPassScreen(mockPttReading), false);
@@ -149,7 +148,6 @@ test('BaseSite detects pass/continue prompt screen', () => {
     cols: 80,
     cur_y: 23,
     cur_x: 79,
-    isUnicolor: () => true,
     getRowText: (r) => (r === 23 ? '  文章選讀  (y)回應(X)推文(^X)轉錄 (=[?]說明' : ''),
   };
   assert.equal(ptt.isPassScreen(mockPttList), false);
@@ -160,7 +158,6 @@ test('BaseSite detects pass/continue prompt screen', () => {
     cols: 80,
     cur_y: 23,
     cur_x: 79,
-    isUnicolor: () => true,
     getRowText: (r) => (r === 23 ? ' ◆ 訊息                     [按任意鍵繼續]' : ''),
   };
   assert.equal(ptt.isPassScreen(mockPttPrompt), true);
@@ -214,6 +211,110 @@ test('PttSite parses board list status row', () => {
   assert.equal(parseListRow(closedPagerRow), true);
 
   assert.equal(parseListRow('普通內文'), false);
+});
+
+test('PttSite isMenuScreen, isListScreen, isTextWrappedRow, and isLineContinuation handle PTT screens and cursor parking', () => {
+  const ptt = new PttSite();
+  const base = new BaseSite();
+
+  // Test isMenuScreen
+  const mockMenuTerm = {
+    rows: 24,
+    cols: 80,
+    cur_y: 12,
+    cur_x: 20,
+    getRowText: (r) => {
+      if (r === 0) return '【主功能表】 批踢踢實業坊';
+      if (r === 23) return '[9/8 星期二 23:45] 批踢踢實業坊 線上12345人, 我是hungte [呼叫器]打開 ';
+      return '';
+    },
+  };
+  assert.equal(ptt.isMenuScreen(mockMenuTerm), true);
+
+  // Article reading screen with quoted menu screenshot must NOT be detected as menu (cursor is parked at bottom right)
+  const mockArticleWithMenuScreenshot = {
+    rows: 24,
+    cols: 80,
+    cur_y: 23,
+    cur_x: 79,
+    getRowText: (r) => {
+      if (r === 0) return '【主功能表】 批踢踢實業坊';
+      if (r === 23) return '  瀏覽 第 1/2 頁 (50%)  目前顯示: 第 01~24 行  (y)回應(X)推文(^X)轉錄 (=[?]說明';
+      return '';
+    },
+  };
+  assert.equal(ptt.isMenuScreen(mockArticleWithMenuScreenshot), false);
+
+  // Test isListScreen
+  const mockListTerm = {
+    rows: 24,
+    cols: 80,
+    cur_y: 5,
+    cur_x: 0,
+    getRowText: (r) => {
+      if (r === 0) return '【板主:someone】 看板《Gossiping》';
+      if (r === 1) return '[←]離開 [→]閱讀 [Ctrl-P]發表文章 [d]刪除 [z]精華區 [i]看板資訊/設定 [h]說明';
+      if (r === 2) return '   編號    日 期 作  者       文  章  標  題                     人氣:1234';
+      if (r === 23) return '  文章選讀  (y)回應(X)推文(^X)轉錄 (=[]<>)相關主題(/?a)找標題/作者 (b)進板畫面';
+      return '';
+    },
+  };
+  assert.equal(ptt.isListScreen(mockListTerm), true);
+  // List screen is not menu screen
+  assert.equal(ptt.isMenuScreen(mockListTerm), false);
+
+  // Article reading screen with quoted board list screenshot must NOT be detected as list (cursor is parked at bottom right)
+  const mockArticleWithListScreenshot = {
+    rows: 24,
+    cols: 80,
+    cur_y: 23,
+    cur_x: 79,
+    getRowText: (r) => {
+      if (r === 0) return '【板主:someone】 看板《Gossiping》';
+      if (r === 1) return '[←]離開 [→]閱讀 [Ctrl-P]發表文章 [d]刪除 [z]精華區 [i]看板資訊/設定 [h]說明';
+      if (r === 2) return '   編號    日 期 作  者       文  章  標  題                     人氣:1234';
+      if (r === 23) return '  瀏覽 第 1/2 頁 (50%)  目前顯示: 第 01~24 行  (y)回應(X)推文(^X)轉錄 (=[?]說明';
+      return '';
+    },
+  };
+  assert.equal(ptt.isListScreen(mockArticleWithListScreenshot), false);
+
+  // Cursor parked on right side of screen is not a list cursor
+  const mockListWrongCursor = {
+    ...mockListTerm,
+    cur_x: 40,
+    cur_y: 5,
+  };
+  assert.equal(ptt.isListScreen(mockListWrongCursor), false);
+
+  // Test isTextWrappedRow: looking for bright white on black '\' at col 77 or 78
+  const makeLine = (bg, len = 80) => Array.from({ length: len }, () => ({ getBg: () => bg, bg }));
+  const wrappedLine = makeLine(0);
+  wrappedLine[77] = { ch: '\\', fg: 7, bg: 0, bright: true };
+  const termBuf = {
+    rows: 5,
+    cols: 80,
+    lines: [makeLine(0), wrappedLine, makeLine(0), makeLine(0), makeLine(0)],
+  };
+  assert.equal(ptt.isTextWrappedRow(termBuf, 1), true);
+
+  // Non-wrapped line or wrong color
+  const nonWrappedLine = makeLine(0);
+  nonWrappedLine[77] = { ch: '\\', fg: 7, bg: 0, bright: false }; // not bright
+  termBuf.lines[2] = nonWrappedLine;
+  assert.equal(ptt.isTextWrappedRow(termBuf, 2), false);
+
+  // BaseSite isLineContinuation always returns false
+  assert.equal(base.isLineContinuation(termBuf, 2, false), false);
+
+  // PttSite isLineContinuation: rowIndex 4 on initial page is always continuation
+  assert.equal(ptt.isLineContinuation(termBuf, 4, true), true);
+
+  // PttSite isLineContinuation: rowIndex 2 when row 1 is text-wrapped
+  assert.equal(ptt.isLineContinuation(termBuf, 2, false), true);
+
+  // PttSite isLineContinuation: rowIndex 3 when row 2 is NOT text-wrapped
+  assert.equal(ptt.isLineContinuation(termBuf, 3, false), false);
 });
 
 test('PttSite parses incoming waterball messages', () => {
@@ -371,7 +472,6 @@ test('AutoSite replaces termBuf.site and app.site on lock and proxies calls tran
     rows: 24,
     site: auto,
     view: { bbscore: mockApp },
-    isUnicolor: () => true,
     getRowText: (r) => (r === 0 ? '【主功能表】 批踢踢實業坊' : ''),
   };
 

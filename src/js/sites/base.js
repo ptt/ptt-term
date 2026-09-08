@@ -336,9 +336,6 @@ export class BaseSite {
    * @returns {boolean}
    */
   isLineContinuation(termBuf, rowIndex, isInitialPage = false) {
-    if (rowIndex > 0 && termBuf.isTextWrappedRow(rowIndex - 1)) {
-      return true;
-    }
     return false;
   }
 

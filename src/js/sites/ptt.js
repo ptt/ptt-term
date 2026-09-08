@@ -68,16 +68,25 @@ export class PttSite extends BaseSite {
   }
 
   isMenuScreen(termBuf) {
+    if (!termBuf) return false;
+    if (this.isCursorParked(termBuf)) return false;
+
     let cols = termBuf.cols;
     let lastRowNum = this.getLastRowNum(termBuf);
     let firstRowText = termBuf.getRowText(0, 0, cols);
     let lastRowText = termBuf.getRowText(lastRowNum, 0, cols);
 
-    if (termBuf.isUnicolor(0, 0, 29) && termBuf.isUnicolor(0, cols - 20, cols - 10)) {
-      let main = firstRowText.indexOf('【主功能表】');
-      let classList = firstRowText.indexOf('【分類看板】');
-      let archiveList = firstRowText.indexOf('【精華文章】');
-      if (main === 0 || classList === 0 || archiveList === 0 || parseListRow(lastRowText)) {
+    const isMenuTitle =
+      firstRowText.indexOf('【主功能表】') === 0 ||
+      firstRowText.indexOf('【分類看板】') === 0 ||
+      firstRowText.indexOf('【精華文章】') === 0;
+
+    if (isMenuTitle) {
+      return true;
+    }
+
+    if (firstRowText.indexOf('【') === 0 && parseListRow(lastRowText)) {
+      if (!this.isListScreen(termBuf)) {
         return true;
       }
     }
@@ -85,13 +94,39 @@ export class PttSite extends BaseSite {
   }
 
   isListScreen(termBuf) {
+    if (!termBuf) return false;
+    if (this.isCursorParked(termBuf)) return false;
+
     let cols = termBuf.cols;
     let lastRowNum = this.getLastRowNum(termBuf);
-    if (termBuf.isUnicolor(0, 0, 29) && termBuf.isUnicolor(0, cols - 20, cols - 10)) {
-      if (termBuf.isUnicolor(2, 0, cols - 10) && !termBuf.isLineEmpty(1) && (termBuf.cur_x < 19 || termBuf.cur_y == lastRowNum)) {
-        return true;
-      }
+
+    // In PTT mbbsd read.c / board.c, cursor is placed on active list item (cur_x < 19)
+    // or on the bottom prompt line (cur_y === lastRowNum)
+    if (termBuf.cur_x !== undefined && termBuf.cur_x >= 19 && termBuf.cur_y !== lastRowNum) {
+      return false;
     }
+
+    let row0Text = termBuf.getRowText(0, 0, cols);
+    let row1Text = termBuf.getRowText(1, 0, cols);
+    let row2Text = termBuf.getRowText(2, 0, cols);
+
+    // PTT list screens always start row 0 with 【 (e.g. 【板主:...】 看板《...》, 【郵件選單】, etc.)
+    if (!row0Text || row0Text.indexOf('【') !== 0) {
+      return false;
+    }
+
+    // Row 1 has command shortcuts: [←]離開 and [→]閱讀 / [→]選擇
+    const hasCommandRow =
+      /\[←\]\s*離開/.test(row1Text) &&
+      (/\[→\]\s*閱?讀/.test(row1Text) || /\[→\]\s*選擇/.test(row1Text));
+
+    // Row 2 is the table column header containing 編號
+    const hasHeaderRow = row2Text && row2Text.includes('編號');
+
+    if (hasCommandRow || hasHeaderRow) {
+      return true;
+    }
+
     return false;
   }
 
@@ -142,11 +177,34 @@ export class PttSite extends BaseSite {
     };
   }
 
+  /**
+   * Determine whether row is auto-wrapped by looking for the ending "\" (bright white on black).
+   * Specific to PTT BBS.
+   * @param {TermBuf} termBuf
+   * @param {number} row
+   * @returns {boolean}
+   */
+  isTextWrappedRow(termBuf, row) {
+    if (!termBuf || typeof row !== 'number' || !Number.isFinite(row) || row < 0 || row >= termBuf.rows) return false;
+    const line = termBuf.lines && termBuf.lines[row];
+    if (!line) return false;
+    for (const col of [78, 77]) {
+      const ch = line[col];
+      if (ch && ch.ch === '\\' && ch.fg == 7 && ch.bg === 0 && ch.bright) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   isLineContinuation(termBuf, rowIndex, isInitialPage = false) {
     if (isInitialPage && rowIndex === 4) {
       return true;
     }
-    return super.isLineContinuation(termBuf, rowIndex, isInitialPage);
+    if (rowIndex > 0 && this.isTextWrappedRow(termBuf, rowIndex - 1)) {
+      return true;
+    }
+    return false;
   }
 
   getEasyReadingCommands() {
