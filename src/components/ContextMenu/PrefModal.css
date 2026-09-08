@@ -160,7 +160,8 @@ dialog.PrefModal .NativeDialog__content {
 
 .PrefModal__MacListItem {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   padding: 14px 16px;
   border-bottom: 1px solid #e5e5ea;
   transition: background-color 0.15s ease;
@@ -172,6 +173,12 @@ dialog.PrefModal .NativeDialog__content {
 
 .PrefModal__MacListItem:hover {
   background-color: #f5f5f7;
+}
+
+.PrefModal__MacListItemHeader {
+  display: flex;
+  align-items: center;
+  width: 100%;
 }
 
 .PrefModal__MacListItemIcon {
@@ -219,6 +226,65 @@ dialog.PrefModal .NativeDialog__content {
   color: #6e6e73;
   margin-top: 3px;
   line-height: 1.45;
+}
+
+.PrefModal__MacListItemSub {
+  width: 100%;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e5ea;
+  padding-left: 52px;
+}
+
+.PrefModal__MacSubCheckbox {
+  margin: 6px 0 !important;
+}
+
+.PrefModal__MacSubCheckbox label {
+  font-size: 13px;
+  color: #1d1d1f;
+  font-weight: normal;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.PrefModal__MacSubOptionRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  font-size: 13px;
+  color: #1d1d1f;
+}
+
+.PrefModal__MacSubLabel {
+  font-size: 13px;
+  color: #1d1d1f;
+  font-weight: normal;
+}
+
+.PrefModal__MacSubInlineInput {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.PrefModal__MacSubInlineInput input {
+  width: 70px !important;
+  height: 28px !important;
+  padding: 2px 8px !important;
+  font-size: 13px !important;
+  text-align: center;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.PrefModal__MacSubUnit {
+  color: #6e6e73;
+  font-size: 13px;
 }
 
 /* Mac-style iOS/macOS Toggle Switch */
@@ -381,5 +447,9 @@ dialog.PrefModal .NativeDialog__content {
 
   .PrefModal__MacSwitch input:checked + .PrefModal__MacSwitchSlider::before {
     transform: translateX(16px);
+  }
+
+  .PrefModal__MacListItemSub {
+    padding-left: 0;
   }
 }

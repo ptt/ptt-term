@@ -1169,10 +1169,24 @@ export class App {
       this.copyOnSelect = value;
       break;
     case 'enableLiveUpdate':
-    case 'endTurnsOnLiveUpdate':
-      this.endTurnsOnLiveUpdate = value;
       if (this.liveUpdate) {
-        this.liveUpdate.enabled = !!value;
+        this.liveUpdate.setEnabled(!!value);
+      }
+      break;
+    case 'endTurnsOnLiveUpdate':
+      this.endTurnsOnLiveUpdate = !!value;
+      if (this.liveUpdate) {
+        this.liveUpdate.setEndTurnsOn(!!value);
+      }
+      break;
+    case 'liveUpdateInterval':
+      if (this.liveUpdate) {
+        this.liveUpdate.setIntervalSec(value);
+      }
+      break;
+    case 'showLiveUpdateToolbar':
+      if (this.liveUpdate) {
+        this.liveUpdate.setShowToolbar(!!value);
       }
       break;
     case 'enablePicPreview':

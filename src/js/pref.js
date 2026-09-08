@@ -5,7 +5,9 @@ export const DEFAULT_PREFS = {
   enableBell: "always",
   enableEasyReading: false,
   enableLiveUpdate: false,
-  endTurnsOnLiveUpdate: false,
+  endTurnsOnLiveUpdate: true,
+  liveUpdateInterval: 1,
+  showLiveUpdateToolbar: true,
   copyOnSelect: false,
   antiIdleTime: 0,
   lineWrap: 78,
@@ -59,9 +61,14 @@ export const readValuesWithDefault = () => {
     };
     if (saved) {
       if (saved.enableLiveUpdate === undefined && saved.endTurnsOnLiveUpdate !== undefined) {
-        prefs.enableLiveUpdate = saved.endTurnsOnLiveUpdate;
-      } else if (saved.endTurnsOnLiveUpdate === undefined && saved.enableLiveUpdate !== undefined) {
-        prefs.endTurnsOnLiveUpdate = saved.enableLiveUpdate;
+        prefs.enableLiveUpdate = Boolean(saved.endTurnsOnLiveUpdate);
+      }
+      if (saved.liveUpdateInterval !== undefined) {
+        const parsedInterval = parseInt(saved.liveUpdateInterval, 10);
+        prefs.liveUpdateInterval = parsedInterval > 0 ? parsedInterval : 1;
+      }
+      if (saved.showLiveUpdateToolbar !== undefined) {
+        prefs.showLiveUpdateToolbar = Boolean(saved.showLiveUpdateToolbar);
       }
       if (saved.maxFontSize === undefined) {
         prefs.maxFontSize =
@@ -100,11 +107,6 @@ export const updatePrefs = (patch) => {
       const obj = raw ? JSON.parse(raw) : { values: {} };
       if (!obj.values) {
         obj.values = {};
-      }
-      if (patch.enableLiveUpdate !== undefined && patch.endTurnsOnLiveUpdate === undefined) {
-        patch.endTurnsOnLiveUpdate = patch.enableLiveUpdate;
-      } else if (patch.endTurnsOnLiveUpdate !== undefined && patch.enableLiveUpdate === undefined) {
-        patch.enableLiveUpdate = patch.endTurnsOnLiveUpdate;
       }
       Object.assign(obj.values, patch);
       window.localStorage.setItem(PREF_STORAGE_KEY, JSON.stringify(obj));

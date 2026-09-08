@@ -1649,12 +1649,20 @@ test('src/plugins exports LiveUpdate and provides timer and keyboard lifecycle',
     stopPropagation() { stoppedPropagation = true; },
   });
 
-  // End key in post mode (pageState 3)
+  // End key in post mode (pageState 3) with endTurnsOn = true
   prevented = false;
+  plugin.endTurnsOn = true;
   const handledEnd = plugin.handleKeyDown(mockEvent('End'));
   assert.equal(handledEnd, true);
   assert.equal(prevented, true);
   assert.equal(plugin.active, true);
+
+  // End key when endTurnsOn = false should not be intercepted
+  plugin.endTurnsOn = false;
+  prevented = false;
+  const ignoredEnd = plugin.handleKeyDown(mockEvent('End'));
+  assert.equal(ignoredEnd, false);
+  assert.equal(prevented, false);
 
   // Non-alt key cancels active
   plugin.handleKeyDown(mockEvent('j'));
@@ -1664,6 +1672,19 @@ test('src/plugins exports LiveUpdate and provides timer and keyboard lifecycle',
   plugin.start();
   plugin.handleKeyDown(mockEvent('Alt', { altKey: true }));
   assert.equal(plugin.active, true);
+
+  // Plugin UI visibility and toolbar controls
+  plugin.setShowToolbar(false);
+  assert.equal(plugin.showToolbar, false);
+  assert.equal(plugin.showsModal, false);
+  plugin.setShowToolbar(true);
+  assert.equal(plugin.showToolbar, true);
+  assert.equal(plugin.showsModal, true);
+
+  plugin.setEnabled(false);
+  assert.equal(plugin.enabled, false);
+  assert.equal(plugin.active, false);
+  assert.equal(plugin.showsModal, false);
 
   // Clean up
   plugin.destroy();
@@ -1708,9 +1729,17 @@ test('ContextMenu and DropdownMenu decouple LiveHelper and remove right-click it
     'ContextMenu must not inject onToggleLiveHelperModalState'
   );
 
-  // PrefModal General tab no longer duplicates endTurnsOnLiveUpdate
+  // PrefModal Plugins tab provides sub-options for live_update
   assert.ok(
-    !prefModalSource.includes('name="endTurnsOnLiveUpdate"'),
-    'PrefModal General tab must not contain redundant endTurnsOnLiveUpdate checkbox'
+    prefModalSource.includes('name="endTurnsOnLiveUpdate"'),
+    'PrefModal Plugins tab must provide endTurnsOnLiveUpdate checkbox'
+  );
+  assert.ok(
+    prefModalSource.includes('name="liveUpdateInterval"'),
+    'PrefModal Plugins tab must provide liveUpdateInterval input'
+  );
+  assert.ok(
+    prefModalSource.includes('name="showLiveUpdateToolbar"'),
+    'PrefModal Plugins tab must provide showLiveUpdateToolbar checkbox'
   );
 });

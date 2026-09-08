@@ -211,9 +211,21 @@ export class PrefModal extends React.Component {
   };
 
   handleCheckboxChange = ({ target: { name, checked } }) => {
-    this.setState((prevState) => ({
-      values: changeNestedValue(prevState.values, name, !!checked),
-    }));
+    this.setState((prevState) => {
+      let nextValues = changeNestedValue(prevState.values, name, !!checked);
+      if (name === "enableLiveUpdate" && checked) {
+        if (nextValues.endTurnsOnLiveUpdate === undefined) {
+          nextValues = changeNestedValue(nextValues, "endTurnsOnLiveUpdate", true);
+        }
+        if (nextValues.showLiveUpdateToolbar === undefined) {
+          nextValues = changeNestedValue(nextValues, "showLiveUpdateToolbar", true);
+        }
+        if (!nextValues.liveUpdateInterval) {
+          nextValues = changeNestedValue(nextValues, "liveUpdateInterval", 1);
+        }
+      }
+      return { values: nextValues };
+    });
   };
 
   handleNumberInputChange = ({ target: { name, value } }) => {
@@ -714,33 +726,83 @@ export class PrefModal extends React.Component {
                           "PrefModal__MacListItem--enabled": isChecked,
                         })}
                       >
-                        <div className="PrefModal__MacListItemIcon">
-                          {renderPluginIcon(plugin.icon)}
-                        </div>
-                        <div className="PrefModal__MacListItemContent">
-                          <div className="PrefModal__MacListItemTitle">
-                            <span>{plugin.title || plugin.name}</span>
-                            {plugin.badge && (
-                              <span className="PrefModal__MacBadge">
-                                {plugin.badge}
-                              </span>
+                        <div className="PrefModal__MacListItemHeader">
+                          <div className="PrefModal__MacListItemIcon">
+                            {renderPluginIcon(plugin.icon)}
+                          </div>
+                          <div className="PrefModal__MacListItemContent">
+                            <div className="PrefModal__MacListItemTitle">
+                              <span>{plugin.title || plugin.name}</span>
+                              {plugin.badge && (
+                                <span className="PrefModal__MacBadge">
+                                  {plugin.badge}
+                                </span>
+                              )}
+                            </div>
+                            {plugin.description && (
+                              <div className="PrefModal__MacListItemDesc">
+                                {plugin.description}
+                              </div>
                             )}
                           </div>
-                          {plugin.description && (
-                            <div className="PrefModal__MacListItemDesc">
-                              {plugin.description}
-                            </div>
-                          )}
+                          <label className="PrefModal__MacSwitch">
+                            <input
+                              type="checkbox"
+                              name={plugin.prefKey || `plugin_${plugin.id}`}
+                              checked={isChecked}
+                              onChange={this.handleCheckboxChange}
+                            />
+                            <span className="PrefModal__MacSwitchSlider" />
+                          </label>
                         </div>
-                        <label className="PrefModal__MacSwitch">
-                          <input
-                            type="checkbox"
-                            name={plugin.prefKey || `plugin_${plugin.id}`}
-                            checked={isChecked}
-                            onChange={this.handleCheckboxChange}
-                          />
-                          <span className="PrefModal__MacSwitchSlider" />
-                        </label>
+                        {plugin.id === "live_update" && isChecked && (
+                          <div className="PrefModal__MacListItemSub">
+                            <div className="checkbox PrefModal__MacSubCheckbox">
+                              <label>
+                                <input
+                                  type="checkbox"
+                                  name="endTurnsOnLiveUpdate"
+                                  checked={Boolean(
+                                    values.endTurnsOnLiveUpdate !== false
+                                  )}
+                                  onChange={this.handleCheckboxChange}
+                                />
+                                {i18n("options_endTurnsOnLiveUpdate")}
+                              </label>
+                            </div>
+                            <div className="PrefModal__MacSubOptionRow">
+                              <span className="PrefModal__MacSubLabel">
+                                {i18n("options_liveUpdateInterval")}
+                              </span>
+                              <div className="PrefModal__MacSubInlineInput">
+                                <input
+                                  className="form-control"
+                                  type="number"
+                                  name="liveUpdateInterval"
+                                  min="1"
+                                  value={values.liveUpdateInterval || 1}
+                                  onChange={this.handleNumberInputChange}
+                                />
+                                <span className="PrefModal__MacSubUnit">
+                                  {i18n("options_liveUpdateIntervalSec")}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="checkbox PrefModal__MacSubCheckbox">
+                              <label>
+                                <input
+                                  type="checkbox"
+                                  name="showLiveUpdateToolbar"
+                                  checked={Boolean(
+                                    values.showLiveUpdateToolbar !== false
+                                  )}
+                                  onChange={this.handleCheckboxChange}
+                                />
+                                {i18n("options_showLiveUpdateToolbar")}
+                              </label>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

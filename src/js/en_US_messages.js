@@ -133,6 +133,15 @@ export const en_US = {
   options_endTurnsOnLiveUpdate: {
     message: "Press END turns on thread live update.",
   },
+  options_liveUpdateInterval: {
+    message: "Update Interval",
+  },
+  options_liveUpdateIntervalSec: {
+    message: "sec",
+  },
+  options_showLiveUpdateToolbar: {
+    message: "Show floating control toolbar",
+  },
   options_copyOnSelect: {
     message: "Copy text when selected.",
   },

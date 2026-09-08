@@ -1711,8 +1711,16 @@ test('PrefModal redesign includes Extensions/Plugins tab with Mac-style toggle l
     'PrefModal should render subtitle below TabLegend divider'
   );
   assert.ok(
-    !prefModalSource.includes('name="endTurnsOnLiveUpdate"'),
-    'PrefModal General tab must not contain duplicate endTurnsOnLiveUpdate checkbox'
+    prefModalSource.includes('name="endTurnsOnLiveUpdate"'),
+    'PrefModal Plugins tab must provide endTurnsOnLiveUpdate setting'
+  );
+  assert.ok(
+    prefModalSource.includes('name="liveUpdateInterval"'),
+    'PrefModal Plugins tab must provide liveUpdateInterval setting'
+  );
+  assert.ok(
+    prefModalSource.includes('name="showLiveUpdateToolbar"'),
+    'PrefModal Plugins tab must provide showLiveUpdateToolbar setting'
   );
 
   // 3. PrefModal.css defines Mac list and switch styles
@@ -1727,6 +1735,10 @@ test('PrefModal redesign includes Extensions/Plugins tab with Mac-style toggle l
   assert.ok(
     prefModalCss.includes('.PrefModal__MacSwitch'),
     'PrefModal.css must style .PrefModal__MacSwitch'
+  );
+  assert.ok(
+    prefModalCss.includes('.PrefModal__MacListItemSub'),
+    'PrefModal.css must style .PrefModal__MacListItemSub'
   );
   assert.ok(
     prefModalCss.includes('.PrefModal__MacSwitchSlider'),

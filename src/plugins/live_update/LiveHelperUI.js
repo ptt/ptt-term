@@ -56,7 +56,7 @@ export class LiveHelperUI {
     input.min = '1';
     input.style.cursor = 'text';
     input.addEventListener('change', (e) => {
-      this.plugin.setIntervalSec(e.target.value);
+      this.plugin.setIntervalSec(e.target.value, true);
     });
     this.secInput = input;
     body.appendChild(input);
@@ -75,7 +75,7 @@ export class LiveHelperUI {
     closeBtn.innerHTML = '&times;';
     closeBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.plugin.hideModal();
+      this.plugin.hideModal(true);
     });
     body.appendChild(closeBtn);
 
@@ -86,9 +86,9 @@ export class LiveHelperUI {
     dialog.appendChild(content);
 
     const mountTarget =
+      document.body ||
       (this.plugin.app && this.plugin.app.termWin) ||
-      document.getElementById('TermWindow') ||
-      document.body;
+      document.getElementById('TermWindow');
     if (mountTarget?.appendChild) {
       mountTarget.appendChild(dialog);
     }

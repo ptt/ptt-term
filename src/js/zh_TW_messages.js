@@ -132,6 +132,15 @@ export const zh_TW = {
   options_endTurnsOnLiveUpdate: {
     message: "END 啟用推文即時更新 (如 Alt + r)",
   },
+  options_liveUpdateInterval: {
+    message: "更新頻率",
+  },
+  options_liveUpdateIntervalSec: {
+    message: "秒",
+  },
+  options_showLiveUpdateToolbar: {
+    message: "顯示懸浮控制面板",
+  },
   options_copyOnSelect: {
     message: "選取文字時自動複製文字",
   },

@@ -1,4 +1,4 @@
-import { readValuesWithDefault } from '../../js/pref.js';
+import { readValuesWithDefault, updatePref } from '../../js/pref.js';
 import { _ } from '../../js/i18n.js';
 import { LiveHelperUI } from './LiveHelperUI.js';
 
@@ -24,7 +24,9 @@ export class LiveUpdate {
     this.view = options.view || null;
     this.buf = options.buf || null;
     this.enabled = options.enabled ?? false;
+    this.endTurnsOn = options.endTurnsOn ?? true;
     this.intervalSec = options.intervalSec ?? 1;
+    this.showToolbar = options.showToolbar ?? true;
     this.active = false;
     this.showsModal = false;
     this.timer = null;
@@ -83,8 +85,22 @@ export class LiveUpdate {
         ? prefs.enableLiveUpdate
         : prefs.endTurnsOnLiveUpdate
     );
+    this.endTurnsOn =
+      prefs.endTurnsOnLiveUpdate !== undefined
+        ? Boolean(prefs.endTurnsOnLiveUpdate)
+        : true;
+    this.intervalSec = Math.max(1, parseInt(prefs.liveUpdateInterval, 10) || 1);
+    this.showToolbar =
+      prefs.showLiveUpdateToolbar !== undefined
+        ? Boolean(prefs.showLiveUpdateToolbar)
+        : true;
+
     if (typeof document !== 'undefined') {
       this.ui = new LiveHelperUI(this);
+      if (this.enabled && this.showToolbar) {
+        this.showsModal = true;
+        this.renderUI();
+      }
     }
   }
 
@@ -103,9 +119,40 @@ export class LiveUpdate {
     }
   }
 
-  setIntervalSec(sec) {
+  setEnabled(enabled) {
+    this.enabled = !!enabled;
+    if (this.enabled) {
+      if (this.showToolbar) {
+        this.showModal();
+      }
+    } else {
+      this.stop();
+      this.hideModal();
+    }
+  }
+
+  setShowToolbar(show, savePref = false) {
+    this.showToolbar = !!show;
+    if (this.showToolbar && this.enabled) {
+      this.showModal(savePref);
+    } else {
+      this.hideModal(savePref);
+    }
+  }
+
+  setEndTurnsOn(val, savePref = false) {
+    this.endTurnsOn = !!val;
+    if (savePref) {
+      updatePref('endTurnsOnLiveUpdate', this.endTurnsOn);
+    }
+  }
+
+  setIntervalSec(sec, savePref = false) {
     const parsed = parseInt(sec, 10);
     this.intervalSec = parsed > 1 ? parsed : 1;
+    if (savePref) {
+      updatePref('liveUpdateInterval', this.intervalSec);
+    }
     if (this.active) {
       this.start();
     } else {
@@ -151,18 +198,27 @@ export class LiveUpdate {
     }
   }
 
-  showModal() {
+  showModal(savePref = false) {
     this.showsModal = true;
+    this.showToolbar = true;
+    if (savePref) {
+      updatePref('showLiveUpdateToolbar', true);
+    }
     this.renderUI();
   }
 
-  hideModal() {
+  hideModal(savePref = false) {
     this.showsModal = false;
+    if (savePref) {
+      this.showToolbar = false;
+      updatePref('showLiveUpdateToolbar', false);
+    }
     this.renderUI();
   }
 
   toggleModal() {
     this.showsModal = !this.showsModal;
+    this.showToolbar = this.showsModal;
     this.renderUI();
   }
 
@@ -175,9 +231,9 @@ export class LiveUpdate {
 
     // Toggle on 'End' key when in article reading mode (pageState 2 or 3)
     if (!e.ctrlKey && !e.altKey && (e.key === 'End' || e.keyCode === 35)) {
-      if (pageState === 2 || pageState === 3) {
+      if (this.endTurnsOn && (pageState === 2 || pageState === 3)) {
         this.toggle();
-        this.showModal();
+        this.showModal(true);
         e.preventDefault?.();
         e.stopPropagation?.();
         return true;
@@ -188,7 +244,7 @@ export class LiveUpdate {
     if (!e.ctrlKey && e.altKey && (e.key === 'r' || e.key === 'R' || e.keyCode === 82)) {
       if (pageState === 2 || pageState === 3) {
         this.toggle();
-        this.showModal();
+        this.showModal(true);
         e.preventDefault?.();
         e.stopPropagation?.();
         return true;
