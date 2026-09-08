@@ -115,49 +115,6 @@ export class TermView {
   mainDisplay.appendChild(screenContainer);
   this.screenContainer = screenContainer;
 
-  const easyReadingOverlay = document.createElement('div');
-  easyReadingOverlay.setAttribute('id', 'easyReadingOverlay');
-  easyReadingOverlay.addEventListener('mousedown', (e) => {
-    if (e.target && e.target.tagName !== 'A') {
-      this.bbscore.setInputAreaFocus();
-    }
-  });
-  easyReadingOverlay.addEventListener('wheel', (e) => {
-    if (this.easyReadingContent && e.target !== this.easyReadingContent && !this.easyReadingContent.contains(e.target)) {
-      this.easyReadingContent.scrollTop += e.deltaY;
-    }
-  }, { passive: true });
-  this.BBSWin.appendChild(easyReadingOverlay);
-  this.easyReadingOverlay = easyReadingOverlay;
-
-  const easyReadingContent = document.createElement('div');
-  easyReadingContent.setAttribute('id', 'easyReadingContent');
-  easyReadingOverlay.appendChild(easyReadingContent);
-  this.easyReadingContent = easyReadingContent;
-  this.easyReadingContent.addEventListener('scroll', () => {
-    this.updateEasyReadingProgress();
-  });
-
-  const easyReadingFooter = document.createElement('div');
-  easyReadingFooter.setAttribute('id', 'easyReadingFooter');
-  easyReadingOverlay.appendChild(easyReadingFooter);
-  this.easyReadingFooter = easyReadingFooter;
-
-  const lastRowDiv = document.createElement('div');
-  lastRowDiv.setAttribute('id', 'easyReadingLastRow');
-  let spaces = ' ';
-  this.lastRowDivContent = '<span align="left"><span class="q0 b7">' + spaces + '瀏覽 </span><span class="q1 b7">(100%)</span><span class="q1 b7"> [好讀模式]</span><span class="q0 b7"> 滾輪/上下鍵捲動，</span><span class="q1 b7">(Esc)</span><span class="q0 b7">回到終端機 </span><span class="q1 b7">(←/q)</span><span class="q0 b7">離開</span></span>';
-  lastRowDiv.innerHTML = this.lastRowDivContent;
-  this.lastRowDiv = lastRowDiv;
-  easyReadingFooter.appendChild(lastRowDiv);
-
-  const replyRowDiv = document.createElement('div');
-  replyRowDiv.setAttribute('id', 'easyReadingReplyRow');
-  this.replyRowDivContent = '<span align="left"></span>';
-  replyRowDiv.innerHTML = this.replyRowDivContent;
-  this.replyRowDiv = replyRowDiv;
-  easyReadingFooter.appendChild(replyRowDiv);
-
   this.mainDisplay.style.border = '0px';
   this.setFontFace('MingLiu,monospace');
 
@@ -300,7 +257,9 @@ export class TermView {
   setFontFace(fontFace) {
     this.fontFace = fontFace;
     this.input.style.setProperty('font-family', this.fontFace, 'important');
-    this.easyReadingOverlay.style.setProperty('--font-face', this.fontFace);
+    if (this.easyReadingOverlay) {
+      this.easyReadingOverlay.style.setProperty('--font-face', this.fontFace);
+    }
   }
 
   setShowFps(show) {
@@ -380,7 +339,9 @@ export class TermView {
         this.fpsMeter.recordFrame(performance.now() - t0, false);
       }
 
-      if (this.useEasyReadingMode) {
+      if (this.bbscore?.easyReading) {
+        this.bbscore.easyReading.updatePage(changedLineHtmlStrs);
+      } else if (this.useEasyReadingMode) {
         if (this.buf.startedEasyReading && this.buf.easyReadingShowReplyText) {
           this.updateEasyReadingReplyRow(changedLineHtmlStrs[changedLineHtmlStrs.length-1]);
         } else if (this.buf.startedEasyReading && this.buf.easyReadingShowPushInitText) {
@@ -1048,129 +1009,103 @@ export class TermView {
     }
   }
 
+  get easyReadingOverlay() {
+    return this.bbscore?.easyReading?.overlay || this._easyReadingOverlay || null;
+  }
+  set easyReadingOverlay(val) {
+    this._easyReadingOverlay = val;
+  }
+
+  get easyReadingContent() {
+    return this.bbscore?.easyReading?.content || this._easyReadingContent || null;
+  }
+  set easyReadingContent(val) {
+    this._easyReadingContent = val;
+  }
+
+  get easyReadingFooter() {
+    return this.bbscore?.easyReading?.footer || this._easyReadingFooter || null;
+  }
+  set easyReadingFooter(val) {
+    this._easyReadingFooter = val;
+  }
+
+  get lastRowDiv() {
+    return this.bbscore?.easyReading?.lastRowDiv || this._lastRowDiv || null;
+  }
+  set lastRowDiv(val) {
+    this._lastRowDiv = val;
+  }
+
+  get replyRowDiv() {
+    return this.bbscore?.easyReading?.replyRowDiv || this._replyRowDiv || null;
+  }
+  set replyRowDiv(val) {
+    this._replyRowDiv = val;
+  }
+
+  get actualRowIndex() {
+    return this.bbscore?.easyReading?.actualRowIndex ?? this._actualRowIndex ?? 0;
+  }
+  set actualRowIndex(val) {
+    if (this.bbscore?.easyReading) {
+      this.bbscore.easyReading.actualRowIndex = val;
+    }
+    this._actualRowIndex = val;
+  }
+
   isEasyReadingActive() {
+    if (this.bbscore?.easyReading) {
+      return this.bbscore.easyReading.isActive();
+    }
     return !!(this.easyReadingOverlay && this.easyReadingOverlay.style.display !== 'none');
   }
 
   showEasyReading() {
+    if (this.bbscore?.easyReading) {
+      this.bbscore.easyReading.show();
+      return;
+    }
     if (this.easyReadingOverlay) {
       this.easyReadingOverlay.style.display = 'block';
     }
-    this.bbscore.lastEasyReadingWheelTime = 0;
-    this.bbscore.lastEasyReadingHideTime = 0;
+    if (this.bbscore) {
+      this.bbscore.lastEasyReadingWheelTime = 0;
+      this.bbscore.lastEasyReadingHideTime = 0;
+    }
   }
 
   populateEasyReadingPage() {
-    const site = this.buf.site;
-    let lastRowNum = site.getLastRowNum(this.buf);
-    if (this.buf.pageState == 3 && this.buf.prevPageState == 3) {
-      this.showEasyReading();
-      const lastRowText = this.buf.getRowText(lastRowNum, 0, this.buf.cols);
-      const result = site.parseReadingStatus(lastRowText, this.buf);
-      if (result) {
-        const isEnd = result.isEnd || site.isArticleEnd(lastRowText, this.buf, result);
-        if (result.pageIndex && result.pageIndex === this._lastEasyReadingPageIndex && !isEnd) {
-          return;
-        }
-        if (isEnd && this._easyReadingAppendedEnd) {
-          return;
-        }
-        if (isEnd) {
-          this._easyReadingAppendedEnd = true;
-        }
-        if (result.pageIndex) {
-          this._lastEasyReadingPageIndex = result.pageIndex;
-        }
-
-        const paging = site.getPagingSlice(this.buf, result, this.actualRowIndex);
-        let beginIndex = paging.beginIndex;
-        const atLastPage = paging.atLastPage;
-
-        for (let i = beginIndex; i < lastRowNum; ++i) {
-          if (site.isLineContinuation(this.buf, i, false)) {
-            this.buf.pageWrappedLines[this.actualRowIndex] += 1;
-            // if the second row is the wrapped line from first row 
-            if (!atLastPage && i == beginIndex) {
-              beginIndex++;
-            }
-          } else {
-            this.buf.pageWrappedLines[++this.actualRowIndex] = 1;
-          }
-        }
-        this.appendRows(this.buf.lines.slice(beginIndex, lastRowNum), true);
-        // deep clone lines for selection (getRowText and get ansi color)
-        this.buf.pageLines = this.buf.pageLines.concat(JSON.parse(JSON.stringify(this.buf.lines.slice(beginIndex, lastRowNum))));
-      }
-      this.buf.prevPageState = 3;
-    } else {
-      this.actualRowIndex = 0;
-      this.buf.pageWrappedLines = [];
-      this._lastEasyReadingPageIndex = 1;
-      this._easyReadingAppendedEnd = false;
-      if (this.buf.pageState == 3) {
-        const lastRowText = this.buf.getRowText(lastRowNum, 0, this.buf.cols);
-        const statusResult = site.parseReadingStatus(lastRowText, this.buf);
-        const isEnd = site.isArticleEnd(lastRowText, this.buf, statusResult);
-        for (let i = 0; i < lastRowNum; ++i) {
-          if (site.isLineContinuation(this.buf, i, true)) {
-            this.buf.pageWrappedLines[this.actualRowIndex] += 1;
-          } else {
-            this.buf.pageWrappedLines[++this.actualRowIndex] = 1;
-          }
-        }
-        this.clearRows();
-        this.showEasyReading();
-        if (this.easyReadingContent) {
-          this.easyReadingContent.scrollTop = 0;
-        }
-        this.appendRows(this.buf.lines.slice(0, lastRowNum), true);
-        if (isEnd) {
-          this._easyReadingAppendedEnd = true;
-        }
-        const spaces = ' ';
-        this.lastRowDiv.style.backgroundColor = '';
-        this.updateEasyReadingProgress();
-        this.lastRowDiv.style.display = 'block';
-        this.replyRowDiv.style.display = 'none';
-        // deep clone lines for selection (getRowText and get ansi color)
-        this.buf.pageLines = JSON.parse(JSON.stringify(this.buf.lines.slice(0, lastRowNum)));
-      } else {
-        this.hideEasyReading();
-      }
-      this.buf.prevPageState = this.buf.pageState;
+    if (this.bbscore?.easyReading) {
+      this.bbscore.easyReading.populatePage();
     }
   }
 
   updateEasyReadingProgress() {
-    if (!this.easyReadingContent || !this.lastRowDiv) return;
-    const cont = this.easyReadingContent;
-    let percent = 100;
-    if (cont.scrollHeight > cont.clientHeight) {
-      const scrollBottom = cont.scrollTop + cont.clientHeight;
-      percent = Math.min(100, Math.max(0, Math.round((scrollBottom / cont.scrollHeight) * 100)));
+    if (this.bbscore?.easyReading) {
+      this.bbscore.easyReading.updateProgress();
     }
-    this.lastRowDiv.innerHTML = this.buf.site.getEasyReadingPrompt(' ', percent);
   }
 
   clearRows() {
+    if (this.bbscore?.easyReading) {
+      this.bbscore.easyReading.clearRows();
+      return;
+    }
     if (this.easyReadingContent) {
       this.easyReadingContent.innerHTML = '';
     }
   }
 
   appendRows(lines, showsLinkPreview) {
-    if (!this.easyReadingContent) return;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const el = document.createElement('span');
-      el.setAttribute('type', 'bbsrow');
-      el.setAttribute('srow', this.easyReadingContent.childNodes.length);
-      this.easyReadingContent.appendChild(el);
-      renderRowHtml(
-        line, this.easyReadingContent.childNodes.length, this.chh,
-        showsLinkPreview, el);
+    if (this.bbscore?.easyReading) {
+      this.bbscore.easyReading.appendRows(lines, showsLinkPreview);
+      return;
     }
-    this.updateEasyReadingProgress();
+  }
+
+  renderRow(line, row, chh, showsLinkPreview, el) {
+    return renderRowHtml(line, row, chh, showsLinkPreview, el);
   }
 
   renderSingleRow(target, row) {
@@ -1182,11 +1117,17 @@ export class TermView {
   }
 
   hideEasyReading() {
+    if (this.bbscore?.easyReading) {
+      this.bbscore.easyReading.hide();
+      return;
+    }
     if (this.easyReadingOverlay) {
       this.easyReadingOverlay.style.display = 'none';
     }
-    this.bbscore.lastEasyReadingHideTime = Date.now();
-    this.bbscore.suppressInertialWheel();
+    if (this.bbscore) {
+      this.bbscore.lastEasyReadingHideTime = Date.now();
+      this.bbscore.suppressInertialWheel?.();
+    }
     this.clearRows();
     if (this.lastRowDiv) {
       this.lastRowDiv.style.backgroundColor = '';
@@ -1195,25 +1136,23 @@ export class TermView {
     if (this.replyRowDiv) {
       this.replyRowDiv.style.display = 'none';
     }
-    // clear the deep cloned copy of lines
-    this.buf.pageLines = [];
+    if (this.buf) {
+      this.buf.pageLines = [];
+    }
   }
 
   updateEasyReadingReplyRow(row) {
-    const el = document.createElement('span');
-    el.style = "background-color:black;";
-    this.renderSingleRow(el, row);
-    this.setSingleChild(this.replyRowDiv.childNodes[0] || this.replyRowDiv, el);
-    this.replyRowDiv.style.display = 'block';
+    if (this.bbscore?.easyReading) {
+      this.bbscore.easyReading.updateReplyRow(row);
+      return;
+    }
   }
 
   updateEasyReadingPushInitRow(row) {
-    const el = document.createElement('span');
-    el.style = "background-color:black;";
-    this.renderSingleRow(el, row);
-    this.setSingleChild(this.lastRowDiv.childNodes[0] || this.lastRowDiv, el);
-    this.lastRowDiv.style.backgroundColor = 'black';
-    this.lastRowDiv.style.display = 'block';
+    if (this.bbscore?.easyReading) {
+      this.bbscore.easyReading.updatePushInitRow(row);
+      return;
+    }
   }
 
   setSingleChild(par, child) {

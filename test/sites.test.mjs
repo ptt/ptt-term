@@ -1096,6 +1096,108 @@ test('EasyReading captures complete frames with DEC 2026 synchronized update', (
   }
 });
 
+test('EasyReading encapsulates overlay DOM elements and page stitching', () => {
+  function createElement(tag) {
+    const listeners = {};
+    return {
+      tagName: tag.toUpperCase(),
+      style: {},
+      childNodes: [],
+      parentNode: null,
+      setAttribute(k, v) { this[k] = v; },
+      getAttribute(k) { return this[k]; },
+      addEventListener(evt, fn) { (listeners[evt] = listeners[evt] || []).push(fn); },
+      dispatchEvent(evt) { for (const fn of (listeners[evt.type] || [])) fn(evt); },
+      appendChild(child) {
+        child.parentNode = this;
+        this.childNodes.push(child);
+        return child;
+      },
+      removeChild(child) {
+        const idx = this.childNodes.indexOf(child);
+        if (idx !== -1) {
+          child.parentNode = null;
+          this.childNodes.splice(idx, 1);
+        }
+        return child;
+      },
+      get lastChild() { return this.childNodes[this.childNodes.length - 1]; },
+      set innerHTML(html) {
+        this._html = html;
+        if (html === '') this.childNodes = [];
+      },
+      get innerHTML() { return this._html || ''; },
+      contains(other) {
+        let cur = other;
+        while (cur) {
+          if (cur === this) return true;
+          cur = cur.parentNode;
+        }
+        return false;
+      },
+    };
+  }
+
+  const container = createElement('div');
+  const originalDoc = globalThis.document;
+  try {
+    globalThis.document = {
+      createElement,
+      getElementById: (id) => (id === 'TermWindow' ? container : null),
+    };
+
+    const mockCore = {
+      connectedUrl: { easyReadingSupported: true },
+      suppressInertialWheel: () => {},
+    };
+    const renderedRows = [];
+    const mockView = {
+      termWin: container,
+      chh: 16,
+      renderRow: (line, row, chh, preview, el) => {
+        renderedRows.push({ line, row });
+      },
+    };
+    const ptt = new PttSite();
+    const mockTermBuf = {
+      cols: 80,
+      rows: 24,
+      addEventListener: () => {},
+      site: ptt,
+    };
+
+    const easyReading = new EasyReading(mockCore, mockView, mockTermBuf);
+    assert.ok(easyReading.overlay);
+    assert.equal(easyReading.overlay.getAttribute('id'), 'easyReadingOverlay');
+    assert.ok(easyReading.content);
+    assert.equal(easyReading.content.getAttribute('id'), 'easyReadingContent');
+    assert.ok(easyReading.footer);
+    assert.equal(easyReading.footer.getAttribute('id'), 'easyReadingFooter');
+    assert.ok(easyReading.lastRowDiv);
+    assert.equal(easyReading.lastRowDiv.getAttribute('id'), 'easyReadingLastRow');
+    assert.ok(easyReading.replyRowDiv);
+    assert.equal(easyReading.replyRowDiv.getAttribute('id'), 'easyReadingReplyRow');
+
+    assert.equal(easyReading.isActive(), false);
+    easyReading.show();
+    assert.equal(easyReading.isActive(), true);
+    assert.equal(easyReading.overlay.style.display, 'block');
+
+    easyReading.appendRows([['a', 'b'], ['c', 'd']], false);
+    assert.equal(renderedRows.length, 2);
+    assert.equal(easyReading.content.childNodes.length, 2);
+
+    easyReading.clearRows();
+    assert.equal(easyReading.content.childNodes.length, 0);
+
+    easyReading.hide();
+    assert.equal(easyReading.isActive(), false);
+    assert.equal(easyReading.overlay.style.display, 'none');
+  } finally {
+    globalThis.document = originalDoc;
+  }
+});
+
 
 
 

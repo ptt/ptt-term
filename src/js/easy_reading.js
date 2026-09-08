@@ -8,6 +8,21 @@ export class EasyReading {
     this._core = core;
     this._view = view;
     this._termBuf = termBuf;
+    if (core && !core.easyReading) {
+      core.easyReading = this;
+    }
+
+    this._overlay = null;
+    this._content = null;
+    this._footer = null;
+    this._lastRowDiv = null;
+    this._replyRowDiv = null;
+    this.lastRowDivContent = '';
+    this.replyRowDivContent = '';
+
+    this.actualRowIndex = 0;
+    this._lastEasyReadingPageIndex = null;
+    this._easyReadingAppendedEnd = false;
 
     this._customTurnPageLines = 0;
 
@@ -34,12 +49,355 @@ export class EasyReading {
 
     this._termBuf.addEventListener('change', (e) => this._onChanged(e));
     this._termBuf.addEventListener('viewUpdate', (e) => this._onViewUpdated(e));
+
+    if (typeof document !== 'undefined') {
+      const container = this._view?.termWin || document.getElementById('TermWindow');
+      if (container) {
+        this._initUI(container);
+      }
+    }
+  }
+
+  get overlay() {
+    return this._overlay || (this._view && this._view._easyReadingOverlay) || null;
+  }
+
+  get content() {
+    return this._content || (this._view && this._view._easyReadingContent) || null;
+  }
+
+  get footer() {
+    return this._footer || (this._view && this._view._easyReadingFooter) || null;
+  }
+
+  get lastRowDiv() {
+    return this._lastRowDiv || (this._view && this._view._lastRowDiv) || null;
+  }
+
+  get replyRowDiv() {
+    return this._replyRowDiv || (this._view && this._view._replyRowDiv) || null;
+  }
+
+  initUI(container) {
+    this._initUI(container);
+  }
+
+  _initUI(container) {
+    if (this._overlay && this._overlay.parentNode) return;
+    if (!container && typeof document !== 'undefined') {
+      container = this._view?.termWin || document.getElementById('TermWindow');
+    }
+    if (!container || typeof document === 'undefined') return;
+
+    const easyReadingOverlay = document.createElement('div');
+    easyReadingOverlay.setAttribute('id', 'easyReadingOverlay');
+    easyReadingOverlay.style.display = 'none';
+    easyReadingOverlay.addEventListener('mousedown', (e) => {
+      if (e.target && e.target.tagName !== 'A' && this._core?.setInputAreaFocus) {
+        this._core.setInputAreaFocus();
+      }
+    });
+    easyReadingOverlay.addEventListener('wheel', (e) => {
+      const cont = this.content;
+      if (cont && e.target !== cont && !cont.contains(e.target)) {
+        cont.scrollTop += e.deltaY;
+      }
+    }, { passive: true });
+    container.appendChild(easyReadingOverlay);
+    this._overlay = easyReadingOverlay;
+
+    const easyReadingContent = document.createElement('div');
+    easyReadingContent.setAttribute('id', 'easyReadingContent');
+    easyReadingOverlay.appendChild(easyReadingContent);
+    this._content = easyReadingContent;
+    easyReadingContent.addEventListener('scroll', () => {
+      this.updateProgress();
+    });
+
+    const easyReadingFooter = document.createElement('div');
+    easyReadingFooter.setAttribute('id', 'easyReadingFooter');
+    easyReadingOverlay.appendChild(easyReadingFooter);
+    this._footer = easyReadingFooter;
+
+    const lastRowDiv = document.createElement('div');
+    lastRowDiv.setAttribute('id', 'easyReadingLastRow');
+    const spaces = ' ';
+    this.lastRowDivContent = '<span align="left"><span class="q0 b7">' + spaces + '瀏覽 </span><span class="q1 b7">(100%)</span><span class="q1 b7"> [好讀模式]</span><span class="q0 b7"> 滾輪/上下鍵捲動，</span><span class="q1 b7">(Esc)</span><span class="q0 b7">回到終端機 </span><span class="q1 b7">(←/q)</span><span class="q0 b7">離開</span></span>';
+    lastRowDiv.innerHTML = this.lastRowDivContent;
+    this._lastRowDiv = lastRowDiv;
+    easyReadingFooter.appendChild(lastRowDiv);
+
+    const replyRowDiv = document.createElement('div');
+    replyRowDiv.setAttribute('id', 'easyReadingReplyRow');
+    this.replyRowDivContent = '<span align="left"></span>';
+    replyRowDiv.innerHTML = this.replyRowDivContent;
+    this._replyRowDiv = replyRowDiv;
+    easyReadingFooter.appendChild(replyRowDiv);
+
+    if (this._view?.fontFace) {
+      this._overlay.style.setProperty('--font-face', this._view.fontFace);
+    }
+    if (this._view?.mainDisplay?.style?.fontSize) {
+      this._overlay.style.fontSize = this._view.mainDisplay.style.fontSize;
+      this._overlay.style.lineHeight = this._view.mainDisplay.style.lineHeight;
+    }
+  }
+
+  isActive() {
+    return !!(this.overlay && this.overlay.style.display !== 'none');
+  }
+
+  isEasyReadingActive() {
+    return this.isActive();
+  }
+
+  show() {
+    if (this.overlay) {
+      this.overlay.style.display = 'block';
+    }
+    if (this._core) {
+      this._core.lastEasyReadingWheelTime = 0;
+      this._core.lastEasyReadingHideTime = 0;
+    }
+  }
+
+  showEasyReading() {
+    this.show();
+  }
+
+  hide() {
+    if (this.overlay) {
+      this.overlay.style.display = 'none';
+    }
+    if (this._core) {
+      this._core.lastEasyReadingHideTime = Date.now();
+      this._core.suppressInertialWheel?.();
+    }
+    this.clearRows();
+    if (this.lastRowDiv) {
+      this.lastRowDiv.style.backgroundColor = '';
+      this.lastRowDiv.style.display = 'none';
+    }
+    if (this.replyRowDiv) {
+      this.replyRowDiv.style.display = 'none';
+    }
+    if (this._termBuf) {
+      this._termBuf.pageLines = [];
+    }
+  }
+
+  hideEasyReading() {
+    this.hide();
+  }
+
+  clearRows() {
+    if (this.content) {
+      this.content.innerHTML = '';
+    }
+  }
+
+  setRowRenderer(fn) {
+    this._rowRenderer = fn;
+  }
+
+  renderRow(line, row, chh, showsLinkPreview, el) {
+    if (this._rowRenderer) {
+      return this._rowRenderer(line, row, chh, showsLinkPreview, el);
+    }
+    if (this._view && typeof this._view.renderRow === 'function') {
+      return this._view.renderRow(line, row, chh, showsLinkPreview, el);
+    }
+    return null;
+  }
+
+  appendRows(lines, showsLinkPreview) {
+    if (!this.content) return;
+    const chh = (this._view && this._view.chh) || 16;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const el = document.createElement('span');
+      el.setAttribute('type', 'bbsrow');
+      el.setAttribute('srow', this.content.childNodes.length);
+      this.content.appendChild(el);
+      this.renderRow(
+        line, this.content.childNodes.length, chh,
+        showsLinkPreview, el);
+    }
+    this.updateProgress();
+  }
+
+  renderSingleRow(target, row) {
+    if (this._view && typeof this._view.renderSingleRow === 'function') {
+      return this._view.renderSingleRow(target, row);
+    }
+    const el = document.createElement('span');
+    el.setAttribute('type', 'bbsrow');
+    el.setAttribute('srow', '0');
+    target.appendChild(el);
+    const chh = (this._view && this._view.chh) || 16;
+    return this.renderRow(row, 0, chh, false, el);
+  }
+
+  setSingleChild(par, child) {
+    while (par.childNodes.length > 0)
+      par.removeChild(par.lastChild);
+    par.appendChild(child);
+  }
+
+  updateProgress() {
+    if (!this.content || !this.lastRowDiv) return;
+    const cont = this.content;
+    let percent = 100;
+    if (cont.scrollHeight > cont.clientHeight) {
+      const scrollBottom = cont.scrollTop + cont.clientHeight;
+      percent = Math.min(100, Math.max(0, Math.round((scrollBottom / cont.scrollHeight) * 100)));
+    }
+    const site = this._termBuf?.site;
+    if (site) {
+      this.lastRowDiv.innerHTML = site.getEasyReadingPrompt(' ', percent);
+    }
+  }
+
+  updateEasyReadingProgress() {
+    this.updateProgress();
+  }
+
+  updateReplyRow(row) {
+    if (!this.replyRowDiv) return;
+    const el = document.createElement('span');
+    el.style = "background-color:black;";
+    this.renderSingleRow(el, row);
+    this.setSingleChild(this.replyRowDiv.childNodes[0] || this.replyRowDiv, el);
+    this.replyRowDiv.style.display = 'block';
+  }
+
+  updateEasyReadingReplyRow(row) {
+    this.updateReplyRow(row);
+  }
+
+  updatePushInitRow(row) {
+    if (!this.lastRowDiv) return;
+    const el = document.createElement('span');
+    el.style = "background-color:black;";
+    this.renderSingleRow(el, row);
+    this.setSingleChild(this.lastRowDiv.childNodes[0] || this.lastRowDiv, el);
+    this.lastRowDiv.style.backgroundColor = 'black';
+    this.lastRowDiv.style.display = 'block';
+  }
+
+  updateEasyReadingPushInitRow(row) {
+    this.updatePushInitRow(row);
+  }
+
+  populatePage() {
+    const site = this._termBuf?.site;
+    if (!site) return;
+    let lastRowNum = site.getLastRowNum(this._termBuf);
+    if (this._termBuf.pageState == 3 && this._termBuf.prevPageState == 3) {
+      this.show();
+      const lastRowText = this._termBuf.getRowText(lastRowNum, 0, this._termBuf.cols);
+      const result = site.parseReadingStatus(lastRowText, this._termBuf);
+      if (result) {
+        const isEnd = result.isEnd || site.isArticleEnd(lastRowText, this._termBuf, result);
+        if (result.pageIndex && result.pageIndex === this._lastEasyReadingPageIndex && !isEnd) {
+          return;
+        }
+        if (isEnd && this._easyReadingAppendedEnd) {
+          return;
+        }
+        if (isEnd) {
+          this._easyReadingAppendedEnd = true;
+        }
+        if (result.pageIndex) {
+          this._lastEasyReadingPageIndex = result.pageIndex;
+        }
+
+        const paging = site.getPagingSlice(this._termBuf, result, this.actualRowIndex);
+        let beginIndex = paging.beginIndex;
+        const atLastPage = paging.atLastPage;
+
+        for (let i = beginIndex; i < lastRowNum; ++i) {
+          if (site.isLineContinuation(this._termBuf, i, false)) {
+            this._termBuf.pageWrappedLines[this.actualRowIndex] += 1;
+            // if the second row is the wrapped line from first row 
+            if (!atLastPage && i == beginIndex) {
+              beginIndex++;
+            }
+          } else {
+            this._termBuf.pageWrappedLines[++this.actualRowIndex] = 1;
+          }
+        }
+        this.appendRows(this._termBuf.lines.slice(beginIndex, lastRowNum), true);
+        // deep clone lines for selection (getRowText and get ansi color)
+        this._termBuf.pageLines = (this._termBuf.pageLines || []).concat(JSON.parse(JSON.stringify(this._termBuf.lines.slice(beginIndex, lastRowNum))));
+      }
+      this._termBuf.prevPageState = 3;
+    } else {
+      this.actualRowIndex = 0;
+      this._termBuf.pageWrappedLines = [];
+      this._lastEasyReadingPageIndex = 1;
+      this._easyReadingAppendedEnd = false;
+      if (this._termBuf.pageState == 3) {
+        const lastRowText = this._termBuf.getRowText(lastRowNum, 0, this._termBuf.cols);
+        const statusResult = site.parseReadingStatus(lastRowText, this._termBuf);
+        const isEnd = site.isArticleEnd(lastRowText, this._termBuf, statusResult);
+        for (let i = 0; i < lastRowNum; ++i) {
+          if (site.isLineContinuation(this._termBuf, i, true)) {
+            this._termBuf.pageWrappedLines[this.actualRowIndex] += 1;
+          } else {
+            this._termBuf.pageWrappedLines[++this.actualRowIndex] = 1;
+          }
+        }
+        this.clearRows();
+        this.show();
+        if (this.content) {
+          this.content.scrollTop = 0;
+        }
+        this.appendRows(this._termBuf.lines.slice(0, lastRowNum), true);
+        if (isEnd) {
+          this._easyReadingAppendedEnd = true;
+        }
+        if (this.lastRowDiv) {
+          this.lastRowDiv.style.backgroundColor = '';
+          this.lastRowDiv.style.display = 'block';
+        }
+        this.updateProgress();
+        if (this.replyRowDiv) {
+          this.replyRowDiv.style.display = 'none';
+        }
+        // deep clone lines for selection (getRowText and get ansi color)
+        this._termBuf.pageLines = JSON.parse(JSON.stringify(this._termBuf.lines.slice(0, lastRowNum)));
+      } else {
+        this.hide();
+      }
+      this._termBuf.prevPageState = this._termBuf.pageState;
+    }
+  }
+
+  populateEasyReadingPage() {
+    this.populatePage();
+  }
+
+  updatePage(changedLineHtmlStrs) {
+    if (this._enabled) {
+      if (this.startedEasyReading && this._termBuf.easyReadingShowReplyText) {
+        this.updateReplyRow(changedLineHtmlStrs[changedLineHtmlStrs.length - 1]);
+      } else if (this.startedEasyReading && this._termBuf.easyReadingShowPushInitText) {
+        this.updatePushInitRow(changedLineHtmlStrs[changedLineHtmlStrs.length - 1]);
+      } else {
+        this.populatePage();
+      }
+    } else if (this.isActive()) {
+      this.hide();
+    }
   }
 
   get _turnPageLines() {
     if (this._customTurnPageLines > 0) return this._customTurnPageLines;
-    if (this._view.easyReadingContent && this._view.chh) {
-      let lines = Math.floor(this._view.easyReadingContent.clientHeight / this._view.chh) - 1;
+    const cont = this.content;
+    const chh = (this._view && this._view.chh) || 16;
+    if (cont && chh) {
+      let lines = Math.floor(cont.clientHeight / chh) - 1;
       if (lines > 0) return lines;
     }
     return Math.max(1, this._termBuf.rows - 2);
@@ -228,10 +586,6 @@ export class EasyReading {
     this._send(data);
   }
 
-  hide() {
-    this._view.hideEasyReading();
-  }
-
   _onKeyDown(e) {
     if (!this._enabled || !this.startedEasyReading)
       return;
@@ -268,28 +622,31 @@ export class EasyReading {
   }
 
   _scrollBy(lines) {
-    const cont = this._view.easyReadingContent;
+    const cont = this.content;
     if (!cont)
       return false;
     if (lines < 0 && cont.scrollTop <= 0)
       return false;
     if (lines > 0 && cont.scrollTop >= cont.scrollHeight - cont.clientHeight)
       return false;
-    cont.scrollTop += this._view.chh * lines;
+    const chh = (this._view && this._view.chh) || 16;
+    cont.scrollTop += chh * lines;
     return true;
   }
 
   _scrollEnd() {
-    if (!this._view.easyReadingContent)
+    const cont = this.content;
+    if (!cont)
       return false;
-    this._view.easyReadingContent.scrollTop = this._view.easyReadingContent.scrollHeight;
+    cont.scrollTop = cont.scrollHeight;
     return true;
   }
 
   _scrollTop() {
-    if (!this._view.easyReadingContent)
+    const cont = this.content;
+    if (!cont)
       return false;
-    this._view.easyReadingContent.scrollTop = 0;
+    cont.scrollTop = 0;
     return true;
   }
 
@@ -324,7 +681,7 @@ export class EasyReading {
           break;
         case 'Escape':
           // Temporarily hide easy reading overlay to reveal the underlying terminal screen
-          this._view.hideEasyReading();
+          this.hide();
           stop = true;
           break;
         case 'ArrowLeft':
