@@ -1,10 +1,10 @@
 import cx from "classnames";
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useLayoutEffect } from "react";
 import { i18n } from "../../js/i18n";
 import "./DropdownMenu.css";
 
 const top = (mouseHeight, menuHeight) => {
-  const pageHeight = window.innerHeight;
+  const pageHeight = typeof window !== "undefined" ? window.innerHeight : 600;
 
   // opening menu would pass the bottom of the page
   if (mouseHeight + menuHeight > pageHeight && menuHeight < mouseHeight) {
@@ -14,7 +14,7 @@ const top = (mouseHeight, menuHeight) => {
 };
 
 const left = (mouseWidth, menuWidth) => {
-  const pageWidth = window.innerWidth;
+  const pageWidth = typeof window !== "undefined" ? window.innerWidth : 800;
 
   // opening menu would pass the side of the page
   if (mouseWidth + menuWidth > pageWidth && menuWidth < mouseWidth) {
@@ -30,8 +30,15 @@ const normalizeSelectedText = (selectedText) => {
   return selectedText;
 };
 
-
-const MenuItem = ({ eventKey, onSelect, onClick, divider, className, children, openedAtRef }) => {
+const MenuItem = ({
+  eventKey,
+  onSelect,
+  onClick,
+  divider,
+  className,
+  children,
+  openedAtRef,
+}) => {
   if (divider) {
     return <li role="separator" className="divider" />;
   }
@@ -53,6 +60,7 @@ const MenuItem = ({ eventKey, onSelect, onClick, divider, className, children, o
 };
 
 export const DropdownMenu = ({
+  open,
   pageX,
   pageY,
   anchorRect,
@@ -68,12 +76,19 @@ export const DropdownMenu = ({
   const menuRef = useRef(null);
   const openedAtRef = useRef(0);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = menuRef.current;
     if (!el) return;
+
+    if (!open) {
+      el.style.visibility = "hidden";
+      return;
+    }
+
     openedAtRef.current = Date.now();
 
     const updatePosition = () => {
+      el.style.visibility = "hidden";
       const pageHeight =
         typeof window !== "undefined" ? window.innerHeight : 600;
       const pageWidth =
@@ -103,6 +118,7 @@ export const DropdownMenu = ({
         el.style.top = `${top(pageY, el.clientHeight)}px`;
         el.style.left = `${left(pageX, el.clientWidth)}px`;
       }
+      el.style.visibility = "visible";
     };
 
     updatePosition();
@@ -110,7 +126,7 @@ export const DropdownMenu = ({
     return () => {
       window.removeEventListener("resize", updatePosition);
     };
-  }, [pageX, pageY, anchorRect]);
+  }, [open, pageX, pageY, anchorRect]);
 
   const handleContextMenu = (e) => {
     e.stopPropagation();
@@ -173,7 +189,7 @@ export const DropdownMenu = ({
             eventKey="mouseBrowsing"
             onSelect={onMenuSelect}
             className={cx({
-              "DropdownMenu__Item--checked": mouseBrowsingEnabled
+              "DropdownMenu__Item--checked": mouseBrowsingEnabled,
             })}
           >
             {i18n("cmenu_mouseBrowsing")}

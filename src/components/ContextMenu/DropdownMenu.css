@@ -18,6 +18,7 @@
 /* Boostrap overrides -- END */
 
 .DropdownMenu--reset {
+  visibility: hidden;
   user-select: none;
 }
 
