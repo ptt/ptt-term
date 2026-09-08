@@ -27,6 +27,7 @@ export class TouchKeyboard extends React.Component {
   state = {
     isTouchDevice: false,
     isToolbarCollapsed: false,
+    isSystemKeyboardOpen: false,
     isCtrlMode: false,
     isAlphaMode: false,
     ctrlPreviousMode: null,
@@ -410,6 +411,26 @@ export class TouchKeyboard extends React.Component {
       this.dismissKeypadsIfOutside(event);
     };
     window.addEventListener("touchstart", this.touchStartHandler, false);
+
+    if (this.props.app && this.props.app.inputArea) {
+      this.inputAreaFocusHandler = () => {
+        if (!this.isInstanceActive()) return;
+        const mode = this.props.app.inputArea.getAttribute("inputmode");
+        if (mode !== "none") {
+          this.setState({ isSystemKeyboardOpen: true });
+        }
+      };
+      this.inputAreaBlurHandler = () => {
+        if (!this.isInstanceActive()) return;
+        this.setState({ isSystemKeyboardOpen: false });
+        if (typeof this.props.app.inputArea.setAttribute === "function") {
+          this.props.app.inputArea.setAttribute("inputmode", "none");
+          this.props.app.inputArea.setAttribute("virtualkeyboardpolicy", "manual");
+        }
+      };
+      this.props.app.inputArea.addEventListener("focus", this.inputAreaFocusHandler, false);
+      this.props.app.inputArea.addEventListener("blur", this.inputAreaBlurHandler, false);
+    }
   }
 
   componentWillUnmount() {
@@ -454,6 +475,14 @@ export class TouchKeyboard extends React.Component {
     if (this.mainResizeObserver) {
       this.mainResizeObserver.disconnect();
       this.mainResizeObserver = null;
+    }
+    if (this.props.app && this.props.app.inputArea) {
+      if (this.inputAreaFocusHandler) {
+        this.props.app.inputArea.removeEventListener("focus", this.inputAreaFocusHandler, false);
+      }
+      if (this.inputAreaBlurHandler) {
+        this.props.app.inputArea.removeEventListener("blur", this.inputAreaBlurHandler, false);
+      }
     }
   }
   handleTerminalKey = (keyName) => {
@@ -1077,15 +1106,37 @@ export class TouchKeyboard extends React.Component {
     this.updateToolbarLayout();
   };
 
+  handleFloatingKeyboardPointerDown = (event) => {
+    const { app } = this.props;
+    if (!app || !app.inputArea) return;
+    if (!this.state.isSystemKeyboardOpen) {
+      app.inputArea.style.left = "0px";
+      app.inputArea.style.top = "0px";
+      app.inputArea.style.width = "1px";
+      app.inputArea.style.height = "1px";
+      app.inputArea.style.opacity = "0";
+      app.inputArea.style.pointerEvents = "none";
+      if (typeof app.inputArea.removeAttribute === "function") {
+        app.inputArea.removeAttribute("inputmode");
+        app.inputArea.removeAttribute("virtualkeyboardpolicy");
+      }
+      if (typeof app.inputArea.setAttribute === "function") {
+        app.inputArea.setAttribute("inputmode", "text");
+        app.inputArea.setAttribute("virtualkeyboardpolicy", "auto");
+      }
+    }
+  };
+
   handleFloatingKeyboardToggle = (event) => {
     event.stopPropagation();
-    event.preventDefault();
     const { app } = this.props;
     if (!app || !app.inputArea) return;
     const isInputFocused =
       document.activeElement === app.inputArea &&
       app.inputArea.getAttribute("inputmode") !== "none";
-    if (isInputFocused) {
+
+    if (this.state.isSystemKeyboardOpen || isInputFocused) {
+      event.preventDefault();
       if (typeof app.inputArea.setAttribute === "function") {
         app.inputArea.setAttribute("inputmode", "none");
         app.inputArea.setAttribute("virtualkeyboardpolicy", "manual");
@@ -1096,6 +1147,7 @@ export class TouchKeyboard extends React.Component {
         } catch (err) {}
       }
       app.inputArea.blur();
+      this.setState({ isSystemKeyboardOpen: false });
     } else {
       if (typeof app.inputArea.removeAttribute === "function") {
         app.inputArea.removeAttribute("inputmode");
@@ -1118,6 +1170,7 @@ export class TouchKeyboard extends React.Component {
           navigator.virtualKeyboard.show();
         } catch (err) {}
       }
+      this.setState({ isSystemKeyboardOpen: true });
     }
   };
 
@@ -1631,38 +1684,44 @@ export class TouchKeyboard extends React.Component {
     </button>
   );
 
-  renderKeyboardToggle = () => (
-    <button
-      type="button"
-      className="TouchFloatingToolbar__Btn TouchFloatingToolbar__Btn--system"
-      title="切換鍵盤 (Toggle Keyboard)"
-      aria-label="Toggle Keyboard"
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={this.handleFloatingKeyboardToggle}
-    >
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+  renderKeyboardToggle = () => {
+    const isOpen = Boolean(this.state.isSystemKeyboardOpen);
+    return (
+      <label
+        htmlFor="t"
+        className={`TouchFloatingToolbar__Btn TouchFloatingToolbar__Btn--system ${
+          isOpen ? "TouchFloatingToolbar__Btn--active" : ""
+        }`}
+        title="切換鍵盤 (Toggle Keyboard)"
+        aria-label="Toggle Keyboard"
+        role="button"
+        onPointerDown={this.handleFloatingKeyboardPointerDown}
+        onClick={this.handleFloatingKeyboardToggle}
       >
-        <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
-        <line x1="6" y1="8" x2="6.01" y2="8" />
-        <line x1="10" y1="8" x2="10.01" y2="8" />
-        <line x1="14" y1="8" x2="14.01" y2="8" />
-        <line x1="18" y1="8" x2="18.01" y2="8" />
-        <line x1="6" y1="12" x2="6.01" y2="12" />
-        <line x1="10" y1="12" x2="10.01" y2="12" />
-        <line x1="14" y1="12" x2="14.01" y2="12" />
-        <line x1="18" y1="12" x2="18.01" y2="12" />
-        <line x1="8" y1="16" x2="16" y2="16" />
-      </svg>
-    </button>
-  );
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
+          <line x1="6" y1="8" x2="6.01" y2="8" />
+          <line x1="10" y1="8" x2="10.01" y2="8" />
+          <line x1="14" y1="8" x2="14.01" y2="8" />
+          <line x1="18" y1="8" x2="18.01" y2="8" />
+          <line x1="6" y1="12" x2="6.01" y2="12" />
+          <line x1="10" y1="12" x2="10.01" y2="12" />
+          <line x1="14" y1="12" x2="14.01" y2="12" />
+          <line x1="18" y1="12" x2="18.01" y2="12" />
+          <line x1="8" y1="16" x2="16" y2="16" />
+        </svg>
+      </label>
+    );
+  };
 
   renderMenuToggle = () => (
     <button

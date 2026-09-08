@@ -184,6 +184,12 @@
   color: #ffffff;
 }
 
+.TouchFloatingToolbar__Btn--system.TouchFloatingToolbar__Btn--active {
+  background: rgba(30, 144, 255, 0.45);
+  border-color: #1e90ff;
+  color: #ffffff;
+}
+
 .TouchFloatingToolbar__Btn--system svg {
   width: calc(26px * var(--toolbar-scale, 1));
   height: calc(26px * var(--toolbar-scale, 1));

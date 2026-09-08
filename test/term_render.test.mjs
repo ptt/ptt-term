@@ -1489,6 +1489,26 @@ test('index.html contains inputmode="none" and does not have autofocus', () => {
   assert.ok(!indexHtml.includes('autofocus'), 'index.html should not have autofocus attribute');
   assert.ok(indexHtml.includes('inputmode="none"'), 'index.html should specify inputmode="none"');
   assert.ok(indexHtml.includes('virtualkeyboardpolicy="manual"'), 'index.html should specify virtualkeyboardpolicy="manual"');
+  assert.ok(indexHtml.includes('left:0px; top:0px;'), 'input #t must be in viewport to allow mobile keyboard focus');
+  assert.ok(indexHtml.includes('pointer-events:none;'), 'input #t must have pointer-events: none');
+});
+
+test('App isMobileDevice and TouchKeyboard label toggle handle mobile system keyboard reliably', () => {
+  const appSource = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+  const touchKbSource = fs.readFileSync(path.resolve('src/touch/TouchKeyboard.js'), 'utf-8');
+  const termViewSource = fs.readFileSync(path.resolve('src/js/term_view.js'), 'utf-8');
+
+  // App isMobileDevice implementation checks
+  assert.ok(appSource.includes('isMobileDevice()'), 'App should define isMobileDevice');
+  assert.ok(appSource.includes('this.isMobileDevice() && !force'), 'setInputAreaFocus should guard with isMobileDevice');
+
+  // TermView input reset checks
+  assert.ok(termViewSource.includes("this.input.style.left =  '0px'") || termViewSource.includes("this.input.style.left = '0px'"));
+  assert.ok(termViewSource.includes("pointerEvents = 'none'"));
+
+  // TouchKeyboard label htmlFor="t" and pointerdown checks
+  assert.ok(touchKbSource.includes('htmlFor="t"'), 'syskbd toggle should be a label for input#t');
+  assert.ok(touchKbSource.includes('handleFloatingKeyboardPointerDown'), 'syskbd toggle should prepare on pointerdown');
 });
 
 test('PrefModal locks termSizeMode to fixed-font-size and disables select on touch interface', () => {

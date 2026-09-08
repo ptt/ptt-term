@@ -604,10 +604,7 @@ export class TermView {
       Math.min(maxPanY, Math.round(py != null ? py : this.panY || 0))
     );
     this.updateMainDisplayMargin();
-    if (
-      this.bbscore &&
-      typeof this.bbscore.getFirstGridOffsets === 'function'
-    ) {
+    if (this.bbscore) {
       this.firstGridOffset = this.bbscore.getFirstGridOffsets();
     }
     this.updateCursorPos();
@@ -793,6 +790,7 @@ export class TermView {
   onCompositionStart(e) {
     //this.input.disabled="";
     this.input.setAttribute('bshow', '1');
+    this.input.style.pointerEvents = 'auto';
     this.updateInputBufferPos();
     this.isComposition = true;
   }
@@ -803,11 +801,10 @@ export class TermView {
     this.input.style.border = 'none';
     this.input.style.width =  '1px';
     this.input.style.height = '1px';
-    this.input.style.left =  '-100000px';
-    this.input.style.top = '-100000px';
+    this.input.style.left =  '0px';
+    this.input.style.top = '0px';
     this.input.style.opacity = '0';
-    //this.input.style.top = '0px';
-    //this.input.style.left = '-100000px';
+    this.input.style.pointerEvents = 'none';
     this.isComposition = false;
   }
 
@@ -930,26 +927,26 @@ export class TermView {
   }
 
   startSelection(coords) {
-    if (this.componentScreen && typeof this.componentScreen.startSelection === 'function') {
+    if (this.componentScreen) {
       this.componentScreen.startSelection(coords);
     }
   }
 
   updateSelection(coords) {
-    if (this.componentScreen && typeof this.componentScreen.updateSelection === 'function') {
+    if (this.componentScreen) {
       this.componentScreen.updateSelection(coords);
     }
   }
 
   endSelection() {
-    if (this.componentScreen && typeof this.componentScreen.endSelection === 'function') {
+    if (this.componentScreen) {
       return this.componentScreen.endSelection();
     }
     return this.getSelectedText();
   }
 
   clearSelection() {
-    if (this.componentScreen && typeof this.componentScreen.clearSelection === 'function') {
+    if (this.componentScreen) {
       this.componentScreen.clearSelection();
     } else if (typeof window !== 'undefined' && window.getSelection) {
       const sel = window.getSelection();
@@ -1021,7 +1018,7 @@ export class TermView {
       try {
         if ('serviceWorker' in navigator) {
           const reg = await navigator.serviceWorker.getRegistration();
-          if (reg && typeof reg.showNotification === 'function') {
+          if (reg && reg.showNotification) {
             await reg.showNotification(title, options);
             return;
           }

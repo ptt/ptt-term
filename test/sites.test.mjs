@@ -736,6 +736,9 @@ test('EasyReading in-flight control prevents multiple concurrent PageDowns', () 
       getRowText(row) {
         return row === 23 ? this.statusText : '';
       },
+      isFrameReady() {
+        return this.site.isCursorParked(this);
+      },
     });
 
     const easyReading = new EasyReading(mockCore, mockView, mockTermBuf);
@@ -839,6 +842,9 @@ test('EasyReading in-flight watchdog handles dropped response with retries and b
       statusText: '  瀏覽 第 1/3 頁 ( 33%)  目前顯示: 第 01~22 行 (y)回應(X%)推文(h)說明 (←)離開 ',
       getRowText(row) {
         return row === 23 ? this.statusText : '';
+      },
+      isFrameReady() {
+        return this.site.isCursorParked(this);
       },
     });
 

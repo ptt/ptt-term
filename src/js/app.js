@@ -138,9 +138,7 @@ export class App {
   });
   this.inputArea.addEventListener('blur', () => {
     if (this.isMobileLayout() || this.touch) {
-      if (typeof this.inputArea.setAttribute === 'function') {
-        this.inputArea.setAttribute('inputmode', 'none');
-      }
+      this.inputArea.setAttribute('inputmode', 'none');
     }
   });
 
@@ -174,10 +172,8 @@ export class App {
     this.touch = new TouchController(this);
   }
   if (this.inputArea && (hasTouch || this.isMobileLayout())) {
-    if (typeof this.inputArea.setAttribute === 'function') {
-      this.inputArea.setAttribute('inputmode', 'none');
-      this.inputArea.setAttribute('virtualkeyboardpolicy', 'manual');
-    }
+    this.inputArea.setAttribute('inputmode', 'none');
+    this.inputArea.setAttribute('virtualkeyboardpolicy', 'manual');
   }
   }
 
@@ -373,20 +369,41 @@ export class App {
   }, 350);
   }
 
-  setInputAreaFocus(force = false) {
-  if (this.modalShown || this.contextMenuShown)
-    return;
-  if (this.isMobileLayout() && !force)
-    return;
-  if (this.touch && (this.touch.touchStarted || (Date.now() - (this.touch.lastTouchTime || 0) < 500)) && !force)
-    return;
-  if (document.activeElement === this.inputArea && !force)
-    return;
-  if (force && document.activeElement === this.inputArea) {
-    this.inputArea.blur();
+  _debugTouchLog(msg) {
+    if (typeof window !== 'undefined' && window.__PTT_DEBUG_LOG) {
+      try {
+        window.__PTT_DEBUG_LOG(msg);
+      } catch (err) {}
+    }
   }
-  //this.DocInputArea.disabled="";
-  this.inputArea.focus();
+
+  setInputAreaFocus(force = false) {
+    if (this.modalShown || this.contextMenuShown) {
+      this._debugTouchLog('setInputAreaFocus blocked: modal or context menu active');
+      return;
+    }
+    if (this.isMobileDevice() && !force) {
+      this._debugTouchLog('setInputAreaFocus blocked: mobile device and not force');
+      return;
+    }
+    if (this.isMobileLayout() && !force) {
+      this._debugTouchLog('setInputAreaFocus blocked: mobile layout and not force');
+      return;
+    }
+    if (this.touch && (this.touch.touchStarted || (Date.now() - (this.touch.lastTouchTime || 0) < 500)) && !force) {
+      this._debugTouchLog('setInputAreaFocus blocked: recent touch (<500ms) and not force');
+      return;
+    }
+    if (document.activeElement === this.inputArea && !force) {
+      this._debugTouchLog('setInputAreaFocus no-op: inputArea already activeElement');
+      return;
+    }
+    if (force && document.activeElement === this.inputArea) {
+      this.inputArea.blur();
+    }
+    this._debugTouchLog(`setInputAreaFocus SUCCESS: force=${force}`);
+    //this.DocInputArea.disabled="";
+    this.inputArea.focus();
   }
 
   isSelectionCollapsed() {
@@ -817,6 +834,15 @@ export class App {
     const isNarrow = window.innerWidth <= 768;
     const isCompactLandscape = window.innerHeight <= 500 && window.innerWidth <= 1024;
     return isNarrow || isCompactLandscape;
+  }
+
+  isMobileDevice() {
+    if (typeof window === 'undefined') return false;
+    const hasTouch = ('ontouchstart' in window) || (navigator && navigator.maxTouchPoints > 0);
+    if (!hasTouch) return false;
+    const isMobileUA = /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test((navigator && navigator.userAgent) || '');
+    const hasCoarseOnly = window.matchMedia && window.matchMedia('(pointer: coarse)').matches && !window.matchMedia('(pointer: fine)').matches;
+    return isMobileUA || hasCoarseOnly || this.isMobileLayout();
   }
 
   applyTermSizeMode(values) {
