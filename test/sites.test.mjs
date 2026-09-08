@@ -10,6 +10,11 @@ import {
   CHARSETS,
 } from '../src/js/sites/index.js';
 import {
+  EasyReading,
+  INFLIGHT_WATCHDOG_MS,
+  MAX_INFLIGHT_RETRIES,
+} from '../src/js/easy_reading.js';
+import {
   parseReplyText,
   parsePushInitText,
   parseReqNotMetText,
@@ -606,5 +611,278 @@ test('CHARSETS defines pre-defined constants and BaseSite handles isUtf8 without
   assert.equal(auto.charset, CHARSETS.BIG5);
   assert.equal(auto.isUtf8, false);
 });
+
+test('BaseSite findContentOverlap detects suffix-prefix line matches', () => {
+  const base = new BaseSite();
+  const makeLine = (text) => text.split('').map((ch) => ({ ch }));
+
+  // Helper to construct termBuf mock
+  const createMockTerm = (lines) => ({
+    lines: lines.map(makeLine),
+    cols: 80,
+    rows: 24,
+  });
+
+  const pageLines = [
+    makeLine('Line 1'),
+    makeLine('Line 2'),
+    makeLine('Line 3 (wrapped part 1)'),
+    makeLine('Line 3 (wrapped part 2)'),
+  ];
+
+  // Screen matches the last 2 lines of pageLines
+  const termBuf = createMockTerm([
+    'Line 3 (wrapped part 1)',
+    'Line 3 (wrapped part 2)',
+    'Line 4',
+    'Line 5',
+  ]);
+
+  const overlap = base.findContentOverlap(termBuf, 23, pageLines);
+  assert.equal(overlap, 2);
+
+  // When no overlap matches
+  const termBufNoMatch = createMockTerm([
+    'Completely different 1',
+    'Completely different 2',
+  ]);
+  assert.equal(base.findContentOverlap(termBufNoMatch, 23, pageLines), 0);
+
+  // When pageLines is empty
+  assert.equal(base.findContentOverlap(termBuf, 23, []), 0);
+  assert.equal(base.findContentOverlap(termBuf, 23, null), 0);
+});
+
+test('PttSite getPagingSlice uses content-based overlap deduplication', () => {
+  const ptt = new PttSite();
+  const makeLine = (text) => text.split('').map((ch) => ({ ch }));
+
+  const page1Lines = [
+    makeLine('Author: hungte'),
+    makeLine('Title: Test Post'),
+    makeLine('Body line 1'),
+    makeLine('Body line 2'),
+  ];
+
+  const termBuf = {
+    lines: [
+      makeLine('Body line 1'),
+      makeLine('Body line 2'),
+      makeLine('Body line 3 (new)'),
+      makeLine('Body line 4 (new)'),
+    ],
+    pageLines: page1Lines,
+    cols: 80,
+    rows: 24,
+    getRowText: () => '',
+  };
+
+  const paging = ptt.getPagingSlice(termBuf, null, 2);
+  assert.equal(paging.beginIndex, 2);
+  assert.equal(paging.atLastPage, true);
+});
+
+test('EasyReading in-flight control prevents multiple concurrent PageDowns', () => {
+  const originalWindow = globalThis.window;
+  globalThis.window = {
+    localStorage: {
+      getItem: (k) => JSON.stringify({ values: { enableEasyReading: true } }),
+      setItem: () => {},
+      removeItem: () => {},
+    },
+  };
+
+  try {
+    const ptt = new PttSite();
+    const sentCommands = [];
+
+    class MockTarget {
+      constructor() {
+        this._listeners = {};
+      }
+      addEventListener(evt, fn) {
+        if (!this._listeners[evt]) this._listeners[evt] = [];
+        this._listeners[evt].push(fn);
+      }
+      dispatchEvent(evt) {
+        const list = this._listeners[evt.type] || [];
+        for (const fn of list) fn(evt);
+      }
+    }
+
+    const mockCore = {
+      connectedUrl: { easyReadingSupported: true },
+      suppressInertialWheel: () => {},
+    };
+
+    const mockView = {
+      useEasyReadingMode: true,
+      conn: {
+        send: (cmd) => sentCommands.push(cmd),
+      },
+      hideEasyReading: () => {},
+    };
+
+    const mockTermBuf = Object.assign(new MockTarget(), {
+      cols: 80,
+      rows: 24,
+      cur_x: 79,
+      cur_y: 23,
+      prevPageState: 0,
+      pageState: 3,
+      site: ptt,
+      lines: Array.from({ length: 24 }, () => []),
+      statusText: '  瀏覽 第 1/3 頁 ( 33%)  目前顯示: 第 01~22 行 (y)回應(X%)推文(h)說明 (←)離開 ',
+      getRowText(row) {
+        return row === 23 ? this.statusText : '';
+      },
+    });
+
+    const easyReading = new EasyReading(mockCore, mockView, mockTermBuf);
+    assert.equal(easyReading._pageDownInFlight, false);
+
+    // 1. Initial entry to reading mode triggers first PageDown
+    mockTermBuf.dispatchEvent({ type: 'change' });
+    assert.equal(easyReading.sendCommandAfterUpdate, '\x1b[6~');
+    assert.equal(easyReading._pageDownInFlight, true);
+    assert.equal(easyReading._lastRequestedPageIndex, 1);
+
+    // Simulate view update: command sent
+    mockTermBuf.dispatchEvent({ type: 'viewUpdate' });
+    assert.deepEqual(sentCommands, ['\x1b[6~']);
+    assert.equal(easyReading.sendCommandAfterUpdate, '');
+    assert.equal(easyReading._pageDownInFlight, true);
+    mockTermBuf.prevPageState = 3;
+
+    // 2. While in-flight, duplicate updates for same page must NOT trigger another PageDown
+    mockTermBuf.dispatchEvent({ type: 'change' });
+    assert.equal(easyReading.sendCommandAfterUpdate, '');
+    assert.equal(easyReading._pageDownInFlight, true);
+
+    // 3. Server delivers page 2 -> advances page, clears in-flight, queues next PageDown
+    mockTermBuf.prevPageState = 3;
+    mockTermBuf.statusText = '  瀏覽 第 2/3 頁 ( 66%)  目前顯示: 第 21~42 行 (y)回應(X%)推文(h)說明 (←)離開 ';
+    mockTermBuf.dispatchEvent({ type: 'change' });
+    assert.equal(easyReading._pageDownInFlight, true);
+    assert.equal(easyReading._lastRequestedPageIndex, 2);
+    assert.equal(easyReading.sendCommandAfterUpdate, '\x1b[6~');
+
+    mockTermBuf.dispatchEvent({ type: 'viewUpdate' });
+    assert.deepEqual(sentCommands, ['\x1b[6~', '\x1b[6~']);
+
+    // 4. Server delivers final page (100%) -> completes easy reading, no more PageDown
+    mockTermBuf.statusText = '  瀏覽 第 3/3 頁 (100%)  目前顯示: 第 41~60 行 (y)回應(X%)推文(h)說明 (←)離開 ';
+    mockTermBuf.dispatchEvent({ type: 'change' });
+    assert.equal(easyReading.easyReadingReachedPageEnd, true);
+    assert.equal(easyReading._pageDownInFlight, false);
+    assert.equal(easyReading.sendCommandAfterUpdate, '');
+
+    // 5. Leaving post resets state
+    easyReading.leaveCurrentPost();
+    assert.equal(easyReading._pageDownInFlight, false);
+    assert.equal(easyReading._lastRequestedPageIndex, null);
+  } finally {
+    globalThis.window = originalWindow;
+  }
+});
+
+test('EasyReading in-flight watchdog handles dropped response with retries and boundary reset', () => {
+  const originalWindow = globalThis.window;
+  globalThis.window = {
+    localStorage: {
+      getItem: (k) => JSON.stringify({ values: { enableEasyReading: true } }),
+      setItem: () => {},
+      removeItem: () => {},
+    },
+  };
+
+  try {
+    const ptt = new PttSite();
+    const sentCommands = [];
+
+    class MockTarget {
+      constructor() {
+        this._listeners = {};
+      }
+      addEventListener(evt, fn) {
+        if (!this._listeners[evt]) this._listeners[evt] = [];
+        this._listeners[evt].push(fn);
+      }
+      dispatchEvent(evt) {
+        const list = this._listeners[evt.type] || [];
+        for (const fn of list) fn(evt);
+      }
+    }
+
+    const mockCore = {
+      connectedUrl: { easyReadingSupported: true },
+      suppressInertialWheel: () => {},
+    };
+
+    const mockView = {
+      useEasyReadingMode: true,
+      conn: {
+        send: (cmd) => sentCommands.push(cmd),
+      },
+      hideEasyReading: () => {},
+    };
+
+    const mockTermBuf = Object.assign(new MockTarget(), {
+      cols: 80,
+      rows: 24,
+      cur_x: 79,
+      cur_y: 23,
+      prevPageState: 0,
+      pageState: 3,
+      site: ptt,
+      lines: Array.from({ length: 24 }, () => []),
+      statusText: '  瀏覽 第 1/3 頁 ( 33%)  目前顯示: 第 01~22 行 (y)回應(X%)推文(h)說明 (←)離開 ',
+      getRowText(row) {
+        return row === 23 ? this.statusText : '';
+      },
+    });
+
+    const easyReading = new EasyReading(mockCore, mockView, mockTermBuf);
+
+    // Initial page: PageDown queued
+    mockTermBuf.dispatchEvent({ type: 'change' });
+    mockTermBuf.dispatchEvent({ type: 'viewUpdate' });
+    assert.deepEqual(sentCommands, ['\x1b[6~']);
+    assert.equal(easyReading._pageDownInFlight, true);
+    assert.ok(easyReading._inFlightTimer !== null);
+    assert.equal(easyReading._inFlightRetries, 0);
+
+    // Simulate dropped server packet / typeahead drop: watchdog fires timeout 1
+    easyReading._onInFlightTimeout();
+    assert.deepEqual(sentCommands, ['\x1b[6~', '\x1b[6~']);
+    assert.equal(easyReading._inFlightRetries, 1);
+    assert.equal(easyReading._pageDownInFlight, true);
+    assert.ok(easyReading._inFlightTimer !== null);
+
+    // Watchdog fires timeout 2 (second retry)
+    easyReading._onInFlightTimeout();
+    assert.deepEqual(sentCommands, ['\x1b[6~', '\x1b[6~', '\x1b[6~']);
+    assert.equal(easyReading._inFlightRetries, 2);
+    assert.equal(easyReading._pageDownInFlight, true);
+
+    // Watchdog fires timeout 3 (max retries reached): boundary guard resets in-flight
+    easyReading._onInFlightTimeout();
+    assert.equal(easyReading._pageDownInFlight, false);
+    assert.equal(easyReading._inFlightRetries, 0);
+    assert.equal(easyReading._inFlightTimer, null);
+
+    // Verify leaving post cleans up timer
+    easyReading._armInFlightWatchdog();
+    assert.ok(easyReading._inFlightTimer !== null);
+    easyReading.leaveCurrentPost();
+    assert.equal(easyReading._inFlightTimer, null);
+    assert.equal(easyReading._pageDownInFlight, false);
+  } finally {
+    globalThis.window = originalWindow;
+  }
+});
+
+
+
 
 

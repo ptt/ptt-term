@@ -215,6 +215,54 @@ export class BaseSite {
   }
 
   /**
+   * Find the maximum overlap between the top of termBuf.lines and the bottom of pageLines.
+   * @param {TermBuf} termBuf 
+   * @param {number} lastRowNum 
+   * @param {Array} pageLines 
+   * @returns {number} Number of overlapping rows at top of screen (0 to lastRowNum)
+   */
+  findContentOverlap(termBuf, lastRowNum, pageLines) {
+    if (!pageLines || pageLines.length === 0 || !termBuf || !termBuf.lines) {
+      return 0;
+    }
+    let maxK = Math.min(lastRowNum, pageLines.length);
+    for (let k = maxK; k >= 1; --k) {
+      let match = true;
+      for (let j = 0; j < k; ++j) {
+        let screenRow = termBuf.lines[k - 1 - j];
+        let pageRow = pageLines[pageLines.length - 1 - j];
+        if (!this._isLineContentEqual(screenRow, pageRow)) {
+          match = false;
+          break;
+        }
+      }
+      if (match) {
+        return k;
+      }
+    }
+    return 0;
+  }
+
+  /**
+   * Compare text content of two lines (arrays of char objects).
+   * @param {Array} lineA 
+   * @param {Array} lineB 
+   * @returns {boolean}
+   */
+  _isLineContentEqual(lineA, lineB) {
+    if (!lineA || !lineB) return false;
+    let textA = '';
+    for (let i = 0; i < lineA.length; ++i) {
+      textA += (lineA[i] && lineA[i].ch) ? lineA[i].ch : ' ';
+    }
+    let textB = '';
+    for (let i = 0; i < lineB.length; ++i) {
+      textB += (lineB[i] && lineB[i].ch) ? lineB[i].ch : ' ';
+    }
+    return textA.trimEnd() === textB.trimEnd();
+  }
+
+  /**
    * Handle site-specific keydown event in easy reading mode.
    * @param {EasyReading} easyReading 
    * @param {KeyboardEvent} e 

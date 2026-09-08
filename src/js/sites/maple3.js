@@ -81,23 +81,7 @@ export class Maple3Site extends BaseSite {
         beginIndex = 1;
       } else {
         // At the end of an article, Maple 3 hits EOF and may have scrolled fewer than PAGE_SCROLL lines.
-        // Find the maximum overlap k between screen[0 .. k-1] and pageLines[N - k .. N - 1].
-        let maxK = Math.min(lastRowNum, pageLines.length);
-        for (let k = maxK; k >= 1; --k) {
-          let match = true;
-          for (let j = 0; j < k; ++j) {
-            let screenRow = termBuf.lines[k - 1 - j];
-            let pageRow = pageLines[pageLines.length - 1 - j];
-            if (!this._isLineContentEqual(screenRow, pageRow)) {
-              match = false;
-              break;
-            }
-          }
-          if (match) {
-            beginIndex = k;
-            break;
-          }
-        }
+        beginIndex = this.findContentOverlap(termBuf, lastRowNum, pageLines);
       }
     }
 
@@ -105,19 +89,6 @@ export class Maple3Site extends BaseSite {
       beginIndex: beginIndex,
       atLastPage: isEnd,
     };
-  }
-
-  _isLineContentEqual(lineA, lineB) {
-    if (!lineA || !lineB) return false;
-    let textA = '';
-    for (let i = 0; i < lineA.length; ++i) {
-      textA += (lineA[i] && lineA[i].ch) ? lineA[i].ch : ' ';
-    }
-    let textB = '';
-    for (let i = 0; i < lineB.length; ++i) {
-      textB += (lineB[i] && lineB[i].ch) ? lineB[i].ch : ' ';
-    }
-    return textA.trimEnd() === textB.trimEnd();
   }
 
   getEasyReadingCommands() {

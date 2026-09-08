@@ -1,4 +1,7 @@
-import { readValuesWithDefault } from './pref';
+import { readValuesWithDefault } from './pref.js';
+
+export const INFLIGHT_WATCHDOG_MS = 1500;
+export const MAX_INFLIGHT_RETRIES = 2;
 
 export class EasyReading {
   constructor(core, view, termBuf) {
@@ -11,6 +14,11 @@ export class EasyReading {
     this.easyReadingReachedPageEnd = false;
     this.sendCommandAfterUpdate = '';
     this.ignoreOneUpdate = false;
+    this._pageDownInFlight = false;
+    this._lastRequestedPageIndex = null;
+    this._lastRequestedRowIndexStart = null;
+    this._inFlightTimer = null;
+    this._inFlightRetries = 0;
 
     function bindProperty(target, name, obj, prop) {
       if (!prop) prop = name;
@@ -47,6 +55,9 @@ export class EasyReading {
     // make sure to come back to easy reading mode
     const isEnteringReading = (this._termBuf.prevPageState == 2 || this._termBuf.prevPageState == 0) &&
         this._termBuf.pageState == 3;
+    if (isEnteringReading) {
+      this._resetInFlight();
+    }
     if (isEnteringReading &&
         !this._enabled && 
         values.enableEasyReading &&
@@ -72,6 +83,7 @@ export class EasyReading {
       this.easyReadingShowReplyText = false;
       this.easyReadingShowPushInitText = false;
       this.startedEasyReading = false;
+      this._resetInFlight();
     }
     if (this.startedEasyReading) {
       console.debug('easy reading cursor pos: ' + this._termBuf.cur_y + ':' + this._termBuf.cur_x);
@@ -88,20 +100,37 @@ export class EasyReading {
           this.easyReadingShowReplyText = false;
           const isEnd = site.isArticleEnd(lastRowText, this._termBuf, result);
 
+          if (this._pageDownInFlight) {
+            const pageAdvanced = (result.pageIndex != null && result.pageIndex !== this._lastRequestedPageIndex) ||
+                                 (result.rowIndexStart != null && result.rowIndexStart !== this._lastRequestedRowIndexStart) ||
+                                 isEnd;
+            if (pageAdvanced) {
+              this._pageDownInFlight = false;
+              this._clearInFlightWatchdog();
+              this._inFlightRetries = 0;
+            }
+          }
+
           if (isEnd) {
             this.easyReadingReachedPageEnd = true;
-          } else {
+            this._resetInFlight();
+          } else if (!this._pageDownInFlight) {
             this.easyReadingReachedPageEnd = false;
             if (!this.sendCommandAfterUpdate) {
               // send page down
               this.sendCommandAfterUpdate = '\x1b[6~';
+              this._pageDownInFlight = true;
+              this._lastRequestedPageIndex = result.pageIndex;
+              this._lastRequestedRowIndexStart = result.rowIndexStart;
             }
           }
         } else if (site.isArticleEnd(lastRowText, this._termBuf, null)) {
           this.easyReadingReachedPageEnd = true;
+          this._resetInFlight();
         } else if (!this.easyReadingShowPushInitText) { // only if not showing last row text
           this._termBuf.pageState = 5;
           this.startedEasyReading = false;
+          this._resetInFlight();
         }
       } else if (site.isPushPrompt(this._termBuf)) {
         this.easyReadingShowPushInitText = true;
@@ -119,12 +148,55 @@ export class EasyReading {
     }
   }
 
+  _armInFlightWatchdog() {
+    this._clearInFlightWatchdog();
+    this._inFlightTimer = setTimeout(() => {
+      this._onInFlightTimeout();
+    }, INFLIGHT_WATCHDOG_MS);
+  }
+
+  _clearInFlightWatchdog() {
+    if (this._inFlightTimer !== null) {
+      clearTimeout(this._inFlightTimer);
+      this._inFlightTimer = null;
+    }
+  }
+
+  _resetInFlight() {
+    this._pageDownInFlight = false;
+    this._lastRequestedPageIndex = null;
+    this._lastRequestedRowIndexStart = null;
+    this._inFlightRetries = 0;
+    this._clearInFlightWatchdog();
+  }
+
+  _onInFlightTimeout() {
+    this._inFlightTimer = null;
+    if (!this._pageDownInFlight || this.easyReadingReachedPageEnd || !this.startedEasyReading) {
+      return;
+    }
+    if (this._inFlightRetries < MAX_INFLIGHT_RETRIES) {
+      this._inFlightRetries++;
+      console.warn(`[EasyReading] PageDown in-flight timeout, retrying (${this._inFlightRetries}/${MAX_INFLIGHT_RETRIES})`);
+      this._send('\x1b[6~');
+      this._armInFlightWatchdog();
+    } else {
+      console.warn('[EasyReading] PageDown in-flight max retries exceeded, resetting guard');
+      this._resetInFlight();
+    }
+  }
+
   _onViewUpdated(e) {
     console.debug('view update');
     if (this.sendCommandAfterUpdate) {
       console.debug("send:" + this.sendCommandAfterUpdate);
       if (this.sendCommandAfterUpdate != 'skipOne') {
         this._send(this.sendCommandAfterUpdate);
+        if (this._pageDownInFlight) {
+          this._armInFlightWatchdog();
+        }
+      } else {
+        this._resetInFlight();
       }
       this.sendCommandAfterUpdate = '';
     }
@@ -132,6 +204,7 @@ export class EasyReading {
 
   leaveCurrentPost() {
     console.debug('leave current post');
+    this._resetInFlight();
     this._core.suppressInertialWheel();
     if (!this.easyReadingReachedPageEnd) {
       this.ignoreOneUpdate = true;
@@ -142,6 +215,7 @@ export class EasyReading {
   stopEasyReading() {
     console.debug('stop easy reading');
     this.sendCommandAfterUpdate = 'skipOne';
+    this._resetInFlight();
     this._core.suppressInertialWheel();
   }
 

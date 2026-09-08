@@ -112,10 +112,12 @@ export class PttSite extends BaseSite {
   }
 
   isArticleEnd(lastRowText, termBuf, statusResult) {
-    let lastRowNum = this.getLastRowNum(termBuf);
-    let lastRowFirstCh = termBuf.lines[lastRowNum][0];
-    if (lastRowFirstCh && lastRowFirstCh.getBg() == 4 && lastRowFirstCh.getFg() == 7) {
-      return true;
+    if (termBuf && termBuf.lines) {
+      let lastRowNum = this.getLastRowNum(termBuf);
+      let lastRowFirstCh = termBuf.lines[lastRowNum] && termBuf.lines[lastRowNum][0];
+      if (lastRowFirstCh && lastRowFirstCh.getBg && lastRowFirstCh.getBg() == 4 && lastRowFirstCh.getFg && lastRowFirstCh.getFg() == 7) {
+        return true;
+      }
     }
     return super.isArticleEnd(lastRowText, termBuf, statusResult);
   }
@@ -131,22 +133,13 @@ export class PttSite extends BaseSite {
   }
 
   getPagingSlice(termBuf, statusResult, actualRowIndex) {
-    let beginIndex = 1;
-    let atLastPage = false;
-    if (!statusResult) {
-      return { beginIndex: 1, atLastPage: false };
-    }
-
-    if ((statusResult.pageIndex == statusResult.pageTotal && statusResult.pagePercent == 100) ||
-        statusResult.rowIndexStart != actualRowIndex) {
-      atLastPage = statusResult.rowIndexStart != actualRowIndex;
-      let numRows = 0;
-      for (let i = statusResult.rowIndexStart; i < actualRowIndex + 1; ++i) {
-        numRows += (termBuf.pageWrappedLines && termBuf.pageWrappedLines[i]) || 0;
-      }
-      beginIndex = numRows;
-    }
-    return { beginIndex, atLastPage };
+    let lastRowNum = this.getLastRowNum(termBuf);
+    let pageLines = termBuf.pageLines || [];
+    let beginIndex = this.findContentOverlap(termBuf, lastRowNum, pageLines);
+    return {
+      beginIndex,
+      atLastPage: true,
+    };
   }
 
   isLineContinuation(termBuf, rowIndex, isInitialPage = false) {
