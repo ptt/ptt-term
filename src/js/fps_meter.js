@@ -5,6 +5,7 @@ export class FpsMeter {
     this.textSpan = null;
     this.canvasBtn = null;
     this.smoothAnsiBtn = null;
+    this.touchDbgBtn = null;
     this.lastFrameTime = 0;
     this.lastRenderTime = 0;
     this.lastUiUpdateTime = 0;
@@ -15,6 +16,8 @@ export class FpsMeter {
     this.smoothAnsiArt = options.smoothAnsiArt !== undefined ? !!options.smoothAnsiArt : true;
     this.onToggleCanvas = typeof options.onToggleCanvas === 'function' ? options.onToggleCanvas : null;
     this.onToggleSmoothAnsi = typeof options.onToggleSmoothAnsi === 'function' ? options.onToggleSmoothAnsi : null;
+    this.onToggleTouchDebug = typeof options.onToggleTouchDebug === 'function' ? options.onToggleTouchDebug : null;
+    this.touchDebugChangeHandler = null;
   }
 
   ensureElement() {
@@ -49,9 +52,6 @@ export class FpsMeter {
       });
       this.element.appendChild(this.canvasBtn);
 
-      const space2 = document.createTextNode(' ');
-      this.element.appendChild(space2);
-
       this.smoothAnsiBtn = document.createElement('span');
       this.smoothAnsiBtn.className = 'fps-smooth-ansi nomouse_command';
       this.smoothAnsiBtn.style.cursor = 'pointer';
@@ -65,6 +65,20 @@ export class FpsMeter {
         e.stopPropagation();
       });
       this.element.appendChild(this.smoothAnsiBtn);
+
+      this.touchDbgBtn = document.createElement('span');
+      this.touchDbgBtn.className = 'fps-touch-dbg nomouse_command';
+      this.touchDbgBtn.style.cursor = 'pointer';
+      this.touchDbgBtn.style.pointerEvents = 'auto';
+      this.touchDbgBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        this.toggleTouchDebug();
+      });
+      this.touchDbgBtn.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+      });
+      this.element.appendChild(this.touchDbgBtn);
     }
     return this.element;
   }
@@ -79,10 +93,23 @@ export class FpsMeter {
       this.reset();
       this.updateDisplay(performance.now(), true);
       this.startIdleChecker();
+      if (typeof window !== 'undefined' && !this.touchDebugChangeHandler) {
+        this.touchDebugChangeHandler = () => {
+          const now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+          this.updateDisplay(now, false);
+        };
+        window.addEventListener('term:touch-debug-changed', this.touchDebugChangeHandler);
+        window.addEventListener('touch-debug:changed', this.touchDebugChangeHandler);
+      }
     } else {
       el.style.display = 'none';
       this.stopIdleChecker();
       this.reset();
+      if (typeof window !== 'undefined' && this.touchDebugChangeHandler) {
+        window.removeEventListener('term:touch-debug-changed', this.touchDebugChangeHandler);
+        window.removeEventListener('touch-debug:changed', this.touchDebugChangeHandler);
+        this.touchDebugChangeHandler = null;
+      }
     }
   }
 
@@ -172,15 +199,32 @@ export class FpsMeter {
     const engine = this.isCanvas ? 'Canvas' : 'DOM';
     const mainText = `FPS: ${fpsText} (${durationText} ms)`;
     const canvasText = `[${engine}]`;
-    const statusText = this.smoothAnsiArt ? 'on' : 'off';
-    const ansiText = `[smoothANSI: ${statusText}]`;
+    const ansiText = this.smoothAnsiArt ? '[SmoothANSI]' : '[OriginalANSI]';
+    const isTouchDbgOn = (typeof window !== 'undefined' && window.isTouchDebugHUDActive)
+      ? window.isTouchDebugHUDActive()
+      : false;
+    const touchDbgText = '[TouchDbg]';
 
-    if (this.textSpan && this.canvasBtn && this.smoothAnsiBtn) {
+    if (this.textSpan && this.canvasBtn && this.smoothAnsiBtn && this.touchDbgBtn) {
       this.textSpan.textContent = mainText;
       this.canvasBtn.textContent = canvasText;
       this.smoothAnsiBtn.textContent = ansiText;
+      this.touchDbgBtn.textContent = touchDbgText;
+      if (isTouchDbgOn) {
+        if (this.touchDbgBtn.classList && this.touchDbgBtn.classList.add) {
+          this.touchDbgBtn.classList.add('active');
+        } else {
+          this.touchDbgBtn.className = 'fps-touch-dbg nomouse_command active';
+        }
+      } else {
+        if (this.touchDbgBtn.classList && this.touchDbgBtn.classList.remove) {
+          this.touchDbgBtn.classList.remove('active');
+        } else {
+          this.touchDbgBtn.className = 'fps-touch-dbg nomouse_command';
+        }
+      }
     } else {
-      this.element.textContent = `${mainText} ${canvasText} ${ansiText}`;
+      this.element.textContent = `${mainText} ${canvasText}${ansiText}${touchDbgText}`;
     }
     this.lastUiUpdateTime = now;
   }
@@ -211,6 +255,20 @@ export class FpsMeter {
 
   setSmoothAnsiArt(enabled) {
     this.smoothAnsiArt = !!enabled;
+    const now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+    this.updateDisplay(now, false);
+  }
+
+  toggleTouchDebug() {
+    if (this.onToggleTouchDebug) {
+      this.onToggleTouchDebug();
+    } else if (typeof window !== 'undefined') {
+      if (window.toggleTouchDebugHUD) {
+        window.toggleTouchDebugHUD();
+      } else {
+        window.dispatchEvent(new CustomEvent('term:toggle-touch-debug'));
+      }
+    }
     const now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
     this.updateDisplay(now, false);
   }

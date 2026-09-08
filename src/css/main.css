@@ -338,25 +338,39 @@ span {
 }
 
 #fpsOverlay .fps-canvas,
-#fpsOverlay .fps-smooth-ansi {
+#fpsOverlay .fps-smooth-ansi,
+#fpsOverlay .fps-touch-dbg {
   pointer-events: auto;
   cursor: pointer;
   user-select: none;
-  margin-left: 2px;
-  padding: 1px 3px;
+  margin-left: 1px;
+  padding: 1px 2px;
   border-radius: 2px;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 #fpsOverlay .fps-canvas:hover,
-#fpsOverlay .fps-smooth-ansi:hover {
+#fpsOverlay .fps-smooth-ansi:hover,
+#fpsOverlay .fps-touch-dbg:hover {
   background-color: rgba(0, 255, 0, 0.25);
   color: #ffffff;
 }
 
 #fpsOverlay .fps-canvas:active,
-#fpsOverlay .fps-smooth-ansi:active {
+#fpsOverlay .fps-smooth-ansi:active,
+#fpsOverlay .fps-touch-dbg:active {
   background-color: rgba(0, 255, 0, 0.45);
+}
+
+#fpsOverlay .fps-touch-dbg.active {
+  background-color: rgba(0, 255, 204, 0.25);
+  color: #00ffcc;
+  box-shadow: inset 0 0 0 1px rgba(0, 255, 204, 0.6);
+}
+
+#fpsOverlay .fps-touch-dbg.active:hover {
+  background-color: rgba(0, 255, 204, 0.4);
+  color: #ffffff;
 }
 
 #connLogOverlay {

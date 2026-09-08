@@ -1509,6 +1509,7 @@ test('App isMobileDevice and TouchKeyboard label toggle handle mobile system key
   // TouchKeyboard label htmlFor="t" and pointerdown checks
   assert.ok(touchKbSource.includes('htmlFor="t"'), 'syskbd toggle should be a label for input#t');
   assert.ok(touchKbSource.includes('handleFloatingKeyboardPointerDown'), 'syskbd toggle should prepare on pointerdown');
+  assert.ok(touchKbSource.includes('TouchDebugHUD'), 'TouchKeyboard should include TouchDebugHUD');
 });
 
 test('PrefModal locks termSizeMode to fixed-font-size and disables select on touch interface', () => {
