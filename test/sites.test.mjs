@@ -1743,3 +1743,29 @@ test('ContextMenu and DropdownMenu decouple LiveHelper and remove right-click it
     'PrefModal Plugins tab must provide showLiveUpdateToolbar checkbox'
   );
 });
+
+test('BaseSite implements setPageState and TermBuf delegates to site.setPageState', () => {
+  const site = new BaseSite('test-site');
+  const mockTerm = {
+    cols: 80,
+    rows: 24,
+    pageState: 0,
+    lines: Array.from({ length: 24 }, () => []),
+    getRowText(r) {
+      if (r === 23) return '請按任意鍵繼續';
+      return '';
+    },
+    isLineEmpty(r) {
+      return r !== 23;
+    },
+  };
+
+  assert.equal(site.setPageState(mockTerm), 5);
+  assert.equal(mockTerm.pageState, 5);
+
+  // When pass screen is cleared to empty row
+  mockTerm.getRowText = () => '';
+  mockTerm.isLineEmpty = () => true;
+  assert.equal(site.setPageState(mockTerm), 0);
+  assert.equal(mockTerm.pageState, 0);
+});

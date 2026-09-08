@@ -1324,41 +1324,8 @@ export class TermBuf extends Event {
   }
 
   setPageState() {
-    let lastRowNum = this.site.getLastRowNum(this);
-    let cols = this.cols;
-    const lastRowText = this.getRowText(lastRowNum, 0, cols);
-    if (this.site.isEditingScreen(this)) {
-      this.pageState = 6;
-      return;
-    }
-
-    if (this.site.parseReadingStatus(lastRowText, this)) {
-      this.pageState = 3; // READING
-      return;
-    }
-
-    if (this.site.isMenuScreen(this)) {
-      this.pageState = 1; // MENU
-      return;
-    }
-
-    if (this.site.isListScreen(this)) {
-      this.pageState = 2; // LIST
-      return;
-    }
-
-    if (lastRowText.trim()) {
-      console.debug('[setPageState] site=' + this.site.name + ', state=' + this.pageState + ', lastRow=' + JSON.stringify(lastRowText));
-    }
-
-    if (this.site.isPassScreen(this)) {
-      //console.log('pageState = 5 (PASS)');
-      this.pageState = 5; // some ansi drawing screen to pass
-      return;
-    }
-    if (this.pageState != 1 && this.isLineEmpty(lastRowNum)) {
-      //console.log('pageState = 0 (NORMAL)');
-      this.pageState = 0;
+    if (this.site) {
+      return this.site.setPageState(this);
     }
   }
 

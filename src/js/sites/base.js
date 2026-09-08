@@ -156,6 +156,51 @@ export class BaseSite {
   }
 
   /**
+   * Determine and update the terminal pageState based on screen content.
+   * @param {TermBuf} termBuf
+   * @returns {number}
+   */
+  setPageState(termBuf) {
+    if (!termBuf) return 0;
+    let lastRowNum = this.getLastRowNum(termBuf);
+    let cols = termBuf.cols;
+    const lastRowText = termBuf.getRowText(lastRowNum, 0, cols);
+    if (this.isEditingScreen(termBuf)) {
+      termBuf.pageState = 6;
+      return 6;
+    }
+
+    if (this.parseReadingStatus(lastRowText, termBuf)) {
+      termBuf.pageState = 3; // READING
+      return 3;
+    }
+
+    if (this.isMenuScreen(termBuf)) {
+      termBuf.pageState = 1; // MENU
+      return 1;
+    }
+
+    if (this.isListScreen(termBuf)) {
+      termBuf.pageState = 2; // LIST
+      return 2;
+    }
+
+    if (lastRowText && lastRowText.trim()) {
+      console.debug('[setPageState] site=' + this.name + ', state=' + termBuf.pageState + ', lastRow=' + JSON.stringify(lastRowText));
+    }
+
+    if (this.isPassScreen(termBuf)) {
+      termBuf.pageState = 5; // PASS
+      return 5;
+    }
+    if (termBuf.pageState != 1 && termBuf.isLineEmpty(lastRowNum)) {
+      termBuf.pageState = 0; // NORMAL
+      return 0;
+    }
+    return termBuf.pageState;
+  }
+
+  /**
    * Determine if current terminal screen represents an article editing screen (pageState = 6).
    * @param {TermBuf} termBuf 
    * @returns {boolean}
