@@ -1,13 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TermKeyboard } from '../src/js/term_keyboard.js';
+import { PttSite, BaseSite } from '../src/js/sites/index.js';
 
-function createKeyboard({ isLeftDB = false, isCurDB = false } = {}) {
+function createKeyboard({ isLeftDB = false, isCurDB = false, site = null } = {}) {
   const sent = [];
   const kb = new TermKeyboard(
     () => isLeftDB,
     () => isCurDB,
-    (data) => sent.push(data)
+    (data) => sent.push(data),
+    site
   );
   return { kb, sent };
 }
@@ -77,6 +79,33 @@ test('TermKeyboard sends double escape sequences when crossing DBCS characters',
 
   curCtx.kb.onKeyDown(mockKeyEvent({ key: 'ArrowRight' }));
   assert.equal(curCtx.sent[1], '\x1b[C\x1b[C');
+});
+
+test('TermKeyboard with PttSite does NOT double escape sequences for DBCS', () => {
+  const pttSite = new PttSite();
+  const leftCtx = createKeyboard({ isLeftDB: true, isCurDB: false, site: pttSite });
+  leftCtx.kb.onKeyDown(mockKeyEvent({ key: 'Backspace' }));
+  assert.equal(leftCtx.sent[0], '\b');
+
+  leftCtx.kb.onKeyDown(mockKeyEvent({ key: 'ArrowLeft' }));
+  assert.equal(leftCtx.sent[1], '\x1b[D');
+
+  const curCtx = createKeyboard({ isLeftDB: false, isCurDB: true, site: pttSite });
+  curCtx.kb.onKeyDown(mockKeyEvent({ key: 'Delete' }));
+  assert.equal(curCtx.sent[0], '\x1b[3~');
+
+  curCtx.kb.onKeyDown(mockKeyEvent({ key: 'ArrowRight' }));
+  assert.equal(curCtx.sent[1], '\x1b[C');
+});
+
+test('TermKeyboard with BaseSite delegates checkDBCursor', () => {
+  const baseSite = new BaseSite();
+  const leftCtx = createKeyboard({ isLeftDB: true, isCurDB: false, site: baseSite });
+  leftCtx.kb.onKeyDown(mockKeyEvent({ key: 'Backspace' }));
+  assert.equal(leftCtx.sent[0], '\b\b');
+
+  leftCtx.kb.onKeyDown(mockKeyEvent({ key: 'ArrowLeft' }));
+  assert.equal(leftCtx.sent[1], '\x1b[D\x1b[D');
 });
 
 test('TermKeyboard sends single printable characters', () => {

@@ -62,6 +62,25 @@ export class BaseSite {
   }
 
   /**
+   * Check if keyboard navigation should send double keystrokes for DBCS character.
+   * @param {string} key
+   * @param {function(): boolean} isLeftDB
+   * @param {function(): boolean} isCurDB
+   * @returns {boolean}
+   */
+  checkDBCursor(key, isLeftDB, isCurDB) {
+    switch (key) {
+      case 'Backspace':
+      case 'ArrowLeft':
+        return typeof isLeftDB === 'function' ? isLeftDB() : !!isLeftDB;
+      case 'Delete':
+      case 'ArrowRight':
+        return typeof isCurDB === 'function' ? isCurDB() : !!isCurDB;
+    }
+    return false;
+  }
+
+  /**
    * Clamp terminal size to site limits if specified.
    * @param {number} cols 
    * @param {number} rows 

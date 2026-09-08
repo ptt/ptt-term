@@ -121,7 +121,8 @@ export class TermView {
   this._keyboard = new TermKeyboard(
     () => this.checkLeftDB(),
     () => this.checkCurDB(),
-    (data) => this._send(data));
+    (data) => this._send(data),
+    () => (this.app?.site || this.buf?.site));
 
   this.input.addEventListener('compositionstart', (e) => {
     this.onCompositionStart(e);

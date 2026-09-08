@@ -67,6 +67,14 @@ export class PttSite extends BaseSite {
     this.currentBoard = null;
   }
 
+  /**
+   * PTT does not send double keystrokes for DBCS cursor movement.
+   * @returns {boolean}
+   */
+  checkDBCursor(key, isLeftDB, isCurDB) {
+    return false;
+  }
+
   isMenuScreen(termBuf) {
     if (!termBuf) return false;
     if (this.isCursorParked(termBuf)) return false;

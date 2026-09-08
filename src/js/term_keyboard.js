@@ -42,10 +42,12 @@ export class TermKeyboard {
   // isLeftDB: function() -> bool
   // isCurDB: function() -> bool
   // send: function(data)
-  constructor(isLeftDB, isCurDB, send) {
+  // site: BaseSite | function(): BaseSite
+  constructor(isLeftDB, isCurDB, send, site = null) {
     this._checkLeftDB = isLeftDB;
     this._checkCurDB = isCurDB;
     this._sendFunc = send;
+    this._site = site;
   }
 
   _send(data) {
@@ -58,6 +60,10 @@ export class TermKeyboard {
   }
 
   _checkDB(key) {
+    const site = typeof this._site === 'function' ? this._site() : this._site;
+    if (site && typeof site.checkDBCursor === 'function') {
+      return site.checkDBCursor(key, this._checkLeftDB, this._checkCurDB);
+    }
     switch (key) {
       case 'Backspace':
       case 'ArrowLeft':
