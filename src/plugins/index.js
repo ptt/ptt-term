@@ -11,6 +11,9 @@ import {
 import {
   MouseBrowsing,
 } from './mouse_browsing/index.js';
+import {
+  InputHelper,
+} from './input_helper/index.js';
 
 export {
   EasyReading,
@@ -20,12 +23,14 @@ export {
   LiveUpdate,
   LiveUpdatePlugin,
   MouseBrowsing,
+  InputHelper,
 };
 
 export const BUILTIN_PLUGINS = [
   EasyReading,
   LiveUpdate,
   MouseBrowsing,
+  InputHelper,
 ];
 
 export function getAvailablePlugins(app) {

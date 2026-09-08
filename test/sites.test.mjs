@@ -1718,3 +1718,24 @@ test('src/plugins exports MouseBrowsing and handles mouse click navigation', asy
   assert.equal(sent[3], '\x1b[A\x1b[A\r');
 });
 
+test('src/plugins exports InputHelper and manages modal lifecycle', async () => {
+  const pluginsModule = await import('../src/plugins/index.js');
+  const inputHelperModule = await import('../src/plugins/input_helper/index.js');
+
+  assert.equal(pluginsModule.InputHelper, inputHelperModule.InputHelper);
+
+  const meta = inputHelperModule.InputHelper.getMetadata();
+  assert.equal(meta.id, 'input_helper');
+  assert.equal(meta.prefKey, 'enableInputHelper');
+
+  const ih = new inputHelperModule.InputHelper();
+  assert.equal(ih.showsModal, false);
+  ih.show();
+  assert.equal(ih.showsModal, true);
+  ih.hide();
+  assert.equal(ih.showsModal, false);
+  ih.toggle();
+  assert.equal(ih.showsModal, true);
+});
+
+

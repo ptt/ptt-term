@@ -85,6 +85,48 @@
   border-radius: 3px;
 }
 
+/* --- Button Groups (Split / Combo Buttons) --- */
+.btn-group {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.btn-group > .btn {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.btn-group > .btn:first-child:not(:last-child) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.btn-group > .btn:last-child:not(:first-child) {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  margin-left: -1px;
+}
+
+.btn-group > .btn + .btn {
+  margin-left: -1px;
+}
+
+.btn-group > .btn:hover,
+.btn-group > .btn:focus,
+.btn-group > .btn:active {
+  z-index: 2;
+}
+
+.btn-group .dropdown-toggle {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.btn-group .dropdown-toggle .caret {
+  margin-left: 0;
+}
+
 /* --- Form Controls --- */
 .form-control {
   display: block;
@@ -225,6 +267,27 @@
   flex-wrap: wrap;
   margin-left: -10px;
   margin-right: -10px;
+}
+
+.col-xs-4 {
+  flex: 0 0 33.33333333%;
+  max-width: 33.33333333%;
+  box-sizing: border-box;
+  padding: 0 10px;
+}
+
+.col-xs-6 {
+  flex: 0 0 50%;
+  max-width: 50%;
+  box-sizing: border-box;
+  padding: 0 10px;
+}
+
+.col-xs-8 {
+  flex: 0 0 66.66666667%;
+  max-width: 66.66666667%;
+  box-sizing: border-box;
+  padding: 0 10px;
 }
 
 .col-xs-12 {

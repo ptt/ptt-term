@@ -2763,3 +2763,47 @@ test('DropdownMenu hides and positions before showing to prevent top-left popup 
     'ContextMenu must pass open prop to DropdownMenu'
   );
 });
+
+test('InputHelperModal renders close button on right and aligns send combo button to right', () => {
+  const inputHelperJs = fs.readFileSync(
+    fs.existsSync(path.resolve('src/plugins/input_helper/InputHelperModal.js'))
+      ? path.resolve('src/plugins/input_helper/InputHelperModal.js')
+      : path.resolve('src/components/ContextMenu/InputHelperModal.js'),
+    'utf-8'
+  );
+  const inputHelperCss = fs.readFileSync(
+    fs.existsSync(path.resolve('src/plugins/input_helper/InputHelperModal.css'))
+      ? path.resolve('src/plugins/input_helper/InputHelperModal.css')
+      : path.resolve('src/components/ContextMenu/InputHelperModal.css'),
+    'utf-8'
+  );
+  const uiCss = fs.readFileSync(path.resolve('src/css/ui.css'), 'utf-8');
+
+  // 1. Header has title before close button and flex space-between
+  assert.ok(
+    inputHelperJs.indexOf('<h4 className="modal-title"') < inputHelperJs.indexOf('className="close"'),
+    'InputHelperModal must render modal-title before close button in DOM order'
+  );
+  assert.ok(
+    inputHelperCss.includes('justify-content: space-between'),
+    'InputHelperModal.css must position close button on the right with justify-content: space-between'
+  );
+
+  // 2. Action row aligns send combo button to right
+  assert.ok(
+    inputHelperCss.includes('.InputHelperModal__SendButtonContainer') &&
+    inputHelperCss.includes('justify-content: flex-end'),
+    'InputHelperModal.css must right-align send button container'
+  );
+
+  // 3. ui.css defines .btn-group and grid helper classes
+  assert.ok(
+    uiCss.includes('.btn-group'),
+    'ui.css must define .btn-group for combo/split button styling'
+  );
+  assert.ok(
+    uiCss.includes('.col-xs-4') && uiCss.includes('.col-xs-8'),
+    'ui.css must define .col-xs-4 and .col-xs-8 grid classes'
+  );
+});
+
