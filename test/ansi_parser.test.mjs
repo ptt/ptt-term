@@ -418,7 +418,7 @@ test('TermBuf isFrameReady manages DEC 2026 frame sync and falls back to site is
   assert.equal(buf.isFrameReady(), true);
 });
 
-test('TermBuf defers rendering during synchronized update and flushes atomically on endSyncUpdate', () => {
+test('TermBuf defers rendering during synchronized update and aligns with V-Sync on endSyncUpdate', () => {
   const beginSyncUpdateMatch = termBufSource.match(/(beginSyncUpdate\(\)\s*\{[\s\S]*?\n  \})/);
   const endSyncUpdateMatch = termBufSource.match(/(endSyncUpdate\(\)\s*\{[\s\S]*?\n  \})/);
   const queueUpdateMatch = termBufSource.match(/(queueUpdate\(directupdate\)\s*\{[\s\S]*?\n  \})/);
@@ -429,53 +429,90 @@ test('TermBuf defers rendering during synchronized update and flushes atomically
   const queueUpdate = new Function('return function ' + queueUpdateMatch[1])();
   const notify = new Function('return function ' + notifyMatch[1])();
 
-  const events = [];
-  let viewUpdates = 0;
-  const buf = {
-    inSyncUpdate: false,
-    hasFrameSync: false,
-    _syncUpdateTimeout: null,
-    animFrameId: null,
-    timerUpdate: null,
-    changed: false,
-    posChanged: false,
-    useMouseBrowsing: false,
-    updateCharAttr() {},
-    setPageState() {},
-    clearHighlight() {},
-    dispatchEvent(e) { events.push(e.type); },
-    view: {
-      update() { viewUpdates++; },
-      updateCursorPos() {},
-      blinkOn: false,
-      onBlinkToggle() {}
-    }
+  const rafCallbacks = new Map();
+  let rafIdCounter = 100;
+  let cancelCalledWith = null;
+
+  const mockRaf = (cb) => {
+    const id = ++rafIdCounter;
+    rafCallbacks.set(id, () => {
+      rafCallbacks.delete(id);
+      cb();
+    });
+    return id;
   };
-  buf.beginSyncUpdate = beginSyncUpdate.bind(buf);
-  buf.endSyncUpdate = endSyncUpdate.bind(buf);
-  buf.queueUpdate = queueUpdate.bind(buf);
-  buf.notify = notify.bind(buf);
+  const mockCancelRaf = (id) => {
+    cancelCalledWith = id;
+    rafCallbacks.delete(id);
+  };
 
-  // 1. Enter synchronized update
-  buf.beginSyncUpdate();
-  assert.equal(buf.inSyncUpdate, true);
-  assert.equal(buf.hasFrameSync, true);
+  const originalRaf = globalThis.requestAnimationFrame;
+  const originalCancelRaf = globalThis.cancelAnimationFrame;
 
-  // 2. Buffer mutations occur while inside frame: queueUpdate must NOT schedule notify
-  buf.changed = true;
-  buf.queueUpdate();
-  assert.equal(buf.animFrameId, null);
-  assert.equal(buf.timerUpdate, null);
-  assert.equal(viewUpdates, 0);
+  try {
+    globalThis.requestAnimationFrame = mockRaf;
+    globalThis.cancelAnimationFrame = mockCancelRaf;
 
-  // 3. Frame completes via endSyncUpdate: immediate atomic notify and frame event
-  buf.endSyncUpdate();
-  assert.equal(buf.inSyncUpdate, false);
-  assert.equal(buf.hasFrameSync, true);
-  assert.equal(viewUpdates, 1);
-  assert.ok(events.includes('change'));
-  assert.ok(events.includes('viewUpdate'));
-  assert.ok(events.includes('frame'));
+    const events = [];
+    let viewUpdates = 0;
+    const buf = {
+      inSyncUpdate: false,
+      hasFrameSync: false,
+      _syncUpdateTimeout: null,
+      animFrameId: null,
+      timerUpdate: null,
+      changed: false,
+      posChanged: false,
+      useMouseBrowsing: false,
+      updateCharAttr() {},
+      setPageState() {},
+      clearHighlight() {},
+      dispatchEvent(e) { events.push(e.type); },
+      view: {
+        update() { viewUpdates++; },
+        updateCursorPos() {},
+        blinkOn: false,
+        onBlinkToggle() {}
+      }
+    };
+    buf.beginSyncUpdate = beginSyncUpdate.bind(buf);
+    buf.endSyncUpdate = endSyncUpdate.bind(buf);
+    buf.queueUpdate = queueUpdate.bind(buf);
+    buf.notify = notify.bind(buf);
+
+    // 1. Enter synchronized update
+    buf.beginSyncUpdate();
+    assert.equal(buf.inSyncUpdate, true);
+    assert.equal(buf.hasFrameSync, true);
+
+    // 2. Buffer mutations occur while inside frame: queueUpdate must NOT schedule notify
+    buf.changed = true;
+    buf.queueUpdate();
+    assert.equal(buf.animFrameId, null);
+    assert.equal(buf.timerUpdate, null);
+    assert.equal(viewUpdates, 0);
+
+    // 3. Frame completes via endSyncUpdate: dispatches 'frame' and queues update for V-Sync
+    buf.endSyncUpdate();
+    assert.equal(buf.inSyncUpdate, false);
+    assert.equal(buf.hasFrameSync, true);
+    assert.ok(events.includes('frame'));
+    // V-Sync alignment: rendering is scheduled via rAF, not synchronously flushed yet
+    assert.equal(viewUpdates, 0);
+    assert.ok(buf.animFrameId !== null);
+    assert.equal(rafCallbacks.size, 1);
+
+    // 4. Browser V-Sync tick: rAF callback executes
+    const cb = rafCallbacks.get(buf.animFrameId);
+    cb();
+    assert.equal(buf.animFrameId, null);
+    assert.equal(viewUpdates, 1);
+    assert.ok(events.includes('change'));
+    assert.ok(events.includes('viewUpdate'));
+  } finally {
+    globalThis.requestAnimationFrame = originalRaf;
+    globalThis.cancelAnimationFrame = originalCancelRaf;
+  }
 });
 
 

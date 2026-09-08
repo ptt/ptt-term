@@ -1079,10 +1079,10 @@ export class TermBuf extends Event {
     }
     this.inSyncUpdate = false;
     this.hasFrameSync = true;
-    if (this.changed || this.posChanged) {
-      this.notify();
-    }
     this.dispatchEvent(new CustomEvent('frame'));
+    if (this.changed || this.posChanged) {
+      this.queueUpdate();
+    }
   }
 
   queueUpdate(directupdate) {
@@ -1095,6 +1095,9 @@ export class TermBuf extends Event {
     const func = () => {
       this.animFrameId = null;
       this.timerUpdate = null;
+      if (this.inSyncUpdate) {
+        return;
+      }
       this.notify();
     };
 
