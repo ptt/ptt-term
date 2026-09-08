@@ -1738,4 +1738,60 @@ test('src/plugins exports InputHelper and manages modal lifecycle', async () => 
   assert.equal(ih.showsModal, true);
 });
 
+test('src/plugins exports AntiIdle and delegates keepalive to site', async () => {
+  const pluginsModule = await import('../src/plugins/index.js');
+  const antiIdleModule = await import('../src/plugins/anti_idle/index.js');
+  const { PttSite } = await import('../src/js/sites/ptt.js');
+  const { BaseSite } = await import('../src/js/sites/base.js');
+
+  assert.equal(pluginsModule.AntiIdle, antiIdleModule.AntiIdle);
+
+  const meta = antiIdleModule.AntiIdle.getMetadata();
+  assert.equal(meta.id, 'anti_idle');
+  assert.equal(meta.prefKey, 'enableAntiIdle');
+
+  const pttSite = new PttSite();
+  const baseSite = new BaseSite();
+
+  const nopCalls = [];
+  const sentData = [];
+  const mockConn = {
+    sendNop: () => nopCalls.push('nop'),
+    send: (d) => sentData.push(d),
+  };
+
+  const mockApp = {
+    connectState: 1,
+    site: pttSite,
+    conn: mockConn,
+    stream: null,
+  };
+
+  const antiIdle = new antiIdleModule.AntiIdle(mockApp, {
+    enabled: true,
+    interval: 2000,
+  });
+
+  // Tick 1s: should not trigger yet
+  antiIdle.tick(1000);
+  assert.equal(nopCalls.length, 0);
+
+  // Tick 1s: reaches 2000ms, should trigger PttSite.sendAntiIdle -> sendNop
+  antiIdle.tick(1000);
+  assert.equal(nopCalls.length, 1);
+  assert.equal(antiIdle.idleTime, 0);
+
+  // Switch to baseSite: should trigger send('\x1b\x1b')
+  mockApp.site = baseSite;
+  antiIdle.tick(2000);
+  assert.deepEqual(sentData, ['\x1b\x1b']);
+
+  // Reset idle suppresses triggering
+  antiIdle.tick(1000);
+  antiIdle.resetIdle();
+  antiIdle.tick(1000);
+  assert.equal(sentData.length, 1);
+});
+
+
 

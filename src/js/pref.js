@@ -8,6 +8,7 @@ export const DEFAULT_PREFS = {
   liveUpdateInterval: 1,
   showLiveUpdateToolbar: true,
   copyOnSelect: false,
+  enableAntiIdle: false,
   antiIdleTime: 0,
   lineWrap: 78,
   useCanvasEngine: true,
@@ -59,6 +60,9 @@ export const readValuesWithDefault = () => {
       },
     };
     if (saved) {
+      if (saved.enableAntiIdle === undefined && saved.antiIdleTime !== undefined) {
+        prefs.enableAntiIdle = Boolean(saved.antiIdleTime > 0);
+      }
       if (saved.enableLiveUpdate === undefined && saved.endTurnsOnLiveUpdate !== undefined) {
         prefs.enableLiveUpdate = Boolean(saved.endTurnsOnLiveUpdate);
       }

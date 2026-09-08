@@ -37,6 +37,22 @@ const renderPluginIcon = (icon) => {
           <line x1="9" y1="11" x2="13" y2="11" />
         </svg>
       );
+    case "timer":
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      );
     default:
       return (
         <svg
@@ -224,14 +240,26 @@ export class PrefModal extends React.Component {
           nextValues = changeNestedValue(nextValues, "liveUpdateInterval", 1);
         }
       }
+      if (name === "enableAntiIdle") {
+        if (checked && (!nextValues.antiIdleTime || nextValues.antiIdleTime <= 0)) {
+          nextValues = changeNestedValue(nextValues, "antiIdleTime", 60);
+        } else if (!checked) {
+          nextValues = changeNestedValue(nextValues, "antiIdleTime", 0);
+        }
+      }
       return { values: nextValues };
     });
   };
 
   handleNumberInputChange = ({ target: { name, value } }) => {
-    this.setState((prevState) => ({
-      values: changeNestedValue(prevState.values, name, parseInt(value, 10)),
-    }));
+    this.setState((prevState) => {
+      const numVal = parseInt(value, 10);
+      let nextValues = changeNestedValue(prevState.values, name, numVal);
+      if (name === "antiIdleTime") {
+        nextValues = changeNestedValue(nextValues, "enableAntiIdle", numVal > 0);
+      }
+      return { values: nextValues };
+    });
   };
 
   handleTextInputChange = ({ target: { name, value } }) => {
@@ -783,6 +811,28 @@ export class PrefModal extends React.Component {
                                 />
                                 {i18n("options_showLiveUpdateToolbar")}
                               </label>
+                            </div>
+                          </div>
+                        )}
+                        {plugin.id === "anti_idle" && isChecked && (
+                          <div className="PrefModal__MacListItemSub">
+                            <div className="PrefModal__MacSubOptionRow">
+                              <span className="PrefModal__MacSubLabel">
+                                {i18n("options_antiIdleTime")}
+                              </span>
+                              <div className="PrefModal__MacSubInlineInput">
+                                <input
+                                  className="form-control"
+                                  type="number"
+                                  name="antiIdleTime"
+                                  min="1"
+                                  value={values.antiIdleTime || 60}
+                                  onChange={this.handleNumberInputChange}
+                                />
+                                <span className="PrefModal__MacSubUnit">
+                                  {i18n("options_liveUpdateIntervalSec")}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         )}

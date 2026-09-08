@@ -94,6 +94,12 @@ export const en_US = {
   plugin_live_update_desc: {
     message: "Periodically refreshes comments while reading posts (e.g. sends 'r' every second), with hotkeys and floating controls.",
   },
+  plugin_anti_idle_title: {
+    message: "Anti-Idle Keepalive",
+  },
+  plugin_anti_idle_desc: {
+    message: "Periodically sends keepalive signals to the BBS site when idle to prevent disconnects.",
+  },
   plugin_builtin: {
     message: "Built-in",
   },

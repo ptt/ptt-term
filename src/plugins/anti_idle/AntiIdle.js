@@ -1,0 +1,114 @@
+import { readValuesWithDefault, updatePref } from "../../js/pref.js";
+import { _ } from "../../js/i18n.js";
+
+export class AntiIdle {
+  static id = "anti_idle";
+  static name = "anti_idle";
+  static prefKey = "enableAntiIdle";
+
+  static getMetadata() {
+    return {
+      id: "anti_idle",
+      name: "anti_idle",
+      title: _("plugin_anti_idle_title"),
+      description: _("plugin_anti_idle_desc"),
+      prefKey: "enableAntiIdle",
+      icon: "timer",
+      badge: _("plugin_builtin"),
+    };
+  }
+
+  constructor(app, options = {}) {
+    this.app = app || null;
+    this.view = options.view || null;
+    this.buf = options.buf || null;
+    this.idleTime = 0;
+    this.interval = options.interval ?? 60000;
+    this.enabled = options.enabled ?? false;
+  }
+
+  get id() {
+    return "anti_idle";
+  }
+
+  get name() {
+    return "anti_idle";
+  }
+
+  get prefKey() {
+    return "enableAntiIdle";
+  }
+
+  get title() {
+    return _("plugin_anti_idle_title");
+  }
+
+  get description() {
+    return _("plugin_anti_idle_desc");
+  }
+
+  get icon() {
+    return "timer";
+  }
+
+  get badge() {
+    return _("plugin_builtin");
+  }
+
+  getMetadata() {
+    return {
+      id: this.id,
+      name: this.name,
+      title: this.title,
+      description: this.description,
+      prefKey: this.prefKey,
+      enabled: this.enabled,
+      icon: this.icon,
+      badge: this.badge,
+    };
+  }
+
+  init({ app, view, buf } = {}) {
+    if (app) this.app = app;
+    if (view) this.view = view;
+    if (buf) this.buf = buf;
+    this.syncFromPrefs();
+  }
+
+  syncFromPrefs() {
+    const prefs = readValuesWithDefault();
+    const timeSec = Number(prefs.antiIdleTime) || 0;
+    this.enabled = Boolean(prefs.enableAntiIdle ?? (timeSec > 0));
+    this.interval = (timeSec > 0 ? timeSec : 60) * 1000;
+  }
+
+  setInterval(seconds) {
+    const sec = Math.max(0, Number(seconds) || 0);
+    this.interval = sec * 1000;
+    if (sec > 0) {
+      this.enabled = true;
+    }
+  }
+
+  resetIdle() {
+    this.idleTime = 0;
+  }
+
+  tick(deltaMs = 1000) {
+    if (!this.enabled || !this.app) return;
+    const conn = this.app.stream || this.app.conn;
+    if (!conn || this.app.connectState !== 1) return;
+
+    this.idleTime += deltaMs;
+    if (this.interval > 0 && this.idleTime >= this.interval) {
+      if (this.app.site) {
+        this.app.site.sendAntiIdle(conn);
+      }
+      this.idleTime = 0;
+    }
+  }
+
+  destroy() {
+    this.idleTime = 0;
+  }
+}

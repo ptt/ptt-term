@@ -14,6 +14,9 @@ import {
 import {
   InputHelper,
 } from './input_helper/index.js';
+import {
+  AntiIdle,
+} from './anti_idle/index.js';
 
 export {
   EasyReading,
@@ -24,6 +27,7 @@ export {
   LiveUpdatePlugin,
   MouseBrowsing,
   InputHelper,
+  AntiIdle,
 };
 
 export const BUILTIN_PLUGINS = [
@@ -31,6 +35,7 @@ export const BUILTIN_PLUGINS = [
   LiveUpdate,
   MouseBrowsing,
   InputHelper,
+  AntiIdle,
 ];
 
 export function getAvailablePlugins(app) {

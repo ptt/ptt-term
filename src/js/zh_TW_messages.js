@@ -94,6 +94,12 @@ export const zh_TW = {
   plugin_live_update_desc: {
     message: "在閱讀文章時定時自動重新整理推文（如每秒自動送出 r），支援快速鍵與懸浮控制面板。",
   },
+  plugin_anti_idle_title: {
+    message: "防閒置斷線",
+  },
+  plugin_anti_idle_desc: {
+    message: "當終端機閒置超過指定時間時，自動向站台發送 keepalive 訊號以維持連線。",
+  },
   plugin_builtin: {
     message: "內建",
   },
