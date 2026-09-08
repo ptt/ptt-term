@@ -62,7 +62,7 @@ export class EasyReading {
     };
   }
 
-  constructor(core, view, termBuf) {
+  constructor(core, viewOrOptions, termBuf) {
     this._core = null;
     this._view = null;
     this._termBuf = null;
@@ -108,8 +108,15 @@ export class EasyReading {
     this._onBufChanged = (e) => this._onChanged(e);
     this._onBufViewUpdated = (e) => this._onViewUpdated(e);
 
-    if (core || view || termBuf) {
-      this.init({ core, app: core, view, buf: termBuf });
+    let view = viewOrOptions;
+    let buf = termBuf;
+    if (termBuf === undefined && viewOrOptions && typeof viewOrOptions === 'object' && ('view' in viewOrOptions || 'buf' in viewOrOptions)) {
+      view = viewOrOptions.view || null;
+      buf = viewOrOptions.buf || null;
+    }
+
+    if (core || view || buf) {
+      this.init({ core, app: core, view, buf });
     }
   }
 

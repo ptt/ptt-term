@@ -7,8 +7,7 @@ import { TermBuf } from './term_buf';
 import { TelnetConnection, TelnetFilter } from './telnet';
 import { Stream } from './stream';
 import { Websocket } from './websocket';
-import { EasyReading } from '../plugins/easy_reading/index.js';
-import { LiveUpdate } from '../plugins/live_update/index.js';
+import { BUILTIN_PLUGINS } from '../plugins/index.js';
 import { ConnectionLog } from './conn_log';
 import { TouchController } from './touch_controller';
 import { i18n } from './i18n';
@@ -49,10 +48,7 @@ export class App {
   this.parser = this.ansiFilter;
   this.plugins = [];
   this.inputInterceptors = [];
-  this.easyReading = new EasyReading(this, this.view, this.buf);
-  this.registerPlugin(this.easyReading);
-  this.liveUpdate = new LiveUpdate(this, { view: this.view, buf: this.buf });
-  this.registerPlugin(this.liveUpdate);
+  this.initPlugins(BUILTIN_PLUGINS);
   this.connLog = new ConnectionLog(this);
   this._lastEasyReadingWheelTime = 0;
   this._lastEasyReadingHideTime = 0;
@@ -210,10 +206,42 @@ export class App {
     }
   }
 
+  initPlugins(pluginClasses = BUILTIN_PLUGINS) {
+    if (!Array.isArray(pluginClasses)) return;
+    for (const PluginClass of pluginClasses) {
+      if (typeof PluginClass === 'function') {
+        const instance = new PluginClass(this, { view: this.view, buf: this.buf, core: this });
+        this.registerPlugin(instance);
+      } else if (PluginClass && typeof PluginClass === 'object') {
+        this.registerPlugin(PluginClass);
+      }
+    }
+  }
+
   getPlugin(name) {
     return this.plugins.find(
-      (p) => p.name === name || p.constructor?.name === name
+      (p) => p.id === name || p.name === name || p.constructor?.name === name
     );
+  }
+
+  get easyReading() {
+    return this.getPlugin('easy_reading') || this.getPlugin('EasyReading') || null;
+  }
+
+  set easyReading(val) {
+    if (val && !this.plugins.includes(val)) {
+      this.registerPlugin(val);
+    }
+  }
+
+  get liveUpdate() {
+    return this.getPlugin('live_update') || this.getPlugin('LiveUpdate') || null;
+  }
+
+  set liveUpdate(val) {
+    if (val && !this.plugins.includes(val)) {
+      this.registerPlugin(val);
+    }
   }
 
   getPluginList() {
