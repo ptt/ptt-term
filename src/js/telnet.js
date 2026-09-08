@@ -1,9 +1,9 @@
-// Handle Telnet Connections according to RFC 854
+// Handle Telnet Connections and Filters according to RFC 854
 
 import { Event } from './event.js';
-import { u2b, ansiHalfColorConv } from './string_util.js';
+import { Conv, CHARSETS } from './conv.js';
 
-// Telnet commands (RFC 854)
+// Telnet commands
 export const SE = 0xf0;
 export const NOP = 0xf1;
 export const DATA_MARK = 0xf2;
@@ -33,43 +33,69 @@ export const SEND = 0x01;
 export const NAWS = 0x1f;
 
 // state
-const STATE_DATA=0;
-const STATE_IAC=1;
-const STATE_WILL=2;
-const STATE_WONT=3;
-const STATE_DO=4;
-const STATE_DONT=5;
-const STATE_SB=6;
+export const STATE_DATA = 0;
+export const STATE_IAC = 1;
+export const STATE_WILL = 2;
+export const STATE_WONT = 3;
+export const STATE_DO = 4;
+export const STATE_DONT = 5;
+export const STATE_SB = 6;
 
-export class TelnetConnection extends Event {
-  constructor(socket, site = null) {
+/**
+ * Escapes outgoing IAC (0xFF -> 0xFF 0xFF) per RFC 854.
+ * @param {string | Uint8Array | number[]} data
+ * @returns {Uint8Array | string}
+ */
+export function escapeIAC(data) {
+  if (!data) return new Uint8Array(0);
+  if (typeof data === 'string') {
+    return data.indexOf('\xff') < 0 ? data : data.split('\xff').join('\xff\xff');
+  }
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  if (!bytes.includes(IAC)) {
+    return bytes;
+  }
+  let count = 0;
+  for (let i = 0; i < bytes.length; ++i) {
+    if (bytes[i] === IAC) count++;
+  }
+  const out = new Uint8Array(bytes.length + count);
+  let pos = 0;
+  for (let i = 0; i < bytes.length; ++i) {
+    out[pos++] = bytes[i];
+    if (bytes[i] === IAC) {
+      out[pos++] = IAC;
+    }
+  }
+  return out;
+}
+
+/**
+ * TelnetFilter handles RFC 854 Telnet option negotiations and IAC escaping/unescaping.
+ */
+export class TelnetFilter extends Event {
+  constructor(options = {}) {
     super();
-    this.socket = socket;
-    this.site = site;
-    this.socket.addEventListener('open', (e) => this._onOpen(e));
-    this.socket.addEventListener('data', (e) => this._onDataAvailable(e));
-    this.socket.addEventListener('close', (e) => this._onClose(e));
-
+    this.name = 'telnet';
+    this.stream = null;
+    this.termType = options.termType || 'VT100';
     this.state = STATE_DATA;
     this.iac_sb = [];
-
-    this.termType = 'VT100';
   }
 
-  get isUtf8() {
-    return this.site ? this.site.isUtf8 : false;
+  attachStream(stream) {
+    this.stream = stream;
   }
 
-  _onOpen(e) {
-    this.dispatchEvent(new CustomEvent('open'));
-  }
-
-  _onClose(e) {
-    this.dispatchEvent(new CustomEvent('close'));
-  }
-
-  _onDataAvailable(e) {
-    let bytes = e.detail.data;
+  /**
+   * Inbound: process incoming bytes, handle Telnet options, and return clean data bytes.
+   * @param {string | Uint8Array} data
+   * @param {any} [stream]
+   * @returns {Uint8Array}
+   */
+  inbound(data, stream) {
+    const s = stream || this.stream;
+    let bytes = data;
     if (typeof bytes === 'string') {
       const arr = new Uint8Array(bytes.length);
       for (let i = 0; i < bytes.length; ++i) {
@@ -81,15 +107,14 @@ export class TelnetConnection extends Event {
     }
 
     const n = bytes.length;
-    if (n === 0) return;
+    if (n === 0) return new Uint8Array(0);
 
-    // Fast path: if already in STATE_DATA and no IAC (0xFF) byte in packet,
-    // dispatch the entire Uint8Array zero-copy.
+    // Fast path: if already in STATE_DATA and no IAC byte, return as-is
     if (this.state === STATE_DATA && !bytes.includes(IAC)) {
-      this._dispatchData(bytes);
-      return;
+      return bytes;
     }
 
+    const cleanChunks = [];
     let start = -1;
 
     for (let i = 0; i < n; ++i) {
@@ -99,7 +124,7 @@ export class TelnetConnection extends Event {
       case STATE_DATA:
         if (b === IAC) {
           if (start !== -1) {
-            this._dispatchData(bytes.subarray(start, i));
+            cleanChunks.push(bytes.subarray(start, i));
             start = -1;
           }
           this.state = STATE_IAC;
@@ -131,11 +156,14 @@ export class TelnetConnection extends Event {
         case NOP:
           this.dispatchEvent(new CustomEvent('nop'));
           this.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'NOP', opt: null } }));
+          if (s && s.dispatchEvent) {
+            s.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'NOP', opt: null } }));
+          }
           this.state = STATE_DATA;
           break;
         case IAC:
-          // Escaped IAC in data stream (0xFF 0xFF -> 0xFF)
-          this._dispatchData(new Uint8Array([IAC]));
+          // Escaped IAC byte in data stream (0xFF 0xFF -> 0xFF)
+          cleanChunks.push(new Uint8Array([IAC]));
           this.state = STATE_DATA;
           break;
         default:
@@ -145,54 +173,81 @@ export class TelnetConnection extends Event {
 
       case STATE_WILL:
         this.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'WILL', opt: b } }));
+        if (s && s.dispatchEvent) {
+          s.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'WILL', opt: b } }));
+        }
         switch (b) {
         case BINARY:
         case ECHO:
         case SUPRESS_GO_AHEAD:
-          this._sendRaw(new Uint8Array([IAC, DO, b]));
+          if (s && s.sendRaw) {
+            s.sendRaw(new Uint8Array([IAC, DO, b]));
+          }
           break;
         default:
-          this._sendRaw(new Uint8Array([IAC, DONT, b]));
+          if (s && s.sendRaw) {
+            s.sendRaw(new Uint8Array([IAC, DONT, b]));
+          }
         }
         this.state = STATE_DATA;
         break;
 
       case STATE_DO:
         this.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'DO', opt: b } }));
+        if (s && s.dispatchEvent) {
+          s.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'DO', opt: b } }));
+        }
         switch (b) {
         case BINARY:
         case TERM_TYPE:
-          this._sendRaw(new Uint8Array([IAC, WILL, b]));
+          if (s && s.sendRaw) {
+            s.sendRaw(new Uint8Array([IAC, WILL, b]));
+          }
           break;
         case NAWS:
           this.dispatchEvent(new CustomEvent('doNaws'));
+          if (s && s.dispatchEvent) {
+            s.dispatchEvent(new CustomEvent('doNaws'));
+          }
           break;
         default:
-          this._sendRaw(new Uint8Array([IAC, WONT, b]));
+          if (s && s.sendRaw) {
+            s.sendRaw(new Uint8Array([IAC, WONT, b]));
+          }
         }
         this.state = STATE_DATA;
         break;
 
       case STATE_DONT:
         this.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'DONT', opt: b } }));
+        if (s && s.dispatchEvent) {
+          s.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'DONT', opt: b } }));
+        }
         this.state = STATE_DATA;
         break;
 
       case STATE_WONT:
         this.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'WONT', opt: b } }));
+        if (s && s.dispatchEvent) {
+          s.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'WONT', opt: b } }));
+        }
         this.state = STATE_DATA;
         break;
 
-      case STATE_SB:
+      case STATE_SB: // sub negotiation
         this.iac_sb.push(b);
-        const sbLen = this.iac_sb.length;
-        if (sbLen >= 2 && this.iac_sb[sbLen - 2] === IAC && this.iac_sb[sbLen - 1] === SE) {
+        if (this.iac_sb.length >= 2 &&
+            this.iac_sb[this.iac_sb.length - 2] === IAC &&
+            this.iac_sb[this.iac_sb.length - 1] === SE) {
+          // end of sub negotiation
           if (this.iac_sb[0] === TERM_TYPE) {
             const typeBytes = [];
             for (let j = 0; j < this.termType.length; ++j) {
               typeBytes.push(this.termType.charCodeAt(j) & 0xff);
             }
-            this._sendRaw(new Uint8Array([IAC, SB, TERM_TYPE, IS, ...typeBytes, IAC, SE]));
+            if (s && s.sendRaw) {
+              s.sendRaw(new Uint8Array([IAC, SB, TERM_TYPE, IS, ...typeBytes, IAC, SE]));
+            }
           }
           this.state = STATE_DATA;
           this.iac_sb = [];
@@ -202,8 +257,119 @@ export class TelnetConnection extends Event {
     }
 
     if (start !== -1) {
-      this._dispatchData(bytes.subarray(start, n));
+      cleanChunks.push(bytes.subarray(start, n));
     }
+
+    if (cleanChunks.length === 0) {
+      return new Uint8Array(0);
+    }
+    if (cleanChunks.length === 1) {
+      return cleanChunks[0];
+    }
+    const totalLen = cleanChunks.reduce((acc, c) => acc + c.length, 0);
+    const result = new Uint8Array(totalLen);
+    let offset = 0;
+    for (const c of cleanChunks) {
+      result.set(c, offset);
+      offset += c.length;
+    }
+    return result;
+  }
+
+  /**
+   * Outbound: escape IAC (0xFF -> 0xFF 0xFF).
+   * @param {string | Uint8Array} bytes
+   * @returns {Uint8Array | string}
+   */
+  outbound(bytes) {
+    return escapeIAC(bytes);
+  }
+
+  sendWillNaws(cols, rows, stream) {
+    const s = stream || this.stream;
+    if (s && s.sendRaw) {
+      s.sendRaw(new Uint8Array([IAC, WILL, NAWS]));
+    }
+  }
+
+  sendNaws(cols, rows, stream) {
+    const s = stream || this.stream;
+    if (!s || !s.sendRaw) return;
+    const w1 = Math.floor(cols / 256);
+    const w2 = cols % 256;
+    const h1 = Math.floor(rows / 256);
+    const h2 = rows % 256;
+    const bytes = [IAC, SB, NAWS];
+    for (const b of [w1, w2, h1, h2]) {
+      bytes.push(b);
+      if (b === IAC) bytes.push(IAC);
+    }
+    bytes.push(IAC, SE);
+    s.sendRaw(new Uint8Array(bytes));
+  }
+
+  sendNop(stream) {
+    const s = stream || this.stream;
+    if (s && s.sendRaw) {
+      s.sendRaw(new Uint8Array([IAC, NOP]));
+    }
+  }
+}
+
+export class TelnetConnection extends Event {
+  constructor(socket, site = null) {
+    super();
+    this.socket = socket;
+    this.site = site;
+    this.filter = new TelnetFilter();
+
+    this.socket.addEventListener('open', (e) => this._onOpen(e));
+    this.socket.addEventListener('data', (e) => this._onDataAvailable(e));
+    this.socket.addEventListener('close', (e) => this._onClose(e));
+
+    // Forward filter events
+    this.filter.addEventListener('telopt', (e) => this.dispatchEvent(new CustomEvent('telopt', { detail: e.detail })));
+    this.filter.addEventListener('doNaws', () => this.dispatchEvent(new CustomEvent('doNaws')));
+    this.filter.addEventListener('nop', () => this.dispatchEvent(new CustomEvent('nop')));
+
+    this.termType = 'VT100';
+  }
+
+  get isUtf8() {
+    return this.site ? this.site.isUtf8 : false;
+  }
+
+  get state() {
+    return this.filter.state;
+  }
+
+  set state(val) {
+    this.filter.state = val;
+  }
+
+  get iac_sb() {
+    return this.filter.iac_sb;
+  }
+
+  set iac_sb(val) {
+    this.filter.iac_sb = val;
+  }
+
+  _onOpen(e) {
+    this.dispatchEvent(new CustomEvent('open'));
+  }
+
+  _onClose(e) {
+    this.dispatchEvent(new CustomEvent('close'));
+  }
+
+  _onDataAvailable(e) {
+    const raw = e.detail ? e.detail.data : e.data;
+    const clean = this.filter.inbound(raw, {
+      sendRaw: (d) => this._sendRaw(d),
+      dispatchEvent: (ev) => this.dispatchEvent(ev)
+    });
+    this._dispatchData(clean);
   }
 
   _dispatchData(data) {
@@ -221,74 +387,32 @@ export class TelnetConnection extends Event {
 
   _sendEscaped(data) {
     if (!data) return;
-    if (typeof data === 'string') {
-      this._sendRaw(data.indexOf('\xff') < 0 ? data : data.split('\xff').join('\xff\xff'));
-    } else if (data instanceof Uint8Array) {
-      if (!data.includes(IAC)) {
-        this._sendRaw(data);
-      } else {
-        let count = 0;
-        for (let i = 0; i < data.length; ++i) {
-          if (data[i] === IAC) count++;
-        }
-        const out = new Uint8Array(data.length + count);
-        let pos = 0;
-        for (let i = 0; i < data.length; ++i) {
-          out[pos++] = data[i];
-          if (data[i] === IAC) {
-            out[pos++] = IAC;
-          }
-        }
-        this._sendRaw(out);
-      }
-    } else {
-      this._sendRaw(data);
-    }
+    const escaped = escapeIAC(data);
+    this._sendRaw(escaped);
   }
 
   _sendRaw(data) {
-    if (data) {
+    if (data && this.socket) {
       this.socket.send(data);
     }
   }
 
   convSend(unicode_str) {
     if (!unicode_str) return;
-    if (this.isUtf8) {
-      const bytes = new TextEncoder().encode(unicode_str);
-      this._sendEscaped(bytes);
-      return;
-    }
-
-    // supports UAO
-    // when converting unicode to big5, use UAO.
-    let s = u2b(unicode_str);
-    // detect ;50m (half color) and then convert accordingly
-    if (s) {
-      s = ansiHalfColorConv(s);
-      this._sendEscaped(s);
-    }
+    const conv = new Conv(this.isUtf8 ? CHARSETS.UTF8 : CHARSETS.BIG5);
+    const bytes = conv.encode(unicode_str);
+    this._sendEscaped(bytes);
   }
 
   sendWillNaws(cols, rows) {
-    this._sendRaw(new Uint8Array([IAC, WILL, NAWS]));
+    this.filter.sendWillNaws(cols, rows, { sendRaw: (d) => this._sendRaw(d) });
   }
 
   sendNaws(cols, rows) {
-    const w1 = Math.floor(cols / 256);
-    const w2 = cols % 256;
-    const h1 = Math.floor(rows / 256);
-    const h2 = rows % 256;
-    const bytes = [IAC, SB, NAWS];
-    for (const b of [w1, w2, h1, h2]) {
-      bytes.push(b);
-      if (b === IAC) bytes.push(IAC);
-    }
-    bytes.push(IAC, SE);
-    this._sendRaw(new Uint8Array(bytes));
+    this.filter.sendNaws(cols, rows, { sendRaw: (d) => this._sendRaw(d) });
   }
 
   sendNop() {
-    this._sendRaw(new Uint8Array([IAC, NOP]));
+    this.filter.sendNop({ sendRaw: (d) => this._sendRaw(d) });
   }
 }

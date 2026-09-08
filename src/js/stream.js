@@ -1,0 +1,183 @@
+// Stream wrapper managing connection, character conversion (Conv), and filter pipeline
+
+import { Event } from './event.js';
+import { Conv, CHARSETS } from './conv.js';
+import { escapeIAC, TelnetFilter } from './telnet.js';
+
+export class Stream extends Event {
+  /**
+   * @param {any} [conn] The underlying connection (socket or connection object)
+   * @param {object} [options]
+   * @param {string} [options.charset] Initial charset ('big5' or 'utf-8')
+   */
+  constructor(conn = null, options = {}) {
+    super();
+    /** @type {any} */
+    this.conn = null;
+    /** @type {Conv} */
+    this.conv = new Conv(options.charset || CHARSETS.BIG5);
+    /** @type {any[]} */
+    this.filters = [];
+    /** @type {TelnetFilter | null} */
+    this.telnetFilter = null;
+    /** @type {any | null} */
+    this.ansiFilter = null;
+
+    if (conn) {
+      this.attach(conn);
+    }
+  }
+
+  get charset() {
+    return this.conv.charset;
+  }
+
+  set charset(val) {
+    this.conv.charset = val;
+  }
+
+  get isUtf8() {
+    return this.conv.isUtf8;
+  }
+
+  /**
+   * Attach underlying transport connection.
+   * @param {any} conn
+   */
+  attach(conn) {
+    this.conn = conn;
+    if (!conn) return this;
+
+    if (typeof conn.addEventListener === 'function') {
+      conn.addEventListener('data', (e) => {
+        const d = (e && e.detail && e.detail.data !== undefined) ? e.detail.data : (e ? e.data : null);
+        this.feed(d);
+      });
+      conn.addEventListener('open', () => this.dispatchEvent(new CustomEvent('open')));
+      conn.addEventListener('close', () => this.dispatchEvent(new CustomEvent('close')));
+    } else if (typeof conn.on === 'function') {
+      conn.on('data', (d) => this.feed(d));
+      conn.on('open', () => this.dispatchEvent(new CustomEvent('open')));
+      conn.on('close', () => this.dispatchEvent(new CustomEvent('close')));
+    }
+    return this;
+  }
+
+  /**
+   * Register a filter into the pipeline.
+   * Filters run in registration order on inbound, and reverse/specialized on outbound.
+   * @param {any} filter
+   */
+  registerFilter(filter) {
+    if (!filter) return this;
+    this.filters.push(filter);
+
+    if (typeof filter.attachStream === 'function') {
+      filter.attachStream(this);
+    }
+
+    if (filter instanceof TelnetFilter || filter.name === 'telnet') {
+      this.telnetFilter = filter;
+    }
+    if (filter.name === 'ansi' || (filter.constructor && (filter.constructor.name === 'AnsiFilter' || filter.constructor.name === 'AnsiParser'))) {
+      this.ansiFilter = filter;
+    }
+
+    return this;
+  }
+
+  /**
+   * Inbound: Feed incoming raw data from conn into the filter pipeline.
+   * Filters pre-process the data, then final iconv is performed on clean bytes.
+   * @param {string | Uint8Array} data
+   * @returns {any}
+   */
+  feed(data) {
+    if (!data || data.length === 0) return null;
+
+    let current = data;
+    for (const filter of this.filters) {
+      if (filter === this.telnetFilter && (this.conn && this.conn.filter)) {
+        continue;
+      }
+      if (typeof filter.inbound === 'function') {
+        current = filter.inbound(current, this);
+        if (!current || current.length === 0) break;
+      }
+    }
+    this.dispatchEvent(new CustomEvent('data', { detail: { data: current } }));
+    return current;
+  }
+
+  /**
+   * Outbound: Send data through stream.
+   * 1. Conv converts Unicode string into byte stream.
+   * 2. Telnet filter encodes IAC (0xFF -> 0xFF 0xFF).
+   * 3. Sends byte stream to conn.
+   * @param {string | Uint8Array} data
+   */
+  send(data) {
+    if (!this.conn) return;
+
+    let bytes;
+    if (typeof data === 'string') {
+      // 1. Conv converts Unicode string into byte stream
+      bytes = this.conv.encode(data);
+    } else if (data instanceof Uint8Array) {
+      bytes = data;
+    } else {
+      bytes = new Uint8Array(data);
+    }
+
+    // 2. Telnet filter encodes IAC (skip if underlying conn already escapes IAC)
+    if (!(this.conn && this.conn.filter)) {
+      if (this.telnetFilter && typeof this.telnetFilter.outbound === 'function') {
+        bytes = this.telnetFilter.outbound(bytes, this);
+      } else {
+        bytes = escapeIAC(bytes);
+      }
+    }
+
+    // 3. Send byte stream to conn
+    this.sendRaw(bytes);
+  }
+
+  /**
+   * Directly send raw bytes to conn without conv or IAC escaping
+   * (e.g. for telnet protocol control responses).
+   * @param {Uint8Array | string} bytes
+   */
+  sendRaw(bytes) {
+    if (!this.conn || !bytes) return;
+
+    if (typeof this.conn._sendRaw === 'function') {
+      this.conn._sendRaw(bytes);
+    } else if (typeof this.conn.sendRaw === 'function') {
+      this.conn.sendRaw(bytes);
+    } else if (typeof this.conn.send === 'function') {
+      this.conn.send(bytes);
+    }
+  }
+
+  sendWillNaws(cols, rows) {
+    if (this.telnetFilter && typeof this.telnetFilter.sendWillNaws === 'function') {
+      this.telnetFilter.sendWillNaws(cols, rows, this);
+    } else {
+      this.sendRaw(new Uint8Array([0xff, 0xfb, 0x1f]));
+    }
+  }
+
+  sendNaws(cols, rows) {
+    if (this.telnetFilter && typeof this.telnetFilter.sendNaws === 'function') {
+      this.telnetFilter.sendNaws(cols, rows, this);
+    }
+  }
+
+  sendNop() {
+    if (this.telnetFilter && typeof this.telnetFilter.sendNop === 'function') {
+      this.telnetFilter.sendNop(this);
+    } else {
+      this.sendRaw(new Uint8Array([0xff, 0xf1]));
+    }
+  }
+}

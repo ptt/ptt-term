@@ -13,9 +13,11 @@ export class AnsiParser {
   /**
    * @param {import('./term_buf').TermBuf} [termbuf]
    */
-  constructor(termbuf) {
+  constructor(termbuf, options = {}) {
     /** @type {import('./term_buf').TermBuf | null} */
     this.termbuf = termbuf || null;
+    this.name = 'ansi';
+    this.stream = options.stream || null;
     /** @type {number} */
     this.state = AnsiParser.STATE_TEXT;
     /** @type {string} */
@@ -28,6 +30,21 @@ export class AnsiParser {
     this.utf8Bytes = [];
     /** @type {TextDecoder | null} */
     this.utf8Decoder = typeof TextDecoder !== 'undefined' ? new TextDecoder('utf-8') : null;
+  }
+
+  attachStream(stream) {
+    this.stream = stream;
+  }
+
+  /**
+   * Inbound processor for Stream pipeline.
+   * @param {string | Uint8Array} data
+   * @param {any} [stream]
+   */
+  inbound(data, stream) {
+    this.stream = stream || this.stream;
+    this.feed(data);
+    return null;
   }
 
   flushPendingLead() {
@@ -57,7 +74,7 @@ export class AnsiParser {
     let s = '';
     const isArray = data instanceof Uint8Array;
     const n = data.length;
-    const isUtf8 = term.site.isUtf8;
+    const isUtf8 = this.stream ? this.stream.isUtf8 : (term.site ? term.site.isUtf8 : false);
 
     for (let i = 0; i < n; ++i) {
       const b = isArray ? data[i] : data.charCodeAt(i);
@@ -469,3 +486,5 @@ export class AnsiParser {
     }
   }
 }
+
+export const AnsiFilter = AnsiParser;

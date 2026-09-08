@@ -1,10 +1,11 @@
 // Main Program
 import React from 'react';
 import { render } from 'preact';
-import { AnsiParser } from './ansi_parser';
+import { AnsiParser, AnsiFilter } from './ansi_parser';
 import { TermView } from './term_view';
 import { TermBuf } from './term_buf';
-import { TelnetConnection } from './telnet';
+import { TelnetConnection, TelnetFilter } from './telnet';
+import { Stream } from './stream';
 import { Websocket } from './websocket';
 import { EasyReading } from './easy_reading';
 import { ConnectionLog } from './conn_log';
@@ -38,7 +39,12 @@ export class App {
   //this.buf.PTTZSTR2=this.getLM('PTTZArea2');
   this.view.setBuf(this.buf);
   this.view.setCore(this);
-  this.parser = new AnsiParser(this.buf);
+  this.stream = new Stream(null, { charset: this.site ? this.site.charset : 'big5' });
+  this.telnetFilter = new TelnetFilter();
+  this.ansiFilter = new AnsiFilter(this.buf, { stream: this.stream });
+  this.stream.registerFilter(this.telnetFilter);
+  this.stream.registerFilter(this.ansiFilter);
+  this.parser = this.ansiFilter;
   this.easyReading = new EasyReading(this, this.view, this.buf);
   this.connLog = new ConnectionLog(this);
   this.lastEasyReadingWheelTime = 0;
@@ -199,87 +205,126 @@ export class App {
   }
 
   _setupWebsocketConn(url) {
-  const wsConn = new Websocket(url);
-  this.connLog.attachSocket(wsConn);
-  this._attachConn(new TelnetConnection(wsConn, this.site));
+    const wsConn = new Websocket(url);
+    this.connLog.attachSocket(wsConn);
+    this._attachConn(wsConn);
   }
 
   _attachConn(conn) {
-  this.conn = conn;
-  this.conn.site = this.site;
-  this.conn.addEventListener('open', () => this.onConnect());
-  this.conn.addEventListener('close', () => this.onClose());
-  this.conn.addEventListener('telopt', (e) => {
-    this.site.onTelopt(e.detail.cmd, e.detail.opt, this.buf);
-  });
-  this.conn.addEventListener('data', (e) => {
-    this.site.onData(e.detail.data, this.buf);
-    this.onData(e.detail.data);
-  });
-  this.conn.addEventListener('doNaws', (e) => {
-    conn.sendWillNaws();
-    conn.sendNaws(this.buf.cols, this.buf.rows);
-  });
+    this.conn = conn;
+    this.conn.site = this.site;
+    this.stream.attach(conn);
+    this.stream.charset = this.site ? this.site.charset : 'big5';
+    if (!conn.sendNaws) conn.sendNaws = (cols, rows) => this.stream.sendNaws(cols, rows);
+    if (!conn.sendWillNaws) conn.sendWillNaws = (cols, rows) => this.stream.sendWillNaws(cols, rows);
+    if (!conn.sendNop) conn.sendNop = () => this.stream.sendNop();
+    if (!conn.convSend) conn.convSend = (str) => this.stream.send(str);
+    this.conn.addEventListener('open', () => this.onConnect());
+    this.conn.addEventListener('close', () => this.onClose());
+    this.stream.addEventListener('telopt', (e) => {
+      this.site.onTelopt(e.detail.cmd, e.detail.opt, this.buf);
+    });
+    this.conn.addEventListener('telopt', (e) => {
+      this.site.onTelopt(e.detail.cmd, e.detail.opt, this.buf);
+    });
+    this.stream.addEventListener('doNaws', (e) => {
+      this.stream.sendWillNaws(this.buf.cols, this.buf.rows);
+      this.stream.sendNaws(this.buf.cols, this.buf.rows);
+    });
+    this.conn.addEventListener('doNaws', (e) => {
+      this.stream.sendWillNaws(this.buf.cols, this.buf.rows);
+      this.stream.sendNaws(this.buf.cols, this.buf.rows);
+    });
+    this.conn.addEventListener('data', (e) => {
+      const data = (e && e.detail && e.detail.data !== undefined) ? e.detail.data : (e ? e.data : null);
+      this.site.onData(data, this.buf);
+      this.checkBell();
+    });
   }
 
   onConnect() {
-  this.conn.isConnected = true;
-  console.info("app onConnect");
-  this.connectState = 1;
-  this.updateTabIcon('connect');
-  this.view.buf.setTitle({conn: this.connectedUrl.hostname});
-  this.idleTime = 0;
-  this.timerEverySec = setTimer(true, () => {
-    this.antiIdle();
-    this.view.onBlink();
-    this.incrementCountToUpdatePushthread();
-  }, 1000);
+    this.conn.isConnected = true;
+    if (this.stream) {
+      this.stream.charset = this.site ? this.site.charset : 'big5';
+    }
+    console.info("app onConnect");
+    this.connectState = 1;
+    this.updateTabIcon('connect');
+    this.view.buf.setTitle({conn: this.connectedUrl.hostname});
+    this.idleTime = 0;
+    this.timerEverySec = setTimer(true, () => {
+      this.antiIdle();
+      this.view.onBlink();
+      this.incrementCountToUpdatePushthread();
+    }, 1000);
   }
 
-  onData(data) {
-  this.parser.feed(data);
-
-  if (this.buf.bellOccurred) {
-    this.buf.bellOccurred = false;
-    if (!this.appFocused && this.view.enableNotifications) {
-      // parse notification (e.g. waterball) delegated to site strategy
-      const wb = this.site.parseNotification(this.buf);
-      if (wb) {
-        if ('userId' in wb && wb.userId) {
-          this.waterball.userId = wb.userId;
+  checkBell() {
+    if (this.buf && this.buf.bellOccurred) {
+      this.buf.bellOccurred = false;
+      if (!this.appFocused && this.view.enableNotifications) {
+        // parse notification (e.g. waterball) delegated to site strategy
+        const wb = this.site.parseNotification(this.buf);
+        if (wb) {
+          if ('userId' in wb && wb.userId) {
+            this.waterball.userId = wb.userId;
+          }
+          if ('message' in wb && wb.message) {
+            this.waterball.message = wb.message;
+          }
+          this.view.showWaterballNotification();
         }
-        if ('message' in wb && wb.message) {
-          this.waterball.message = wb.message;
-        }
-        this.view.showWaterballNotification();
       }
     }
   }
+
+  onData(data) {
+    if (this.stream) {
+      if (!this.stream.conn) {
+        this.stream.feed(data);
+      }
+    } else if (this.parser) {
+      this.parser.feed(data);
+    }
+    this.checkBell();
   }
 
   onClose() {
-  console.info("app onClose");
-  if (this.timerEverySec) {
-    this.timerEverySec.cancel();
-  }
-  this.conn.isConnected = false;
-
-  this.cancelMbTimer();
-
-  this.connectState = 2;
-  this.idleTime = 0;
-
-  this.showAlert('connection', {
-    onDismiss: () => {
-      this.connect(this.connectedUrl.url);
+    console.info("app onClose");
+    if (this.timerEverySec) {
+      this.timerEverySec.cancel();
     }
-  });
-  this.updateTabIcon('disconnect');
+    this.conn.isConnected = false;
+
+    this.cancelMbTimer();
+
+    this.connectState = 2;
+    this.idleTime = 0;
+
+    this.showAlert('connection', {
+      onDismiss: () => {
+        this.connect(this.connectedUrl.url);
+      }
+    });
+    this.updateTabIcon('disconnect');
+  }
+
+  send(data) {
+    if (this.stream) {
+      this.stream.send(data);
+    } else if (this.conn) {
+      this.conn.send(data);
+    }
   }
 
   sendData(str) {
-  if (this.connectState == 1)
-    this.conn.convSend(str);
+    if (this.connectState == 1) {
+      if (this.stream) {
+        this.stream.send(str);
+      } else if (this.conn) {
+        this.conn.convSend(str);
+      }
+    }
   }
 
   cancelMbTimer() {
@@ -340,16 +385,16 @@ export class App {
     this.onDisableLiveHelperModalState();
     // clear the deep cloned copy of lines
     this.buf.pageLines = [];
-    if (this.buf.pageState == 3 && this.conn) {
+    if (this.buf.pageState == 3 && (this.stream || this.conn)) {
       const cmd = this.site.getReenterArticleCommand(this.buf);
-      this.conn.send(cmd);
+      this.send(cmd);
     }
   } else {
     this.view.hideEasyReading();
   }
   // request the full screen
-  if (this.conn)
-    this.conn.send(unescapeStr('^L'));
+  if (this.stream || this.conn)
+    this.send(unescapeStr('^L'));
   }
 
   async doCopy(str) {
@@ -493,8 +538,8 @@ export class App {
 
   if (++this.pushthreadAutoUpdateCount >= this.maxPushthreadAutoUpdateCount) {
     this.pushthreadAutoUpdateCount = 0;
-    if ((this.buf.pageState == 3 || this.buf.pageState == 2) && this.conn) {
-      this.site.refreshLiveThread(this.conn, this.buf);
+    if ((this.buf.pageState == 3 || this.buf.pageState == 2) && (this.stream || this.conn)) {
+      this.site.refreshLiveThread(this.stream || this.conn, this.buf);
     }
   }
   }
@@ -534,7 +579,9 @@ export class App {
   }
 
   this.buf.resize(cols, rows);
-  if (this.conn) {
+  if (this.stream) {
+    this.stream.sendNaws(cols, rows);
+  } else if (this.conn) {
     this.conn.sendNaws(cols, rows);
   }
   }
@@ -560,7 +607,7 @@ export class App {
   antiIdle() {
     if (this.antiIdleTime && this.idleTime > this.antiIdleTime) {
       if (this.connectState == 1) {
-        this.site.sendAntiIdle(this.conn);
+        this.site.sendAntiIdle(this.stream || this.conn);
         this.idleTime = 0;
       }
     } else {
@@ -645,7 +692,7 @@ export class App {
   const diff = this.buf.cur_y - targetRow;
   const sendstr =
     (diff > 0 ? '\x1b[A'.repeat(diff) : '\x1b[B'.repeat(-diff)) + '\r';
-  this.conn.send(sendstr);
+  this.send(sendstr);
   }
 
   onMouse_click(e) {
@@ -664,19 +711,19 @@ export class App {
   // TODO Move this to mouse browsing module.
   switch (this.buf.mouseCursor) {
     case 1:
-      this.conn.send('\x1b[D');  //Arrow Left
+      this.send('\x1b[D');  //Arrow Left
       break;
     case 2:
-      this.conn.send('\x1b[5~'); //Page Up
+      this.send('\x1b[5~'); //Page Up
       break;
     case 3:
-      this.conn.send('\x1b[6~'); //Page Down
+      this.send('\x1b[6~'); //Page Down
       break;
     case 4:
-      this.conn.send('\x1b[1~'); //Home
+      this.send('\x1b[1~'); //Home
       break;
     case 5:
-      this.conn.send('\x1b[4~'); //End
+      this.send('\x1b[4~'); //End
       break;
     case 6:
       if (this.buf.nowHighlight != -1) {
@@ -689,36 +736,36 @@ export class App {
       break;
     }
     case 0:
-      this.conn.send('\x1b[D'); //Arrow Left
+      this.send('\x1b[D'); //Arrow Left
       break;
     case 8: {
       const cmd = this.site.getThreadCommand('prevThread');
-      if (cmd) this.conn.send(cmd);
+      if (cmd) this.send(cmd);
       break;
     }
     case 9: {
       const cmd = this.site.getThreadCommand('nextThread');
-      if (cmd) this.conn.send(cmd);
+      if (cmd) this.send(cmd);
       break;
     }
     case 10: {
       const cmd = this.site.getThreadCommand('firstThread');
-      if (cmd) this.conn.send(cmd);
+      if (cmd) this.send(cmd);
       break;
     }
     case 12: {
       const cmd = this.site.getThreadCommand('refreshPost');
-      if (cmd) this.conn.send(cmd);
+      if (cmd) this.send(cmd);
       break;
     }
     case 13: {
       const cmd = this.site.getThreadCommand('lastThreadList');
-      if (cmd) this.conn.send(cmd);
+      if (cmd) this.send(cmd);
       break;
     }
     case 14: {
       const cmd = this.site.getThreadCommand('lastThreadReading');
-      if (cmd) this.conn.send(cmd);
+      if (cmd) this.send(cmd);
       break;
     }
     default:
@@ -883,7 +930,9 @@ export class App {
       this.view.dbcsDetect = value;
       break;
     case 'lineWrap':
-      this.conn.lineWrap = value;
+      if (this.conn) {
+        this.conn.lineWrap = value;
+      }
       break;
     case 'fontFace': {
       let fontFace = value;
@@ -998,10 +1047,10 @@ export class App {
       return;
     }
     if (this.view.middleButtonFunction == 1) {
-      this.conn.send('\r');
+      this.send('\r');
       return false;
     } else if (this.view.middleButtonFunction == 2) {
-      this.conn.send('\x1b[D');
+      this.send('\x1b[D');
       return false;
     } else if (this.view.middleButtonFunction == 3) {
       this.doPaste();
@@ -1267,34 +1316,34 @@ export class App {
       if (this.view.isEasyReadingActive()) {
         if (!this.easyReading._scrollBy(-1)) {
           this.easyReading.leaveCurrentPost();
-          this.conn.send('\x1b[D\x1b[A\x1b[C');
+          this.send('\x1b[D\x1b[A\x1b[C');
         }
       } else {
-        this.conn.send('\x1b[A');
+        this.send('\x1b[A');
       }
       break;
     case "doArrowDown":
       if (this.view.isEasyReadingActive()) {
         if (!this.easyReading._scrollBy(1)) {
           this.easyReading.leaveCurrentPost();
-          this.conn.send('\x1b[B');
+          this.send('\x1b[B');
         }
       } else {
-        this.conn.send('\x1b[B');
+        this.send('\x1b[B');
       }
       break;
     case "doPageUp":
       if (this.view.isEasyReadingActive()) {
         this.easyReading._scrollBy(-this.easyReading._turnPageLines);
       } else {
-        this.conn.send('\x1b[5~');
+        this.send('\x1b[5~');
       }
       break;
     case "doPageDown":
       if (this.view.isEasyReadingActive()) {
         this.easyReading._scrollBy(this.easyReading._turnPageLines);
       } else {
-        this.conn.send('\x1b[6~');
+        this.send('\x1b[6~');
       }
       break;
     case "previousThread": {
@@ -1302,9 +1351,9 @@ export class App {
       if (cmd) {
         if (this.view.isEasyReadingActive()) {
           this.easyReading.leaveCurrentPost();
-          this.conn.send(cmd);
+          this.send(cmd);
         } else if (this.buf && (this.buf.pageState == 2 || this.buf.pageState == 3 || this.buf.pageState == 4)) {
-          this.conn.send(cmd);
+          this.send(cmd);
         }
       }
       break;
@@ -1314,9 +1363,9 @@ export class App {
       if (cmd) {
         if (this.view.isEasyReadingActive()) {
           this.easyReading.leaveCurrentPost();
-          this.conn.send(cmd);
+          this.send(cmd);
         } else if (this.buf && (this.buf.pageState == 2 || this.buf.pageState == 3 || this.buf.pageState == 4)) {
-          this.conn.send(cmd);
+          this.send(cmd);
         }
       }
       break;
@@ -1325,20 +1374,20 @@ export class App {
       if (this.view.isEasyReadingActive()) {
         if (!this.easyReading._scrollBy(1)) {
           this.easyReading.leaveCurrentPost();
-          this.conn.send('\r');
+          this.send('\r');
         }
       } else {
-        this.conn.send('\r');
+        this.send('\r');
       }
       break;
     case "doRight":
       if (this.view.isEasyReadingActive()) {
         if (!this.easyReading._scrollBy(this.easyReading._turnPageLines)) {
           this.easyReading.leaveCurrentPost();
-          this.conn.send('\x1b[C');
+          this.send('\x1b[C');
         }
       } else {
-        this.conn.send('\x1b[C');
+        this.send('\x1b[C');
       }
       break;
     default:

@@ -265,23 +265,33 @@ export class TermView {
   }
 
   get charset() {
+    if (this.bbscore && this.bbscore.stream) {
+      return this.bbscore.stream.charset;
+    }
     return (this.bbscore && this.bbscore.site) ? this.bbscore.site.charset : (this._charset || 'big5');
   }
 
   set charset(val) {
     this._charset = val;
+    if (this.bbscore && this.bbscore.stream) {
+      this.bbscore.stream.charset = val;
+    }
     if (this.bbscore && this.bbscore.site) {
       this.bbscore.site.charset = val;
     }
   }
 
   _send(data) {
-    if (this.bbscore && this.bbscore.conn)
+    if (this.bbscore && this.bbscore.stream)
+      this.bbscore.stream.send(data);
+    else if (this.bbscore && this.bbscore.conn)
       this.bbscore.conn.send(data);
   }
 
   _convSend(data) {
-    if (this.bbscore && this.bbscore.conn)
+    if (this.bbscore && this.bbscore.stream)
+      this.bbscore.stream.send(data);
+    else if (this.bbscore && this.bbscore.conn)
       this.bbscore.conn.convSend(data);
   }
 

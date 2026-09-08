@@ -26,10 +26,8 @@ export function parseWaterballRow(rowText) {
   return null;
 }
 
-export const CHARSETS = Object.freeze({
-  BIG5: 'big5',
-  UTF8: 'utf-8',
-});
+import { CHARSETS } from '../conv.js';
+export { CHARSETS };
 
 export class BaseSite {
   constructor(name = 'base', charset = CHARSETS.BIG5) {

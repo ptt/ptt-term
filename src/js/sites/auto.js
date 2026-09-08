@@ -104,6 +104,9 @@ export class AutoSite extends BaseSite {
         if (app.conn) {
           app.conn.site = this.detectedSite;
         }
+        if (app.stream) {
+          app.stream.charset = this.detectedSite.charset;
+        }
       }
     }
   }
