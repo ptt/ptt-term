@@ -882,6 +882,130 @@ test('EasyReading in-flight watchdog handles dropped response with retries and b
   }
 });
 
+test('PttSite isCursorParked respects DEC 2026 synchronized update frames', () => {
+  const ptt = new PttSite();
+
+  // Legacy mode (no frame sync): requires cur_x === 79 (last column)
+  const legacyBuf = {
+    cols: 80,
+    rows: 24,
+    cur_x: 79,
+    cur_y: 23,
+    hasFrameSync: false,
+    inSyncUpdate: false
+  };
+  assert.equal(ptt.isCursorParked(legacyBuf), true);
+  legacyBuf.cur_x = 0;
+  assert.equal(ptt.isCursorParked(legacyBuf), false);
+
+  // Synchronized update mode:
+  // While inside frame (inSyncUpdate = true), must return false regardless of cursor pos
+  const syncBuf = {
+    cols: 80,
+    rows: 24,
+    cur_x: 20,
+    cur_y: 23,
+    hasFrameSync: true,
+    inSyncUpdate: true
+  };
+  assert.equal(ptt.isCursorParked(syncBuf), false);
+
+  // Once frame completes (inSyncUpdate = false), any cursor pos on status row is valid
+  syncBuf.inSyncUpdate = false;
+  assert.equal(ptt.isCursorParked(syncBuf), true);
+
+  // Non-status row returns false
+  syncBuf.cur_y = 10;
+  assert.equal(ptt.isCursorParked(syncBuf), false);
+});
+
+test('EasyReading captures complete frames with DEC 2026 synchronized update', () => {
+  const originalWindow = globalThis.window;
+  globalThis.window = {
+    localStorage: {
+      getItem: () => JSON.stringify({ values: { enableEasyReading: true } }),
+      setItem: () => {},
+      removeItem: () => {},
+    },
+  };
+
+  try {
+    const ptt = new PttSite();
+    const sentCommands = [];
+
+    class MockTarget {
+      constructor() {
+        this._listeners = {};
+      }
+      addEventListener(evt, fn) {
+        if (!this._listeners[evt]) this._listeners[evt] = [];
+        this._listeners[evt].push(fn);
+      }
+      dispatchEvent(evt) {
+        const list = this._listeners[evt.type] || [];
+        for (const fn of list) fn(evt);
+      }
+    }
+
+    const mockCore = {
+      connectedUrl: { easyReadingSupported: true },
+      suppressInertialWheel: () => {},
+    };
+
+    const mockView = {
+      useEasyReadingMode: true,
+      conn: {
+        send: (cmd) => sentCommands.push(cmd),
+      },
+      hideEasyReading: () => {},
+    };
+
+    // Note: cursor parked at column 15 instead of legacy 79
+    const mockTermBuf = Object.assign(new MockTarget(), {
+      cols: 80,
+      rows: 24,
+      cur_x: 15,
+      cur_y: 23,
+      prevPageState: 0,
+      pageState: 3,
+      site: ptt,
+      hasFrameSync: true,
+      inSyncUpdate: false,
+      lines: Array.from({ length: 24 }, () => []),
+      statusText: '  瀏覽 第 1/3 頁 ( 33%)  目前顯示: 第 01~22 行 (y)回應(X%)推文(h)說明 (←)離開 ',
+      getRowText(row) {
+        return row === 23 ? this.statusText : '';
+      },
+    });
+
+    const easyReading = new EasyReading(mockCore, mockView, mockTermBuf);
+
+    // Initial frame arrives: triggers PageDown even though cur_x is 15 (not 79)
+    mockTermBuf.dispatchEvent({ type: 'change' });
+    assert.equal(easyReading.sendCommandAfterUpdate, '\x1b[6~');
+    assert.equal(easyReading._pageDownInFlight, true);
+
+    mockTermBuf.dispatchEvent({ type: 'viewUpdate' });
+    assert.deepEqual(sentCommands, ['\x1b[6~']);
+
+    // When next frame is still in progress (inSyncUpdate = true), change event ignores it
+    mockTermBuf.inSyncUpdate = true;
+    mockTermBuf.dispatchEvent({ type: 'change' });
+    assert.equal(easyReading.sendCommandAfterUpdate, '');
+
+    // Frame finishes (inSyncUpdate = false) with page 2
+    mockTermBuf.inSyncUpdate = false;
+    mockTermBuf.statusText = '  瀏覽 第 2/3 頁 ( 66%)  目前顯示: 第 21~42 行 (y)回應(X%)推文(h)說明 (←)離開 ';
+    mockTermBuf.dispatchEvent({ type: 'change' });
+    assert.equal(easyReading.sendCommandAfterUpdate, '\x1b[6~');
+
+    mockTermBuf.dispatchEvent({ type: 'viewUpdate' });
+    assert.deepEqual(sentCommands, ['\x1b[6~', '\x1b[6~']);
+  } finally {
+    globalThis.window = originalWindow;
+  }
+});
+
 
 
 

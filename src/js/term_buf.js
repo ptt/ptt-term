@@ -286,6 +286,9 @@ export class TermBuf extends Event {
     this.bellOccurred = false;
     this.pageState = 0;
     this.forceFullWidth = false;
+    this.inSyncUpdate = false;
+    this.hasFrameSync = false;
+    this._syncUpdateTimeout = null;
 
     this.startedEasyReading = false;
     this.easyReadingShowReplyText = false;
@@ -1035,7 +1038,47 @@ export class TermBuf extends Event {
     }
   }
 
+  beginSyncUpdate() {
+    this.inSyncUpdate = true;
+    this.hasFrameSync = true;
+    if (this.animFrameId !== null) {
+      if (typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(this.animFrameId);
+      }
+      this.animFrameId = null;
+    }
+    if (this.timerUpdate !== null) {
+      clearTimeout(this.timerUpdate);
+      this.timerUpdate = null;
+    }
+    if (this._syncUpdateTimeout !== null) {
+      clearTimeout(this._syncUpdateTimeout);
+    }
+    this._syncUpdateTimeout = setTimeout(() => {
+      this._syncUpdateTimeout = null;
+      if (this.inSyncUpdate) {
+        this.endSyncUpdate();
+      }
+    }, 1000);
+  }
+
+  endSyncUpdate() {
+    if (this._syncUpdateTimeout !== null) {
+      clearTimeout(this._syncUpdateTimeout);
+      this._syncUpdateTimeout = null;
+    }
+    this.inSyncUpdate = false;
+    this.hasFrameSync = true;
+    if (this.changed || this.posChanged) {
+      this.notify();
+    }
+    this.dispatchEvent(new CustomEvent('frame'));
+  }
+
   queueUpdate(directupdate) {
+    if (this.inSyncUpdate) {
+      return;
+    }
     if (this.animFrameId !== null || this.timerUpdate !== null)
       return;
 

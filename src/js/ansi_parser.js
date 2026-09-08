@@ -253,6 +253,20 @@ export class AnsiParser {
           case 'd':
             term.gotoPos(term.cur_x, getParam(0, 1) - 1);
             break;
+          case 'h':
+            if (firstChar === '?') {
+              if (params.includes(2026) && term && typeof term.beginSyncUpdate === 'function') {
+                term.beginSyncUpdate();
+              }
+            }
+            break;
+          case 'l':
+            if (firstChar === '?') {
+              if (params.includes(2026) && term && typeof term.endSyncUpdate === 'function') {
+                term.endSyncUpdate();
+              }
+            }
+            break;
           /*
           case 'h':
             if (firstChar == '?') {

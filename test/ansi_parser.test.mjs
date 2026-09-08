@@ -373,5 +373,80 @@ test('TermBuf updateCharAttr resets orphaned trail cells to space and clears isD
   assert.equal(line[1].isDBCSTrail, false);
 });
 
+test('AnsiParser parses DEC Private Mode 2026 Synchronized Output sequences', () => {
+  const term = new MockTermBuf();
+  let syncState = [];
+  term.beginSyncUpdate = () => syncState.push('begin');
+  term.endSyncUpdate = () => syncState.push('end');
+
+  const parser = new AnsiParser(term);
+  parser.feed('\x1b[?2026h');
+  assert.deepEqual(syncState, ['begin']);
+
+  parser.feed('Hello');
+  parser.feed('\x1b[?2026l');
+  assert.deepEqual(syncState, ['begin', 'end']);
+});
+
+test('TermBuf defers rendering during synchronized update and flushes atomically on endSyncUpdate', () => {
+  const beginSyncUpdateMatch = termBufSource.match(/(beginSyncUpdate\(\)\s*\{[\s\S]*?\n  \})/);
+  const endSyncUpdateMatch = termBufSource.match(/(endSyncUpdate\(\)\s*\{[\s\S]*?\n  \})/);
+  const queueUpdateMatch = termBufSource.match(/(queueUpdate\(directupdate\)\s*\{[\s\S]*?\n  \})/);
+  const notifyMatch = termBufSource.match(/(notify\(timer\)\s*\{[\s\S]*?\n  \})/);
+
+  const beginSyncUpdate = new Function('return function ' + beginSyncUpdateMatch[1])();
+  const endSyncUpdate = new Function('return function ' + endSyncUpdateMatch[1])();
+  const queueUpdate = new Function('return function ' + queueUpdateMatch[1])();
+  const notify = new Function('return function ' + notifyMatch[1])();
+
+  const events = [];
+  let viewUpdates = 0;
+  const buf = {
+    inSyncUpdate: false,
+    hasFrameSync: false,
+    _syncUpdateTimeout: null,
+    animFrameId: null,
+    timerUpdate: null,
+    changed: false,
+    posChanged: false,
+    useMouseBrowsing: false,
+    updateCharAttr() {},
+    setPageState() {},
+    clearHighlight() {},
+    dispatchEvent(e) { events.push(e.type); },
+    view: {
+      update() { viewUpdates++; },
+      updateCursorPos() {},
+      blinkOn: false,
+      onBlinkToggle() {}
+    }
+  };
+  buf.beginSyncUpdate = beginSyncUpdate.bind(buf);
+  buf.endSyncUpdate = endSyncUpdate.bind(buf);
+  buf.queueUpdate = queueUpdate.bind(buf);
+  buf.notify = notify.bind(buf);
+
+  // 1. Enter synchronized update
+  buf.beginSyncUpdate();
+  assert.equal(buf.inSyncUpdate, true);
+  assert.equal(buf.hasFrameSync, true);
+
+  // 2. Buffer mutations occur while inside frame: queueUpdate must NOT schedule notify
+  buf.changed = true;
+  buf.queueUpdate();
+  assert.equal(buf.animFrameId, null);
+  assert.equal(buf.timerUpdate, null);
+  assert.equal(viewUpdates, 0);
+
+  // 3. Frame completes via endSyncUpdate: immediate atomic notify and frame event
+  buf.endSyncUpdate();
+  assert.equal(buf.inSyncUpdate, false);
+  assert.equal(buf.hasFrameSync, true);
+  assert.equal(viewUpdates, 1);
+  assert.ok(events.includes('change'));
+  assert.ok(events.includes('viewUpdate'));
+  assert.ok(events.includes('frame'));
+});
+
 
 
