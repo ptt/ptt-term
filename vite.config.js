@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   const isProduction = mode === 'production';
   const isDevelopment = !isProduction;
   const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8'));
@@ -60,6 +60,13 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: './',
+    ...(command === 'serve' && {
+        oxc: {
+            include: /\.[cm]?[tj]sx?$/,
+            exclude: /node_modules/,
+            lang: 'jsx',
+        },
+    }),
     plugins: [
       {
         name: 'icon-resolver',
@@ -165,9 +172,7 @@ export default defineConfig(({ mode }) => {
       ),
       'process.env.PTTCHROME_DYNAMIC_TITLE': JSON.stringify(process.env.PTTCHROME_DYNAMIC_TITLE !== 'false'),
       'process.env.DEFAULT_SITE': JSON.stringify(
-        isProduction
-          ? process.env.DEFAULT_SITE || 'wss://ws.ptt.cc/bbs'
-          : 'ws://localhost:8080/bbs'
+        isProduction ?  process.env.DEFAULT_SITE || 'wss://ws.ptt.cc/bbs' : '/bbs'
       ),
       'process.env.ALLOW_OVERRIDE_FROM_QUERY': JSON.stringify(
         isDevelopment || process.env.ALLOW_OVERRIDE_FROM_QUERY === 'yes'
@@ -181,6 +186,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 8080,
+      allowedHosts: true,
       proxy: {
         '/bbs': {
           target: process.env.DEV_PROXY_TARGET || 'https://ws.ptt.cc',
