@@ -8,6 +8,9 @@ import {
   LiveUpdate,
   LiveUpdatePlugin,
 } from './live_update/index.js';
+import {
+  MouseBrowsing,
+} from './mouse_browsing/index.js';
 
 export {
   EasyReading,
@@ -16,11 +19,13 @@ export {
   MAX_INFLIGHT_RETRIES,
   LiveUpdate,
   LiveUpdatePlugin,
+  MouseBrowsing,
 };
 
 export const BUILTIN_PLUGINS = [
   EasyReading,
   LiveUpdate,
+  MouseBrowsing,
 ];
 
 export function getAvailablePlugins(app) {

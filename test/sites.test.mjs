@@ -1676,3 +1676,45 @@ test('BaseSite implements setPageState and TermBuf delegates to site.setPageStat
   assert.equal(site.setPageState(mockTerm), 0);
   assert.equal(mockTerm.pageState, 0);
 });
+
+test('src/plugins exports MouseBrowsing and handles mouse click navigation', async () => {
+  const pluginsModule = await import('../src/plugins/index.js');
+  const mouseBrowsingModule = await import('../src/plugins/mouse_browsing/index.js');
+
+  assert.equal(pluginsModule.MouseBrowsing, mouseBrowsingModule.MouseBrowsing);
+
+  const meta = mouseBrowsingModule.MouseBrowsing.getMetadata();
+  assert.equal(meta.id, 'mouse_browsing');
+  assert.equal(meta.prefKey, 'useMouseBrowsing');
+
+  const sent = [];
+  const mockApp = {
+    conn: { isConnected: true },
+    buf: { mouseCursor: 1, cur_y: 10 },
+    site: { getThreadCommand: (cmd) => (cmd === 'prevThread' ? '[' : ']') },
+    send: (data) => sent.push(data),
+  };
+
+  const mb = new mouseBrowsingModule.MouseBrowsing(mockApp, { enabled: true });
+  mb.init({ app: mockApp, buf: mockApp.buf });
+
+  // Arrow Left for cursor 1
+  const handled = mb.handleMouseClick({ clientX: 100, clientY: 100 });
+  assert.equal(handled, true);
+  assert.equal(sent[0], '\x1b[D');
+
+  // Page Up for cursor 2
+  mockApp.buf.mouseCursor = 2;
+  mb.handleMouseClick({ clientX: 100, clientY: 100 });
+  assert.equal(sent[1], '\x1b[5~');
+
+  // Prev thread for cursor 8
+  mockApp.buf.mouseCursor = 8;
+  mb.handleMouseClick({ clientX: 100, clientY: 100 });
+  assert.equal(sent[2], '[');
+
+  // Navigate row and enter
+  mb.navigateRowAndEnter(8);
+  assert.equal(sent[3], '\x1b[A\x1b[A\r');
+});
+

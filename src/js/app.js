@@ -244,6 +244,16 @@ export class App {
     }
   }
 
+  get mouseBrowsing() {
+    return this.getPlugin('mouse_browsing') || this.getPlugin('MouseBrowsing') || null;
+  }
+
+  set mouseBrowsing(val) {
+    if (val && !this.plugins.includes(val)) {
+      this.registerPlugin(val);
+    }
+  }
+
   getPluginList() {
     return this.plugins.map((p) => {
       if (p.getMetadata) {
@@ -838,6 +848,11 @@ export class App {
   }
 
   switchMouseBrowsing() {
+    if (this.mouseBrowsing) {
+      this.mouseBrowsing.switchMouseBrowsing();
+      this.useMouseBrowsing = this.mouseBrowsing.enabled;
+      return;
+    }
     this.useMouseBrowsing = !this.useMouseBrowsing;
     this.buf.useMouseBrowsing = this.useMouseBrowsing;
 
