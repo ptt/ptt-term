@@ -2805,5 +2805,29 @@ test('InputHelperModal renders close button on right and aligns send combo butto
     uiCss.includes('.col-xs-4') && uiCss.includes('.col-xs-8'),
     'ui.css must define .col-xs-4 and .col-xs-8 grid classes'
   );
+
+  // 4. Blink toggle in InputHelperModal has id/htmlFor and preview blink animation
+  assert.ok(
+    inputHelperJs.includes('id="inputHelperBlink"') &&
+    inputHelperJs.includes('htmlFor="inputHelperBlink"'),
+    'InputHelperModal must bind label htmlFor and checkbox id for Blink option'
+  );
+  assert.ok(
+    inputHelperCss.includes('@keyframes inputHelperBlink') &&
+    inputHelperCss.includes('.InputHelperModal__Preview .qq'),
+    'InputHelperModal.css must define self-contained blink animation for preview text'
+  );
+
+  // 5. App defines isDialogOrExcludedTarget to prevent stealing clicks from dialogs
+  const appSource = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+  assert.ok(
+    appSource.includes('isDialogOrExcludedTarget(e)'),
+    'App must define isDialogOrExcludedTarget helper'
+  );
+  assert.ok(
+    appSource.includes('mouse_click(e) {\n  if (this.modalShown || this.contextMenuShown || this.isDialogOrExcludedTarget(e))') ||
+    appSource.includes('this.isDialogOrExcludedTarget(e)'),
+    'App mouse handlers must guard against dialog and modal click interception'
+  );
 });
 

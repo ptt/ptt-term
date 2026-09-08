@@ -1311,10 +1311,24 @@ export class App {
     return str.indexOf('nomouse_command') >= 0 || str.indexOf('conn-log') >= 0;
   }
 
+  isDialogOrExcludedTarget(e) {
+    if (!e || !e.target) return false;
+    if (this.connLog && this.connLog.contains(e.target)) return true;
+    if (typeof e.target.closest === 'function') {
+      if (
+        e.target.closest('dialog') ||
+        e.target.closest('.nomouse_command') ||
+        e.target.closest('.modal-dialog') ||
+        e.target.closest('.modal-content')
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   mouse_click(e) {
-  if (this.modalShown || this.contextMenuShown)
-    return;
-  if (this.connLog && this.connLog.contains(e.target))
+  if (this.modalShown || this.contextMenuShown || this.isDialogOrExcludedTarget(e))
     return;
   const skipMouseClick = this.skipMouseClick;
   this.skipMouseClick = false;
@@ -1371,7 +1385,7 @@ export class App {
   }
 
   middleMouse_down(e) {
-  if (this.connLog && this.connLog.contains(e.target))
+  if (this.modalShown || this.contextMenuShown || this.isDialogOrExcludedTarget(e))
     return;
   if (e.button == 1) {
     if (e.target && e.target.closest('a')) {
@@ -1391,9 +1405,7 @@ export class App {
   }
 
   mouse_down(e) {
-  if (this.modalShown || this.contextMenuShown)
-    return;
-  if (this.connLog && this.connLog.contains(e.target))
+  if (this.modalShown || this.contextMenuShown || this.isDialogOrExcludedTarget(e))
     return;
   //0=left button, 1=middle button, 2=right button
   if (e.button === 0) {
@@ -1415,9 +1427,7 @@ export class App {
   }
 
   mouse_up(e) {
-  if (this.modalShown || this.contextMenuShown)
-    return;
-  if (this.connLog && this.connLog.contains(e.target))
+  if (this.modalShown || this.contextMenuShown || this.isDialogOrExcludedTarget(e))
     return;
   //0=left button, 1=middle button, 2=right button
   if (e.button === 0) {
@@ -1464,7 +1474,7 @@ export class App {
   }
 
   mouse_move(e) {
-  if (this.connLog && this.connLog.contains(e.target))
+  if (this.modalShown || this.contextMenuShown || this.isDialogOrExcludedTarget(e))
     return;
   if (this.buf.useMouseBrowsing) {
     if (this.isSelectionCollapsed()) {
@@ -1477,9 +1487,7 @@ export class App {
   }
 
   mouse_over(e) {
-  if (this.modalShown || this.contextMenuShown)
-    return;
-  if (this.connLog && this.connLog.contains(e.target))
+  if (this.modalShown || this.contextMenuShown || this.isDialogOrExcludedTarget(e))
     return;
 
   if (this.isSelectionCollapsed() && !this.mouseLeftButtonDown)
@@ -1496,7 +1504,7 @@ export class App {
   }
 
   mouse_scroll(e) {
-    if (this.modalShown) 
+    if (this.modalShown || this.isDialogOrExcludedTarget(e)) 
       return;
     if (this.connLog && this.connLog.contains(e.target))
       return;

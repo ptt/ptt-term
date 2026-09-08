@@ -669,7 +669,8 @@ export class InputHelperModal extends React.Component {
   };
 
   handleBlinkChange = (e) => {
-    this.setState({ isBlink: e.target.checked });
+    const checked = e && e.target ? e.target.checked : !this.state.isBlink;
+    this.setState({ isBlink: checked });
   };
 
   handleSendClick = () => {
@@ -828,9 +829,10 @@ export class InputHelperModal extends React.Component {
                 </div>
                 <div className="row InputHelperModal__ColorActionRow">
                   <div className="col-xs-4">
-                    <div className="checkbox" style={{ margin: "5px 0" }}>
-                      <label>
+                    <div className="checkbox InputHelperModal__BlinkCheckbox" style={{ margin: "5px 0" }}>
+                      <label htmlFor="inputHelperBlink">
                         <input
+                          id="inputHelperBlink"
                           type="checkbox"
                           checked={isBlink}
                           onChange={this.handleBlinkChange}
