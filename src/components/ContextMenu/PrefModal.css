@@ -1,8 +1,8 @@
 dialog.PrefModal {
   width: 640px;
-  max-width: 95vw;
+  max-width: min(640px, calc(100vw - 16px));
   height: 620px;
-  max-height: 90vh;
+  max-height: min(620px, calc(100vh - 24px));
   border-radius: 6px;
   overflow: hidden;
   padding: 0;
@@ -21,8 +21,9 @@ dialog.PrefModal .NativeDialog__content {
 
 .PrefModal__Grid__Col--left {
   height: 100%;
-  width: 200px;
-  min-width: 200px;
+  width: 31.25%;
+  max-width: 200px;
+  min-width: 80px;
   flex-shrink: 0;
   box-sizing: border-box;
   display: flex;
@@ -98,6 +99,8 @@ dialog.PrefModal .NativeDialog__content {
 .PrefModal__Grid__Col--right__Fieldset input[type="password"],
 .PrefModal__Grid__Col--right__Fieldset select {
   width: 250px;
+  max-width: 100%;
+  box-sizing: border-box;
   margin-top: 5px;
 }
 
@@ -135,4 +138,71 @@ dialog.PrefModal .NativeDialog__content {
 
 .PrefModal__About li {
   margin-bottom: 0.04em;
+}
+
+@media (max-width: 640px) {
+  dialog.PrefModal {
+    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
+    height: calc(100vh - 24px);
+    max-height: calc(100vh - 24px);
+  }
+
+  .PrefModal__Grid__Col--left {
+    padding: 0 6px;
+  }
+
+  .PrefModal__Grid__Col--left h3 {
+    font-size: 15px;
+    margin: 10px 0 6px;
+    text-align: center;
+  }
+
+  .PrefModal__Grid__Col--left .nav > li > a {
+    padding: 8px 4px;
+    font-size: 13px;
+    text-align: center;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.25;
+  }
+
+  .PrefModal__Grid__Col--left__Reset {
+    margin-top: auto;
+    margin-bottom: 12px;
+    padding: 6px 2px;
+    font-size: 12px;
+    width: 100%;
+    white-space: nowrap;
+  }
+
+  .PrefModal__Grid__Col--right {
+    padding: 12px 10px;
+  }
+
+  .PrefModal__Grid__Col--right legend {
+    font-size: 17px;
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+  }
+
+  .PrefModal__Grid__Col--right__Fieldset > :not(legend) {
+    padding-left: 6px;
+  }
+
+  .PrefModal__Grid__Col--right__Fieldset input[type="text"],
+  .PrefModal__Grid__Col--right__Fieldset input[type="number"],
+  .PrefModal__Grid__Col--right__Fieldset input[type="password"],
+  .PrefModal__Grid__Col--right__Fieldset select {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .PrefModal__Grid__Col--right__MouseBrowsingHighlightColor {
+    margin-left: 10px;
+  }
+
+  .PrefModal__Grid__Col--right__SubCheckbox {
+    margin-left: 10px;
+  }
 }

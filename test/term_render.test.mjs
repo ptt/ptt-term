@@ -1559,6 +1559,15 @@ test('PrefModal locks termSizeMode to fixed-font-size and disables select on tou
 
   // ContextMenu passes isTouchDevice to PrefModal
   assert.ok(contextMenuSource.includes('isTouch={isTouchDevice}'));
+
+  // PrefModal.css sidebar scales proportionally when screen width is narrower than dialog
+  const prefModalCss = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/PrefModal.css'),
+    'utf-8'
+  );
+  assert.ok(prefModalCss.includes('width: 31.25%'), 'sidebar width should be proportional (31.25%)');
+  assert.ok(prefModalCss.includes('max-width: 200px'), 'sidebar max-width should be capped at 200px');
+  assert.ok(prefModalCss.includes('@media (max-width: 640px)'), 'PrefModal should have responsive rules for narrow screens');
 });
 
 test('ContextMenu handles letter keypad mode with continuous typing, Shift toggle, and outside dismiss', () => {
