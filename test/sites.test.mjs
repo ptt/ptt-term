@@ -1409,6 +1409,114 @@ test('EasyReading and App input interceptor pipeline decouples navigation, wheel
   assert.equal(mockCore.inputInterceptors.includes(easyReading), false);
 });
 
+test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update hooks', () => {
+  const mockApp = {
+    plugins: [],
+    inputInterceptors: [],
+    registerInputInterceptor(interceptor) {
+      if (!interceptor || this.inputInterceptors.includes(interceptor)) return;
+      this.inputInterceptors.push(interceptor);
+    },
+    unregisterInputInterceptor(interceptor) {
+      const idx = this.inputInterceptors.indexOf(interceptor);
+      if (idx !== -1) this.inputInterceptors.splice(idx, 1);
+    },
+    registerPlugin(plugin) {
+      if (!plugin || this.plugins.includes(plugin)) return;
+      this.plugins.push(plugin);
+      if (plugin.init) plugin.init({ app: this, core: this, view: this.view, buf: this.buf });
+      this.registerInputInterceptor(plugin);
+    },
+    unregisterPlugin(plugin) {
+      const idx = this.plugins.indexOf(plugin);
+      if (idx !== -1) {
+        this.plugins.splice(idx, 1);
+        this.unregisterInputInterceptor(plugin);
+        plugin.destroy?.();
+      }
+    },
+    dispatchScreenUpdate(changedLines) {
+      for (const plugin of this.plugins) {
+        if (plugin.onScreenUpdate?.(changedLines)) return true;
+      }
+      return false;
+    },
+    dispatchFontUpdate(fontInfo) {
+      for (const plugin of this.plugins) {
+        plugin.onFontUpdate?.(fontInfo);
+      }
+    },
+  };
+
+  const listeners = new Map();
+  const mockBuf = {
+    addEventListener(evt, fn) {
+      if (!listeners.has(evt)) listeners.set(evt, []);
+      listeners.get(evt).push(fn);
+    },
+    removeEventListener(evt, fn) {
+      if (!listeners.has(evt)) return;
+      const arr = listeners.get(evt);
+      const idx = arr.indexOf(fn);
+      if (idx !== -1) arr.splice(idx, 1);
+    },
+  };
+
+  const mockView = {
+    useEasyReadingMode: true,
+  };
+
+  mockApp.view = mockView;
+  mockApp.buf = mockBuf;
+
+  const plugin = new EasyReading();
+  assert.equal(plugin._initialized, false);
+
+  // 1. Register plugin into App
+  mockApp.registerPlugin(plugin);
+  assert.ok(mockApp.plugins.includes(plugin));
+  assert.ok(mockApp.inputInterceptors.includes(plugin));
+  assert.equal(plugin._initialized, true);
+  assert.equal(mockBuf._easyReading, plugin);
+  assert.equal(mockView._easyReading, plugin);
+  assert.equal(mockApp.easyReading, plugin);
+  assert.equal(listeners.get('change')?.length, 1);
+  assert.equal(listeners.get('viewUpdate')?.length, 1);
+
+  // 2. Font update hook
+  const dummyOverlay = {
+    style: {
+      setProperty: (prop, val) => { dummyOverlay.style[prop] = val; },
+      fontSize: '',
+      lineHeight: '',
+    },
+  };
+  plugin._overlay = dummyOverlay;
+  mockApp.dispatchFontUpdate({ fontFace: 'monospace', fontSize: '20px' });
+  assert.equal(dummyOverlay.style['--font-face'], 'monospace');
+  assert.equal(dummyOverlay.style.fontSize, '20px');
+  assert.equal(dummyOverlay.style.lineHeight, '20px');
+
+  // 3. Screen update hook
+  let updatePageCalledWith = null;
+  plugin.updatePage = (lines) => { updatePageCalledWith = lines; };
+  plugin.enabled = true;
+  const updateHandled = mockApp.dispatchScreenUpdate(['<div>Line 1</div>']);
+  assert.equal(updateHandled, true);
+  assert.deepEqual(updatePageCalledWith, ['<div>Line 1</div>']);
+
+  // 4. Unregister and destroy plugin
+  mockApp.unregisterPlugin(plugin);
+  assert.equal(mockApp.plugins.includes(plugin), false);
+  assert.equal(mockApp.inputInterceptors.includes(plugin), false);
+  assert.equal(mockApp.easyReading, null);
+  assert.equal(mockView._easyReading, null);
+  assert.equal(mockBuf._easyReading, null);
+  assert.equal(plugin._initialized, false);
+  assert.equal(listeners.get('change')?.length, 0);
+  assert.equal(listeners.get('viewUpdate')?.length, 0);
+});
+
 
 
 

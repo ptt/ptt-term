@@ -46,9 +46,10 @@ export class App {
   this.stream.registerFilter(this.telnetFilter);
   this.stream.registerFilter(this.ansiFilter);
   this.parser = this.ansiFilter;
+  this.plugins = [];
   this.inputInterceptors = [];
   this.easyReading = new EasyReading(this, this.view, this.buf);
-  this.registerInputInterceptor(this.easyReading);
+  this.registerPlugin(this.easyReading);
   this.connLog = new ConnectionLog(this);
   this._lastEasyReadingWheelTime = 0;
   this._lastEasyReadingHideTime = 0;
@@ -193,6 +194,39 @@ export class App {
   set lastEasyReadingHideTime(val) {
     if (this.easyReading) this.easyReading.lastHideTime = val;
     this._lastEasyReadingHideTime = val;
+  }
+
+  registerPlugin(plugin) {
+    if (!plugin || this.plugins.includes(plugin)) return;
+    this.plugins.push(plugin);
+    if (plugin.init) {
+      plugin.init({ app: this, core: this, view: this.view, buf: this.buf });
+    }
+    this.registerInputInterceptor(plugin);
+  }
+
+  unregisterPlugin(plugin) {
+    const idx = this.plugins.indexOf(plugin);
+    if (idx !== -1) {
+      this.plugins.splice(idx, 1);
+      this.unregisterInputInterceptor(plugin);
+      plugin.destroy?.();
+    }
+  }
+
+  dispatchScreenUpdate(changedLineHtmlStrs) {
+    for (const plugin of this.plugins) {
+      if (plugin.onScreenUpdate?.(changedLineHtmlStrs)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  dispatchFontUpdate(fontInfo) {
+    for (const plugin of this.plugins) {
+      plugin.onFontUpdate?.(fontInfo);
+    }
   }
 
   registerInputInterceptor(interceptor) {

@@ -257,6 +257,7 @@ export class TermView {
   setFontFace(fontFace) {
     this.fontFace = fontFace;
     this.input.style.setProperty('font-family', this.fontFace, 'important');
+    this.app?.dispatchFontUpdate?.({ fontFace: this.fontFace });
     if (this.easyReadingOverlay) {
       this.easyReadingOverlay.style.setProperty('--font-face', this.fontFace);
     }
@@ -339,7 +340,9 @@ export class TermView {
         this.fpsMeter.recordFrame(performance.now() - t0, false);
       }
 
-      if (this.app?.easyReading) {
+      if (this.app?.dispatchScreenUpdate?.(changedLineHtmlStrs)) {
+        // Handled by plugin
+      } else if (this.app?.easyReading) {
         this.app.easyReading.updatePage(changedLineHtmlStrs);
       } else if (this.useEasyReadingMode) {
         if (this.buf.startedEasyReading && this.buf.easyReadingShowReplyText) {
@@ -473,6 +476,7 @@ export class TermView {
     }
     this.mainDisplay.style.fontSize = fontSize;
     this.mainDisplay.style.lineHeight = fontSize;
+    this.app?.dispatchFontUpdate?.({ fontSize });
     if (this.easyReadingOverlay) {
       this.easyReadingOverlay.style.fontSize = fontSize;
       this.easyReadingOverlay.style.lineHeight = fontSize;

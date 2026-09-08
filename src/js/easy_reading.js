@@ -5,26 +5,14 @@ export const MAX_INFLIGHT_RETRIES = 2;
 
 export class EasyReading {
   constructor(core, view, termBuf) {
-    this._core = core;
-    this._view = view;
-    this._termBuf = termBuf;
-    if (core) {
-      if (!core.easyReading) {
-        core.easyReading = this;
-      }
-      core.registerInputInterceptor?.(this);
-    }
-    if (termBuf) {
-      termBuf._easyReading = this;
-    }
-    if (view) {
-      view._easyReading = this;
-    }
+    this._core = null;
+    this._view = null;
+    this._termBuf = null;
+    this._initialized = false;
+    this._bufListenersAttached = false;
+    this._uiInitialized = false;
 
     this.enabled = false;
-    if (view && 'useEasyReadingMode' in view) {
-      this.enabled = !!view.useEasyReadingMode;
-    }
     this.started = false;
     this.showReplyText = false;
     this.showPushInitText = false;
@@ -59,17 +47,85 @@ export class EasyReading {
     this._inFlightTimer = null;
     this._inFlightRetries = 0;
 
-    if (this._termBuf?.addEventListener) {
-      this._termBuf.addEventListener('change', (e) => this._onChanged(e));
-      this._termBuf.addEventListener('viewUpdate', (e) => this._onViewUpdated(e));
+    this._onBufChanged = (e) => this._onChanged(e);
+    this._onBufViewUpdated = (e) => this._onViewUpdated(e);
+
+    if (core || view || termBuf) {
+      this.init({ core, app: core, view, buf: termBuf });
+    }
+  }
+
+  init({ core, app, view, buf } = {}) {
+    const targetCore = core || app || this._core;
+    const targetView = view || this._view;
+    const targetBuf = buf || this._termBuf;
+
+    this._core = targetCore;
+    this._view = targetView;
+    this._termBuf = targetBuf;
+
+    if (targetCore) {
+      if (!targetCore.easyReading) {
+        targetCore.easyReading = this;
+      }
+      targetCore.registerInputInterceptor?.(this);
+    }
+    if (targetBuf) {
+      targetBuf._easyReading = this;
+      if (targetBuf.addEventListener && !this._bufListenersAttached) {
+        targetBuf.addEventListener('change', this._onBufChanged);
+        targetBuf.addEventListener('viewUpdate', this._onBufViewUpdated);
+        this._bufListenersAttached = true;
+      }
+    }
+    if (targetView) {
+      targetView._easyReading = this;
+      if ('useEasyReadingMode' in targetView) {
+        this.enabled = !!targetView.useEasyReadingMode;
+      }
     }
 
-    if (typeof document !== 'undefined') {
+    if (typeof document !== 'undefined' && !this._uiInitialized) {
       const container = this._view?.termWin || document.getElementById('TermWindow');
       if (container) {
         this._initUI(container);
+        this._uiInitialized = true;
       }
     }
+    this._initialized = true;
+    return this;
+  }
+
+  destroy() {
+    this.hide();
+    this._resetInFlight();
+    if (this._termBuf && this._bufListenersAttached) {
+      this._termBuf.removeEventListener?.('change', this._onBufChanged);
+      this._termBuf.removeEventListener?.('viewUpdate', this._onBufViewUpdated);
+      this._bufListenersAttached = false;
+    }
+    if (this._core) {
+      this._core.unregisterInputInterceptor?.(this);
+      if (this._core.easyReading === this) {
+        this._core.easyReading = null;
+      }
+    }
+    if (this._view?._easyReading === this) {
+      this._view._easyReading = null;
+    }
+    if (this._termBuf?._easyReading === this) {
+      this._termBuf._easyReading = null;
+    }
+    if (this._overlay && this._overlay.parentNode) {
+      this._overlay.parentNode.removeChild(this._overlay);
+    }
+    this._overlay = null;
+    this._content = null;
+    this._footer = null;
+    this._lastRowDiv = null;
+    this._replyRowDiv = null;
+    this._uiInitialized = false;
+    this._initialized = false;
   }
 
   get _enabled() {
@@ -989,4 +1045,30 @@ export class EasyReading {
     }
     return false;
   }
+
+  // --- Plugin Update Hooks ---
+
+  onScreenUpdate(changedLineHtmlStrs) {
+    if (this.enabled) {
+      this.updatePage(changedLineHtmlStrs);
+      return true;
+    } else if (this.isActive()) {
+      this.hide();
+      return true;
+    }
+    return false;
+  }
+
+  onFontUpdate({ fontFace, fontSize } = {}) {
+    if (this.overlay) {
+      if (fontFace) this.overlay.style.setProperty('--font-face', fontFace);
+      if (fontSize) {
+        this.overlay.style.fontSize = fontSize;
+        this.overlay.style.lineHeight = fontSize;
+      }
+    }
+  }
 }
+
+export { EasyReading as EasyReadingPlugin };
+
