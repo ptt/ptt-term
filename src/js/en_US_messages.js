@@ -456,7 +456,7 @@ export const en_US = {
     message: "+ Add",
   },
   options_fontList_preview: {
-    message: "PTT Term 123 ABC",
+    message: "123 Lazy fox jumps over the brown dog",
   },
   options_fontList_moveUp: {
     message: "Move Up",
