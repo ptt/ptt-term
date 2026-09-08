@@ -1042,10 +1042,7 @@ export class TermBuf extends Event {
     if (this.hasFrameSync) {
       return !this.inSyncUpdate;
     }
-    if (this.site && typeof this.site.isCursorParked === 'function') {
-      return this.site.isCursorParked(this);
-    }
-    return true;
+    return this.site.isCursorParked(this);
   }
 
   beginSyncUpdate() {

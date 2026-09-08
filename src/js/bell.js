@@ -37,7 +37,7 @@ export function setWindowFocused(focused) {
 
 export function isWindowFocused() {
   if (typeof document !== 'undefined') {
-    if (typeof document.hasFocus === 'function') {
+    if (document.hasFocus) {
       return document.hasFocus();
     }
     if (typeof document.hidden === 'boolean') {
@@ -102,7 +102,7 @@ export function unlockAudioContext() {
     if (
       audioContext &&
       audioContext.state === 'suspended' &&
-      typeof audioContext.resume === 'function'
+      audioContext.resume
     ) {
       audioContext.resume().catch(() => {});
     }
@@ -135,7 +135,7 @@ export function playTerminalBell(now = Date.now()) {
 
     if (
       audioContext.state === 'suspended' &&
-      typeof audioContext.resume === 'function'
+      audioContext.resume
     ) {
       audioContext.resume().catch(() => {});
     }
@@ -145,7 +145,7 @@ export function playTerminalBell(now = Date.now()) {
     const gain = audioContext.createGain();
 
     osc.type = 'sine';
-    if (osc.frequency && typeof osc.frequency.setValueAtTime === 'function') {
+    if (osc.frequency && osc.frequency.setValueAtTime) {
       osc.frequency.setValueAtTime(DEFAULT_BELL_PITCH_HZ, t0);
     } else if (osc.frequency) {
       osc.frequency.value = DEFAULT_BELL_PITCH_HZ;
@@ -157,7 +157,7 @@ export function playTerminalBell(now = Date.now()) {
     // 3. Smooth exponential decay to silence
     gain.gain.setValueAtTime(SILENCE_GAIN, t0);
     gain.gain.linearRampToValueAtTime(BELL_PEAK_GAIN, t0 + BELL_ATTACK_S);
-    if (typeof gain.gain.exponentialRampToValueAtTime === 'function') {
+    if (gain.gain.exponentialRampToValueAtTime) {
       gain.gain.exponentialRampToValueAtTime(SILENCE_GAIN, t0 + BELL_DURATION_S);
     } else {
       gain.gain.linearRampToValueAtTime(0, t0 + BELL_DURATION_S);

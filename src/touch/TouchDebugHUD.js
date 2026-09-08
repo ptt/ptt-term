@@ -186,8 +186,8 @@ export class TouchDebugHUD extends React.Component {
       time: new Date().toISOString(),
       screen: typeof window !== "undefined" ? `${window.innerWidth}x${window.innerHeight} (dpr ${window.devicePixelRatio})` : "N/A",
       viewport: vv ? `${Math.round(vv.width)}x${Math.round(vv.height)} (top: ${Math.round(vv.offsetTop)})` : "N/A",
-      isMobileDevice: app && typeof app.isMobileDevice === "function" ? app.isMobileDevice() : "N/A",
-      isMobileLayout: app && typeof app.isMobileLayout === "function" ? app.isMobileLayout() : "N/A",
+      isMobileDevice: app && app.isMobileDevice ? app.isMobileDevice() : "N/A",
+      isMobileLayout: app && app.isMobileLayout ? app.isMobileLayout() : "N/A",
       maxTouchPoints: typeof navigator !== "undefined" ? navigator.maxTouchPoints : 0,
       activeElement: active ? `${active.tagName.toLowerCase()}${active.id ? `#${active.id}` : ""}` : "none",
       inputMode: input ? input.getAttribute("inputmode") || "(none)" : "N/A",
@@ -243,12 +243,12 @@ export class TouchDebugHUD extends React.Component {
     app.inputArea.style.top = "0px";
     app.inputArea.setAttribute("inputmode", "text");
     app.inputArea.setAttribute("virtualkeyboardpolicy", "auto");
-    if (typeof app.setInputAreaFocus === "function") {
+    if (app.setInputAreaFocus) {
       app.setInputAreaFocus(true);
     } else {
       app.inputArea.focus();
     }
-    if (typeof navigator !== "undefined" && navigator.virtualKeyboard && typeof navigator.virtualKeyboard.show === "function") {
+    if (typeof navigator !== "undefined" && navigator.virtualKeyboard && navigator.virtualKeyboard.show) {
       try {
         navigator.virtualKeyboard.show();
       } catch (e) {}
@@ -260,7 +260,7 @@ export class TouchDebugHUD extends React.Component {
     if (!app || !app.inputArea) return;
     app.inputArea.setAttribute("inputmode", "none");
     app.inputArea.setAttribute("virtualkeyboardpolicy", "manual");
-    if (typeof navigator !== "undefined" && navigator.virtualKeyboard && typeof navigator.virtualKeyboard.hide === "function") {
+    if (typeof navigator !== "undefined" && navigator.virtualKeyboard && navigator.virtualKeyboard.hide) {
       try {
         navigator.virtualKeyboard.hide();
       } catch (e) {}

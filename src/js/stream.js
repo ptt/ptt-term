@@ -48,14 +48,14 @@ export class Stream extends Event {
     this.conn = conn;
     if (!conn) return this;
 
-    if (typeof conn.addEventListener === 'function') {
+    if (conn.addEventListener) {
       conn.addEventListener('data', (e) => {
         const d = (e && e.detail && e.detail.data !== undefined) ? e.detail.data : (e ? e.data : null);
         this.feed(d);
       });
       conn.addEventListener('open', () => this.dispatchEvent(new CustomEvent('open')));
       conn.addEventListener('close', () => this.dispatchEvent(new CustomEvent('close')));
-    } else if (typeof conn.on === 'function') {
+    } else if (conn.on) {
       conn.on('data', (d) => this.feed(d));
       conn.on('open', () => this.dispatchEvent(new CustomEvent('open')));
       conn.on('close', () => this.dispatchEvent(new CustomEvent('close')));
@@ -72,7 +72,7 @@ export class Stream extends Event {
     if (!filter) return this;
     this.filters.push(filter);
 
-    if (typeof filter.attachStream === 'function') {
+    if (filter.attachStream) {
       filter.attachStream(this);
     }
 
@@ -100,7 +100,7 @@ export class Stream extends Event {
       if (filter === this.telnetFilter && (this.conn && this.conn.filter)) {
         continue;
       }
-      if (typeof filter.inbound === 'function') {
+      if (filter.inbound) {
         current = filter.inbound(current, this);
         if (!current || current.length === 0) break;
       }
@@ -131,7 +131,7 @@ export class Stream extends Event {
 
     // 2. Telnet filter encodes IAC (skip if underlying conn already escapes IAC)
     if (!(this.conn && this.conn.filter)) {
-      if (this.telnetFilter && typeof this.telnetFilter.outbound === 'function') {
+      if (this.telnetFilter && this.telnetFilter.outbound) {
         bytes = this.telnetFilter.outbound(bytes, this);
       } else {
         bytes = escapeIAC(bytes);
@@ -150,17 +150,17 @@ export class Stream extends Event {
   sendRaw(bytes) {
     if (!this.conn || !bytes) return;
 
-    if (typeof this.conn._sendRaw === 'function') {
+    if (this.conn._sendRaw) {
       this.conn._sendRaw(bytes);
-    } else if (typeof this.conn.sendRaw === 'function') {
+    } else if (this.conn.sendRaw) {
       this.conn.sendRaw(bytes);
-    } else if (typeof this.conn.send === 'function') {
+    } else if (this.conn.send) {
       this.conn.send(bytes);
     }
   }
 
   sendWillNaws(cols, rows) {
-    if (this.telnetFilter && typeof this.telnetFilter.sendWillNaws === 'function') {
+    if (this.telnetFilter && this.telnetFilter.sendWillNaws) {
       this.telnetFilter.sendWillNaws(cols, rows, this);
     } else {
       this.sendRaw(new Uint8Array([0xff, 0xfb, 0x1f]));
@@ -168,13 +168,13 @@ export class Stream extends Event {
   }
 
   sendNaws(cols, rows) {
-    if (this.telnetFilter && typeof this.telnetFilter.sendNaws === 'function') {
+    if (this.telnetFilter && this.telnetFilter.sendNaws) {
       this.telnetFilter.sendNaws(cols, rows, this);
     }
   }
 
   sendNop() {
-    if (this.telnetFilter && typeof this.telnetFilter.sendNop === 'function') {
+    if (this.telnetFilter && this.telnetFilter.sendNop) {
       this.telnetFilter.sendNop(this);
     } else {
       this.sendRaw(new Uint8Array([0xff, 0xf1]));

@@ -255,14 +255,14 @@ export class AnsiParser {
             break;
           case 'h':
             if (firstChar === '?') {
-              if (params.includes(2026) && term && typeof term.beginSyncUpdate === 'function') {
+              if (params.includes(2026)) {
                 term.beginSyncUpdate();
               }
             }
             break;
           case 'l':
             if (firstChar === '?') {
-              if (params.includes(2026) && term && typeof term.endSyncUpdate === 'function') {
+              if (params.includes(2026)) {
                 term.endSyncUpdate();
               }
             }

@@ -86,9 +86,9 @@ export class EasyReading {
       this._resetInFlight();
     }
     if (this.startedEasyReading) {
-      const isParked = (typeof this._termBuf.isFrameReady === 'function')
+      const isParked = this._termBuf.isFrameReady
         ? this._termBuf.isFrameReady()
-        : (this._termBuf.hasFrameSync ? !this._termBuf.inSyncUpdate : (site && site.isCursorParked ? site.isCursorParked(this._termBuf) : true));
+        : site.isCursorParked(this._termBuf);
 
       if (isParked) {
         if (this.ignoreOneUpdate) {

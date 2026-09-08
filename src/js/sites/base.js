@@ -513,9 +513,9 @@ export class BaseSite {
    * @returns {{ userId?: string, message: string } | null}
    */
   parseNotification(bufOrData, termBuf) {
-    const buf = (bufOrData && typeof bufOrData.getRowText === 'function')
+    const buf = (bufOrData && bufOrData.getRowText)
       ? bufOrData
-      : (termBuf && typeof termBuf.getRowText === 'function' ? termBuf : null);
+      : (termBuf && termBuf.getRowText ? termBuf : null);
     if (buf) {
       const lastRowNum = this.getLastRowNum(buf);
       const rowText = buf.getRowText(lastRowNum);

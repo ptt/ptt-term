@@ -24,9 +24,7 @@ export class AutoSite extends BaseSite {
         if (typeof val === 'function') {
           return function (...args) {
             if (!target.isLocked) {
-              const termBuf = args.find(
-                (a) => a && typeof a.getRowText === 'function'
-              );
+              const termBuf = args.find((a) => a && a.getRowText);
               if (termBuf) {
                 target.detect(termBuf);
               }

@@ -424,7 +424,7 @@ export class TouchKeyboard extends React.Component {
       this.inputAreaBlurHandler = () => {
         if (!this.isInstanceActive()) return;
         this.setState({ isSystemKeyboardOpen: false });
-        if (typeof this.props.app.inputArea.setAttribute === "function") {
+        if (this.props.app.inputArea) {
           this.props.app.inputArea.setAttribute("inputmode", "none");
           this.props.app.inputArea.setAttribute("virtualkeyboardpolicy", "manual");
         }
@@ -507,7 +507,7 @@ export class TouchKeyboard extends React.Component {
     };
 
     let handled = false;
-    if (app.view && typeof app.view.onKeyDown === "function") {
+    if (app.view && app.view.onKeyDown) {
       try {
         app.view.onKeyDown(fakeEvent);
         handled = true;
@@ -518,7 +518,7 @@ export class TouchKeyboard extends React.Component {
         );
       }
     }
-    if (!handled && app.conn && typeof app.conn.send === "function") {
+    if (!handled && app.conn && app.conn.send) {
       const fallbackMap = {
         ArrowLeft: "\x1b[D",
         ArrowUp: "\x1b[A",
@@ -618,10 +618,7 @@ export class TouchKeyboard extends React.Component {
       hasMoved: false,
     };
 
-    if (
-      e.currentTarget &&
-      typeof e.currentTarget.setPointerCapture === "function"
-    ) {
+    if (e.currentTarget && e.currentTarget.setPointerCapture) {
       try {
         e.currentTarget.setPointerCapture(e.pointerId);
       } catch (err) {}
@@ -881,7 +878,7 @@ export class TouchKeyboard extends React.Component {
     };
 
     let handled = false;
-    if (app.view && typeof app.view.onKeyDown === "function") {
+    if (app.view && app.view.onKeyDown) {
       try {
         app.view.onKeyDown(fakeEvent);
         handled = true;
@@ -889,7 +886,7 @@ export class TouchKeyboard extends React.Component {
         console.warn("Failed to dispatch letter to view.onKeyDown:", err);
       }
     }
-    if (!handled && app.conn && typeof app.conn.send === "function") {
+    if (!handled && app.conn && app.conn.send) {
       app.conn.send(char);
     }
 
@@ -933,7 +930,7 @@ export class TouchKeyboard extends React.Component {
     };
 
     let handled = false;
-    if (app.view && typeof app.view.onKeyDown === "function") {
+    if (app.view && app.view.onKeyDown) {
       try {
         app.view.onKeyDown(fakeEvent);
         handled = true;
@@ -941,7 +938,7 @@ export class TouchKeyboard extends React.Component {
         console.warn("Failed to dispatch ctrl key to view.onKeyDown:", err);
       }
     }
-    if (!handled && app.conn && typeof app.conn.send === "function") {
+    if (!handled && app.conn && app.conn.send) {
       const code = lower.charCodeAt(0) - 96;
       if (code >= 1 && code <= 26) {
         app.conn.send(String.fromCharCode(code));
@@ -993,7 +990,7 @@ export class TouchKeyboard extends React.Component {
       };
 
       let handled = false;
-      if (app.view && typeof app.view.onKeyDown === "function") {
+      if (app.view && app.view.onKeyDown) {
         try {
           app.view.onKeyDown(fakeEvent);
           handled = true;
@@ -1001,7 +998,7 @@ export class TouchKeyboard extends React.Component {
           console.warn("Failed to dispatch number to view.onKeyDown:", err);
         }
       }
-      if (!handled && app.conn && typeof app.conn.send === "function") {
+      if (!handled && app.conn && app.conn.send) {
         app.conn.send(num);
       }
     }
@@ -1033,7 +1030,7 @@ export class TouchKeyboard extends React.Component {
     };
 
     let handled = false;
-    if (app.view && typeof app.view.onKeyDown === "function") {
+    if (app.view && app.view.onKeyDown) {
       try {
         app.view.onKeyDown(fakeEvent);
         handled = true;
@@ -1041,7 +1038,7 @@ export class TouchKeyboard extends React.Component {
         console.warn("Failed to dispatch number to view.onKeyDown:", err);
       }
     }
-    if (!handled && app.conn && typeof app.conn.send === "function") {
+    if (!handled && app.conn && app.conn.send) {
       app.conn.send(char);
     }
 
@@ -1086,7 +1083,7 @@ export class TouchKeyboard extends React.Component {
     }
     const { app } = this.props;
     if (!app || !app.view) return;
-    if (typeof app.zoomFont === "function") {
+    if (app.zoomFont) {
       app.zoomFont(delta);
     } else {
       const currentSize = app.view.chh || 24;
@@ -1117,14 +1114,10 @@ export class TouchKeyboard extends React.Component {
       app.inputArea.style.height = "1px";
       app.inputArea.style.opacity = "0";
       app.inputArea.style.pointerEvents = "none";
-      if (typeof app.inputArea.removeAttribute === "function") {
-        app.inputArea.removeAttribute("inputmode");
-        app.inputArea.removeAttribute("virtualkeyboardpolicy");
-      }
-      if (typeof app.inputArea.setAttribute === "function") {
-        app.inputArea.setAttribute("inputmode", "text");
-        app.inputArea.setAttribute("virtualkeyboardpolicy", "auto");
-      }
+      app.inputArea.removeAttribute("inputmode");
+      app.inputArea.removeAttribute("virtualkeyboardpolicy");
+      app.inputArea.setAttribute("inputmode", "text");
+      app.inputArea.setAttribute("virtualkeyboardpolicy", "auto");
     }
   };
 
@@ -1138,11 +1131,9 @@ export class TouchKeyboard extends React.Component {
 
     if (this.state.isSystemKeyboardOpen || isInputFocused) {
       event.preventDefault();
-      if (typeof app.inputArea.setAttribute === "function") {
-        app.inputArea.setAttribute("inputmode", "none");
-        app.inputArea.setAttribute("virtualkeyboardpolicy", "manual");
-      }
-      if (typeof navigator !== "undefined" && navigator.virtualKeyboard && typeof navigator.virtualKeyboard.hide === "function") {
+      app.inputArea.setAttribute("inputmode", "none");
+      app.inputArea.setAttribute("virtualkeyboardpolicy", "manual");
+      if (typeof navigator !== "undefined" && navigator.virtualKeyboard && navigator.virtualKeyboard.hide) {
         try {
           navigator.virtualKeyboard.hide();
         } catch (err) {}
@@ -1150,15 +1141,11 @@ export class TouchKeyboard extends React.Component {
       app.inputArea.blur();
       this.setState({ isSystemKeyboardOpen: false });
     } else {
-      if (typeof app.inputArea.removeAttribute === "function") {
-        app.inputArea.removeAttribute("inputmode");
-        app.inputArea.removeAttribute("virtualkeyboardpolicy");
-      }
-      if (typeof app.inputArea.setAttribute === "function") {
-        app.inputArea.setAttribute("inputmode", "text");
-        app.inputArea.setAttribute("virtualkeyboardpolicy", "auto");
-      }
-      if (typeof app.setInputAreaFocus === "function") {
+      app.inputArea.removeAttribute("inputmode");
+      app.inputArea.removeAttribute("virtualkeyboardpolicy");
+      app.inputArea.setAttribute("inputmode", "text");
+      app.inputArea.setAttribute("virtualkeyboardpolicy", "auto");
+      if (app.setInputAreaFocus) {
         app.setInputAreaFocus(true);
       } else {
         if (document.activeElement === app.inputArea) {
@@ -1166,7 +1153,7 @@ export class TouchKeyboard extends React.Component {
         }
         app.inputArea.focus();
       }
-      if (typeof navigator !== "undefined" && navigator.virtualKeyboard && typeof navigator.virtualKeyboard.show === "function") {
+      if (typeof navigator !== "undefined" && navigator.virtualKeyboard && navigator.virtualKeyboard.show) {
         try {
           navigator.virtualKeyboard.show();
         } catch (err) {}
@@ -1180,7 +1167,7 @@ export class TouchKeyboard extends React.Component {
       this.props.onMenuToggle(event);
     } else if (
       this.props.app &&
-      typeof this.props.app.openContextMenu === "function"
+      this.props.app.openContextMenu
     ) {
       const rect = event.currentTarget.getBoundingClientRect();
       this.props.app.openContextMenu(rect.right, rect.top - 4);

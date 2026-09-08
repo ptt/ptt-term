@@ -14,9 +14,9 @@ export class FpsMeter {
     this.isCanvas = !!options.isCanvas;
     this.idleTimer = null;
     this.smoothAnsiArt = options.smoothAnsiArt !== undefined ? !!options.smoothAnsiArt : true;
-    this.onToggleCanvas = typeof options.onToggleCanvas === 'function' ? options.onToggleCanvas : null;
-    this.onToggleSmoothAnsi = typeof options.onToggleSmoothAnsi === 'function' ? options.onToggleSmoothAnsi : null;
-    this.onToggleTouchDebug = typeof options.onToggleTouchDebug === 'function' ? options.onToggleTouchDebug : null;
+    this.onToggleCanvas = options.onToggleCanvas || null;
+    this.onToggleSmoothAnsi = options.onToggleSmoothAnsi || null;
+    this.onToggleTouchDebug = options.onToggleTouchDebug || null;
     this.touchDebugChangeHandler = null;
   }
 
@@ -131,7 +131,7 @@ export class FpsMeter {
         this.updateDisplay(now, false);
       }
     }, 400);
-    if (this.idleTimer && typeof this.idleTimer.unref === 'function') {
+    if (this.idleTimer && this.idleTimer.unref) {
       this.idleTimer.unref();
     }
   }

@@ -38,7 +38,7 @@ export class TouchController {
   }
 
   zoomFont(delta) {
-    if (this.app && typeof this.app.zoomFont === "function") {
+    if (this.app && this.app.zoomFont) {
       this.app.zoomFont(delta);
     } else if (this.app && this.app.view) {
       const currentSize = this.app.view.chh || 24;
@@ -92,10 +92,8 @@ export class TouchController {
         this.touchedCenter = { x: e.clientX, y: e.clientY };
         this.highlightCopy = app.buf.highlightCursor;
 
-        if (app.inputArea && typeof app.inputArea.blur === "function") {
-          if (typeof app.inputArea.setAttribute === "function") {
-            app.inputArea.setAttribute("inputmode", "none");
-          }
+        if (app.inputArea) {
+          app.inputArea.setAttribute("inputmode", "none");
           app.inputArea.blur();
         }
         console.debug("pointerdown (touch)");
@@ -120,11 +118,7 @@ export class TouchController {
       } else if (this.pointers.size === 2) {
         // Multi-touch: enter pinch zoom / two-finger pan mode
         this.clearLongPressTimer();
-        if (
-          this.isSelecting &&
-          app.view &&
-          typeof app.view.clearSelection === "function"
-        ) {
+        if (this.isSelecting && app.view) {
           app.view.clearSelection();
         }
         this.isSelecting = false;
@@ -162,7 +156,7 @@ export class TouchController {
         this.lastMidX = midX;
         this.lastMidY = midY;
 
-        if (app.view && typeof app.view.panBy === "function") {
+        if (app.view) {
           if (moveDeltaX !== 0) {
             app.view.panBy(-moveDeltaX, 0);
           }
@@ -197,7 +191,7 @@ export class TouchController {
           } else {
             this.panDirection = "select";
             this.isSelecting = true;
-            if (app.view && typeof app.view.startSelection === "function") {
+            if (app.view) {
               app.view.startSelection({
                 clientX: this.startX,
                 clientY: this.startY,
@@ -216,7 +210,7 @@ export class TouchController {
         this.touchedCenter.y = e.clientY;
       } else if (this.panDirection === "select" && this.isSelecting) {
         e.preventDefault();
-        if (app.view && typeof app.view.updateSelection === "function") {
+        if (app.view) {
           app.view.updateSelection({ clientX: e.clientX, clientY: e.clientY });
         }
       }
@@ -260,12 +254,10 @@ export class TouchController {
 
       if (this.isSelecting) {
         let text = "";
-        if (app.view && typeof app.view.endSelection === "function") {
-          text = app.view.endSelection();
-        } else if (app.view && typeof app.view.getSelectedText === "function") {
-          text = app.view.getSelectedText();
+        if (app.view) {
+          text = app.view.endSelection ? app.view.endSelection() : (app.view.getSelectedText ? app.view.getSelectedText() : "");
         }
-        if (text && typeof app.doCopy === "function") {
+        if (text && app.doCopy) {
           app.doCopy(text);
         }
         this.isSelecting = false;
@@ -295,7 +287,7 @@ export class TouchController {
       } else {
         e.preventDefault();
         e.stopPropagation();
-        if (app.view && typeof app.view.clearSelection === "function") {
+        if (app.view) {
           app.view.clearSelection();
         }
         this.highlightCopy = app.buf.highlightCursor;
@@ -334,11 +326,7 @@ export class TouchController {
         }
       } catch (err) {}
 
-      if (
-        this.isSelecting &&
-        app.view &&
-        typeof app.view.clearSelection === "function"
-      ) {
+      if (this.isSelecting && app.view) {
         app.view.clearSelection();
       }
 

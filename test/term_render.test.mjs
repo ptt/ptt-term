@@ -878,11 +878,11 @@ test('ContextMenu and TouchKeyboard handle Ctrl mode, letter dispatch, and top-r
       altKey: false,
       shiftKey: false
     };
-    if (app.view && typeof app.view.onKeyDown === 'function') {
+    if (app.view && app.view.onKeyDown) {
       app.view.onKeyDown(fakeEvent);
       return;
     }
-    if (app.conn && typeof app.conn.send === 'function') {
+    if (app.conn && app.conn.send) {
       const code = lower.charCodeAt(0) - 96;
       if (code >= 1 && code <= 26) {
         app.conn.send(String.fromCharCode(code));
