@@ -106,6 +106,12 @@ export const zh_TW = {
   plugin_media_previewer_desc: {
     message: "當滑鼠懸停於圖片或媒體連結時顯示預覽浮動視窗，支援 Imgur 等常用圖床與安全網域白名單。",
   },
+  plugin_conn_log_title: {
+    message: "連線封包記錄器",
+  },
+  plugin_conn_log_desc: {
+    message: "即時擷取與檢視底層傳輸的原始 WebSocket / Telnet 十六進位封包資料流。",
+  },
   plugin_builtin: {
     message: "內建",
   },

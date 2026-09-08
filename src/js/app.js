@@ -49,7 +49,7 @@ export class App {
   this.plugins = [];
   this.inputInterceptors = [];
   this.initPlugins(BUILTIN_PLUGINS);
-  this.connLog = new ConnectionLog(this);
+  this.connLog = this.getPlugin('conn_log') || new ConnectionLog(this);
   this._lastEasyReadingWheelTime = 0;
   this._lastEasyReadingHideTime = 0;
   this.suppressWheelUntil = 0;
@@ -249,6 +249,17 @@ export class App {
   }
 
   set mouseBrowsing(val) {
+    if (val && !this.plugins.includes(val)) {
+      this.registerPlugin(val);
+    }
+  }
+
+  get connLog() {
+    return this.getPlugin('conn_log') || this.getPlugin('ConnectionLog') || this._connLog || null;
+  }
+
+  set connLog(val) {
+    this._connLog = val;
     if (val && !this.plugins.includes(val)) {
       this.registerPlugin(val);
     }

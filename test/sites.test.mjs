@@ -1832,5 +1832,29 @@ test('src/plugins exports MediaPreviewer and resolves trusted image urls', async
   assert.equal(mp.resolveImageUrl('https://imgur.com/abcd123'), null);
 });
 
+test('src/plugins exports ConnectionLog and formats hex data', async () => {
+  const pluginsModule = await import('../src/plugins/index.js');
+  const connLogModule = await import('../src/plugins/conn_log/index.js');
+
+  assert.equal(pluginsModule.ConnectionLog, connLogModule.ConnectionLog);
+
+  const meta = connLogModule.ConnectionLog.getMetadata();
+  assert.equal(meta.id, 'conn_log');
+  assert.equal(meta.prefKey, 'captureConnectionLog');
+
+  // Test bytesToHex formatting
+  assert.equal(connLogModule.bytesToHex(new Uint8Array([0x1b, 0x5b, 0x41])), '1B 5B 41');
+  assert.equal(connLogModule.bytesToHex([]), '');
+
+  const mockApp = {
+    onPrefChange: () => {},
+  };
+  const cl = new connLogModule.ConnectionLog(mockApp);
+  assert.equal(cl.enabled, false);
+  cl.init({ app: mockApp });
+  assert.equal(mockApp.connLog, cl);
+});
+
+
 
 

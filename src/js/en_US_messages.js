@@ -106,6 +106,12 @@ export const en_US = {
   plugin_media_previewer_desc: {
     message: "Shows image and media popup preview on hover, supporting Imgur and trusted domain whitelist.",
   },
+  plugin_conn_log_title: {
+    message: "Connection Packet Logger",
+  },
+  plugin_conn_log_desc: {
+    message: "Captures and displays raw WebSocket / Telnet hexadecimal packet streams in real time.",
+  },
   plugin_builtin: {
     message: "Built-in",
   },

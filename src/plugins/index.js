@@ -21,6 +21,10 @@ import {
   MediaPreviewer,
   MediaPreviewerPlugin,
 } from './media_previewer/index.js';
+import {
+  ConnectionLog,
+  ConnectionLogPlugin,
+} from './conn_log/index.js';
 
 export {
   EasyReading,
@@ -34,6 +38,8 @@ export {
   AntiIdle,
   MediaPreviewer,
   MediaPreviewerPlugin,
+  ConnectionLog,
+  ConnectionLogPlugin,
 };
 
 export const BUILTIN_PLUGINS = [
@@ -43,6 +49,7 @@ export const BUILTIN_PLUGINS = [
   InputHelper,
   AntiIdle,
   MediaPreviewer,
+  ConnectionLog,
 ];
 
 export function getAvailablePlugins(app) {
