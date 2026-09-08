@@ -112,8 +112,6 @@ export const en_US = {
   imagePreview_failed: {
     message: "Failed to load image preview",
   },
-  options_enableNotifications: {
-    message: "Enable notifications when a message is received.",
   },
   options_enableBell: {
     message: "Terminal bell (BEL)",
@@ -361,11 +359,6 @@ export const en_US = {
   },
   alert_pasteShortcutClose: {
     message: "OK",
-  },
-
-  // notifications
-  notification_said: {
-    message: "says:",
   },
 
   // input helper

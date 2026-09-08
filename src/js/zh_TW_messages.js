@@ -111,8 +111,6 @@ export const zh_TW = {
   imagePreview_failed: {
     message: "無法載入圖片預覽",
   },
-  options_enableNotifications: {
-    message: "啟用水球通知",
   },
   options_enableBell: {
     message: "終端機提示音 (Bell)",
@@ -356,11 +354,6 @@ export const zh_TW = {
   },
   alert_pasteShortcutClose: {
     message: "確定",
-  },
-
-  // notifications
-  notification_said: {
-    message: "說:",
   },
 
   // input helper

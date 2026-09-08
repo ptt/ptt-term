@@ -9,7 +9,6 @@ import { setTimer } from './util';
 import { wrapText, u2b } from './string_util';
 import { FpsMeter } from './fps_meter';
 import { updatePref } from './pref.js';
-import icon128 from 'Icon/icon_128.png';
 
 const ENTER_CHAR = '\r';
 const DEFINE_INPUT_BUFFER_SIZE = 12;
@@ -101,10 +100,6 @@ export class TermView extends Event {
   this.panX = 0;
   this.panY = 0;
 
-  // for notifications
-  this.enableNotifications = true;
-  this.titleTimer = null;
-  this.notif = null;
 
 
   const mainDisplay = document.createElement('div');
@@ -976,63 +971,6 @@ export class TermView extends Event {
     window.getSelection().selectAllChildren(this.screenContainer || this.mainDisplay);
   }
 
-  showWaterballNotification() {
-    if (!this.enableNotifications) {
-      return;
-    }
-    const app = this.app;
-    //console.log('message from ' + this.waterball.userId + ': ' + this.waterball.message); 
-    const title = app.waterball.userId + ' ' + i18n('notification_said');
-    if (this.titleTimer) {
-      this.titleTimer.cancel();
-      this.titleTimer = null;
-    }
-    this.titleTimer = setTimer(true, () => {
-      if (document.title == this.buf.title) {
-        document.title = title + ' ' + app.waterball.message;
-      } else {
-        document.title = this.buf.title;
-      }
-    }, 1500);
-    const postNotification = async () => {
-      const options = {
-        icon: icon128,
-        body: app.waterball.message,
-        tag: app.waterball.userId
-      };
-
-      try {
-        if ('serviceWorker' in navigator) {
-          const reg = await navigator.serviceWorker.getRegistration();
-          if (reg && reg.showNotification) {
-            await reg.showNotification(title, options);
-            return;
-          }
-        }
-      } catch (err) {}
-
-      try {
-        if (typeof Notification !== 'undefined') {
-          this.notif = new Notification(title, options);
-          this.notif.onclick = () => {
-            window.focus();
-          };
-        }
-      } catch (err) {}
-    };
-
-    if (typeof Notification !== 'undefined') {
-      if (Notification.permission === 'granted') {
-        postNotification();
-      } else if (Notification.permission !== 'denied' && Notification.requestPermission) {
-        Notification.requestPermission().then((perm) => {
-          if (perm === 'granted') {
-            postNotification();
-          }
-        }).catch(() => {});
-      }
-    }
-  }
 
   get useEasyReadingMode() {
     return this.app?.easyReading ? this.app.easyReading.enabled : (this._easyReading ? this._easyReading.enabled : this._useEasyReadingMode);

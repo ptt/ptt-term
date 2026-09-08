@@ -363,23 +363,6 @@ export class PrefModal extends React.Component {
                     {i18n("options_picPreviewWhitelistOnly")}
                   </label>
                 </div>
-                <div className="checkbox">
-                  <label>
-                    <input
-                      type="checkbox"
-                      name="enableNotifications"
-                      checked={values.enableNotifications}
-                      onChange={this.handleCheckboxChange}
-                    />
-                    {i18n("options_enableNotifications")}
-                  </label>
-                </div>
-                <div className="checkbox">
-                  <label>
-                    <input
-                      type="checkbox"
-                      name="copyOnSelect"
-                      checked={values.copyOnSelect}
                       onChange={this.handleCheckboxChange}
                     />
                     {i18n("options_copyOnSelect")}

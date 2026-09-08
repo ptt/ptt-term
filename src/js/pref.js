@@ -1,7 +1,6 @@
 export const DEFAULT_PREFS = {
   enablePicPreview: true,
   picPreviewWhitelistOnly: true,
-  enableNotifications: true,
   enableBell: "always",
   enableEasyReading: false,
   enableLiveUpdate: false,

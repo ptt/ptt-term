@@ -1,31 +1,3 @@
-export function parseWaterballRow(rowText) {
-  if (typeof rowText !== 'string') return null;
-  const text = rowText.trim();
-  if (!text) return null;
-
-  if (text.startsWith('★')) {
-    const starMatch = /^★\s*([A-Za-z0-9_]{1,12})?\s*[:：]?\s*(.*)$/.exec(text);
-    if (starMatch) {
-      const userId = starMatch[1];
-      const message = starMatch[2].trim();
-      if (userId) {
-        return { userId, message };
-      }
-      if (message) {
-        return { message };
-      }
-    }
-    return null;
-  }
-
-  const pagerMatch = /^([\[【]呼叫(?:器)?[\]】]\s*[:：]?\s*.+)$/.exec(text);
-  if (pagerMatch) {
-    return { message: pagerMatch[1].trim() };
-  }
-
-  return null;
-}
-
 import { CHARSETS } from '../conv.js';
 export { CHARSETS };
 
@@ -630,28 +602,6 @@ export class BaseSite {
    */
   onData(data, termBuf) {}
 
-  /**
-   * Parse notification (e.g. waterball or site message).
-   * @param {TermBuf|string} bufOrData
-   * @param {TermBuf} [termBuf]
-   * @returns {{ userId?: string, message: string } | null}
-   */
-  parseNotification(bufOrData, termBuf) {
-    const buf = (bufOrData && bufOrData.getRowText)
-      ? bufOrData
-      : (termBuf && termBuf.getRowText ? termBuf : null);
-    if (buf) {
-      const lastRowNum = this.getLastRowNum(buf);
-      const rowText = buf.getRowText(lastRowNum);
-      return parseWaterballRow(rowText);
-    }
-
-    if (typeof bufOrData === 'string') {
-      return parseWaterballRow(bufOrData);
-    }
-
-    return null;
-  }
 
   /**
    * Detect site-specific custom links in a text row.

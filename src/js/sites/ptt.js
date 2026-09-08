@@ -1,6 +1,4 @@
-import { BaseSite, parseWaterballRow } from './base.js';
-
-export { parseWaterballRow };
+import { BaseSite } from './base.js';
 
 export function parseReplyText(it) {
   return (it.indexOf('▲ 回應至 (F)看板 (M)作者信箱 (B)二者皆是 (Q)取消？[F] ') === 0 ||
@@ -43,23 +41,6 @@ export function parseListRow(str) {
   return regex.test(str);
 }
 
-export function parseWaterball(str, lastRowNum = 23) {
-  let regex = /\x1b\[1;33;46m\u2605(\w+)\x1b\[0;1;37;45m (.+) \x1b\[m\x1b\[K/g;
-  let result = regex.exec(str);
-  if (result && result.length == 3) {
-    return { userId: result[1], message: result[2] };
-  } else {
-    const row1Based = lastRowNum + 1;
-    const rowPattern = row1Based !== 24 ? `(?:${row1Based}|24)` : '24';
-    regex = new RegExp(`\\x1b\\[${rowPattern};\\d{2}H\\x1b\\[1;37;45m([^\\x1b]+)(?:\\x1b\\[${rowPattern};18H)?\\x1b\\[m`, 'g');
-    result = regex.exec(str);
-    if (result && result.length == 2) {
-      return { message: result[1] };
-    }
-  }
-
-  return null;
-}
 
 export class PttSite extends BaseSite {
   constructor() {
@@ -280,18 +261,6 @@ export class PttSite extends BaseSite {
   navigateNextPost(easyReading) {
     easyReading.send('\x1b[D\x1b[B\x1b[C');
     return true;
-  }
-
-  parseNotification(bufOrData, termBuf) {
-    const res = super.parseNotification(bufOrData, termBuf);
-    if (res) return res;
-
-    if (typeof bufOrData === 'string') {
-      const lastRowNum = termBuf ? this.getLastRowNum(termBuf) : 23;
-      return parseWaterball(bufOrData, lastRowNum);
-    }
-
-    return null;
   }
 
   /**

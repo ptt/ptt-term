@@ -85,7 +85,6 @@ export class App {
 
   this.lastSelection = null;
 
-  this.waterball = { userId: '', message: '' };
   this.appFocused = true;
 
   this.endTurnsOnLiveUpdate = false;
@@ -122,12 +121,6 @@ export class App {
   window.addEventListener('focus', (e) => {
     this.appFocused = true;
     setWindowFocused(true);
-    if (this.view.titleTimer) {
-      this.view.titleTimer.cancel();
-      this.view.titleTimer = null;
-      this.view.buf.setTitle();
-      this.view.notif.close();
-    }
   }, false);
 
   window.addEventListener('blur', (e) => {
@@ -434,7 +427,6 @@ export class App {
     this.conn.addEventListener('data', (e) => {
       const data = (e && e.detail && e.detail.data !== undefined) ? e.detail.data : (e ? e.data : null);
       this.site.onData(data, this.buf);
-      this.checkBell();
     });
   }
 
@@ -455,25 +447,6 @@ export class App {
     }, 1000);
   }
 
-  checkBell() {
-    if (this.buf && this.buf.bellOccurred) {
-      this.buf.bellOccurred = false;
-      if (!this.appFocused && this.view.enableNotifications) {
-        // parse notification (e.g. waterball) delegated to site strategy
-        const wb = this.site.parseNotification(this.buf);
-        if (wb) {
-          if ('userId' in wb && wb.userId) {
-            this.waterball.userId = wb.userId;
-          }
-          if ('message' in wb && wb.message) {
-            this.waterball.message = wb.message;
-          }
-          this.view.showWaterballNotification();
-        }
-      }
-    }
-  }
-
   onData(data) {
     if (this.stream) {
       if (!this.stream.conn) {
@@ -482,7 +455,6 @@ export class App {
     } else if (this.parser) {
       this.parser.feed(data);
     }
-    this.checkBell();
   }
 
   onClose() {
@@ -1199,12 +1171,6 @@ export class App {
       break;
     case 'picPreviewWhitelistOnly':
       this.view.picPreviewWhitelistOnly = value;
-      break;
-    case 'enableNotifications':
-      this.view.enableNotifications = value;
-      if (value && typeof Notification !== 'undefined' && Notification.requestPermission && Notification.permission === 'default') {
-        Notification.requestPermission().catch(() => {});
-      }
       break;
     case 'enableBell':
       setTerminalBellEnabled(value);
