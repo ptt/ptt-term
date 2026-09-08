@@ -7,7 +7,7 @@ import { TermBuf } from './term_buf';
 import { TelnetConnection, TelnetFilter } from './telnet';
 import { Stream } from './stream';
 import { Websocket } from './websocket';
-import { EasyReading } from './easy_reading';
+import { EasyReading } from '../plugins/easy_reading/index.js';
 import { ConnectionLog } from './conn_log';
 import { TouchController } from './touch_controller';
 import { i18n } from './i18n';
@@ -212,6 +212,12 @@ export class App {
       this.unregisterInputInterceptor(plugin);
       plugin.destroy?.();
     }
+  }
+
+  getPlugin(name) {
+    return this.plugins.find(
+      (p) => p.name === name || p.constructor?.name === name
+    );
   }
 
   dispatchScreenUpdate(changedLineHtmlStrs) {

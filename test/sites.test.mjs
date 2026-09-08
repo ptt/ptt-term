@@ -622,6 +622,9 @@ test('PttSite and AutoSite handleCustomLink execute in-terminal AID jumps and pa
   let sentData = '';
   let focused = false;
   const mockApp = {
+    send: (data) => {
+      sentData += data;
+    },
     conn: {
       send: (data) => {
         sentData += data;
@@ -813,6 +816,7 @@ test('EasyReading in-flight control prevents multiple concurrent PageDowns', () 
     const mockCore = {
       connectedUrl: { easyReadingSupported: true },
       suppressInertialWheel: () => {},
+      send: (cmd) => sentCommands.push(cmd),
     };
 
     const mockView = {
@@ -920,6 +924,7 @@ test('EasyReading in-flight watchdog handles dropped response with retries and b
     const mockCore = {
       connectedUrl: { easyReadingSupported: true },
       suppressInertialWheel: () => {},
+      send: (cmd) => sentCommands.push(cmd),
     };
 
     const mockView = {
@@ -1036,6 +1041,7 @@ test('EasyReading captures complete frames with DEC 2026 synchronized update', (
     const mockCore = {
       connectedUrl: { easyReadingSupported: true },
       suppressInertialWheel: () => {},
+      send: (cmd) => sentCommands.push(cmd),
     };
 
     const mockView = {
@@ -1435,6 +1441,11 @@ test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update
         plugin.destroy?.();
       }
     },
+    getPlugin(name) {
+      return this.plugins.find(
+        (p) => p.name === name || p.constructor?.name === name
+      );
+    },
     dispatchScreenUpdate(changedLines) {
       for (const plugin of this.plugins) {
         if (plugin.onScreenUpdate?.(changedLines)) return true;
@@ -1470,12 +1481,14 @@ test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update
   mockApp.buf = mockBuf;
 
   const plugin = new EasyReading();
+  assert.equal(plugin.name, 'easy_reading');
   assert.equal(plugin._initialized, false);
 
   // 1. Register plugin into App
   mockApp.registerPlugin(plugin);
   assert.ok(mockApp.plugins.includes(plugin));
   assert.ok(mockApp.inputInterceptors.includes(plugin));
+  assert.equal(mockApp.getPlugin('easy_reading'), plugin);
   assert.equal(plugin._initialized, true);
   assert.equal(mockBuf._easyReading, plugin);
   assert.equal(mockView._easyReading, plugin);
@@ -1509,6 +1522,7 @@ test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update
   mockApp.unregisterPlugin(plugin);
   assert.equal(mockApp.plugins.includes(plugin), false);
   assert.equal(mockApp.inputInterceptors.includes(plugin), false);
+  assert.equal(mockApp.getPlugin('easy_reading'), undefined);
   assert.equal(mockApp.easyReading, null);
   assert.equal(mockView._easyReading, null);
   assert.equal(mockBuf._easyReading, null);
@@ -1517,7 +1531,19 @@ test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update
   assert.equal(listeners.get('viewUpdate')?.length, 0);
 });
 
+test('src/plugins exports EasyReading and provides modular plugin architecture', async () => {
+  const pluginsModule = await import('../src/plugins/index.js');
+  const easyReadingModule = await import('../src/plugins/easy_reading/index.js');
+  const legacyModule = await import('../src/js/easy_reading.js');
 
+  assert.equal(pluginsModule.EasyReading, easyReadingModule.EasyReading);
+  assert.equal(pluginsModule.EasyReadingPlugin, easyReadingModule.EasyReadingPlugin);
+  assert.equal(legacyModule.EasyReading, easyReadingModule.EasyReading);
+  assert.equal(easyReadingModule.default, easyReadingModule.EasyReading);
 
-
-
+  assert.equal(easyReadingModule.EasyReading.name, 'easy_reading');
+  const instance = new easyReadingModule.EasyReading();
+  assert.equal(instance.name, 'easy_reading');
+  assert.equal(easyReadingModule.INFLIGHT_WATCHDOG_MS, 1500);
+  assert.equal(easyReadingModule.MAX_INFLIGHT_RETRIES, 2);
+});
