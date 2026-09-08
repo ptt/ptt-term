@@ -1,13 +1,35 @@
-/* Modern replacement for legacy Bootstrap 3 utility styles */
+/* Modern macOS design system styles replacing legacy Bootstrap utilities */
+
+/* --- Typography & Base Font System --- */
+:root {
+  --mac-font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "PingFang TC", "Helvetica Neue", Arial, sans-serif;
+  --mac-accent: #007aff;
+  --mac-accent-hover: #0071e3;
+  --mac-accent-active: #0062cc;
+  --mac-accent-subtle: rgba(0, 122, 255, 0.12);
+  --mac-accent-focus: rgba(0, 122, 255, 0.25);
+  --mac-danger: #ff3b30;
+  --mac-danger-hover: #e03228;
+  --mac-danger-active: #c72820;
+  --mac-text-primary: #1d1d1f;
+  --mac-text-secondary: #6e6e73;
+  --mac-text-tertiary: #86868b;
+  --mac-bg-control: #ffffff;
+  --mac-border: #d2d2d7;
+  --mac-border-subtle: rgba(0, 0, 0, 0.08);
+}
 
 /* --- Buttons --- */
 .btn {
-  display: inline-block;
-  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 14px;
   margin-bottom: 0;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.42857143;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
   text-align: center;
   white-space: nowrap;
   vertical-align: middle;
@@ -15,74 +37,95 @@
   cursor: pointer;
   user-select: none;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: 6px;
   box-sizing: border-box;
-  font-family: inherit;
-  transition:
-    background-color 0.15s ease-in-out,
-    border-color 0.15s ease-in-out;
+  font-family: var(--mac-font-sans);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  -webkit-font-smoothing: antialiased;
 }
 
-.btn:focus,
-.btn:hover {
-  text-decoration: none;
+.btn:focus {
   outline: 0;
 }
 
+.btn:active {
+  transform: scale(0.98);
+}
+
 .btn-default {
-  color: #333;
-  background-color: #fff;
-  border-color: #ccc;
+  color: var(--mac-text-primary);
+  background-color: var(--mac-bg-control);
+  border-color: var(--mac-border);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .btn-default:hover,
-.btn-default:focus,
+.btn-default:focus {
+  color: var(--mac-text-primary);
+  background-color: #f5f5f7;
+  border-color: #c7c7cc;
+  text-decoration: none;
+}
+
 .btn-default:active {
-  color: #333;
-  background-color: #e6e6e6;
-  border-color: #adadad;
+  background-color: #e5e5ea;
+  border-color: #b0b0b5;
 }
 
 .btn-primary {
-  color: #fff;
-  background-color: #337ab7;
-  border-color: #2e6da4;
+  color: #ffffff;
+  background-color: var(--mac-accent);
+  border-color: #006ee6;
+  box-shadow: 0 1px 2px rgba(0, 122, 255, 0.25);
 }
 
 .btn-primary:hover,
-.btn-primary:focus,
+.btn-primary:focus {
+  color: #ffffff;
+  background-color: var(--mac-accent-hover);
+  border-color: #0062cc;
+  box-shadow: 0 1px 3px rgba(0, 122, 255, 0.35);
+  text-decoration: none;
+}
+
 .btn-primary:active {
-  color: #fff;
-  background-color: #286090;
-  border-color: #204d74;
+  background-color: var(--mac-accent-active);
+  border-color: #0051a8;
 }
 
 .btn-danger {
-  color: #fff;
-  background-color: #d9534f;
-  border-color: #d43f3a;
+  color: #ffffff;
+  background-color: var(--mac-danger);
+  border-color: #e03228;
+  box-shadow: 0 1px 2px rgba(255, 59, 48, 0.25);
 }
 
 .btn-danger:hover,
-.btn-danger:focus,
+.btn-danger:focus {
+  color: #ffffff;
+  background-color: var(--mac-danger-hover);
+  border-color: #c72820;
+  text-decoration: none;
+}
+
 .btn-danger:active {
-  color: #fff;
-  background-color: #c9302c;
-  border-color: #ac2925;
+  background-color: var(--mac-danger-active);
+  border-color: #ab2018;
 }
 
 .btn-sm {
-  padding: 5px 10px;
+  padding: 3px 10px;
   font-size: 12px;
-  line-height: 1.5;
-  border-radius: 3px;
+  line-height: 1.4;
+  border-radius: 5px;
 }
 
 .btn-xs {
-  padding: 1px 5px;
-  font-size: 12px;
-  line-height: 1.5;
-  border-radius: 3px;
+  padding: 1px 6px;
+  font-size: 11px;
+  line-height: 1.3;
+  border-radius: 4px;
 }
 
 /* --- Button Groups (Split / Combo Buttons) --- */
@@ -90,6 +133,7 @@
   position: relative;
   display: inline-flex;
   vertical-align: middle;
+  border-radius: 6px;
 }
 
 .btn-group > .btn {
@@ -119,8 +163,8 @@
 }
 
 .btn-group .dropdown-toggle {
-  padding-left: 8px;
-  padding-right: 8px;
+  padding-left: 7px;
+  padding-right: 7px;
 }
 
 .btn-group .dropdown-toggle .caret {
@@ -131,16 +175,16 @@
 .form-control {
   display: block;
   width: 100%;
-  height: 34px;
-  padding: 6px 12px;
-  font-size: 14px;
-  line-height: 1.42857143;
-  color: #555;
-  background-color: #fff;
+  height: 30px;
+  padding: 4px 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--mac-text-primary);
+  background-color: var(--mac-bg-control);
   background-image: none;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+  border: 1px solid var(--mac-border);
+  border-radius: 6px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
   box-sizing: border-box;
   font-family: inherit;
   transition:
@@ -149,42 +193,63 @@
 }
 
 .form-control:focus {
-  border-color: #66afe9;
+  border-color: var(--mac-accent);
   outline: 0;
-  box-shadow:
-    inset 0 1px 1px rgba(0, 0, 0, 0.075),
-    0 0 8px rgba(102, 175, 233, 0.6);
+  box-shadow: 0 0 0 3px var(--mac-accent-focus);
+}
+
+select.form-control {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236e6e73'%3e%3cpath fill-rule='evenodd' d='M4.646 6.646a.5.5 0 0 1 .708 0L8 9.293l2.646-2.647a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 14px 14px;
+  padding-right: 28px;
 }
 
 .control-label {
   display: inline-block;
   max-width: 100%;
   margin-bottom: 5px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mac-text-primary);
 }
 
 .checkbox {
   position: relative;
-  display: block;
-  margin-top: 10px;
-  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+  margin-bottom: 8px;
 }
 
 .checkbox label {
   min-height: 20px;
-  padding-left: 20px;
+  padding-left: 0;
   margin-bottom: 0;
   font-weight: 400;
+  font-size: 13px;
+  color: var(--mac-text-primary);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
 }
 
 .checkbox input[type="checkbox"] {
-  position: absolute;
-  margin-top: 4px;
-  margin-left: -20px;
+  position: static;
+  margin: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--mac-accent);
+  cursor: pointer;
+  border-radius: 4px;
+  flex-shrink: 0;
 }
 
-/* --- Navigation Tabs & Pills --- */
+/* --- Navigation Tabs & Pills (macOS Segmented Controls) --- */
 .nav {
   padding-left: 0;
   margin-bottom: 0;
@@ -199,57 +264,75 @@
 .nav > li > a {
   position: relative;
   display: block;
-  padding: 10px 15px;
-  color: #337ab7;
+  padding: 6px 12px;
+  color: var(--mac-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
   text-decoration: none;
+  border-radius: 6px;
+  transition: all 0.15s ease;
 }
 
 .nav > li > a:hover,
 .nav > li > a:focus {
   text-decoration: none;
-  background-color: #eee;
+  color: var(--mac-text-primary);
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .nav-tabs {
-  border-bottom: 1px solid #ddd;
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
+  background: #ebebed;
+  border-radius: 8px;
+  padding: 3px;
+  border: none;
+  gap: 2px;
 }
 
 .nav-tabs > li {
-  margin-bottom: -1px;
+  margin-bottom: 0;
 }
 
 .nav-tabs > li > a {
-  margin-right: 2px;
-  line-height: 1.42857143;
-  border: 1px solid transparent;
-  border-radius: 4px 4px 0 0;
+  margin-right: 0;
+  line-height: 1.4;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--mac-text-secondary);
+  padding: 4px 14px;
 }
 
 .nav-tabs > li > a:hover {
-  border-color: #eee #eee #ddd;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--mac-text-primary);
 }
 
 .nav-tabs > li.active > a,
 .nav-tabs > li.active > a:hover,
 .nav-tabs > li.active > a:focus {
-  color: #555;
+  color: var(--mac-text-primary);
   cursor: default;
-  background-color: #fff;
-  border: 1px solid #ddd;
-  border-bottom-color: transparent;
+  background-color: #ffffff;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.12),
+    0 1px 1px rgba(0, 0, 0, 0.06);
+  border: none;
+  font-weight: 600;
 }
 
 .nav-pills > li > a {
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 .nav-pills > li.active > a,
 .nav-pills > li.active > a:hover,
 .nav-pills > li.active > a:focus {
-  color: #fff;
-  background-color: #337ab7;
+  color: #ffffff;
+  background-color: var(--mac-accent);
+  box-shadow: 0 1px 3px rgba(0, 122, 255, 0.3);
+  font-weight: 600;
 }
 
 .nav-stacked > li {
@@ -257,7 +340,7 @@
 }
 
 .nav-stacked > li + li {
-  margin-top: 2px;
+  margin-top: 3px;
   margin-left: 0;
 }
 
@@ -323,75 +406,82 @@
   }
 }
 
-/* --- Alerts --- */
+/* --- Alerts (macOS Banner / Card Style) --- */
 .alert {
   position: relative;
-  padding: 15px;
-  margin-bottom: 20px;
-  border: 1px solid transparent;
-  border-radius: 6px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
   box-sizing: border-box;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-    Arial, sans-serif;
+  font-family: var(--mac-font-sans);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .alert h4 {
   margin-top: 0;
   color: inherit;
-  font-size: 18px;
-  margin-bottom: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
 }
 
 .alert-dismissible {
-  padding-right: 35px;
+  padding-right: 36px;
 }
 
 .alert-dismissible .close {
   position: absolute;
   top: 12px;
-  right: 15px;
-  color: inherit;
+  right: 12px;
 }
 
 .close {
-  font-size: 21px;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: 400;
   line-height: 1;
-  color: #000;
-  opacity: 0.3;
-  background: transparent;
+  color: var(--mac-text-secondary);
+  background: #e5e5ea;
   border: 0;
   cursor: pointer;
   padding: 0;
-  transition: opacity 0.15s ease-in-out;
+  transition: all 0.15s ease-in-out;
+  text-decoration: none;
 }
 
 .close:hover,
 .close:focus {
-  color: #000;
+  color: var(--mac-text-primary);
+  background: #d2d2d7;
   text-decoration: none;
-  cursor: pointer;
-  opacity: 0.7;
+  outline: none;
 }
 
 .alert-danger {
-  color: #a94442;
-  background-color: #f2dede;
-  border-color: #ebccd1;
+  color: #922b21;
+  background-color: rgba(255, 235, 235, 0.95);
+  border-color: rgba(255, 59, 48, 0.2);
 }
 
 .alert-info {
-  color: #31708f;
-  background-color: #d9edf7;
-  border-color: #bce8f1;
+  color: #004085;
+  background-color: rgba(235, 245, 255, 0.95);
+  border-color: rgba(0, 122, 255, 0.2);
 }
 
-/* --- Dropdowns, Carets & Popovers --- */
+/* --- Dropdowns, Carets & macOS Popover Menus --- */
 .caret {
   display: inline-block;
-  width: 8px;
-  height: 5px;
+  width: 7px;
+  height: 4px;
   margin-left: 4px;
   vertical-align: middle;
   clip-path: polygon(0 0, 100% 0, 50% 100%);
@@ -409,19 +499,21 @@
   z-index: 1000;
   display: none;
   min-width: 160px;
-  padding: 6px 0;
-  margin: 4px 0 0;
-  font-size: 14px;
+  padding: 5px;
+  margin: 5px 0 0;
+  font-size: 13px;
   text-align: left;
   list-style: none;
-  background-color: #fff;
+  background-color: rgba(255, 255, 255, 0.88);
   background-clip: padding-box;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  border-radius: 6px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-    Arial, sans-serif;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.18),
+    0 3px 8px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(25px) saturate(190%);
+  -webkit-backdrop-filter: blur(25px) saturate(190%);
+  font-family: var(--mac-font-sans);
 }
 
 .dropdown-menu-right {
@@ -430,23 +522,36 @@
 }
 
 .dropdown-menu > li > a {
-  display: block;
-  padding: 6px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 10px;
   font-weight: 400;
-  line-height: 1.42857143;
-  color: #333;
+  line-height: 1.4;
+  color: var(--mac-text-primary);
+  border-radius: 5px;
   white-space: nowrap;
   text-decoration: none;
-  transition: background-color 0.1s ease;
+  transition:
+    background-color 0.1s ease,
+    color 0.1s ease;
 }
 
 .dropdown-menu > li > a:hover,
 .dropdown-menu > li > a:focus {
-  color: #111;
+  color: #ffffff;
   text-decoration: none;
-  background-color: #f0f0f0;
+  background-color: var(--mac-accent);
+}
+
+.dropdown-menu .divider {
+  height: 1px;
+  margin: 4px 6px;
+  overflow: hidden;
+  background-color: rgba(0, 0, 0, 0.08);
 }
 
 .open > .dropdown-menu {
   display: block;
 }
+
