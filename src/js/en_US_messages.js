@@ -64,7 +64,7 @@ export const en_US = {
     message: "Settings",
   },
   cmenu_restartInTab: {
-    message: "Restart PttChrome in a new tab",
+    message: "Restart in a new tab",
   },
 
   // options nav
@@ -105,7 +105,7 @@ export const en_US = {
     message: "Off (mute)",
   },
   options_enableEasyReading: {
-    message: "Enable easy reading article view. (experimental)",
+    message: "Enable Easy Reading article view.",
   },
   options_endTurnsOnLiveUpdate: {
     message: "Press END turns on thread live update.",
@@ -287,7 +287,7 @@ export const en_US = {
   },
   alert_developerModeText: {
     message:
-      "You are using developer mode. Things may break in this version of PttChrome. Use this at your own risk.",
+      "You are using developer mode. Things may break. Use this at your own risk.",
   },
   alert_developerModeDismiss: {
     message: "Yes, I understand.",

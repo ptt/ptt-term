@@ -34,11 +34,11 @@ jobs:
       THEME: ${{ matrix.site.THEME }}
       TARGET_REPO: ${{ matrix.site.TARGET_REPO }}
       CNAME: ${{ matrix.site.CNAME }}
-      PAGE_TITLE: ${{ matrix.site.PAGE_TITLE }}
-      PAGE_SHORT_NAME: ${{ matrix.site.PAGE_SHORT_NAME }}
-      PAGE_DESCRIPTION: ${{ matrix.site.PAGE_DESCRIPTION }}
+      APP_TITLE: ${{ matrix.site.APP_TITLE }}
+      APP_SHORT_NAME: ${{ matrix.site.APP_SHORT_NAME }}
+      APP_DESCRIPTION: ${{ matrix.site.APP_DESCRIPTION }}
       DYNAMIC_TITLE: ${{ matrix.site.DYNAMIC_TITLE }}
-      DEFAULT_SITE: ${{ matrix.site.DEFAULT_SITE }}
+      SITE_URL: ${{ matrix.site.SITE_URL }}
       SITE_TYPE: ${{ matrix.site.SITE_TYPE }}
       DEV_PROXY_TARGET: ${{ matrix.site.DEV_PROXY_TARGET }}
       DEV_PROXY_HEADER: ${{ matrix.site.DEV_PROXY_HEADER }}

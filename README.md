@@ -7,17 +7,18 @@ This repository contains the source code running behind
 ## History
 
 `ptt-term` is derived from [robertabcd/PttChrome](https://github.com/robertabcd/PttChrome),
-which was originally forked from [iamchucky/PttChrome](https://github.com/iamchucky/PttChrome).
-`ptt-term` also incorporates many excellent patches from
-[ccns/PttChrome](https://github.com/ccns/PttChrome/).
+which was originally forked from [iamchucky/PttChrome](https://github.com/iamchucky/PttChrome),
+then incorporated many excellent patches from [ccns/PttChrome](https://github.com/ccns/PttChrome/),
+plus exclusive new features from [hungte (piaip)](https://github.com/hungte).
 
-The original `PttChrome` was a Chrome browser extension. `robertabcd` added WebSocket support and
-ported it to a standalone HTML5 web application independent of Chrome extension APIs.
-That codebase served `term.ptt.cc` until 2026.
-
-`ptt-term` is the official repository for `term.ptt.cc` and `term.ptt2.cc`.
-It consolidates active patches from various PttChrome forks along
-with its own enhancements and features.
+The original `PttChrome` was a Chrome browser extension. `robertabcd` added
+WebSocket support and ported it to a standalone HTML5 web application
+independent of Chrome extension APIs.  That codebase served `term.ptt.cc` until
+2026. After that, `ptt-term` become the official repository for `term.ptt.cc`
+and `term.ptt2.cc`.  It consolidates active patches from various PttChrome
+forks along with its own enhancements and features - for example a new Canvas
+based rendering engine, extensible site customization, new touch user interface,
+and a real Unicode processing stack.
 
 ## How to Contribute
 

@@ -32,7 +32,8 @@ test('E2E Build: Vite production build succeeds and generates complete PWA distr
   const manifestPath = path.join(DIST_DIR, 'manifest.webmanifest');
   const manifestContent = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
 
-  assert.equal(manifestContent.name, 'PttChrome');
+  assert.equal(manifestContent.name, 'WebSocket Terminal');
+  assert.equal(manifestContent.short_name, 'WSTerm');
   assert.equal(manifestContent.display, 'standalone');
   assert.equal(manifestContent.start_url, './');
   assert.ok(Array.isArray(manifestContent.icons));
@@ -74,6 +75,6 @@ test('E2E Build: Vite production build succeeds and generates complete PWA distr
 
     assert.ok(renderedHtml.includes('id="BBSWindow"'), 'BBSWindow element missing in browser DOM');
     assert.ok(renderedHtml.includes('id="cmenuReact"'), 'Context menu element missing in browser DOM');
-    assert.ok(renderedHtml.includes('PttChrome'), 'Page title missing in browser DOM');
+    assert.ok(renderedHtml.includes('WebSocket Terminal'), 'Page title missing in browser DOM');
   }
 });

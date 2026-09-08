@@ -12,51 +12,52 @@ export default defineConfig(({ mode, command }) => {
   const isDevelopment = !isProduction;
   const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8'));
 
-  const getTheme = () => process.env.PTTCHROME_THEME || 'default';
+  const theme = process.env.APP_THEME || process.env.THEME || 'default';
+  const appTitle = process.env.APP_TITLE || 'WebSocket Terminal';
+  const appShortName = process.env.APP_SHORT_NAME || 'WSTerm';
+  const appDescription =
+    process.env.APP_DESCRIPTION ||
+    'A web client for connecting to the ANSI based terminals via WebSockets.';
+  const dynamicTitle = process.env.DYNAMIC_TITLE ?? 'true';
+  const siteUrl = process.env.SITE_URL;
+
   const resolveThemeIcon = (name) => {
-    const theme = getTheme();
     const themePath = path.resolve(__dirname, `src/icon/${theme}/${name}`);
     if (fs.existsSync(themePath)) return themePath;
     return path.resolve(__dirname, `src/icon/default/${name}`);
   };
-  const buildManifest = () => {
-    const pageTitle = process.env.PTTCHROME_PAGE_TITLE || 'PttChrome';
-    const shortName = process.env.PTTCHROME_PAGE_SHORT_NAME || pageTitle;
-    return {
-      name: pageTitle,
-      short_name: shortName,
-      description:
-        process.env.PTTCHROME_PAGE_DESCRIPTION ||
-        'A web client for connecting to the ANSI based terminals.',
-      start_url: './',
-      scope: './',
-      display: 'standalone',
-      background_color: '#000000',
-      theme_color: '#000000',
-      orientation: 'any',
-      launch_handler: {
-        client_mode: 'focus-existing',
+  const buildManifest = () => ({
+    name: appTitle,
+    short_name: appShortName,
+    description: appDescription,
+    start_url: './',
+    scope: './',
+    display: 'standalone',
+    background_color: '#000000',
+    theme_color: '#000000',
+    orientation: 'any',
+    launch_handler: {
+      client_mode: 'focus-existing',
+    },
+    icons: [
+      {
+        src: 'icon-192.png',
+        sizes: '192x192',
+        type: 'image/png',
       },
-      icons: [
-        {
-          src: 'icon-192.png',
-          sizes: '192x192',
-          type: 'image/png',
-        },
-        {
-          src: 'icon-512.png',
-          sizes: '512x512',
-          type: 'image/png',
-        },
-        {
-          src: 'icon-512.png',
-          sizes: '512x512',
-          type: 'image/png',
-          purpose: 'maskable',
-        },
-      ],
-    };
-  };
+      {
+        src: 'icon-512.png',
+        sizes: '512x512',
+        type: 'image/png',
+      },
+      {
+        src: 'icon-512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
+    ],
+  });
 
   return {
     base: './',
@@ -73,7 +74,6 @@ export default defineConfig(({ mode, command }) => {
         resolveId(id) {
           if (id.startsWith('Icon/')) {
             const rel = id.slice(5);
-            const theme = process.env.PTTCHROME_THEME || 'default';
             const themeFile = path.resolve(__dirname, `src/icon/${theme}/${rel}`);
             if (fs.existsSync(themeFile)) {
               return themeFile;
@@ -88,25 +88,15 @@ export default defineConfig(({ mode, command }) => {
         transformIndexHtml: {
           order: 'pre',
           handler(html) {
-            const theme = process.env.PTTCHROME_THEME || 'default';
-            let faviconPath = `/src/icon/${theme}/logo.png`;
-            if (!fs.existsSync(path.resolve(__dirname, `src/icon/${theme}/logo.png`))) {
-              faviconPath = '/src/icon/default/logo.png';
-            }
+            const faviconFile = path.resolve(__dirname, `src/icon/${theme}/logo.png`);
+            const faviconPath = fs.existsSync(faviconFile)
+              ? `/src/icon/${theme}/logo.png`
+              : '/src/icon/default/logo.png';
             return html
-              .replace(/%PTTCHROME_PAGE_TITLE%/g, process.env.PTTCHROME_PAGE_TITLE || 'PttChrome')
-              .replace(
-                /%PTTCHROME_PAGE_SHORT_NAME%/g,
-                process.env.PTTCHROME_PAGE_SHORT_NAME ||
-                  process.env.PTTCHROME_PAGE_TITLE ||
-                  'PttChrome'
-              )
-              .replace(
-                /%PTTCHROME_PAGE_DESCRIPTION%/g,
-                process.env.PTTCHROME_PAGE_DESCRIPTION ||
-                  'A web client for connecting to the ANSI based terminals.'
-              )
-              .replace(/%PTTCHROME_FAVICON%/g, faviconPath);
+              .replace(/%APP_TITLE%/g, appTitle)
+              .replace(/%APP_SHORT_NAME%/g, appShortName)
+              .replace(/%APP_DESCRIPTION%/g, appDescription)
+              .replace(/%APP_FAVICON%/g, faviconPath);
           },
         },
       },
@@ -163,26 +153,20 @@ export default defineConfig(({ mode, command }) => {
       },
     ],
     define: {
-      'process.env.PTTCHROME_PAGE_TITLE': JSON.stringify(process.env.PTTCHROME_PAGE_TITLE || 'PttChrome'),
-      'process.env.PTTCHROME_PAGE_SHORT_NAME': JSON.stringify(
-        process.env.PTTCHROME_PAGE_SHORT_NAME || process.env.PTTCHROME_PAGE_TITLE || 'PttChrome'
-      ),
-      'process.env.PTTCHROME_PAGE_DESCRIPTION': JSON.stringify(
-        process.env.PTTCHROME_PAGE_DESCRIPTION || 'A web client for connecting to the ANSI based terminals.'
-      ),
-      'process.env.PTTCHROME_DYNAMIC_TITLE': JSON.stringify(process.env.PTTCHROME_DYNAMIC_TITLE !== 'false'),
-      'process.env.DEFAULT_SITE': JSON.stringify(
-        isProduction ?  process.env.DEFAULT_SITE || 'wss://ws.ptt.cc/bbs' : '/bbs'
+      'process.env.APP_TITLE': JSON.stringify(appTitle),
+      'process.env.DYNAMIC_TITLE': JSON.stringify(dynamicTitle !== 'false'),
+      'process.env.SITE_URL': JSON.stringify(
+        isProduction ? siteUrl || 'wss://ws.ptt.cc/bbs' : '/bbs'
       ),
       'process.env.ALLOW_OVERRIDE_FROM_QUERY': JSON.stringify(
         isDevelopment || process.env.ALLOW_OVERRIDE_FROM_QUERY === 'yes'
       ),
       'process.env.DEVELOPER_MODE': JSON.stringify(isDevelopment),
       'process.env.SITE_TYPE': JSON.stringify(process.env.SITE_TYPE || 'auto'),
-      'PTTCHROME.NAME': JSON.stringify(process.env.npm_package_name || pkg.name),
-      'PTTCHROME.VERSION': JSON.stringify(process.env.npm_package_version || pkg.version),
-      'PTTCHROME.GITHUB_REPOSITORY_OWNER': JSON.stringify(process.env.GITHUB_REPOSITORY_OWNER || 'ptt'),
-      'PTTCHROME.GITHUB_REPOSITORY': JSON.stringify(process.env.GITHUB_REPOSITORY || 'ptt/ptt-term'),
+      'APP.NAME': JSON.stringify(process.env.npm_package_name || pkg.name),
+      'APP.VERSION': JSON.stringify(process.env.npm_package_version || pkg.version),
+      'APP.GITHUB_REPOSITORY_OWNER': JSON.stringify(process.env.GITHUB_REPOSITORY_OWNER || 'ptt'),
+      'APP.GITHUB_REPOSITORY': JSON.stringify(process.env.GITHUB_REPOSITORY || 'ptt/ptt-term'),
     },
     server: {
       port: 8080,

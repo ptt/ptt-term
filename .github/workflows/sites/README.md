@@ -11,12 +11,12 @@ Create a new file `<site-id>.yml` in this directory (e.g. `ptt.yml`, `mysite.yml
 ```yaml
 CNAME: 'term.mysite.com'
 TARGET_REPO: 'your-org/term.mysite.com'
-DEFAULT_SITE: 'wss://ws.mysite.com/bbs'
+SITE_URL: 'wss://ws.mysite.com/bbs'
 DEV_PROXY_TARGET: 'https://ws.mysite.com'
 DEV_PROXY_HEADER: 'https://term.mysite.com'
-PAGE_TITLE: 'My BBS'
-PAGE_SHORT_NAME: 'MyBBS'
-PAGE_DESCRIPTION: 'A web client for connecting to My BBS.'
+APP_TITLE: 'My BBS'
+APP_SHORT_NAME: 'MyBBS'
+APP_DESCRIPTION: 'MyBBS provides rich contents.'
 SITE_TYPE: 'ptt'       # 'ptt', 'maple3', or 'auto' (default: 'auto')
 THEME: 'default'       # Theme name matching src/icon/<THEME> (default: 'default')
 DYNAMIC_TITLE: 'false' # 'true' or 'false' (default: 'false')
@@ -31,12 +31,12 @@ BRANCH: 'gh-pages'     # Target branch in TARGET_REPO (default: 'gh-pages')
 |---|---|---|---|
 | `CNAME` | **Yes** | - | Custom domain for GitHub Pages |
 | `TARGET_REPO` | **Yes** | - | Target GitHub repository (`owner/repo`) |
-| `DEFAULT_SITE` | **Yes** | - | WebSocket BBS connection URL |
+| `SITE_URL` | **Yes** | - | WebSocket BBS connection URL |
 | `DEV_PROXY_TARGET` | **Yes** | - | Development proxy target URL |
 | `DEV_PROXY_HEADER` | **Yes** | - | Development proxy Origin header URL |
-| `PAGE_TITLE` | No | `PttChrome` | Browser tab title and PWA manifest title |
-| `PAGE_SHORT_NAME` | No | `PAGE_TITLE` | PWA manifest short name |
-| `PAGE_DESCRIPTION` | No | Default description | Search engine & PWA description |
+| `APP_TITLE` | No | `WebSocket Terminal` | Browser tab title and PWA manifest title |
+| `APP_SHORT_NAME` | No | `WSTerm` | PWA manifest short name |
+| `APP_DESCRIPTION` | No | Default description | Search engine & PWA description |
 | `SITE_TYPE` | No | `auto` | BBS site protocol handler (`ptt`, `maple3`, `auto`) |
 | `THEME` | No | `default` | Theme folder name under `src/icon/` |
 | `DYNAMIC_TITLE` | No | `false` | Whether to update window title with current BBS screen |

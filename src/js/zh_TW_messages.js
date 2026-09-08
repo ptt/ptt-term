@@ -64,7 +64,7 @@ export const zh_TW = {
     message: "設定",
   },
   cmenu_restartInTab: {
-    message: "在新分頁重新開啟 PttChrome",
+    message: "在新分頁重新開啟",
   },
 
   // options nav
@@ -104,7 +104,7 @@ export const zh_TW = {
     message: "關閉 (靜音)",
   },
   options_enableEasyReading: {
-    message: "啟用文章好讀模式 (實驗性)",
+    message: "啟用文章好讀模式",
   },
   options_endTurnsOnLiveUpdate: {
     message: "END 啟用推文即時更新 (如 Alt + r)",
@@ -282,7 +282,7 @@ export const zh_TW = {
   },
   alert_developerModeText: {
     message:
-      "您正在使用開發者模式。此版本的 PttChrome 並不穩定，無法保證所有功能會正常運作。",
+      "您正在使用開發者模式。此版本並不穩定，無法保證所有功能會正常運作。",
   },
   alert_developerModeDismiss: {
     message: "是，我瞭解了",

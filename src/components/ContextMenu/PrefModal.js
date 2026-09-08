@@ -128,12 +128,12 @@ export class PrefModal extends React.Component {
       "https://github.com/robertabcd/PttChrome",
     ),
     link_github_current_owner: link(
-      PTTCHROME.GITHUB_REPOSITORY_OWNER,
-      "https://github.com/" + PTTCHROME.GITHUB_REPOSITORY_OWNER,
+      APP.GITHUB_REPOSITORY_OWNER,
+      "https://github.com/" + APP.GITHUB_REPOSITORY_OWNER,
     ),
     link_current_PttChrome: link(
-      PTTCHROME.GITHUB_REPOSITORY,
-      "https://github.com/" + PTTCHROME.GITHUB_REPOSITORY,
+      APP.GITHUB_REPOSITORY,
+      "https://github.com/" + APP.GITHUB_REPOSITORY,
     ),
     link_iamchucky_PttChrome: link(
       "iamchucky/PttChrome",
@@ -699,8 +699,8 @@ export class PrefModal extends React.Component {
                 </div>
                 <div>
                   <legend>
-                    {i18n("about_version_title")} - {PTTCHROME.NAME} v
-                    {PTTCHROME.VERSION}
+                    {i18n("about_version_title")} - {APP.NAME} v
+                    {APP.VERSION}
                     {process.env.DEVELOPER_MODE
                       ? ` (${i18n("alert_developerModeHeader")})`
                       : ""}

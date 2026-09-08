@@ -21,7 +21,7 @@ async function startApp() {
   // connect.
   const allowOverride = process.env.ALLOW_OVERRIDE_FROM_QUERY;
   const siteUrl = (allowOverride && getQueryVariable('site'))
-    || process.env.DEFAULT_SITE;
+    || process.env.SITE_URL;
   const siteType = (allowOverride && (getQueryVariable('type') || getQueryVariable('site_type') || getQueryVariable('profile')))
     || process.env.SITE_TYPE
     || 'auto';

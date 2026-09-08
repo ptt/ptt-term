@@ -12,7 +12,7 @@ on:
       CNAME:
         type: string
         required: true
-      DEFAULT_SITE:
+      SITE_URL:
         type: string
         required: true
       DEV_PROXY_TARGET:
@@ -21,13 +21,13 @@ on:
       DEV_PROXY_HEADER:
         type: string
         required: true
-      PAGE_TITLE:
+      APP_TITLE:
         type: string
         required: false
-      PAGE_SHORT_NAME:
+      APP_SHORT_NAME:
         type: string
         required: false
-      PAGE_DESCRIPTION:
+      APP_DESCRIPTION:
         type: string
         required: false
       THEME:
@@ -62,12 +62,12 @@ jobs:
               echo "$CNAME" > dist/CNAME
         env:
           CNAME: ${{ inputs.CNAME }}
-          PTTCHROME_THEME: ${{ inputs.THEME }}
-          PTTCHROME_PAGE_TITLE: ${{ inputs.PAGE_TITLE }}
-          PTTCHROME_PAGE_SHORT_NAME: ${{ inputs.PAGE_SHORT_NAME }}
-          PTTCHROME_PAGE_DESCRIPTION: ${{ inputs.PAGE_DESCRIPTION }}
-          PTTCHROME_DYNAMIC_TITLE: ${{ inputs.DYNAMIC_TITLE }}
-          DEFAULT_SITE: ${{ inputs.DEFAULT_SITE }}
+          APP_THEME: ${{ inputs.THEME }}
+          APP_TITLE: ${{ inputs.APP_TITLE }}
+          APP_SHORT_NAME: ${{ inputs.APP_SHORT_NAME }}
+          APP_DESCRIPTION: ${{ inputs.APP_DESCRIPTION }}
+          DYNAMIC_TITLE: ${{ inputs.DYNAMIC_TITLE }}
+          SITE_URL: ${{ inputs.SITE_URL }}
           SITE_TYPE: ${{ inputs.SITE_TYPE }}
           ALLOW_OVERRIDE_FROM_QUERY: "yes"
           DEV_PROXY_TARGET: ${{ inputs.DEV_PROXY_TARGET }}

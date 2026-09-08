@@ -10,7 +10,7 @@ import yaml
 REQUIRED_FIELDS = [
     'CNAME',
     'TARGET_REPO',
-    'DEFAULT_SITE',
+    'SITE_URL',
     'DEV_PROXY_TARGET',
     'DEV_PROXY_HEADER',
 ]
@@ -68,9 +68,9 @@ def load_sites(sites_dir=None):
 
         # Normalize defaults
         data.setdefault('THEME', '')
-        data.setdefault('PAGE_TITLE', '')
-        data.setdefault('PAGE_SHORT_NAME', '')
-        data.setdefault('PAGE_DESCRIPTION', '')
+        data.setdefault('APP_TITLE', '')
+        data.setdefault('APP_SHORT_NAME', '')
+        data.setdefault('APP_DESCRIPTION', '')
         data.setdefault('BRANCH', 'gh-pages')
         data.setdefault('SITE_TYPE', 'auto')
 

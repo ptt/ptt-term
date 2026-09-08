@@ -2297,3 +2297,48 @@ test('src/touch module cleanly exports TouchController, computeToolbarLayout, To
     touchControllerLegacySource.includes("from '../touch/TouchController.js'")
   );
 });
+
+test('TouchKeyboard uses term.touchui.* localStorage keys for persistence', () => {
+  const touchKbSource = fs.readFileSync(path.resolve('src/touch/TouchKeyboard.js'), 'utf-8');
+
+  // Verify storage key constants
+  assert.ok(touchKbSource.includes('term.touchui.right'), 'Must define term.touchui.right');
+  assert.ok(touchKbSource.includes('term.touchui.bottom'), 'Must define term.touchui.bottom');
+  assert.ok(touchKbSource.includes('term.touchui.scale'), 'Must define term.touchui.scale');
+  assert.ok(!touchKbSource.includes('pttchrome.toolbar'), 'Must not reference pttchrome.toolbar');
+
+  // Extract and run readStorageFloat and writeStorageItem
+  const storage = {};
+  const mockLocalStorage = {
+    getItem: (k) => storage[k] ?? null,
+    setItem: (k, v) => { storage[k] = String(v); },
+    removeItem: (k) => { delete storage[k]; }
+  };
+  globalThis.window = { localStorage: mockLocalStorage };
+
+  try {
+    const fnRegex = /(?:export\s+)?function readStorageFloat[\s\S]*?(?:export\s+)?function writeStorageItem[\s\S]*?\n\}/;
+    const match = touchKbSource.match(fnRegex);
+    assert.ok(match, 'Must contain readStorageFloat and writeStorageItem functions');
+
+    const fn = new Function('window', `
+      ${match[0].replace(/export\s+/g, '')}
+      return { readStorageFloat, writeStorageItem };
+    `);
+    const { readStorageFloat, writeStorageItem } = fn(globalThis.window);
+
+    // 1. readStorageFloat returns null when empty
+    assert.equal(readStorageFloat('term.touchui.right'), null);
+
+    // 2. writeStorageItem writes value and readStorageFloat parses it
+    writeStorageItem('term.touchui.right', 80);
+    assert.equal(storage['term.touchui.right'], '80');
+    assert.equal(readStorageFloat('term.touchui.right'), 80);
+
+    writeStorageItem('term.touchui.scale', 1.2);
+    assert.equal(storage['term.touchui.scale'], '1.2');
+    assert.equal(readStorageFloat('term.touchui.scale'), 1.2);
+  } finally {
+    delete globalThis.window;
+  }
+});

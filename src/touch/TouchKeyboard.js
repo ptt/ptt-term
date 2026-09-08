@@ -18,6 +18,29 @@ const SHIFT_NUMBER_MAP = {
   0: ")",
 };
 
+export const STORAGE_KEY_TOUCHUI_RIGHT = "term.touchui.right";
+export const STORAGE_KEY_TOUCHUI_BOTTOM = "term.touchui.bottom";
+export const STORAGE_KEY_TOUCHUI_SCALE = "term.touchui.scale";
+
+export function readStorageFloat(key) {
+  if (typeof window === "undefined" || !window.localStorage) return null;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (raw !== null && raw !== undefined) {
+      const val = parseFloat(raw);
+      if (!isNaN(val)) return val;
+    }
+  } catch (e) {}
+  return null;
+}
+
+export function writeStorageItem(key, value) {
+  if (typeof window === "undefined" || !window.localStorage) return;
+  try {
+    window.localStorage.setItem(key, String(value));
+  } catch (e) {}
+}
+
 export class TouchKeyboard extends React.Component {
   _isMounted = false;
   rafId = null;
@@ -43,36 +66,14 @@ export class TouchKeyboard extends React.Component {
     layoutToolbarScale: 1.0,
     isDragging: false,
     toolbarCustomRight: (() => {
-      if (typeof window !== "undefined" && window.localStorage) {
-        try {
-          const val = parseFloat(
-            window.localStorage.getItem("pttchrome.toolbarCustomRight")
-          );
-          if (!isNaN(val)) return val;
-        } catch (e) {}
-      }
-      return null;
+      return readStorageFloat(STORAGE_KEY_TOUCHUI_RIGHT);
     })(),
     toolbarCustomBottom: (() => {
-      if (typeof window !== "undefined" && window.localStorage) {
-        try {
-          const val = parseFloat(
-            window.localStorage.getItem("pttchrome.toolbarCustomBottom")
-          );
-          if (!isNaN(val)) return val;
-        } catch (e) {}
-      }
-      return null;
+      return readStorageFloat(STORAGE_KEY_TOUCHUI_BOTTOM);
     })(),
     toolbarScale: (() => {
-      if (typeof window !== "undefined" && window.localStorage) {
-        try {
-          const val = parseFloat(
-            window.localStorage.getItem("pttchrome.toolbarScale")
-          );
-          if (val >= 0.7 && val <= 1.5) return val;
-        } catch (e) {}
-      }
+      const val = readStorageFloat(STORAGE_KEY_TOUCHUI_SCALE);
+      if (val !== null && val >= 0.7 && val <= 1.5) return val;
       return 1.0;
     })(),
   };
@@ -695,21 +696,17 @@ export class TouchKeyboard extends React.Component {
 
     if (this.dragState.hasMoved) {
       this.suppressInteractionUntil = Date.now() + 250;
-      if (typeof window !== "undefined" && window.localStorage) {
-        try {
-          if (this.state.toolbarCustomRight != null) {
-            window.localStorage.setItem(
-              "pttchrome.toolbarCustomRight",
-              String(Math.round(this.state.toolbarCustomRight))
-            );
-          }
-          if (this.state.toolbarCustomBottom != null) {
-            window.localStorage.setItem(
-              "pttchrome.toolbarCustomBottom",
-              String(Math.round(this.state.toolbarCustomBottom))
-            );
-          }
-        } catch (err) {}
+      if (this.state.toolbarCustomRight != null) {
+        writeStorageItem(
+          STORAGE_KEY_TOUCHUI_RIGHT,
+          Math.round(this.state.toolbarCustomRight)
+        );
+      }
+      if (this.state.toolbarCustomBottom != null) {
+        writeStorageItem(
+          STORAGE_KEY_TOUCHUI_BOTTOM,
+          Math.round(this.state.toolbarCustomBottom)
+        );
       }
     }
 
@@ -1063,14 +1060,7 @@ export class TouchKeyboard extends React.Component {
     );
     if (nextScale === currentScale) return;
 
-    if (typeof window !== "undefined" && window.localStorage) {
-      try {
-        window.localStorage.setItem(
-          "pttchrome.toolbarScale",
-          String(nextScale)
-        );
-      } catch (err) {}
-    }
+    writeStorageItem(STORAGE_KEY_TOUCHUI_SCALE, nextScale);
     this.setState({ toolbarScale: nextScale }, () => {
       this.updateToolbarLayout();
     });

@@ -12,7 +12,7 @@ const LOAD_SITES_SCRIPT = path.join(PROJECT_ROOT, '.github/workflows/load_sites.
 const REQUIRED_FIELDS = [
   'CNAME',
   'TARGET_REPO',
-  'DEFAULT_SITE',
+  'SITE_URL',
   'DEV_PROXY_TARGET',
   'DEV_PROXY_HEADER',
 ];
