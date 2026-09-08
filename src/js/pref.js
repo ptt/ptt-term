@@ -56,13 +56,6 @@ export const readValuesWithDefault = () => {
         ...(saved && saved.termSize),
       },
     };
-    if (
-      saved &&
-      saved.smoothAnsi !== undefined &&
-      saved.smoothAnsiArt === undefined
-    ) {
-      prefs.smoothAnsiArt = saved.smoothAnsi;
-    }
     if (saved) {
       if (saved.maxFontSize === undefined) {
         prefs.maxFontSize =
@@ -72,11 +65,6 @@ export const readValuesWithDefault = () => {
       }
       if (saved.fontSize === 999 || saved.fontSize === undefined) {
         prefs.fontSize = DEFAULT_PREFS.fontSize;
-      }
-      if (saved.enableBell === true) {
-        prefs.enableBell = "always";
-      } else if (saved.enableBell === false) {
-        prefs.enableBell = "off";
       }
     }
     return prefs;

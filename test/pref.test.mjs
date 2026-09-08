@@ -107,27 +107,6 @@ test('readValuesWithDefault preserves partial termSize configuration', () => {
   }
 });
 
-test('readValuesWithDefault performs legacy migration for smoothAnsi to smoothAnsiArt', () => {
-  const originalWindow = globalThis.window;
-  try {
-    const mockStorage = new MockLocalStorage();
-    globalThis.window = { localStorage: mockStorage };
-
-    mockStorage.setItem(
-      PREF_STORAGE_KEY,
-      JSON.stringify({
-        values: {
-          smoothAnsi: false,
-        },
-      })
-    );
-
-    const prefs = readValuesWithDefault();
-    assert.equal(prefs.smoothAnsiArt, false);
-  } finally {
-    globalThis.window = originalWindow;
-  }
-});
 
 test('readValuesWithDefault migrates legacy maxFontSize and resets invalid fontSize 999', () => {
   const originalWindow = globalThis.window;
@@ -241,7 +220,7 @@ test('updatePref patches a single preference key', () => {
   }
 });
 
-test('enableBell defaults to always and migrates legacy boolean values', () => {
+test('enableBell defaults to always and preserves string values', () => {
   const originalWindow = globalThis.window;
   try {
     const mockStorage = new MockLocalStorage();
@@ -251,26 +230,18 @@ test('enableBell defaults to always and migrates legacy boolean values', () => {
     const defaultPrefs = readValuesWithDefault();
     assert.equal(defaultPrefs.enableBell, 'always');
 
-    // 2. Legacy boolean true migrates to 'always'
-    mockStorage.setItem(
-      PREF_STORAGE_KEY,
-      JSON.stringify({ values: { enableBell: true } })
-    );
-    assert.equal(readValuesWithDefault().enableBell, 'always');
-
-    // 3. Legacy boolean false migrates to 'off'
-    mockStorage.setItem(
-      PREF_STORAGE_KEY,
-      JSON.stringify({ values: { enableBell: false } })
-    );
-    assert.equal(readValuesWithDefault().enableBell, 'off');
-
-    // 4. Explicit string values preserved
+    // 2. Explicit string values preserved
     mockStorage.setItem(
       PREF_STORAGE_KEY,
       JSON.stringify({ values: { enableBell: 'background' } })
     );
     assert.equal(readValuesWithDefault().enableBell, 'background');
+
+    mockStorage.setItem(
+      PREF_STORAGE_KEY,
+      JSON.stringify({ values: { enableBell: 'off' } })
+    );
+    assert.equal(readValuesWithDefault().enableBell, 'off');
   } finally {
     globalThis.window = originalWindow;
   }

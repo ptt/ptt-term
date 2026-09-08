@@ -220,38 +220,29 @@ export class TermView {
   }
 
   get conn() {
-    return this.app ? this.app.conn : null;
+    return this.app?.conn || null;
   }
 
   get charset() {
-    if (this.app && this.app.stream) {
-      return this.app.stream.charset;
-    }
-    return (this.app && this.app.site) ? this.app.site.charset : (this._charset || 'big5');
+    return this.app?.stream?.charset || this.app?.site?.charset || this._charset || 'big5';
   }
 
   set charset(val) {
     this._charset = val;
-    if (this.app && this.app.stream) {
+    if (this.app?.stream) {
       this.app.stream.charset = val;
     }
-    if (this.app && this.app.site) {
+    if (this.app?.site) {
       this.app.site.charset = val;
     }
   }
 
   _send(data) {
-    if (this.app && this.app.stream)
-      this.app.stream.send(data);
-    else if (this.app && this.app.conn)
-      this.app.conn.send(data);
+    this.app?.stream?.send(data);
   }
 
   _convSend(data) {
-    if (this.app && this.app.stream)
-      this.app.stream.send(data);
-    else if (this.app && this.app.conn)
-      this.app.conn.convSend(data);
+    this.app?.stream?.send(data);
   }
 
   setFontFace(fontFace) {

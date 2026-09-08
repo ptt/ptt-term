@@ -182,23 +182,23 @@ export class EasyReading {
   }
 
   get overlay() {
-    return this._overlay || (this._view && this._view._easyReadingOverlay) || null;
+    return this._overlay;
   }
 
   get content() {
-    return this._content || (this._view && this._view._easyReadingContent) || null;
+    return this._content;
   }
 
   get footer() {
-    return this._footer || (this._view && this._view._easyReadingFooter) || null;
+    return this._footer;
   }
 
   get lastRowDiv() {
-    return this._lastRowDiv || (this._view && this._view._lastRowDiv) || null;
+    return this._lastRowDiv;
   }
 
   get replyRowDiv() {
-    return this._replyRowDiv || (this._view && this._view._replyRowDiv) || null;
+    return this._replyRowDiv;
   }
 
   initUI(container) {
@@ -333,15 +333,12 @@ export class EasyReading {
     if (this._rowRenderer) {
       return this._rowRenderer(line, row, chh, showsLinkPreview, el);
     }
-    if (this._view && typeof this._view.renderRow === 'function') {
-      return this._view.renderRow(line, row, chh, showsLinkPreview, el);
-    }
-    return null;
+    return this._view?.renderRow?.(line, row, chh, showsLinkPreview, el) ?? null;
   }
 
   appendRows(lines, showsLinkPreview) {
     if (!this.content) return;
-    const chh = (this._view && this._view.chh) || 16;
+    const chh = this._view?.chh || 16;
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const el = document.createElement('span');
@@ -356,14 +353,14 @@ export class EasyReading {
   }
 
   renderSingleRow(target, row) {
-    if (this._view && typeof this._view.renderSingleRow === 'function') {
+    if (this._view?.renderSingleRow) {
       return this._view.renderSingleRow(target, row);
     }
     const el = document.createElement('span');
     el.setAttribute('type', 'termrow');
     el.setAttribute('srow', '0');
     target.appendChild(el);
-    const chh = (this._view && this._view.chh) || 16;
+    const chh = this._view?.chh || 16;
     return this.renderRow(row, 0, chh, false, el);
   }
 
@@ -524,7 +521,7 @@ export class EasyReading {
   get _turnPageLines() {
     if (this._customTurnPageLines > 0) return this._customTurnPageLines;
     const cont = this.content;
-    const chh = (this._view && this._view.chh) || 16;
+    const chh = this._view?.chh || 16;
     if (cont && chh) {
       let lines = Math.floor(cont.clientHeight / chh) - 1;
       if (lines > 0) return lines;
@@ -762,7 +759,7 @@ export class EasyReading {
       return false;
     if (lines > 0 && cont.scrollTop >= cont.scrollHeight - cont.clientHeight)
       return false;
-    const chh = (this._view && this._view.chh) || 16;
+    const chh = this._view?.chh || 16;
     cont.scrollTop += chh * lines;
     return true;
   }
