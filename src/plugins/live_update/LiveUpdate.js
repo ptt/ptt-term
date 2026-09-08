@@ -15,7 +15,6 @@ export class LiveUpdate {
       description: _('plugin_live_update_desc'),
       prefKey: 'enableLiveUpdate',
       icon: 'sync',
-      badge: _('plugin_builtin'),
     };
   }
 
@@ -57,10 +56,6 @@ export class LiveUpdate {
     return 'sync';
   }
 
-  get badge() {
-    return _('plugin_builtin');
-  }
-
   getMetadata() {
     return {
       id: this.id,
@@ -70,7 +65,6 @@ export class LiveUpdate {
       prefKey: this.prefKey,
       enabled: this.enabled,
       icon: this.icon,
-      badge: this.badge,
     };
   }
 

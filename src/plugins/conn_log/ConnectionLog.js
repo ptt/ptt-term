@@ -24,7 +24,6 @@ export class ConnectionLog {
       description: _("plugin_conn_log_desc"),
       prefKey: "captureConnectionLog",
       icon: "terminal",
-      badge: _("plugin_builtin"),
     };
   }
 
@@ -66,10 +65,6 @@ export class ConnectionLog {
     return "terminal";
   }
 
-  get badge() {
-    return _("plugin_builtin");
-  }
-
   getMetadata() {
     return {
       id: this.id,
@@ -79,7 +74,6 @@ export class ConnectionLog {
       prefKey: this.prefKey,
       enabled: this.enabled,
       icon: this.icon,
-      badge: this.badge,
     };
   }
 

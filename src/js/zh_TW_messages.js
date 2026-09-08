@@ -77,6 +77,12 @@ export const zh_TW = {
   options_plugins_desc: {
     message: "管理附加的功能與自訂模組",
   },
+  options_expand: {
+    message: "展開選項",
+  },
+  options_collapse: {
+    message: "收起選項",
+  },
   options_about: {
     message: "關於",
   },

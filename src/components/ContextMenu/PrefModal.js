@@ -86,6 +86,41 @@ const renderPluginIcon = (icon) => {
           <line x1="12" y1="19" x2="20" y2="19" />
         </svg>
       );
+    case "mouse":
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="5" y="2" width="14" height="20" rx="7" />
+          <line x1="12" y1="6" x2="12" y2="10" />
+        </svg>
+      );
+    case "palette":
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+          <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+          <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+          <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+          <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+        </svg>
+      );
     default:
       return (
         <svg
@@ -210,6 +245,7 @@ export class PrefModal extends React.Component {
   state = {
     navActiveKey: "general",
     values: readValuesWithDefault(),
+    expandedPluginId: null,
   };
 
   replacements = {
@@ -239,7 +275,10 @@ export class PrefModal extends React.Component {
 
   componentDidUpdate(prevProps) {
     if (!prevProps.show && this.props.show) {
-      this.setState({ values: readValuesWithDefault() });
+      this.setState({
+        values: readValuesWithDefault(),
+        expandedPluginId: null,
+      });
     }
   }
 
@@ -257,6 +296,31 @@ export class PrefModal extends React.Component {
   handleNavSelect = (key) => (e) => {
     e.preventDefault();
     this.setState({ navActiveKey: key });
+  };
+
+  pluginHasOptions = (plugin) => {
+    return (
+      plugin.id === "live_update" ||
+      plugin.id === "anti_idle" ||
+      plugin.id === "media_previewer" ||
+      plugin.id === "mouse_browsing" ||
+      (Array.isArray(plugin.options) && plugin.options.length > 0)
+    );
+  };
+
+  handleTogglePluginExpand = (pluginId) => (e) => {
+    if (
+      e &&
+      e.target &&
+      e.target.closest &&
+      e.target.closest(".PrefModal__MacSwitch")
+    ) {
+      return;
+    }
+    this.setState((prevState) => ({
+      expandedPluginId:
+        prevState.expandedPluginId === pluginId ? null : pluginId,
+    }));
   };
 
   handleCheckboxChange = ({ target: { name, checked } }) => {
@@ -365,11 +429,6 @@ export class PrefModal extends React.Component {
                   {i18n("options_fontFace")}
                 </a>
               </li>
-              <li className={navActiveKey === "mouseBrowsing" ? "active" : ""}>
-                <a href="#" onClick={this.handleNavSelect("mouseBrowsing")}>
-                  {i18n("options_mouseBrowsing")}
-                </a>
-              </li>
               <li className={navActiveKey === "plugins" ? "active" : ""}>
                 <a href="#" onClick={this.handleNavSelect("plugins")}>
                   {i18n("options_plugins")}
@@ -405,25 +464,12 @@ export class PrefModal extends React.Component {
                   <label>
                     <input
                       type="checkbox"
-                      name="enablePicPreview"
-                      checked={values.enablePicPreview}
-                      onChange={this.handleCheckboxChange}
-                    />
-                    {i18n("options_enablePicPreview")}
-                  </label>
-                </div>
-                <div className="checkbox PrefModal__Grid__Col--right__SubCheckbox">
+<div className="checkbox">
                   <label>
                     <input
                       type="checkbox"
-                      name="picPreviewWhitelistOnly"
-                      checked={values.picPreviewWhitelistOnly}
-                      disabled={!values.enablePicPreview}
-                      onChange={this.handleCheckboxChange}
-                    />
-                    {i18n("options_picPreviewWhitelistOnly")}
-                  </label>
-                </div>
+                      name="copyOnSelect"
+                      checked={values.copyOnSelect}
                       onChange={this.handleCheckboxChange}
                     />
                     {i18n("options_copyOnSelect")}
@@ -661,94 +707,6 @@ export class PrefModal extends React.Component {
                 </div>
               </fieldset>
             )}
-            {navActiveKey === "mouseBrowsing" && (
-              <fieldset className="PrefModal__Grid__Col--right__Fieldset">
-                <TabLegend
-                  title={i18n("options_mouseBrowsing")}
-                  onCloseClick={this.handleCloseClick}
-                />
-                <div className="checkbox">
-                  <label>
-                    <input
-                      type="checkbox"
-                      name="useMouseBrowsing"
-                      checked={values.useMouseBrowsing}
-                      onChange={this.handleCheckboxChange}
-                    />
-                    {i18n("options_useMouseBrowsing")}
-                  </label>
-                </div>
-                <div className="checkbox">
-                  <label>
-                    <input
-                      type="checkbox"
-                      name="mouseBrowsingHighlight"
-                      checked={values.mouseBrowsingHighlight}
-                      onChange={this.handleCheckboxChange}
-                    />
-                    {i18n("options_mouseBrowsingHighlight")}
-                  </label>
-                </div>
-                <div className="PrefModal__Grid__Col--right__MouseBrowsingHighlightColor">
-                  {i18n("options_highlightColor")}
-                  <select
-                    className={cx(
-                      "form-control",
-                      `b${values.mouseBrowsingHighlightColor}`,
-                    )}
-                    name="mouseBrowsingHighlightColor"
-                    value={values.mouseBrowsingHighlightColor}
-                    onChange={this.handleNumberInputChange}
-                  >
-                    {Array(16)
-                      .fill(0, 1)
-                      .map((x, i) => (
-                        <option key={i} value={i} className={cx(`b${i}`)} />
-                      ))}
-                  </select>
-                </div>
-                <SelectOptionGroup
-                  controlId="mouseLeftFunction"
-                  label={i18n("options_mouseLeftFunction")}
-                  name="mouseLeftFunction"
-                  value={values.mouseLeftFunction}
-                  options={MOUSE_LEFT_OPTIONS}
-                  onChange={this.handleNumberInputChange}
-                />
-                <SelectOptionGroup
-                  controlId="mouseMiddleFunction"
-                  label={i18n("options_mouseMiddleFunction")}
-                  name="mouseMiddleFunction"
-                  value={values.mouseMiddleFunction}
-                  options={MOUSE_MIDDLE_OPTIONS}
-                  onChange={this.handleNumberInputChange}
-                />
-                <SelectOptionGroup
-                  controlId="mouseWheelFunction1"
-                  label={i18n("options_mouseWheelFunction1")}
-                  name="mouseWheelFunction1"
-                  value={values.mouseWheelFunction1}
-                  options={MOUSE_WHEEL_OPTIONS}
-                  onChange={this.handleNumberInputChange}
-                />
-                <SelectOptionGroup
-                  controlId="mouseWheelFunction2"
-                  label={i18n("options_mouseWheelFunction2")}
-                  name="mouseWheelFunction2"
-                  value={values.mouseWheelFunction2}
-                  options={MOUSE_WHEEL_OPTIONS}
-                  onChange={this.handleNumberInputChange}
-                />
-                <SelectOptionGroup
-                  controlId="mouseWheelFunction3"
-                  label={i18n("options_mouseWheelFunction3")}
-                  name="mouseWheelFunction3"
-                  value={values.mouseWheelFunction3}
-                  options={MOUSE_WHEEL_OPTIONS}
-                  onChange={this.handleNumberInputChange}
-                />
-              </fieldset>
-            )}
             {navActiveKey === "plugins" && (
               <fieldset className="PrefModal__Grid__Col--right__Fieldset">
                 <TabLegend
@@ -760,28 +718,55 @@ export class PrefModal extends React.Component {
                 </p>
                 <div className="PrefModal__MacList">
                   {plugins.map((plugin) => {
+                    const pluginId = plugin.id || plugin.name;
                     const isChecked = Boolean(
                       plugin.prefKey ? values[plugin.prefKey] : plugin.enabled
                     );
+                    const hasOptions = this.pluginHasOptions(plugin);
+                    const isExpanded = this.state.expandedPluginId === pluginId;
                     return (
                       <div
-                        key={plugin.id || plugin.name}
+                        key={pluginId}
                         className={cx("PrefModal__MacListItem", {
                           "PrefModal__MacListItem--enabled": isChecked,
+                          "PrefModal__MacListItem--hasOptions": hasOptions,
+                          "PrefModal__MacListItem--expanded": isExpanded,
                         })}
                       >
-                        <div className="PrefModal__MacListItemHeader">
+                        <div
+                          className="PrefModal__MacListItemHeader"
+                          onClick={
+                            hasOptions
+                              ? this.handleTogglePluginExpand(pluginId)
+                              : undefined
+                          }
+                          role={hasOptions ? "button" : undefined}
+                          tabIndex={hasOptions ? 0 : undefined}
+                          onKeyDown={
+                            hasOptions
+                              ? (e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    if (
+                                      e.target &&
+                                      e.target.closest &&
+                                      (e.target.closest(".PrefModal__MacSwitch") ||
+                                        e.target.closest(".PrefModal__MacOptionsBtn"))
+                                    ) {
+                                      return;
+                                    }
+                                    e.preventDefault();
+                                    this.handleTogglePluginExpand(pluginId)(e);
+                                  }
+                                }
+                              : undefined
+                          }
+                        >
                           <div className="PrefModal__MacListItemIcon">
                             {renderPluginIcon(plugin.icon)}
                           </div>
                           <div className="PrefModal__MacListItemContent">
                             <div className="PrefModal__MacListItemTitle">
                               <span>{plugin.title || plugin.name}</span>
-                              {plugin.badge && (
-                                <span className="PrefModal__MacBadge">
-                                  {plugin.badge}
-                                </span>
-                              )}
                             </div>
                             {plugin.description && (
                               <div className="PrefModal__MacListItemDesc">
@@ -789,101 +774,196 @@ export class PrefModal extends React.Component {
                               </div>
                             )}
                           </div>
-                          <label className="PrefModal__MacSwitch">
-                            <input
-                              type="checkbox"
-                              name={plugin.prefKey || `plugin_${plugin.id}`}
-                              checked={isChecked}
-                              onChange={this.handleCheckboxChange}
-                            />
-                            <span className="PrefModal__MacSwitchSlider" />
-                          </label>
+                          <div className="PrefModal__MacListItemActions">
+                            <label className="PrefModal__MacSwitch">
+                              <input
+                                type="checkbox"
+                                name={plugin.prefKey || `plugin_${plugin.id}`}
+                                checked={isChecked}
+                                onChange={this.handleCheckboxChange}
+                              />
+                              <span className="PrefModal__MacSwitchSlider" />
+                            </label>
+                            {hasOptions && (
+                              <button
+                                type="button"
+                                className={cx("PrefModal__MacOptionsBtn", {
+                                  "PrefModal__MacOptionsBtn--expanded": isExpanded,
+                                })}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  this.handleTogglePluginExpand(pluginId)(e);
+                                }}
+                                aria-expanded={isExpanded}
+                                title={
+                                  isExpanded
+                                    ? i18n("options_collapse") || "收起選項"
+                                    : i18n("options_expand") || "展開選項"
+                                }
+                              >
+                                Options...
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        {plugin.id === "live_update" && isChecked && (
+                        {hasOptions && isExpanded && (
                           <div className="PrefModal__MacListItemSub">
-                            <div className="checkbox PrefModal__MacSubCheckbox">
-                              <label>
-                                <input
-                                  type="checkbox"
-                                  name="endTurnsOnLiveUpdate"
-                                  checked={Boolean(
-                                    values.endTurnsOnLiveUpdate !== false
-                                  )}
-                                  onChange={this.handleCheckboxChange}
-                                />
-                                {i18n("options_endTurnsOnLiveUpdate")}
-                              </label>
-                            </div>
-                            <div className="PrefModal__MacSubOptionRow">
-                              <span className="PrefModal__MacSubLabel">
-                                {i18n("options_liveUpdateInterval")}
-                              </span>
-                              <div className="PrefModal__MacSubInlineInput">
-                                <input
-                                  className="form-control"
-                                  type="number"
-                                  name="liveUpdateInterval"
-                                  min="1"
-                                  value={values.liveUpdateInterval || 1}
+                            {plugin.id === "live_update" && (
+                              <>
+                                <div className="checkbox PrefModal__MacSubCheckbox">
+                                  <label>
+                                    <input
+                                      type="checkbox"
+                                      name="endTurnsOnLiveUpdate"
+                                      checked={Boolean(
+                                        values.endTurnsOnLiveUpdate !== false
+                                      )}
+                                      onChange={this.handleCheckboxChange}
+                                    />
+                                    <span>{i18n("options_endTurnsOnLiveUpdate")}</span>
+                                  </label>
+                                </div>
+                                <div className="checkbox PrefModal__MacSubCheckbox">
+                                  <label>
+                                    <input
+                                      type="checkbox"
+                                      name="showLiveUpdateToolbar"
+                                      checked={Boolean(
+                                        values.showLiveUpdateToolbar !== false
+                                      )}
+                                      onChange={this.handleCheckboxChange}
+                                    />
+                                    <span>{i18n("options_showLiveUpdateToolbar")}</span>
+                                  </label>
+                                </div>
+                                <div className="PrefModal__MacSubOptionRow">
+                                  <span className="PrefModal__MacSubLabel">
+                                    {i18n("options_liveUpdateInterval")}
+                                  </span>
+                                  <div className="PrefModal__MacSubInlineInput">
+                                    <input
+                                      className="form-control"
+                                      type="number"
+                                      name="liveUpdateInterval"
+                                      min="1"
+                                      value={values.liveUpdateInterval || 1}
+                                      onChange={this.handleNumberInputChange}
+                                    />
+                                    <span className="PrefModal__MacSubUnit">
+                                      {i18n("options_liveUpdateIntervalSec")}
+                                    </span>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                            {plugin.id === "anti_idle" && (
+                              <div className="PrefModal__MacSubOptionRow">
+                                <span className="PrefModal__MacSubLabel">
+                                  {i18n("options_antiIdleTime")}
+                                </span>
+                                <div className="PrefModal__MacSubInlineInput">
+                                  <input
+                                    className="form-control"
+                                    type="number"
+                                    name="antiIdleTime"
+                                    min="1"
+                                    value={values.antiIdleTime || 60}
+                                    onChange={this.handleNumberInputChange}
+                                  />
+                                  <span className="PrefModal__MacSubUnit">
+                                    {i18n("options_liveUpdateIntervalSec")}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                            {plugin.id === "media_previewer" && (
+                              <div className="checkbox PrefModal__MacSubCheckbox">
+                                <label>
+                                  <input
+                                    type="checkbox"
+                                    name="picPreviewWhitelistOnly"
+                                    checked={Boolean(
+                                      values.picPreviewWhitelistOnly !== false
+                                    )}
+                                    onChange={this.handleCheckboxChange}
+                                  />
+                                  <span>{i18n("options_picPreviewWhitelistOnly")}</span>
+                                </label>
+                              </div>
+                            )}
+                            {plugin.id === "mouse_browsing" && (
+                              <>
+                                <div className="checkbox PrefModal__MacSubCheckbox">
+                                  <label>
+                                    <input
+                                      type="checkbox"
+                                      name="mouseBrowsingHighlight"
+                                      checked={values.mouseBrowsingHighlight}
+                                      onChange={this.handleCheckboxChange}
+                                    />
+                                    <span>{i18n("options_mouseBrowsingHighlight")}</span>
+                                  </label>
+                                </div>
+                                <div className="PrefModal__Grid__Col--right__MouseBrowsingHighlightColor">
+                                  {i18n("options_highlightColor")}
+                                  <select
+                                    className={cx(
+                                      "form-control",
+                                      `b${values.mouseBrowsingHighlightColor}`,
+                                    )}
+                                    name="mouseBrowsingHighlightColor"
+                                    value={values.mouseBrowsingHighlightColor}
+                                    onChange={this.handleNumberInputChange}
+                                  >
+                                    {Array(16)
+                                      .fill(0, 1)
+                                      .map((x, i) => (
+                                        <option key={i} value={i} className={cx(`b${i}`)} />
+                                      ))}
+                                  </select>
+                                </div>
+                                <SelectOptionGroup
+                                  controlId="mouseLeftFunction"
+                                  label={i18n("options_mouseLeftFunction")}
+                                  name="mouseLeftFunction"
+                                  value={values.mouseLeftFunction}
+                                  options={MOUSE_LEFT_OPTIONS}
                                   onChange={this.handleNumberInputChange}
                                 />
-                                <span className="PrefModal__MacSubUnit">
-                                  {i18n("options_liveUpdateIntervalSec")}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="checkbox PrefModal__MacSubCheckbox">
-                              <label>
-                                <input
-                                  type="checkbox"
-                                  name="showLiveUpdateToolbar"
-                                  checked={Boolean(
-                                    values.showLiveUpdateToolbar !== false
-                                  )}
-                                  onChange={this.handleCheckboxChange}
-                                />
-                                {i18n("options_showLiveUpdateToolbar")}
-                              </label>
-                            </div>
-                          </div>
-                        )}
-                        {plugin.id === "anti_idle" && isChecked && (
-                          <div className="PrefModal__MacListItemSub">
-                            <div className="PrefModal__MacSubOptionRow">
-                              <span className="PrefModal__MacSubLabel">
-                                {i18n("options_antiIdleTime")}
-                              </span>
-                              <div className="PrefModal__MacSubInlineInput">
-                                <input
-                                  className="form-control"
-                                  type="number"
-                                  name="antiIdleTime"
-                                  min="1"
-                                  value={values.antiIdleTime || 60}
+                                <SelectOptionGroup
+                                  controlId="mouseMiddleFunction"
+                                  label={i18n("options_mouseMiddleFunction")}
+                                  name="mouseMiddleFunction"
+                                  value={values.mouseMiddleFunction}
+                                  options={MOUSE_MIDDLE_OPTIONS}
                                   onChange={this.handleNumberInputChange}
                                 />
-                                <span className="PrefModal__MacSubUnit">
-                                  {i18n("options_liveUpdateIntervalSec")}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        {plugin.id === "media_previewer" && isChecked && (
-                          <div className="PrefModal__MacListItemSub">
-                            <div className="checkbox PrefModal__MacSubCheckbox">
-                              <label>
-                                <input
-                                  type="checkbox"
-                                  name="picPreviewWhitelistOnly"
-                                  checked={Boolean(
-                                    values.picPreviewWhitelistOnly !== false
-                                  )}
-                                  onChange={this.handleCheckboxChange}
+                                <SelectOptionGroup
+                                  controlId="mouseWheelFunction1"
+                                  label={i18n("options_mouseWheelFunction1")}
+                                  name="mouseWheelFunction1"
+                                  value={values.mouseWheelFunction1}
+                                  options={MOUSE_WHEEL_OPTIONS}
+                                  onChange={this.handleNumberInputChange}
                                 />
-                                {i18n("options_picPreviewWhitelistOnly")}
-                              </label>
-                            </div>
+                                <SelectOptionGroup
+                                  controlId="mouseWheelFunction2"
+                                  label={i18n("options_mouseWheelFunction2")}
+                                  name="mouseWheelFunction2"
+                                  value={values.mouseWheelFunction2}
+                                  options={MOUSE_WHEEL_OPTIONS}
+                                  onChange={this.handleNumberInputChange}
+                                />
+                                <SelectOptionGroup
+                                  controlId="mouseWheelFunction3"
+                                  label={i18n("options_mouseWheelFunction3")}
+                                  name="mouseWheelFunction3"
+                                  value={values.mouseWheelFunction3}
+                                  options={MOUSE_WHEEL_OPTIONS}
+                                  onChange={this.handleNumberInputChange}
+                                />
+                              </>
+                            )}
                           </div>
                         )}
                       </div>
@@ -930,17 +1010,6 @@ export class PrefModal extends React.Component {
                       onChange={this.handleCheckboxChange}
                     />
                     {i18n("options_showFps")}
-                  </label>
-                </div>
-                <div className="checkbox">
-                  <label>
-                    <input
-                      type="checkbox"
-                      name="captureConnectionLog"
-                      checked={values.captureConnectionLog}
-                      onChange={this.handleCheckboxChange}
-                    />
-                    {i18n("options_captureConnectionLog")}
                   </label>
                 </div>
               </fieldset>

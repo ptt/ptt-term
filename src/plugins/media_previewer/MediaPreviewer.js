@@ -21,7 +21,6 @@ export class MediaPreviewer {
       description: _("plugin_media_previewer_desc"),
       prefKey: "enablePicPreview",
       icon: "image",
-      badge: _("plugin_builtin"),
     };
   }
 
@@ -57,10 +56,6 @@ export class MediaPreviewer {
     return "image";
   }
 
-  get badge() {
-    return _("plugin_builtin");
-  }
-
   getMetadata() {
     return {
       id: this.id,
@@ -70,7 +65,6 @@ export class MediaPreviewer {
       prefKey: this.prefKey,
       enabled: this.enabled,
       icon: this.icon,
-      badge: this.badge,
     };
   }
 

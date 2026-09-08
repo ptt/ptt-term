@@ -278,7 +278,6 @@ export class App {
         prefKey: p.prefKey,
         enabled: p.enabled,
         icon: p.icon || 'extension',
-        badge: p.badge,
       };
     });
   }

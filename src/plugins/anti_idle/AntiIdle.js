@@ -14,7 +14,6 @@ export class AntiIdle {
       description: _("plugin_anti_idle_desc"),
       prefKey: "enableAntiIdle",
       icon: "timer",
-      badge: _("plugin_builtin"),
     };
   }
 
@@ -51,10 +50,6 @@ export class AntiIdle {
     return "timer";
   }
 
-  get badge() {
-    return _("plugin_builtin");
-  }
-
   getMetadata() {
     return {
       id: this.id,
@@ -64,7 +59,6 @@ export class AntiIdle {
       prefKey: this.prefKey,
       enabled: this.enabled,
       icon: this.icon,
-      badge: this.badge,
     };
   }
 

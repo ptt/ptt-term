@@ -32,7 +32,6 @@ export class MouseBrowsing {
       description: _("plugin_mouse_browsing_desc"),
       prefKey: "useMouseBrowsing",
       icon: "mouse",
-      badge: _("plugin_builtin"),
     };
   }
 
@@ -68,10 +67,6 @@ export class MouseBrowsing {
     return "mouse";
   }
 
-  get badge() {
-    return _("plugin_builtin");
-  }
-
   getMetadata() {
     return {
       id: this.id,
@@ -81,7 +76,6 @@ export class MouseBrowsing {
       prefKey: this.prefKey,
       enabled: this.enabled,
       icon: this.icon,
-      badge: this.badge,
     };
   }
 

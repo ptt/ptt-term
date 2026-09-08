@@ -17,7 +17,6 @@ export class EasyReading {
       description: _('plugin_easy_reading_desc'),
       prefKey: 'enableEasyReading',
       icon: 'book',
-      badge: _('plugin_builtin'),
     };
   }
 
@@ -45,10 +44,6 @@ export class EasyReading {
     return 'book';
   }
 
-  get badge() {
-    return _('plugin_builtin');
-  }
-
   getMetadata() {
     return {
       id: this.id,
@@ -58,7 +53,6 @@ export class EasyReading {
       prefKey: this.prefKey,
       enabled: this.enabled,
       icon: this.icon,
-      badge: this.badge,
     };
   }
 

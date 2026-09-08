@@ -1656,8 +1656,8 @@ test('PrefModal locks termSizeMode to fixed-font-size and disables select on tou
     path.resolve('src/components/ContextMenu/PrefModal.css'),
     'utf-8'
   );
-  assert.ok(prefModalCss.includes('width: 31.25%'), 'sidebar width should be proportional (31.25%)');
-  assert.ok(prefModalCss.includes('max-width: 200px'), 'sidebar max-width should be capped at 200px');
+  assert.ok(prefModalCss.includes('width: 22%'), 'sidebar width should be proportional (22%)');
+  assert.ok(prefModalCss.includes('max-width: 140px'), 'sidebar max-width should be capped at 140px');
   assert.ok(prefModalCss.includes('@media (max-width: 640px)'), 'PrefModal should have responsive rules for narrow screens');
 });
 
@@ -1745,7 +1745,45 @@ test('PrefModal redesign includes Extensions/Plugins tab with Mac-style toggle l
     'PrefModal.css must style .PrefModal__MacSwitchSlider'
   );
 
-  // 4. App defines getPluginList and ContextMenu passes app to PrefModal
+  // 4. Collapsible options with disclosure chevron
+  assert.ok(
+    prefModalSource.includes('expandedPluginId: null'),
+    'PrefModal must initialize expandedPluginId to null'
+  );
+  assert.ok(
+    prefModalSource.includes('pluginHasOptions'),
+    'PrefModal must implement pluginHasOptions helper'
+  );
+  assert.ok(
+    prefModalSource.includes('handleTogglePluginExpand'),
+    'PrefModal must implement handleTogglePluginExpand handler'
+  );
+  assert.ok(
+    prefModalSource.includes('PrefModal__MacOptionsBtn'),
+    'PrefModal must render PrefModal__MacOptionsBtn options button'
+  );
+  assert.ok(
+    prefModalSource.includes('Options...'),
+    'PrefModal must display Options... label on options button'
+  );
+  assert.ok(
+    prefModalSource.includes('PrefModal__MacListItemActions'),
+    'PrefModal must wrap options button and switch in PrefModal__MacListItemActions'
+  );
+  assert.ok(
+    prefModalCss.includes('.PrefModal__MacOptionsBtn'),
+    'PrefModal.css must style .PrefModal__MacOptionsBtn'
+  );
+  assert.ok(
+    prefModalCss.includes('.PrefModal__MacOptionsBtn--expanded'),
+    'PrefModal.css must style .PrefModal__MacOptionsBtn--expanded'
+  );
+  assert.ok(
+    prefModalCss.includes('.PrefModal__MacListItem--hasOptions'),
+    'PrefModal.css must style .PrefModal__MacListItem--hasOptions'
+  );
+
+  // 5. App defines getPluginList and ContextMenu passes app to PrefModal
   const appSource = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
   assert.ok(
     appSource.includes('getPluginList()'),
@@ -1758,6 +1796,105 @@ test('PrefModal redesign includes Extensions/Plugins tab with Mac-style toggle l
   assert.ok(
     contextMenuSource.includes('app={app}'),
     'ContextMenu must pass app prop to PrefModal'
+  );
+});
+
+test('PrefModal streamlines extensions UI and consolidates options', () => {
+  const prefModalSource = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/PrefModal.js'),
+    'utf-8'
+  );
+
+  // 1. [Builtin] badge is removed from extension titles
+  assert.ok(
+    !prefModalSource.includes('plugin.badge'),
+    'PrefModal should not render plugin.badge in extension title'
+  );
+
+  // 2. Mouse Browsing is moved to plugins tab and removed from standalone nav
+  assert.ok(
+    !prefModalSource.includes('navActiveKey === "mouseBrowsing"'),
+    'PrefModal must remove standalone mouseBrowsing nav and tab'
+  );
+  assert.ok(
+    prefModalSource.includes('plugin.id === "mouse_browsing"'),
+    'PrefModal must provide mouse_browsing configuration options under plugins tab'
+  );
+  assert.ok(
+    prefModalSource.includes('name="mouseBrowsingHighlight"'),
+    'PrefModal must provide mouseBrowsingHighlight under mouse_browsing options'
+  );
+  assert.ok(
+    prefModalSource.includes('name="mouseLeftFunction"'),
+    'PrefModal must provide mouseLeftFunction under mouse_browsing options'
+  );
+
+  // 3. Obsolete image preview options are removed from General tab
+  const generalTabSection = prefModalSource.substring(
+    prefModalSource.indexOf('navActiveKey === "general"'),
+    prefModalSource.indexOf('navActiveKey === "bbs"')
+  );
+  assert.ok(
+    !generalTabSection.includes('name="enablePicPreview"'),
+    'General tab must not contain enablePicPreview (managed by media_previewer extension)'
+  );
+
+  // 4. Obsolete connection log option is removed from Advanced tab
+  const advancedTabSection = prefModalSource.substring(
+    prefModalSource.indexOf('navActiveKey === "advanced"'),
+    prefModalSource.indexOf('navActiveKey === "about"')
+  );
+  assert.ok(
+    !advancedTabSection.includes('name="captureConnectionLog"'),
+    'Advanced tab must not contain captureConnectionLog (managed by conn_log extension)'
+  );
+});
+
+test('PrefModal extension options container and checkboxes are constrained to prevent horizontal overflow', () => {
+  const prefModalCss = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/PrefModal.css'),
+    'utf-8'
+  );
+  const prefModalSource = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/PrefModal.js'),
+    'utf-8'
+  );
+
+  // 1. PrefModal__MacListItemSub has box-sizing: border-box and padding-right to avoid right-boundary overflow
+  assert.ok(
+    prefModalCss.includes('.PrefModal__MacListItemSub {') &&
+      prefModalCss.includes('box-sizing: border-box;'),
+    'PrefModal.css must set box-sizing: border-box on .PrefModal__MacListItemSub'
+  );
+  assert.ok(
+    prefModalCss.includes('padding-right: 14px;'),
+    'PrefModal.css must set padding-right on .PrefModal__MacListItemSub for symmetrical bounds'
+  );
+
+  // 2. PrefModal__MacList resets padding-left to 0 inside Fieldset
+  assert.ok(
+    prefModalCss.includes('.PrefModal__Grid__Col--right__Fieldset > .PrefModal__MacList {\n  padding-left: 0;\n}'),
+    'PrefModal.css must reset padding-left on .PrefModal__MacList'
+  );
+
+  // 3. Sub-checkbox labels support flex wrap and word breaking so long strings do not clip
+  assert.ok(
+    prefModalCss.includes('.PrefModal__MacSubCheckbox label {') &&
+      prefModalCss.includes('white-space: normal;') &&
+      prefModalCss.includes('display: flex;'),
+    'PrefModal__MacSubCheckbox label must use flex layout with white-space: normal'
+  );
+  assert.ok(
+    prefModalCss.includes('.PrefModal__MacSubCheckbox label span {') &&
+      prefModalCss.includes('min-width: 0;') &&
+      prefModalCss.includes('word-break: break-word;'),
+    'PrefModal__MacSubCheckbox label span must allow shrinking (min-width: 0) and word-break'
+  );
+
+  // 4. media_previewer checkbox wraps translation in span for flex container
+  assert.ok(
+    prefModalSource.includes('<span>{i18n("options_picPreviewWhitelistOnly")}</span>'),
+    'media_previewer option label text must be wrapped in a span'
   );
 });
 

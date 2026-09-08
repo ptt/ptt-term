@@ -71,7 +71,6 @@ export function getAvailablePlugins(app) {
           description: '',
           prefKey: PluginClass.prefKey,
           icon: 'extension',
-          badge: 'Built-in',
         };
   });
 }

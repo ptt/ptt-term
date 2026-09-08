@@ -77,6 +77,12 @@ export const en_US = {
   options_plugins_desc: {
     message: "Manage extended features and custom modules",
   },
+  options_expand: {
+    message: "Expand options",
+  },
+  options_collapse: {
+    message: "Collapse options",
+  },
   options_about: {
     message: "About",
   },

@@ -14,7 +14,6 @@ export class InputHelper {
       description: _("plugin_input_helper_desc"),
       prefKey: "enableInputHelper",
       icon: "palette",
-      badge: _("plugin_builtin"),
     };
   }
 
@@ -50,10 +49,6 @@ export class InputHelper {
     return "palette";
   }
 
-  get badge() {
-    return _("plugin_builtin");
-  }
-
   getMetadata() {
     return {
       id: this.id,
@@ -63,7 +58,6 @@ export class InputHelper {
       prefKey: this.prefKey,
       enabled: this.enabled,
       icon: this.icon,
-      badge: this.badge,
     };
   }
 
