@@ -290,17 +290,17 @@ export class TermBuf extends Event {
     this.hasFrameSync = false;
     this._syncUpdateTimeout = null;
 
-    this.startedEasyReading = false;
-    this.easyReadingShowReplyText = false;
-    this.easyReadingShowPushInitText = false;
+    this._startedEasyReading = false;
+    this._easyReadingShowReplyText = false;
+    this._easyReadingShowPushInitText = false;
     this.prevPageState = 0;
     this.site = getSite(process.env.SITE_TYPE || 'auto');
 
     /** @type {TermChar[][]} */
     this.lines = new Array(validRows);
 
-    this.pageLines = [];
-    this.pageWrappedLines = [];
+    this._pageLines = [];
+    this._pageWrappedLines = [];
 
     this.lineChangeds = new Array(validRows);
 
@@ -1566,4 +1566,43 @@ export class TermBuf extends Event {
     }
   }
 
+  get startedEasyReading() {
+    return this._easyReading ? this._easyReading.startedEasyReading : this._startedEasyReading;
+  }
+  set startedEasyReading(val) {
+    if (this._easyReading) this._easyReading.startedEasyReading = val;
+    this._startedEasyReading = val;
+  }
+
+  get easyReadingShowReplyText() {
+    return this._easyReading ? this._easyReading.easyReadingShowReplyText : this._easyReadingShowReplyText;
+  }
+  set easyReadingShowReplyText(val) {
+    if (this._easyReading) this._easyReading.easyReadingShowReplyText = val;
+    this._easyReadingShowReplyText = val;
+  }
+
+  get easyReadingShowPushInitText() {
+    return this._easyReading ? this._easyReading.easyReadingShowPushInitText : this._easyReadingShowPushInitText;
+  }
+  set easyReadingShowPushInitText(val) {
+    if (this._easyReading) this._easyReading.easyReadingShowPushInitText = val;
+    this._easyReadingShowPushInitText = val;
+  }
+
+  get pageLines() {
+    return this._easyReading ? this._easyReading.pageLines : this._pageLines;
+  }
+  set pageLines(val) {
+    if (this._easyReading) this._easyReading.pageLines = val;
+    this._pageLines = val;
+  }
+
+  get pageWrappedLines() {
+    return this._easyReading ? this._easyReading.pageWrappedLines : this._pageWrappedLines;
+  }
+  set pageWrappedLines(val) {
+    if (this._easyReading) this._easyReading.pageWrappedLines = val;
+    this._pageWrappedLines = val;
+  }
 }

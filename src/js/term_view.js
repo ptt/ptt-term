@@ -58,7 +58,7 @@ export class TermView {
   this.cursorY = 0;
 
   // TODO Move this into easy_reading.js
-  this.useEasyReadingMode = false;
+  this._useEasyReadingMode = false;
   this.easyReadingKeyDownKeyCode = 0;
   this.easyReadingKeyDownIsComposing = false;
 
@@ -382,8 +382,10 @@ export class TermView {
       return;
     }
 
+    const isEasyReadingPrompt = this.bbscore?.easyReading?.isPromptActive?.() ??
+      (this.buf?.easyReadingShowReplyText || this.buf?.easyReadingShowPushInitText || false);
     if (this.isEasyReadingActive() && 
-        !this.buf.easyReadingShowReplyText && !this.buf.easyReadingShowPushInitText &&
+        !isEasyReadingPrompt &&
         (this.easyReadingKeyDownIsComposing || this.easyReadingKeyDownKeyCode == 229) && e.target.value != 'X') { // only use on chinese IME
       e.target.value = '';
       return;
@@ -412,8 +414,9 @@ export class TermView {
   }
 
   onKeyDown(e) {
-    if (this.isEasyReadingActive() && 
-        !this.buf.easyReadingShowReplyText && !this.buf.easyReadingShowPushInitText) {
+    const isEasyReadingPrompt = this.bbscore?.easyReading?.isPromptActive?.() ??
+      (this.buf?.easyReadingShowReplyText || this.buf?.easyReadingShowPushInitText || false);
+    if (this.isEasyReadingActive() && !isEasyReadingPrompt) {
       this.easyReadingKeyDownKeyCode = e.keyCode;
       this.easyReadingKeyDownIsComposing = e.isComposing || e.key === 'Process' || e.keyCode === 229;
       this.bbscore.easyReading._onKeyDown(e);
@@ -1007,6 +1010,18 @@ export class TermView {
         }).catch(() => {});
       }
     }
+  }
+
+  get useEasyReadingMode() {
+    return this.bbscore?.easyReading ? this.bbscore.easyReading.enabled : (this._easyReading ? this._easyReading.enabled : this._useEasyReadingMode);
+  }
+  set useEasyReadingMode(val) {
+    if (this.bbscore?.easyReading) {
+      this.bbscore.easyReading.enabled = val;
+    } else if (this._easyReading) {
+      this._easyReading.enabled = val;
+    }
+    this._useEasyReadingMode = val;
   }
 
   get easyReadingOverlay() {

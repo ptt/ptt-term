@@ -1198,6 +1198,54 @@ test('EasyReading encapsulates overlay DOM elements and page stitching', () => {
   }
 });
 
+test('EasyReading decouples state tracking and removes TermBuf property injection', () => {
+  const mockCore = {
+    connectedUrl: { easyReadingSupported: true },
+    suppressInertialWheel: () => {},
+  };
+  const mockView = {
+    chh: 16,
+    useEasyReadingMode: true,
+  };
+  const mockTermBuf = {
+    cols: 80,
+    rows: 24,
+    addEventListener: () => {},
+  };
+
+  const easyReading = new EasyReading(mockCore, mockView, mockTermBuf);
+
+  // EasyReading owns its own state
+  assert.equal(easyReading.enabled, true);
+  assert.equal(easyReading.isStarted(), false);
+  assert.equal(easyReading.isPromptActive(), false);
+
+  easyReading.started = true;
+  assert.equal(easyReading.isStarted(), true);
+  assert.equal(easyReading.startedEasyReading, true);
+
+  easyReading.showReplyText = true;
+  assert.equal(easyReading.isPromptActive(), true);
+  assert.equal(easyReading.isReplyActive(), true);
+  assert.equal(easyReading.easyReadingShowReplyText, true);
+
+  easyReading.showReplyText = false;
+  easyReading.showPushInitText = true;
+  assert.equal(easyReading.isPromptActive(), true);
+  assert.equal(easyReading.isPushInitActive(), true);
+  assert.equal(easyReading.easyReadingShowPushInitText, true);
+
+  // TermBuf was not monkey-patched with non-configurable Object.defineProperty
+  const desc = Object.getOwnPropertyDescriptor(mockTermBuf, 'startedEasyReading');
+  assert.equal(desc, undefined); // It was not defined directly on mockTermBuf!
+
+  easyReading.pageLines = [['line1']];
+  easyReading.pageWrappedLines = [1, 2];
+  easyReading.hide();
+  assert.deepEqual(easyReading.pageLines, []);
+  assert.deepEqual(easyReading.pageWrappedLines, []);
+});
+
 
 
 
