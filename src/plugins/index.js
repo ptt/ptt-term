@@ -17,6 +17,10 @@ import {
 import {
   AntiIdle,
 } from './anti_idle/index.js';
+import {
+  MediaPreviewer,
+  MediaPreviewerPlugin,
+} from './media_previewer/index.js';
 
 export {
   EasyReading,
@@ -28,6 +32,8 @@ export {
   MouseBrowsing,
   InputHelper,
   AntiIdle,
+  MediaPreviewer,
+  MediaPreviewerPlugin,
 };
 
 export const BUILTIN_PLUGINS = [
@@ -36,6 +42,7 @@ export const BUILTIN_PLUGINS = [
   MouseBrowsing,
   InputHelper,
   AntiIdle,
+  MediaPreviewer,
 ];
 
 export function getAvailablePlugins(app) {

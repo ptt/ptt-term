@@ -100,6 +100,12 @@ export const en_US = {
   plugin_anti_idle_desc: {
     message: "Periodically sends keepalive signals to the BBS site when idle to prevent disconnects.",
   },
+  plugin_media_previewer_title: {
+    message: "Media & Image Previewer",
+  },
+  plugin_media_previewer_desc: {
+    message: "Shows image and media popup preview on hover, supporting Imgur and trusted domain whitelist.",
+  },
   plugin_builtin: {
     message: "Built-in",
   },

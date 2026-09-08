@@ -53,6 +53,23 @@ const renderPluginIcon = (icon) => {
           <polyline points="12 6 12 12 16 14" />
         </svg>
       );
+    case "image":
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+          <circle cx="8.5" cy="8.5" r="1.5" />
+          <polyline points="21 15 16 10 5 21" />
+        </svg>
+      );
     default:
       return (
         <svg
@@ -833,6 +850,23 @@ export class PrefModal extends React.Component {
                                   {i18n("options_liveUpdateIntervalSec")}
                                 </span>
                               </div>
+                            </div>
+                          </div>
+                        )}
+                        {plugin.id === "media_previewer" && isChecked && (
+                          <div className="PrefModal__MacListItemSub">
+                            <div className="checkbox PrefModal__MacSubCheckbox">
+                              <label>
+                                <input
+                                  type="checkbox"
+                                  name="picPreviewWhitelistOnly"
+                                  checked={Boolean(
+                                    values.picPreviewWhitelistOnly !== false
+                                  )}
+                                  onChange={this.handleCheckboxChange}
+                                />
+                                {i18n("options_picPreviewWhitelistOnly")}
+                              </label>
                             </div>
                           </div>
                         )}

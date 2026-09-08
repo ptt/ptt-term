@@ -100,6 +100,12 @@ export const zh_TW = {
   plugin_anti_idle_desc: {
     message: "當終端機閒置超過指定時間時，自動向站台發送 keepalive 訊號以維持連線。",
   },
+  plugin_media_previewer_title: {
+    message: "圖片與媒體預覽",
+  },
+  plugin_media_previewer_desc: {
+    message: "當滑鼠懸停於圖片或媒體連結時顯示預覽浮動視窗，支援 Imgur 等常用圖床與安全網域白名單。",
+  },
   plugin_builtin: {
     message: "內建",
   },

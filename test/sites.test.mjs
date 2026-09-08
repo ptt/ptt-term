@@ -1793,5 +1793,44 @@ test('src/plugins exports AntiIdle and delegates keepalive to site', async () =>
   assert.equal(sentData.length, 1);
 });
 
+test('src/plugins exports MediaPreviewer and resolves trusted image urls', async () => {
+  const pluginsModule = await import('../src/plugins/index.js');
+  const mediaModule = await import('../src/plugins/media_previewer/index.js');
+
+  assert.equal(pluginsModule.MediaPreviewer, mediaModule.MediaPreviewer);
+
+  const meta = mediaModule.MediaPreviewer.getMetadata();
+  assert.equal(meta.id, 'media_previewer');
+  assert.equal(meta.prefKey, 'enablePicPreview');
+
+  const mp = new mediaModule.MediaPreviewer(null, {
+    enabled: true,
+    whitelistOnly: true,
+  });
+
+  // Whitelisted domain (imgur)
+  assert.equal(mp.isTrustedDomain('i.imgur.com'), true);
+  assert.equal(
+    mp.resolveImageUrl('https://imgur.com/abcd123'),
+    'https://i.imgur.com/abcd123.jpg'
+  );
+
+  // Non-whitelisted domain rejected when whitelistOnly is true
+  assert.equal(
+    mp.resolveImageUrl('https://untrusted-site.com/image.png', true),
+    null
+  );
+
+  // Non-whitelisted domain allowed when whitelistOnly is false
+  assert.equal(
+    mp.resolveImageUrl('https://untrusted-site.com/image.png', false),
+    'https://untrusted-site.com/image.png'
+  );
+
+  // When plugin is disabled
+  mp.enabled = false;
+  assert.equal(mp.resolveImageUrl('https://imgur.com/abcd123'), null);
+});
+
 
 
