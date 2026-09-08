@@ -401,9 +401,14 @@ export class App {
     if (force && document.activeElement === this.inputArea) {
       this.inputArea.blur();
     }
-    this._debugTouchLog(`setInputAreaFocus SUCCESS: force=${force}`);
-    //this.DocInputArea.disabled="";
-    this.inputArea.focus();
+    try {
+      this.inputArea.focus({ preventScroll: true });
+    } catch (e) {
+      this.inputArea.focus();
+    }
+    if (typeof window !== "undefined") {
+      window.scrollTo(0, 0);
+    }
   }
 
   isSelectionCollapsed() {

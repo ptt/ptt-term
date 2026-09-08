@@ -1,6 +1,5 @@
 import { readValuesWithDefault, writeValues } from "../js/pref.js";
 
-const LONG_PRESS_MS = 500;
 const MOVE_THRESHOLD = 8;
 const PINCH_STEP_PX = 28;
 
@@ -18,8 +17,6 @@ export class TouchController {
     this.isSelecting = false;
     this.isPinching = false;
     this.panDirection = null;
-    this.longPressTimer = null;
-    this.longPressed = false;
     this.pointers = new Map();
     this.pinchLastDist = 0;
     this.pinchAccumulatedDelta = 0;
@@ -84,7 +81,6 @@ export class TouchController {
         this.isSelecting = false;
         this.isPinching = false;
         this.panDirection = null;
-        this.longPressed = false;
         this.startX = e.clientX;
         this.startY = e.clientY;
         this.lastX = e.clientX;
@@ -98,26 +94,11 @@ export class TouchController {
         }
         console.debug("pointerdown (touch)");
 
-        // Long-press opens the app context menu.
-        this.clearLongPressTimer();
-        this.longPressTimer = setTimeout(() => {
-          this.longPressTimer = null;
-          if (this.isPanning || this.isSelecting || this.isPinching) return;
-          this.longPressed = true;
-          if (navigator.vibrate) {
-            try {
-              navigator.vibrate(10);
-            } catch (err) {}
-          }
-          app.openContextMenu(this.touchedCenter.x, this.touchedCenter.y);
-        }, LONG_PRESS_MS);
-
         try {
           target.setPointerCapture(e.pointerId);
         } catch (err) {}
       } else if (this.pointers.size === 2) {
         // Multi-touch: enter pinch zoom / two-finger pan mode
-        this.clearLongPressTimer();
         if (this.isSelecting && app.view) {
           app.view.clearSelection();
         }
@@ -142,7 +123,6 @@ export class TouchController {
 
       if (this.pointers.size >= 2) {
         // Two-finger gesture: pinch to zoom font and two-finger pan
-        this.clearLongPressTimer();
         const [p1, p2] = Array.from(this.pointers.values());
         const currentDist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
         const distDelta = currentDist - this.pinchLastDist;
@@ -179,9 +159,6 @@ export class TouchController {
 
       const dist = Math.hypot(e.clientX - this.startX, e.clientY - this.startY);
       if (dist > MOVE_THRESHOLD) {
-        // Movement means this is not a long-press.
-        this.clearLongPressTimer();
-
         if (!this.panDirection) {
           const dx = Math.abs(e.clientX - this.startX);
           const dy = Math.abs(e.clientY - this.startY);
@@ -221,7 +198,6 @@ export class TouchController {
       if (!this.pointers.has(e.pointerId)) return;
 
       this.lastTouchTime = Date.now();
-      this.clearLongPressTimer();
       this.pointers.delete(e.pointerId);
 
       try {
@@ -229,17 +205,6 @@ export class TouchController {
           target.releasePointerCapture(e.pointerId);
         }
       } catch (err) {}
-
-      // A long-press already opened the context menu; swallow this pointerup
-      if (this.longPressed) {
-        this.longPressed = false;
-        this.touchStarted = false;
-        this.isPanning = false;
-        this.isSelecting = false;
-        this.isPinching = false;
-        this.panDirection = null;
-        return;
-      }
 
       if (this.isPinching) {
         if (this.pointers.size === 0) {
@@ -253,6 +218,8 @@ export class TouchController {
       }
 
       if (this.isSelecting) {
+        if (e.preventDefault) e.preventDefault();
+        if (e.stopPropagation) e.stopPropagation();
         let text = "";
         if (app.view) {
           text = app.view.endSelection ? app.view.endSelection() : (app.view.getSelectedText ? app.view.getSelectedText() : "");
@@ -316,8 +283,6 @@ export class TouchController {
       if (!this.pointers.has(e.pointerId)) return;
 
       this.lastTouchTime = Date.now();
-      this.clearLongPressTimer();
-      this.longPressed = false;
       this.pointers.delete(e.pointerId);
 
       try {
@@ -345,6 +310,20 @@ export class TouchController {
       }
       console.debug("pointercancel (touch)");
     });
+
+    target.addEventListener(
+      "contextmenu",
+      (e) => {
+        if (
+          e.pointerType === "touch" ||
+          (this.lastTouchTime && Date.now() - this.lastTouchTime < 1000)
+        ) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      },
+      true
+    );
   }
 }
 

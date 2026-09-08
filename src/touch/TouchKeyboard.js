@@ -343,9 +343,20 @@ export class TouchKeyboard extends React.Component {
           0,
           window.innerHeight - (vv.height + vv.offsetTop)
         );
+        document.documentElement.style.setProperty(
+          "--keyboard-offset",
+          `${offset}px`
+        );
         const bbsWin = document.getElementById("BBSWindow");
-        const target = bbsWin || document.documentElement;
-        target.style.setProperty("--keyboard-offset", `${offset}px`);
+        if (bbsWin) {
+          bbsWin.style.setProperty("--keyboard-offset", `${offset}px`);
+        }
+        if (
+          typeof window !== "undefined" &&
+          (window.scrollY !== 0 || window.scrollX !== 0)
+        ) {
+          window.scrollTo(0, 0);
+        }
         this.scheduleToolbarUpdate();
       };
       window.visualViewport.addEventListener(
@@ -433,10 +444,32 @@ export class TouchKeyboard extends React.Component {
       this.props.app.inputArea.addEventListener("focus", this.inputAreaFocusHandler, false);
       this.props.app.inputArea.addEventListener("blur", this.inputAreaBlurHandler, false);
     }
+
+    if (typeof window !== "undefined") {
+      this.handleWindowScroll = () => {
+        if (!this.isInstanceActive()) {
+          window.removeEventListener("scroll", this.handleWindowScroll, {
+            passive: true,
+          });
+          return;
+        }
+        if (window.scrollY !== 0 || window.scrollX !== 0) {
+          window.scrollTo(0, 0);
+        }
+      };
+      window.addEventListener("scroll", this.handleWindowScroll, {
+        passive: true,
+      });
+    }
   }
 
   componentWillUnmount() {
     this._isMounted = false;
+    if (this.handleWindowScroll) {
+      window.removeEventListener("scroll", this.handleWindowScroll, {
+        passive: true,
+      });
+    }
     if (this.rafId) {
       cancelAnimationFrame(this.rafId);
       this.rafId = null;
@@ -491,11 +524,9 @@ export class TouchKeyboard extends React.Component {
     const { app } = this.props;
     if (!app) return;
 
-    if (typeof navigator !== "undefined" && navigator.vibrate) {
-      try {
-        navigator.vibrate(8);
-      } catch (err) {}
-    }
+    try {
+      navigator?.vibrate?.(8);
+    } catch (err) {}
 
     const eventKey = keyName === "Space" ? " " : keyName;
     const fakeEvent = {
@@ -507,45 +538,13 @@ export class TouchKeyboard extends React.Component {
       preventDefault: () => {},
     };
 
-    let handled = false;
-    if (app.view && app.view.onKeyDown) {
-      try {
-        app.view.onKeyDown(fakeEvent);
-        handled = true;
-      } catch (err) {
-        console.warn(
-          "Failed to dispatch key to view.onKeyDown, falling back to conn.send:",
-          err
-        );
-      }
-    }
-    if (!handled && app.conn && app.conn.send) {
-      const fallbackMap = {
-        ArrowLeft: "\x1b[D",
-        ArrowUp: "\x1b[A",
-        ArrowDown: "\x1b[B",
-        ArrowRight: "\x1b[C",
-        PageUp: "\x1b[5~",
-        PageDown: "\x1b[6~",
-        Home: "\x1b[1~",
-        End: "\x1b[4~",
-        Space: " ",
-        " ": " ",
-        Backspace: "\b",
-        Escape: "\x1b",
-        Enter: "\r",
-        Tab: "\t",
-      };
-      if (fallbackMap[keyName]) {
-        app.conn.send(fallbackMap[keyName]);
-      }
-    }
+    app?.view?.onKeyDown(fakeEvent);
   };
 
   handleKeyPointerDown = (keyName, e) => {
     if (e) {
-      e.preventDefault();
-      e.stopPropagation();
+      if (e.preventDefault) e.preventDefault();
+      if (e.stopPropagation) e.stopPropagation();
     }
     this.activeKeyName = keyName;
     this.setState({ pressedKeyName: keyName });
@@ -585,8 +584,8 @@ export class TouchKeyboard extends React.Component {
   handleDragStart = (e) => {
     if (e.button !== 0 && e.pointerType === "mouse") return;
     if (Date.now() < this.suppressInteractionUntil) return;
-    e.preventDefault();
-    e.stopPropagation();
+    if (e.preventDefault) e.preventDefault();
+    if (e.stopPropagation) e.stopPropagation();
 
     const toolbarEl = document.querySelector(".TouchFloatingToolbar");
     if (!toolbarEl) return;
@@ -631,13 +630,17 @@ export class TouchKeyboard extends React.Component {
     window.addEventListener("pointerup", this.handleDragEnd, {
       passive: false,
     });
-    window.addEventListener("pointercancel", this.handleDragEnd, {
+    window.addEventListener("pointercancel", this.handleDragCancel, {
       passive: false,
     });
   };
 
   handleDragMove = (e) => {
-    if (!this.dragState || e.pointerId !== this.dragState.pointerId) return;
+    if (
+      !this.dragState ||
+      (e.pointerId != null && e.pointerId !== this.dragState.pointerId)
+    )
+      return;
 
     const dx = e.clientX - this.dragState.startX;
     const dy = e.clientY - this.dragState.startY;
@@ -648,8 +651,8 @@ export class TouchKeyboard extends React.Component {
       this.setState({ isDragging: true });
     }
 
-    e.preventDefault();
-    e.stopPropagation();
+    if (e.preventDefault) e.preventDefault();
+    if (e.stopPropagation) e.stopPropagation();
 
     const viewportWidth =
       typeof window !== "undefined"
@@ -688,11 +691,15 @@ export class TouchKeyboard extends React.Component {
   };
 
   handleDragEnd = (e) => {
-    if (!this.dragState || e.pointerId !== this.dragState.pointerId) return;
+    if (
+      !this.dragState ||
+      (e && e.pointerId != null && e.pointerId !== this.dragState.pointerId)
+    )
+      return;
 
     window.removeEventListener("pointermove", this.handleDragMove);
     window.removeEventListener("pointerup", this.handleDragEnd);
-    window.removeEventListener("pointercancel", this.handleDragEnd);
+    window.removeEventListener("pointercancel", this.handleDragCancel);
 
     if (this.dragState.hasMoved) {
       this.suppressInteractionUntil = Date.now() + 250;
@@ -711,16 +718,22 @@ export class TouchKeyboard extends React.Component {
     }
 
     this.dragState = null;
-    this.setState({ isDragging: false });
+    this.setState({ isDragging: false, pressedKeyName: null });
   };
 
-  handleToolbarCapture = (event) => {
-    if (Date.now() < this.suppressInteractionUntil) {
-      if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-    }
+  handleDragCancel = (e) => {
+    if (
+      !this.dragState ||
+      (e && e.pointerId != null && e.pointerId !== this.dragState.pointerId)
+    )
+      return;
+
+    window.removeEventListener("pointermove", this.handleDragMove);
+    window.removeEventListener("pointerup", this.handleDragEnd);
+    window.removeEventListener("pointercancel", this.handleDragCancel);
+
+    this.dragState = null;
+    this.setState({ isDragging: false, pressedKeyName: null });
   };
 
   handleToggleToolbarCollapse = (event) => {
@@ -847,8 +860,8 @@ export class TouchKeyboard extends React.Component {
 
   handleAlphaLetterDown = (letter, event) => {
     if (event) {
-      event.preventDefault();
-      event.stopPropagation();
+      if (event.preventDefault) event.preventDefault();
+      if (event.stopPropagation) event.stopPropagation();
     }
     this.sendAlphaLetter(letter);
   };
@@ -857,11 +870,9 @@ export class TouchKeyboard extends React.Component {
     const { app } = this.props;
     if (!app) return;
 
-    if (typeof navigator !== "undefined" && navigator.vibrate) {
-      try {
-        navigator.vibrate(8);
-      } catch (err) {}
-    }
+    try {
+      navigator?.vibrate?.(8);
+    } catch (err) {}
 
     const { isShiftActive, isShiftSticky } = this.state;
     const char = isShiftActive ? letter.toUpperCase() : letter.toLowerCase();
@@ -874,18 +885,7 @@ export class TouchKeyboard extends React.Component {
       preventDefault: () => {},
     };
 
-    let handled = false;
-    if (app.view && app.view.onKeyDown) {
-      try {
-        app.view.onKeyDown(fakeEvent);
-        handled = true;
-      } catch (err) {
-        console.warn("Failed to dispatch letter to view.onKeyDown:", err);
-      }
-    }
-    if (!handled && app.conn && app.conn.send) {
-      app.conn.send(char);
-    }
+    app?.view?.onKeyDown(fakeEvent);
 
     if (isShiftActive && !isShiftSticky) {
       this.lastShiftClickTime = 0;
@@ -898,8 +898,8 @@ export class TouchKeyboard extends React.Component {
 
   handleCtrlLetterDown = (letter, event) => {
     if (event) {
-      event.preventDefault();
-      event.stopPropagation();
+      if (event.preventDefault) event.preventDefault();
+      if (event.stopPropagation) event.stopPropagation();
     }
     this.sendCtrlLetter(letter);
   };
@@ -910,36 +910,14 @@ export class TouchKeyboard extends React.Component {
 
     this.suppressInteractionUntil = Date.now() + 350;
 
-    if (typeof navigator !== "undefined" && navigator.vibrate) {
-      try {
-        navigator.vibrate(8);
-      } catch (err) {}
-    }
+    try {
+      navigator?.vibrate?.(8);
+    } catch (err) {}
 
     const lower = letter.toLowerCase();
-    const fakeEvent = {
-      key: lower,
-      ctrlKey: true,
-      altKey: false,
-      shiftKey: false,
-      getModifierState: (mod) => mod === "Control",
-      preventDefault: () => {},
-    };
-
-    let handled = false;
-    if (app.view && app.view.onKeyDown) {
-      try {
-        app.view.onKeyDown(fakeEvent);
-        handled = true;
-      } catch (err) {
-        console.warn("Failed to dispatch ctrl key to view.onKeyDown:", err);
-      }
-    }
-    if (!handled && app.conn && app.conn.send) {
-      const code = lower.charCodeAt(0) - 96;
-      if (code >= 1 && code <= 26) {
-        app.conn.send(String.fromCharCode(code));
-      }
+    const code = lower.charCodeAt(0) - 96;
+    if (code >= 1 && code <= 26) {
+      app.send(String.fromCharCode(code));
     }
 
     this.exitCtrlMode();
@@ -961,8 +939,8 @@ export class TouchKeyboard extends React.Component {
 
   handleCtrlKey = (keyName, event) => {
     if (event) {
-      event.preventDefault();
-      event.stopPropagation();
+      if (event.preventDefault) event.preventDefault();
+      if (event.stopPropagation) event.stopPropagation();
     }
     this.handleTerminalKey(keyName);
     this.exitCtrlMode();
@@ -971,33 +949,11 @@ export class TouchKeyboard extends React.Component {
   sendCtrlNumber = (num) => {
     const { app } = this.props;
     if (app) {
-      if (typeof navigator !== "undefined" && navigator.vibrate) {
-        try {
-          navigator.vibrate(8);
-        } catch (err) {}
-      }
+      try {
+        navigator?.vibrate?.(8);
+      } catch (err) {}
 
-      const fakeEvent = {
-        key: num,
-        ctrlKey: false,
-        altKey: false,
-        shiftKey: false,
-        getModifierState: () => false,
-        preventDefault: () => {},
-      };
-
-      let handled = false;
-      if (app.view && app.view.onKeyDown) {
-        try {
-          app.view.onKeyDown(fakeEvent);
-          handled = true;
-        } catch (err) {
-          console.warn("Failed to dispatch number to view.onKeyDown:", err);
-        }
-      }
-      if (!handled && app.conn && app.conn.send) {
-        app.conn.send(num);
-      }
+      app.send(num);
     }
     this.exitCtrlMode();
   };
@@ -1006,11 +962,9 @@ export class TouchKeyboard extends React.Component {
     const { app } = this.props;
     if (!app) return;
 
-    if (typeof navigator !== "undefined" && navigator.vibrate) {
-      try {
-        navigator.vibrate(8);
-      } catch (err) {}
-    }
+    try {
+      navigator?.vibrate?.(8);
+    } catch (err) {}
 
     const { isShiftActive, isShiftSticky } = this.state;
     const char =
@@ -1026,18 +980,7 @@ export class TouchKeyboard extends React.Component {
       preventDefault: () => {},
     };
 
-    let handled = false;
-    if (app.view && app.view.onKeyDown) {
-      try {
-        app.view.onKeyDown(fakeEvent);
-        handled = true;
-      } catch (err) {
-        console.warn("Failed to dispatch number to view.onKeyDown:", err);
-      }
-    }
-    if (!handled && app.conn && app.conn.send) {
-      app.conn.send(char);
-    }
+    app?.view?.onKeyDown(fakeEvent);
 
     if (isShiftActive && !isShiftSticky) {
       this.lastShiftClickTime = 0;
@@ -1095,6 +1038,10 @@ export class TouchKeyboard extends React.Component {
   };
 
   handleFloatingKeyboardPointerDown = (event) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     const { app } = this.props;
     if (!app || !app.inputArea) return;
     if (!this.state.isSystemKeyboardOpen) {
@@ -1112,7 +1059,10 @@ export class TouchKeyboard extends React.Component {
   };
 
   handleFloatingKeyboardToggle = (event) => {
-    event.stopPropagation();
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     const { app } = this.props;
     if (!app || !app.inputArea) return;
     const isInputFocused =
@@ -1120,14 +1070,11 @@ export class TouchKeyboard extends React.Component {
       app.inputArea.getAttribute("inputmode") !== "none";
 
     if (this.state.isSystemKeyboardOpen || isInputFocused) {
-      event.preventDefault();
       app.inputArea.setAttribute("inputmode", "none");
       app.inputArea.setAttribute("virtualkeyboardpolicy", "manual");
-      if (typeof navigator !== "undefined" && navigator.virtualKeyboard && navigator.virtualKeyboard.hide) {
-        try {
-          navigator.virtualKeyboard.hide();
-        } catch (err) {}
-      }
+      try {
+        navigator?.virtualKeyboard?.hide?.();
+      } catch (err) {}
       app.inputArea.blur();
       this.setState({ isSystemKeyboardOpen: false });
     } else {
@@ -1141,26 +1088,45 @@ export class TouchKeyboard extends React.Component {
         if (document.activeElement === app.inputArea) {
           app.inputArea.blur();
         }
-        app.inputArea.focus();
-      }
-      if (typeof navigator !== "undefined" && navigator.virtualKeyboard && navigator.virtualKeyboard.show) {
         try {
-          navigator.virtualKeyboard.show();
-        } catch (err) {}
+          app.inputArea.focus({ preventScroll: true });
+        } catch (e) {
+          app.inputArea.focus();
+        }
       }
+      try {
+        navigator?.virtualKeyboard?.show?.();
+      } catch (err) {}
       this.setState({ isSystemKeyboardOpen: true });
     }
+    window?.scrollTo?.(0, 0);
   };
 
-  handleFloatingMenuToggle = (event) => {
+  handleFloatingMenuToggle = (event, targetEl) => {
+    if (Date.now() < this.suppressInteractionUntil) {
+      return;
+    }
+    this.suppressInteractionUntil = Date.now() + 350;
+
     if (this.props.onMenuToggle) {
-      this.props.onMenuToggle(event);
-    } else if (
-      this.props.app &&
-      this.props.app.openContextMenu
-    ) {
-      const rect = event.currentTarget.getBoundingClientRect();
-      this.props.app.openContextMenu(rect.right, rect.top - 4);
+      this.props.onMenuToggle(event, targetEl);
+    } else if (this.props.app) {
+      const target =
+        targetEl ||
+        event?.currentTarget ||
+        event?.target?.closest?.("button") ||
+        event?.target ||
+        (typeof document !== "undefined"
+          ? document.querySelector?.(
+              ".TouchFloatingToolbar [aria-label='Menu & Settings']"
+            ) ||
+            document.querySelector?.(".TouchFloatingToolbar__Btn--system") ||
+            document.querySelector?.(".TouchFloatingToolbar")
+          : null);
+      const rect = target?.getBoundingClientRect?.();
+      if (rect) {
+        this.props.app.openContextMenu(rect.right, rect.top - 4);
+      }
     }
   };
   renderArrowLeft = () => (
@@ -1592,6 +1558,7 @@ export class TouchKeyboard extends React.Component {
       title="工具列放大 (Enlarge Toolbar)"
       aria-label="Enlarge Toolbar"
       onMouseDown={(e) => e.preventDefault()}
+      onPointerDown={(e) => this.handleToolbarZoom(1, e)}
       onClick={(e) => this.handleToolbarZoom(1, e)}
     >
       <svg
@@ -1618,6 +1585,7 @@ export class TouchKeyboard extends React.Component {
       title="工具列縮小 (Shrink Toolbar)"
       aria-label="Shrink Toolbar"
       onMouseDown={(e) => e.preventDefault()}
+      onPointerDown={(e) => this.handleToolbarZoom(-1, e)}
       onClick={(e) => this.handleToolbarZoom(-1, e)}
     >
       <svg
@@ -1643,6 +1611,7 @@ export class TouchKeyboard extends React.Component {
       title="終端字體放大 (Increase Terminal Font)"
       aria-label="Increase Terminal Font"
       onMouseDown={(e) => e.preventDefault()}
+      onPointerDown={(e) => this.handleTermFontZoom(1, e)}
       onClick={(e) => this.handleTermFontZoom(1, e)}
     >
       A+
@@ -1656,6 +1625,7 @@ export class TouchKeyboard extends React.Component {
       title="終端字體縮小 (Decrease Terminal Font)"
       aria-label="Decrease Terminal Font"
       onMouseDown={(e) => e.preventDefault()}
+      onPointerDown={(e) => this.handleTermFontZoom(-1, e)}
       onClick={(e) => this.handleTermFontZoom(-1, e)}
     >
       A-
@@ -1666,6 +1636,7 @@ export class TouchKeyboard extends React.Component {
     const isOpen = Boolean(this.state.isSystemKeyboardOpen);
     return (
       <label
+        key="toolbar-syskbd-toggle"
         htmlFor="t"
         className={`TouchFloatingToolbar__Btn TouchFloatingToolbar__Btn--system ${
           isOpen ? "TouchFloatingToolbar__Btn--active" : ""
@@ -1703,12 +1674,20 @@ export class TouchKeyboard extends React.Component {
 
   renderMenuToggle = () => (
     <button
+      key="toolbar-menu-toggle"
       type="button"
       className="TouchFloatingToolbar__Btn TouchFloatingToolbar__Btn--system"
       title="選單與設定 (Menu & Settings)"
       aria-label="Menu & Settings"
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={this.handleFloatingMenuToggle}
+      onPointerDown={(e) => {
+        e?.preventDefault?.();
+        e?.stopPropagation?.();
+        this.handleFloatingMenuToggle(e, e.currentTarget);
+      }}
+      onClick={(e) => {
+        e?.preventDefault?.();
+        e?.stopPropagation?.();
+      }}
     >
       <svg
         width="16"
@@ -1729,6 +1708,7 @@ export class TouchKeyboard extends React.Component {
 
   renderCollapseToggle = (isExpandIcon = false, extraClass = "") => (
     <button
+      key={isExpandIcon ? "collapse-expand-btn" : "collapse-shrink-btn"}
       type="button"
       className={cx(
         "TouchFloatingToolbar__Btn TouchFloatingToolbar__Btn--system",
@@ -1740,7 +1720,7 @@ export class TouchKeyboard extends React.Component {
           : "收合工具列 (Collapse Toolbar)"
       }
       aria-label={isExpandIcon ? "Expand Terminal Keys" : "Collapse Toolbar"}
-      onMouseDown={(e) => e.preventDefault()}
+      onPointerDown={this.handleToggleToolbarCollapse}
       onClick={this.handleToggleToolbarCollapse}
     >
       <svg
@@ -1753,28 +1733,22 @@ export class TouchKeyboard extends React.Component {
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        {isExpandIcon ? (
-          <React.Fragment>
-            <polyline points="6 15 12 9 18 15" />
-            <line x1="5" y1="19" x2="19" y2="19" />
-          </React.Fragment>
-        ) : (
-          <React.Fragment>
-            <polyline points="6 9 12 15 18 9" />
-            <line x1="5" y1="19" x2="19" y2="19" />
-          </React.Fragment>
-        )}
+        <polyline
+          points={isExpandIcon ? "6 15 12 9 18 15" : "6 9 12 15 18 9"}
+        />
+        <line x1="5" y1="19" x2="19" y2="19" />
       </svg>
     </button>
   );
 
   renderReturnToNormalPad = () => (
     <button
+      key="toolbar-return-normal-pad"
       type="button"
       className="TouchFloatingToolbar__Btn TouchFloatingToolbar__Btn--system TouchFloatingToolbar__Btn--qwert-nav-return"
       title="返回方向鍵 (Return to Direction Keys)"
       aria-label="Return to Direction Keys"
-      onMouseDown={(e) => e.preventDefault()}
+      onPointerDown={this.handleReturnToNormalPad}
       onClick={this.handleReturnToNormalPad}
     >
       <svg
@@ -1800,6 +1774,7 @@ export class TouchKeyboard extends React.Component {
     const isCtrlActive = Boolean(this.state.isCtrlMode);
     return (
       <button
+        key="toolbar-ctrl-toggle"
         type="button"
         className={cx(
           "TouchFloatingToolbar__Btn TouchFloatingToolbar__Btn--text TouchFloatingToolbar__Btn--ctrl TouchFloatingToolbar__Btn--ctrl-toggle",
@@ -1815,7 +1790,7 @@ export class TouchKeyboard extends React.Component {
             : "Ctrl 鍵 (Toggle Ctrl Mode)"
         }
         aria-label="Ctrl"
-        onMouseDown={(e) => e.preventDefault()}
+        onPointerDown={this.handleToggleCtrlMode}
         onClick={this.handleToggleCtrlMode}
       >
         Ctrl
@@ -1830,6 +1805,7 @@ export class TouchKeyboard extends React.Component {
       title="返回主工具列 (Back to Main Toolbar)"
       aria-label="Back to Main Toolbar"
       onMouseDown={(e) => e.preventDefault()}
+      onPointerDown={this.handleToggleCtrlMode}
       onClick={this.handleToggleCtrlMode}
     >
       <svg
@@ -1865,6 +1841,7 @@ export class TouchKeyboard extends React.Component {
     const isAlphaActive = Boolean(this.state.isAlphaMode);
     return (
       <button
+        key="toolbar-alpha-toggle"
         type="button"
         className={cx(
           "TouchFloatingToolbar__Btn TouchFloatingToolbar__Btn--text TouchFloatingToolbar__Btn--alpha-toggle",
@@ -1880,7 +1857,7 @@ export class TouchKeyboard extends React.Component {
             : "英文字母盤面 (Toggle Letter Keypad)"
         }
         aria-label="a"
-        onMouseDown={(e) => e.preventDefault()}
+        onPointerDown={this.handleToggleAlphaMode}
         onClick={this.handleToggleAlphaMode}
       >
         a
@@ -1940,6 +1917,7 @@ export class TouchKeyboard extends React.Component {
                 stroke="currentColor"
                 strokeWidth="2.5"
                 strokeLinecap="round"
+                strokeLinejoin="round"
               />
             </React.Fragment>
           ) : (
@@ -1988,8 +1966,8 @@ export class TouchKeyboard extends React.Component {
         aria-label={displayChar}
         onPointerDown={(e) => {
           if (e) {
-            e.preventDefault();
-            e.stopPropagation();
+            if (e.preventDefault) e.preventDefault();
+            if (e.stopPropagation) e.stopPropagation();
           }
           this.sendAlphaNumber(num);
         }}
@@ -2196,17 +2174,30 @@ export class TouchKeyboard extends React.Component {
             stackedHeight
           )
         : null;
-    const baseRightOffset =
-      isStackedMode && drawableRight != null && viewportWidth > 0
-        ? Math.max(0, Math.round(viewportWidth - drawableRight))
-        : null;
-    const rightOffset =
-      baseRightOffset != null && activeStackedWidth && viewportWidth > 0
-        ? Math.min(
-            baseRightOffset,
-            Math.max(0, viewportWidth - activeStackedWidth - 6)
-          )
+    const isCompactLandscape =
+      (window.matchMedia &&
+        window.matchMedia("(orientation: landscape) and (max-height: 500px)")
+          .matches) ||
+      (viewportWidth > viewportHeight && viewportHeight <= 500);
+
+    const effectiveToolbarScale =
+      isStackedMode && layoutToolbarScale
+        ? layoutToolbarScale
+        : toolbarScale || 1.0;
+    const baseBtnWidth = isCompactLandscape ? 44 : 52;
+    const baseBtnHeight = isCompactLandscape ? 42 : 52;
+    const halfBtnX = Math.round((baseBtnWidth * effectiveToolbarScale) / 2);
+    const halfBtnY = Math.round((baseBtnHeight * effectiveToolbarScale) / 2);
+
+    const baseRightOffset = halfBtnX;
+    const initialRight =
+      activeStackedWidth && viewportWidth > 0
+        ? Math.min(baseRightOffset, Math.max(4, viewportWidth - activeStackedWidth - 6))
         : baseRightOffset;
+    const initialBottom =
+      activeStackedHeight && viewportHeight > 0
+        ? Math.min(halfBtnY, Math.max(4, viewportHeight - activeStackedHeight - 6))
+        : halfBtnY;
 
     const effectiveRight =
       this.state.toolbarCustomRight != null
@@ -2216,7 +2207,7 @@ export class TouchKeyboard extends React.Component {
               ? Math.max(4, viewportWidth - activeStackedWidth - 6)
               : this.state.toolbarCustomRight
           )
-        : rightOffset;
+        : initialRight;
 
     const effectiveBottom =
       this.state.toolbarCustomBottom != null
@@ -2226,22 +2217,20 @@ export class TouchKeyboard extends React.Component {
               ? Math.max(4, viewportHeight - activeStackedHeight - 6)
               : this.state.toolbarCustomBottom
           )
-        : null;
+        : initialBottom;
 
-    const effectiveToolbarScale =
-      isStackedMode && layoutToolbarScale
-        ? layoutToolbarScale
-        : toolbarScale || 1.0;
     const dockGroupWidth = Math.max(160, (stackedWidth || 234) - 12);
     const toolbarStyle = {
       "--toolbar-scale": String(effectiveToolbarScale),
       "--dock-group-width": `${dockGroupWidth}px`,
-      ...(effectiveRight != null ? { right: `${effectiveRight}px` } : {}),
-      ...(effectiveBottom != null
-        ? {
-            bottom: `calc(${effectiveBottom}px + var(--keyboard-offset, 0px))`,
-          }
-        : {}),
+      right:
+        this.state.toolbarCustomRight != null
+          ? `${effectiveRight}px`
+          : `calc(max(${effectiveRight}px, env(safe-area-inset-right, 0px) + ${effectiveRight}px))`,
+      bottom:
+        this.state.toolbarCustomBottom != null
+          ? `calc(${effectiveBottom}px + var(--keyboard-offset, 0px))`
+          : `calc(max(${effectiveBottom}px, env(safe-area-inset-bottom, 0px) + ${effectiveBottom}px) + var(--keyboard-offset, 0px))`,
       ...(activeStackedWidth
         ? {
             "--stacked-toolbar-width": `${activeStackedWidth}px`,
@@ -2280,33 +2269,30 @@ export class TouchKeyboard extends React.Component {
           }
         }}
         onMouseDown={(e) => e.stopPropagation()}
-        onClickCapture={this.handleToolbarCapture}
-        onPointerDownCapture={this.handleToolbarCapture}
-        onMouseDownCapture={this.handleToolbarCapture}
       >
         {isToolbarCollapsed ? (
-          <React.Fragment>
+          <React.Fragment key="collapsed-toolbar">
             <div
-              className="TouchFloatingToolbar__DragGrip"
+              key="drag-handle"
+              className="TouchFloatingToolbar__DragHandle TouchFloatingToolbar__DragHandle--collapsed"
               title="拖曳移動工具列 (Drag to Move)"
               aria-label="Drag toolbar"
               onPointerDown={this.handleDragStart}
             >
-              <svg width="6" height="16" viewBox="0 0 6 16" fill="currentColor">
-                <circle cx="3" cy="3" r="1.5" />
-                <circle cx="3" cy="8" r="1.5" />
-                <circle cx="3" cy="13" r="1.5" />
-              </svg>
+              <div className="TouchFloatingToolbar__DragHandleBar" />
             </div>
-            {this.renderKeyboardToggle()}
-            <span className="TouchFloatingToolbar__Divider" />
-            {this.renderMenuToggle()}
-            <span className="TouchFloatingToolbar__Divider" />
-            {this.renderCollapseToggle(true)}
+            <div className="TouchFloatingToolbar__Row TouchFloatingToolbar__Row--collapsed">
+              {this.renderKeyboardToggle()}
+              <span key="div-1" className="TouchFloatingToolbar__Divider" />
+              {this.renderMenuToggle()}
+              <span key="div-2" className="TouchFloatingToolbar__Divider" />
+              {this.renderCollapseToggle(true)}
+            </div>
           </React.Fragment>
         ) : (
-          <React.Fragment>
+          <React.Fragment key="expanded-toolbar">
             <div
+              key="drag-handle"
               className="TouchFloatingToolbar__DragHandle"
               title="拖曳移動盤面 (Drag to Move)"
               aria-label="Drag pad"

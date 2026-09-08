@@ -31,12 +31,15 @@ const normalizeSelectedText = (selectedText) => {
 };
 
 
-const MenuItem = ({ eventKey, onSelect, onClick, divider, className, children }) => {
+const MenuItem = ({ eventKey, onSelect, onClick, divider, className, children, openedAtRef }) => {
   if (divider) {
     return <li role="separator" className="divider" />;
   }
   const handleClick = (e) => {
     e.preventDefault();
+    if (openedAtRef && Date.now() < openedAtRef.current + 350) {
+      return;
+    }
     if (onSelect) onSelect(eventKey);
     if (onClick) onClick(e);
   };
@@ -52,6 +55,7 @@ const MenuItem = ({ eventKey, onSelect, onClick, divider, className, children })
 export const DropdownMenu = ({
   pageX,
   pageY,
+  anchorRect,
   urlEnabled,
   normalEnabled,
   selEnabled,
@@ -63,13 +67,51 @@ export const DropdownMenu = ({
   onSettingsClick,
 }) => {
   const menuRef = useRef(null);
+  const openedAtRef = useRef(0);
 
   useEffect(() => {
-    if (menuRef.current) {
-      menuRef.current.style.top = `${top(pageY, menuRef.current.clientHeight)}px`;
-      menuRef.current.style.left = `${left(pageX, menuRef.current.clientWidth)}px`;
-    }
-  }, [pageX, pageY]);
+    const el = menuRef.current;
+    if (!el) return;
+    openedAtRef.current = Date.now();
+
+    const updatePosition = () => {
+      const pageHeight =
+        typeof window !== "undefined" ? window.innerHeight : 600;
+      const pageWidth =
+        typeof window !== "undefined" ? window.innerWidth : 800;
+
+      if (anchorRect) {
+        const isBottomHalf = anchorRect.top > pageHeight / 2;
+        if (isBottomHalf) {
+          const menuTop = Math.max(8, anchorRect.top - el.clientHeight - 6);
+          el.style.top = `${menuTop}px`;
+        } else {
+          const menuTop = Math.min(
+            pageHeight - el.clientHeight - 8,
+            anchorRect.bottom + 6
+          );
+          el.style.top = `${menuTop}px`;
+        }
+        const menuLeft = Math.max(
+          8,
+          Math.min(
+            pageWidth - el.clientWidth - 8,
+            anchorRect.right - el.clientWidth
+          )
+        );
+        el.style.left = `${menuLeft}px`;
+      } else {
+        el.style.top = `${top(pageY, el.clientHeight)}px`;
+        el.style.left = `${left(pageX, el.clientWidth)}px`;
+      }
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [pageX, pageY, anchorRect]);
 
   const handleContextMenu = (e) => {
     e.stopPropagation();
@@ -81,6 +123,12 @@ export const DropdownMenu = ({
       className="dropdown-menu DropdownMenu--reset"
       ref={menuRef}
       onContextMenu={handleContextMenu}
+      onClickCapture={(e) => {
+        if (Date.now() < openedAtRef.current + 350) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }}
     >
       {selEnabled && (
         <React.Fragment>

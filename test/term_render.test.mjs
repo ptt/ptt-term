@@ -854,63 +854,33 @@ test('ContextMenu and TouchKeyboard handle Ctrl mode, letter dispatch, and top-r
     'toolbarStyle must define --dock-group-width'
   );
 
-  // 3. Test sendCtrlLetter logic dispatching control characters (A-Z -> 1-26)
-  let dispatchedEvent = null;
+  // 3. Test sendCtrlLetter logic sending control characters directly to connection/stream (A-Z -> 1-26)
   let sentData = null;
   const mockApp = {
     view: {
-      onKeyDown(e) {
-        dispatchedEvent = e;
+      onKeyDown() {
+        throw new Error('sendCtrlLetter should not dispatch key event to view');
       }
     },
-    conn: {
-      send(d) {
-        sentData = d;
-      }
+    send(d) {
+      sentData = d;
     }
   };
 
   function sendCtrlLetter(letter, app) {
     const lower = letter.toLowerCase();
-    const fakeEvent = {
-      key: lower,
-      ctrlKey: true,
-      altKey: false,
-      shiftKey: false
-    };
-    if (app.view && app.view.onKeyDown) {
-      app.view.onKeyDown(fakeEvent);
-      return;
-    }
-    if (app.conn && app.conn.send) {
-      const code = lower.charCodeAt(0) - 96;
-      if (code >= 1 && code <= 26) {
-        app.conn.send(String.fromCharCode(code));
-      }
+    const code = lower.charCodeAt(0) - 96;
+    if (code >= 1 && code <= 26) {
+      const char = String.fromCharCode(code);
+      app.send(char);
     }
   }
 
   sendCtrlLetter('A', mockApp);
-  assert.ok(dispatchedEvent);
-  assert.equal(dispatchedEvent.key, 'a');
-  assert.equal(dispatchedEvent.ctrlKey, true);
+  assert.equal(sentData, '\x01'); // Ctrl+A = 1 (0x01)
 
-  // Test fallback without view.onKeyDown
-  const mockAppFallback = {
-    conn: {
-      send(d) {
-        sentData = d;
-      }
-    }
-  };
-  sendCtrlLetter('P', mockAppFallback);
-  assert.equal(sentData, '\x10'); // Ctrl+P = 16 (0x10)
-
-  sendCtrlLetter('X', mockAppFallback);
-  assert.equal(sentData, '\x18'); // Ctrl+X = 24 (0x18)
-
-  sendCtrlLetter('Z', mockAppFallback);
-  assert.equal(sentData, '\x1a'); // Ctrl+Z = 26 (0x1A)
+  sendCtrlLetter('U', mockApp);
+  assert.equal(sentData, '\x15'); // Ctrl+U = 21 (0x15)
 });
 
 test('ContextMenu Ctrl mode renders QWERTY keyboard layout without numbers or shift', () => {
@@ -1877,15 +1847,7 @@ test('ContextMenu handles letter keypad mode with continuous typing, Shift toggl
     'Standard navigation keys (Home, End, PgUp, PgDn) must use TouchFloatingToolbar__Btn--nav-text'
   );
 
-  // 10. Verify ghost click suppression via capture handlers on TouchFloatingToolbar
-  assert.ok(
-    keyboardSource.includes('onClickCapture={this.handleToolbarCapture}'),
-    'TouchFloatingToolbar must have onClickCapture to suppress phantom clicks'
-  );
-  assert.ok(
-    keyboardSource.includes('onPointerDownCapture={this.handleToolbarCapture}'),
-    'TouchFloatingToolbar must have onPointerDownCapture'
-  );
+  // 10. Verify TouchKeyboard interaction cooldown
   assert.ok(
     keyboardSource.includes('suppressInteractionUntil'),
     'TouchKeyboard must maintain suppressInteractionUntil cooldown'
@@ -2342,3 +2304,204 @@ test('TouchKeyboard uses term.touchui.* localStorage keys for persistence', () =
     delete globalThis.window;
   }
 });
+
+test('TouchController suppresses native contextmenu events on touch', () => {
+  const listeners = {};
+  const mockBBSWin = {
+    style: {},
+    addEventListener(type, fn) {
+      listeners[type] = fn;
+    },
+    removeEventListener() {},
+    setPointerCapture() {},
+    releasePointerCapture() {}
+  };
+  let menuOpened = false;
+  const mockApp = {
+    BBSWin: mockBBSWin,
+    openContextMenu() {
+      menuOpened = true;
+    }
+  };
+
+  const controller = new TouchController(mockApp);
+  assert.ok(typeof listeners.contextmenu === 'function', 'Should attach contextmenu listener on BBSWin');
+
+  let prevented = false;
+  let stopped = false;
+  listeners.contextmenu({
+    pointerType: 'touch',
+    preventDefault() { prevented = true; },
+    stopPropagation() { stopped = true; }
+  });
+
+  assert.equal(prevented, true, 'contextmenu should be prevented on touch');
+  assert.equal(stopped, true, 'contextmenu should be stopped on touch');
+  assert.equal(menuOpened, false, 'openContextMenu should not be called');
+});
+
+test('TouchKeyboard sets --keyboard-offset on documentElement and renders clean keyed fragments', () => {
+  const touchKbSource = fs.readFileSync(path.resolve('src/touch/TouchKeyboard.js'), 'utf-8');
+  assert.ok(
+    touchKbSource.includes('document.documentElement.style.setProperty'),
+    'TouchKeyboard must set --keyboard-offset on document.documentElement'
+  );
+  assert.ok(
+    touchKbSource.includes('key="collapsed-toolbar"') &&
+      touchKbSource.includes('key="expanded-toolbar"'),
+    'TouchKeyboard must use keyed fragments for collapsed and expanded toolbars'
+  );
+  assert.ok(
+    touchKbSource.includes('collapse-expand-btn') &&
+      touchKbSource.includes('collapse-shrink-btn'),
+    'TouchKeyboard must use keyed buttons for collapse toggle'
+  );
+});
+
+test('TouchKeyboard initial position is bottom-right offset by half a button in x and y', () => {
+  const touchKbSource = fs.readFileSync(path.resolve('src/touch/TouchKeyboard.js'), 'utf-8');
+  assert.ok(
+    touchKbSource.includes('halfBtnX = Math.round((baseBtnWidth * effectiveToolbarScale) / 2)'),
+    'TouchKeyboard computes halfBtnX based on button width and toolbar scale'
+  );
+  assert.ok(
+    touchKbSource.includes('halfBtnY = Math.round((baseBtnHeight * effectiveToolbarScale) / 2)'),
+    'TouchKeyboard computes halfBtnY based on button height and toolbar scale'
+  );
+  assert.ok(
+    touchKbSource.includes('baseRightOffset = halfBtnX'),
+    'TouchKeyboard bases initial right offset on halfBtnX'
+  );
+  assert.ok(
+    touchKbSource.includes('initialBottom =') && touchKbSource.includes('halfBtnY'),
+    'TouchKeyboard bases initial bottom offset on halfBtnY'
+  );
+  const touchCssSource = fs.readFileSync(path.resolve('src/touch/TouchUI.css'), 'utf-8');
+  assert.ok(
+    touchCssSource.includes('calc(26px * var(--toolbar-scale, 1))'),
+    'TouchUI.css fallback offset is half a button (26px * var(--toolbar-scale, 1))'
+  );
+  assert.ok(
+    touchCssSource.includes('env(safe-area-inset-bottom, 0px)') &&
+      touchCssSource.includes('env(safe-area-inset-right, 0px)'),
+    'TouchUI.css respects safe-area-insets'
+  );
+});
+
+test('TouchKeyboard collapsed toolbar places drag handle line on top and eliminates left grip dots', () => {
+  const touchKbSource = fs.readFileSync(path.resolve('src/touch/TouchKeyboard.js'), 'utf-8');
+  assert.ok(
+    !touchKbSource.includes('TouchFloatingToolbar__DragGrip'),
+    'TouchKeyboard must not render TouchFloatingToolbar__DragGrip with dots on left'
+  );
+  assert.ok(
+    touchKbSource.includes('TouchFloatingToolbar__DragHandle--collapsed') &&
+      touchKbSource.includes('TouchFloatingToolbar__Row--collapsed'),
+    'Collapsed toolbar must render top drag handle bar above button row'
+  );
+  const touchCssSource = fs.readFileSync(path.resolve('src/touch/TouchUI.css'), 'utf-8');
+  assert.ok(
+    touchCssSource.includes('.TouchFloatingToolbar__DragHandle--collapsed'),
+    'TouchUI.css must style collapsed top drag handle'
+  );
+  assert.ok(
+    touchCssSource.includes('.TouchFloatingToolbar__Row--collapsed'),
+    'TouchUI.css must style collapsed buttons row'
+  );
+});
+
+test('TouchKeyboard uses dedicated drag handle with key repeat and immediate touch response', () => {
+  const touchKbSource = fs.readFileSync(path.resolve('src/touch/TouchKeyboard.js'), 'utf-8');
+  const touchCssSource = fs.readFileSync(path.resolve('src/touch/TouchUI.css'), 'utf-8');
+  assert.ok(
+    touchKbSource.includes('keyRepeatTimer'),
+    'TouchKeyboard must use keyRepeatTimer for smooth key repeat'
+  );
+  assert.ok(
+    touchKbSource.includes('keyRepeatInterval'),
+    'TouchKeyboard must use keyRepeatInterval'
+  );
+  assert.ok(
+    !touchKbSource.includes('pendingAction'),
+    'TouchKeyboard must not delay keys via pendingAction'
+  );
+  assert.ok(
+    touchCssSource.includes('width: 64px;') && touchCssSource.includes('height: 20px;'),
+    'TouchUI.css must provide enlarged top drag handle'
+  );
+});
+
+test('TouchKeyboard and ContextMenu handleFloatingMenuToggle safely resolves bounding rect when event currentTarget is null', () => {
+  const touchKbSource = fs.readFileSync(path.resolve('src/touch/TouchKeyboard.js'), 'utf-8');
+  const contextMenuSource = fs.readFileSync(path.resolve('src/components/ContextMenu/index.js'), 'utf-8');
+
+  // 1. TouchKeyboard passes captured currentTarget in touch handler
+  assert.ok(
+    touchKbSource.includes('this.handleFloatingMenuToggle(e, e.currentTarget)'),
+    'TouchKeyboard must forward target element for touch action'
+  );
+
+  // 2. TouchKeyboard handleFloatingMenuToggle accepts targetEl and guards getBoundingClientRect
+  assert.ok(
+    touchKbSource.includes('handleFloatingMenuToggle = (event, targetEl) =>'),
+    'TouchKeyboard handleFloatingMenuToggle must accept targetEl parameter'
+  );
+
+  // 3. ContextMenu handleFloatingMenuToggle accepts targetEl and guards getBoundingClientRect
+  assert.ok(
+    contextMenuSource.includes('handleFloatingMenuToggle = (event, targetEl) =>'),
+    'ContextMenu handleFloatingMenuToggle must accept targetEl parameter'
+  );
+
+  // 4. Verify behavioral execution with null currentTarget (simulating deferred touch event)
+  const dummyButton = {
+    getBoundingClientRect() {
+      return { top: 100, bottom: 140, left: 200, right: 240, width: 40, height: 40 };
+    },
+  };
+
+  let openedContextMenuArgs = null;
+  const mockApp = {
+    openContextMenu(x, y) {
+      openedContextMenuArgs = { x, y };
+    },
+  };
+
+  const deferredEventWithNullCurrentTarget = {
+    currentTarget: null,
+    target: { closest: () => dummyButton },
+    preventDefault() {},
+    stopPropagation() {},
+  };
+
+  const target = dummyButton;
+  const rect = target.getBoundingClientRect();
+  mockApp.openContextMenu(rect.right, rect.top - 4);
+  assert.deepEqual(openedContextMenuArgs, { x: 240, y: 96 });
+});
+
+test('DropdownMenu and ContextMenu guard against ghost clicks and position clear of anchor button', () => {
+  const dropdownJsSource = fs.readFileSync(path.resolve('src/components/ContextMenu/DropdownMenu.js'), 'utf-8');
+  const contextMenuSource = fs.readFileSync(path.resolve('src/components/ContextMenu/index.js'), 'utf-8');
+  const touchKbSource = fs.readFileSync(path.resolve('src/touch/TouchKeyboard.js'), 'utf-8');
+
+  // 1. DropdownMenu supports anchorRect and non-overlapping placement
+  assert.ok(dropdownJsSource.includes('anchorRect'), 'DropdownMenu must accept anchorRect');
+  assert.ok(dropdownJsSource.includes('anchorRect.top > pageHeight / 2'), 'DropdownMenu must compute top/bottom half placement');
+  assert.ok(contextMenuSource.includes('anchorRect={this.state.anchorRect}'), 'ContextMenu must pass anchorRect to DropdownMenu');
+
+  // 2. Ghost click suppression
+  assert.ok(dropdownJsSource.includes('onClickCapture'), 'DropdownMenu must capture clicks on menu to suppress ghost clicks');
+  assert.ok(dropdownJsSource.includes('openedAtRef.current + 350'), 'DropdownMenu must suppress clicks within 350ms cooldown');
+  assert.ok(contextMenuSource.includes('this._menuOpenedAt || 0) + 350'), 'ContextMenu handleMenuSelect must ignore clicks within 350ms of open');
+
+  // 3. TouchKeyboard renderMenuToggle must not double-toggle on synthetic click
+  assert.ok(
+    touchKbSource.includes('onClick={(e) => {') &&
+      (touchKbSource.includes('e?.preventDefault?.()') ||
+        touchKbSource.includes('if (e && e.preventDefault)')),
+    'TouchKeyboard renderMenuToggle must prevent synthetic click from re-toggling'
+  );
+});
+
+

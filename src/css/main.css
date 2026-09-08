@@ -254,12 +254,18 @@ img {
   padding: 0px;
 }
 
+html,
 body {
+  width: 100%;
+  height: 100%;
   color: white;
   /* background-color: #101010; */
   background-color: black;
   margin: 0px;
+  padding: 0px;
   overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
 }
 
 span [link="true"] {

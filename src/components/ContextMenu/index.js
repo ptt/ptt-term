@@ -45,6 +45,7 @@ const initialState = {
   open: false,
   pageX: 0,
   pageY: 0,
+  anchorRect: null,
   contextOnUrl: "",
   aElement: undefined,
   selectedText: "",
@@ -279,9 +280,14 @@ export class ContextMenu extends React.Component {
     }
   }
 
-  handleFloatingMenuToggle = (event) => {
-    event.stopPropagation();
-    event.preventDefault();
+  handleFloatingMenuToggle = (event, targetEl) => {
+    event?.stopPropagation?.();
+    event?.preventDefault?.();
+    if (Date.now() < (this._suppressMenuToggleUntil || 0)) {
+      return;
+    }
+    this._suppressMenuToggleUntil = Date.now() + 350;
+
     if (this.state.open) {
       this.handleHide();
       return;
@@ -308,17 +314,45 @@ export class ContextMenu extends React.Component {
     const normalEnabled = !selectedText;
     const selEnabled = !!selectedText;
 
-    const rect = event.currentTarget.getBoundingClientRect();
+    const target =
+      targetEl ||
+      event?.currentTarget ||
+      event?.target?.closest?.("button") ||
+      event?.target ||
+      (typeof document !== "undefined"
+        ? document.querySelector?.(
+            ".TouchFloatingToolbar [aria-label='Menu & Settings']"
+          ) ||
+          document.querySelector?.(".TouchFloatingToolbar__Btn--system") ||
+          document.querySelector?.(".TouchFloatingToolbar")
+        : null);
+
+    const rect =
+      target?.getBoundingClientRect?.() || {
+        left:
+          (typeof window !== "undefined" ? window.innerWidth : 800) - 50,
+        right:
+          (typeof window !== "undefined" ? window.innerWidth : 800) - 10,
+        top:
+          (typeof window !== "undefined" ? window.innerHeight : 600) - 50,
+        bottom:
+          (typeof window !== "undefined" ? window.innerHeight : 600) - 10,
+        width: 40,
+        height: 40,
+      };
+
     const pageX = Math.min(
       rect.right,
       (typeof window !== "undefined" ? window.innerWidth : 800) - 8
     );
     const pageY = rect.top - 4;
 
+    this._menuOpenedAt = Date.now();
     this.setState({
       open: true,
       pageX,
       pageY,
+      anchorRect: rect,
       contextOnUrl: "",
       aElement: null,
       selectedText,
@@ -331,6 +365,16 @@ export class ContextMenu extends React.Component {
   handleContextMenu = (event) => {
     event.stopPropagation();
     event.preventDefault();
+    if (
+      event.pointerType === "touch" ||
+      (this.checkTouchDevice() && event.button === 0) ||
+      (this.props.app &&
+        this.props.app.touch &&
+        this.props.app.touch.lastTouchTime &&
+        Date.now() - this.props.app.touch.lastTouchTime < 1000)
+    ) {
+      return;
+    }
     this.showMenuAt(event.pageX, event.pageY, event.target);
   };
 
@@ -362,10 +406,12 @@ export class ContextMenu extends React.Component {
     const normalEnabled = !urlEnabled && !selectedText;
     const selEnabled = !normalEnabled;
 
+    this._menuOpenedAt = Date.now();
     this.setState({
       open: true,
       pageX,
       pageY,
+      anchorRect: null,
       contextOnUrl,
       aElement,
       selectedText,
@@ -387,11 +433,14 @@ export class ContextMenu extends React.Component {
   };
 
   handleMenuSelect = (eventKey, event) => {
+    if (Date.now() < (this._menuOpenedAt || 0) + 350) {
+      event?.stopPropagation?.();
+      event?.preventDefault?.();
+      return;
+    }
     const { app } = this.props;
     menuHandlerByEventKey[eventKey](app, this.state);
-    if (event) {
-      event.stopPropagation();
-    }
+    event?.stopPropagation?.();
     app.contextMenuShown = false;
     if (!app.view.isEasyReadingActive()) {
       app.setInputAreaFocus();
@@ -538,6 +587,7 @@ export class ContextMenu extends React.Component {
           <DropdownMenu
             pageX={pageX}
             pageY={pageY}
+            anchorRect={this.state.anchorRect}
             urlEnabled={urlEnabled}
             normalEnabled={normalEnabled}
             selEnabled={selEnabled}
