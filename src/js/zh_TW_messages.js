@@ -88,6 +88,12 @@ export const zh_TW = {
   plugin_easy_reading_desc: {
     message: "閱讀文章時自動拼接後續分頁，支援圖片/影片預覽、推文即時更新與連續捲動。",
   },
+  plugin_live_update_title: {
+    message: "Live 文小幫手",
+  },
+  plugin_live_update_desc: {
+    message: "在閱讀文章時定時自動重新整理推文（如每秒自動送出 r），支援快速鍵與懸浮控制面板。",
+  },
   plugin_builtin: {
     message: "內建",
   },

@@ -8,6 +8,7 @@ import { TelnetConnection, TelnetFilter } from './telnet';
 import { Stream } from './stream';
 import { Websocket } from './websocket';
 import { EasyReading } from '../plugins/easy_reading/index.js';
+import { LiveUpdate } from '../plugins/live_update/index.js';
 import { ConnectionLog } from './conn_log';
 import { TouchController } from './touch_controller';
 import { i18n } from './i18n';
@@ -50,6 +51,8 @@ export class App {
   this.inputInterceptors = [];
   this.easyReading = new EasyReading(this, this.view, this.buf);
   this.registerPlugin(this.easyReading);
+  this.liveUpdate = new LiveUpdate(this, { view: this.view, buf: this.buf });
+  this.registerPlugin(this.liveUpdate);
   this.connLog = new ConnectionLog(this);
   this._lastEasyReadingWheelTime = 0;
   this._lastEasyReadingHideTime = 0;
@@ -603,17 +606,22 @@ export class App {
     return typeof window !== 'undefined' && window.getSelection ? window.getSelection().isCollapsed : true;
   }
 
-// FIXME: Injected when enabled. See: src/components/ContextMenu/index.js
-  onToggleLiveHelperModalState() {}
-// FIXME: Injected when enabled. See: src/components/ContextMenu/index.js
-  onDisableLiveHelperModalState() {}
+  onToggleLiveHelperModalState() {
+    this.liveUpdate?.toggle();
+    this.liveUpdate?.showModal();
+  }
+
+  onDisableLiveHelperModalState() {
+    this.liveUpdate?.stop();
+  }
 
   switchToEasyReadingMode(doSwitch) {
     if (this.easyReading) {
       this.easyReading.leaveCurrentPost();
     }
     if (doSwitch) {
-      this.onDisableLiveHelperModalState();
+      this.liveUpdate?.stop();
+      this.liveUpdate?.hideModal();
       // clear the deep cloned copy of lines
       this.buf.pageLines = [];
       if (this.buf.pageState == 3 && (this.stream || this.conn)) {
@@ -1160,8 +1168,12 @@ export class App {
     case 'copyOnSelect':
       this.copyOnSelect = value;
       break;
+    case 'enableLiveUpdate':
     case 'endTurnsOnLiveUpdate':
       this.endTurnsOnLiveUpdate = value;
+      if (this.liveUpdate) {
+        this.liveUpdate.enabled = !!value;
+      }
       break;
     case 'enablePicPreview':
       // TODO: move this to ImagePreview.

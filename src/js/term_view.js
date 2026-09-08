@@ -169,9 +169,6 @@ export class TermView {
     if (!shouldAcceptInput() || !keyEventFilter(e))
       return;
 
-    // disable auto update pushthread if any command is issued;
-    if (!e.altKey) this.app.onDisableLiveHelperModalState();
-
     if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || (e.keyCode > 15 && e.keyCode < 19))
       return; // Shift Ctrl Alt
     this.onKeyDown(e);
@@ -411,17 +408,7 @@ export class TermView {
 
     // TODO: Move this. Make a key event mapper.
     let stop = false;
-    if (!e.ctrlKey && !e.altKey) {
-      switch (e.key) {
-        case 'End': //End
-          if ((this.app.buf.pageState == 2 || this.app.buf.pageState == 3) &&
-            this.app.endTurnsOnLiveUpdate) {
-            this.app.onToggleLiveHelperModalState();
-            stop = true;
-          }
-          break;
-      }
-    } else if (e.ctrlKey && !e.altKey && !e.shiftKey) {
+    if (e.ctrlKey && !e.altKey && !e.shiftKey) {
       switch (e.key.toLowerCase()) {
         case 'c': {
           const selectedText = this.getSelectedText();

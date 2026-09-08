@@ -88,6 +88,12 @@ export const en_US = {
   plugin_easy_reading_desc: {
     message: "Automatically stitch article pages for continuous scrolling, with inline image/video previews and live push updates.",
   },
+  plugin_live_update_title: {
+    message: "Live Article Helper",
+  },
+  plugin_live_update_desc: {
+    message: "Periodically refreshes comments while reading posts (e.g. sends 'r' every second), with hotkeys and floating controls.",
+  },
   plugin_builtin: {
     message: "Built-in",
   },

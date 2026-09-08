@@ -366,17 +366,6 @@ export class PrefModal extends React.Component {
                   <label>
                     <input
                       type="checkbox"
-                      name="endTurnsOnLiveUpdate"
-                      checked={values.endTurnsOnLiveUpdate}
-                      onChange={this.handleCheckboxChange}
-                    />
-                    {i18n("options_endTurnsOnLiveUpdate")}
-                  </label>
-                </div>
-                <div className="checkbox">
-                  <label>
-                    <input
-                      type="checkbox"
                       name="copyOnSelect"
                       checked={values.copyOnSelect}
                       onChange={this.handleCheckboxChange}

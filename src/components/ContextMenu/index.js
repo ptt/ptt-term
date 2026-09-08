@@ -5,10 +5,7 @@ import { readValuesWithDefault, writeValues } from "../../js/pref";
 import { TouchKeyboard } from "../../touch/TouchKeyboard";
 import DropdownMenu from "./DropdownMenu";
 import InputHelperModal from "./InputHelperModal";
-import LiveHelperModal from "./LiveHelperModal";
 import PrefModal from "./PrefModal";
-
-function noop() {}
 
 const EVENT_KEY_BY_HOT_KEY = {
   c: "copy",
@@ -54,11 +51,7 @@ const initialState = {
   selEnabled: false,
   // --- Modal state ---
   showsInputHelper: false,
-  showsLiveArticleHelper: false,
   showsSettings: false,
-  // --- LiveHelper state ---
-  liveHelperEnabled: false,
-  liveHelperSec: 1,
 };
 
 export class ContextMenu extends React.Component {
@@ -217,17 +210,6 @@ export class ContextMenu extends React.Component {
       }
     };
     window.addEventListener("keyup", this.hotKeyUpHandler, false);
-
-    this.updateAppCallbacks();
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    if (
-      prevState.liveHelperEnabled !== this.state.liveHelperEnabled ||
-      prevState.liveHelperSec !== this.state.liveHelperSec
-    ) {
-      this.updateAppCallbacks();
-    }
   }
 
   componentWillUnmount() {
@@ -258,28 +240,6 @@ export class ContextMenu extends React.Component {
     }
   }
 
-  updateAppCallbacks() {
-    const { app } = this.props;
-    if (!app) return;
-    if (this.state.liveHelperEnabled) {
-      app.onToggleLiveHelperModalState = () => {
-        this.handleLiveHelperChange({
-          enabled: !this.state.liveHelperEnabled,
-          sec: this.state.liveHelperSec,
-        });
-      };
-      app.onDisableLiveHelperModalState = () => {
-        this.handleLiveHelperChange({
-          enabled: false,
-          sec: this.state.liveHelperSec,
-        });
-      };
-    } else {
-      app.onToggleLiveHelperModalState = app.onDisableLiveHelperModalState =
-        noop;
-    }
-  }
-
   handleFloatingMenuToggle = (event, targetEl) => {
     event?.stopPropagation?.();
     event?.preventDefault?.();
@@ -287,7 +247,6 @@ export class ContextMenu extends React.Component {
       return;
     }
     this._suppressMenuToggleUntil = Date.now() + 350;
-
     if (this.state.open) {
       this.handleHide();
       return;
@@ -457,20 +416,10 @@ export class ContextMenu extends React.Component {
     });
   };
 
-  handleLiveArticleHelperClick = (event) => {
-    event.stopPropagation();
-    this.props.app.contextMenuShown = false;
-    this.setState({
-      ...initialState,
-      showsLiveArticleHelper: true,
-    });
-  };
-
   handleSettingsClick = (event) => {
     event.stopPropagation();
     const { app } = this.props;
     app.contextMenuShown = false;
-    app.onDisableLiveHelperModalState();
     app.modalShown = true;
     this.setState({
       ...initialState,
@@ -517,32 +466,6 @@ export class ContextMenu extends React.Component {
     app.conn.convSend(str);
   };
 
-  handleLiveArticleHelperHide = () => {
-    this.setState({ showsLiveArticleHelper: false });
-  };
-
-  handleLiveHelperChange = (params) => {
-    const { app } = this.props;
-    const { enabled, sec } = params;
-    app.onDisableLiveHelperModalState();
-    if (enabled) {
-      app.liveArticleHelperTimer = setInterval(() => {
-        if (app.buf.pageState == 3) {
-          app.conn.send("r");
-        }
-      }, sec * 1000);
-    } else {
-      if (app.liveArticleHelperTimer) {
-        clearInterval(app.liveArticleHelperTimer);
-        app.liveArticleHelperTimer = null;
-      }
-    }
-    this.setState({
-      liveHelperEnabled: enabled,
-      liveHelperSec: sec,
-    });
-  };
-
   handlePrefSave = (values) => {
     const { app } = this.props;
     const nextState = onPrefSaveImpl(app, values);
@@ -566,15 +489,11 @@ export class ContextMenu extends React.Component {
       selEnabled,
       selectedText,
       showsInputHelper,
-      showsLiveArticleHelper,
       showsSettings,
-      liveHelperEnabled,
-      liveHelperSec,
       isTouchDevice,
     } = this.state;
     const { app } = this.props;
-    const anyModalShown =
-      showsInputHelper || showsLiveArticleHelper || showsSettings;
+    const anyModalShown = showsInputHelper || showsSettings;
 
     return (
       <React.Fragment>
@@ -585,6 +504,7 @@ export class ContextMenu extends React.Component {
         />
         <div className={cx({ open })}>
           <DropdownMenu
+            open={open}
             pageX={pageX}
             pageY={pageY}
             anchorRect={this.state.anchorRect}
@@ -597,7 +517,6 @@ export class ContextMenu extends React.Component {
             selectedText={selectedText}
             onMenuSelect={this.handleMenuSelect}
             onInputHelperClick={this.handleInputHelperClick}
-            onLiveArticleHelperClick={this.handleLiveArticleHelperClick}
             onSettingsClick={this.handleSettingsClick}
           />
         </div>
@@ -608,13 +527,6 @@ export class ContextMenu extends React.Component {
           onReset={this.handleInputHelperReset}
           onCmdSend={this.handleInputHelperCmdSend}
           onConvSend={this.handleInputHelperConvSend}
-        />
-        <LiveHelperModal
-          show={showsLiveArticleHelper}
-          onHide={this.handleLiveHelperHide}
-          enabled={liveHelperEnabled}
-          sec={liveHelperSec}
-          onChange={this.handleLiveHelperChange}
         />
         <PrefModal
           app={app}

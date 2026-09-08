@@ -4,16 +4,23 @@ import {
   INFLIGHT_WATCHDOG_MS,
   MAX_INFLIGHT_RETRIES,
 } from './easy_reading/index.js';
+import {
+  LiveUpdate,
+  LiveUpdatePlugin,
+} from './live_update/index.js';
 
 export {
   EasyReading,
   EasyReadingPlugin,
   INFLIGHT_WATCHDOG_MS,
   MAX_INFLIGHT_RETRIES,
+  LiveUpdate,
+  LiveUpdatePlugin,
 };
 
 export const BUILTIN_PLUGINS = [
   EasyReading,
+  LiveUpdate,
 ];
 
 export function getAvailablePlugins(app) {

@@ -63,7 +63,6 @@ export const DropdownMenu = ({
   selectedText,
   onMenuSelect,
   onInputHelperClick,
-  onLiveArticleHelperClick,
   onSettingsClick,
 }) => {
   const menuRef = useRef(null);
@@ -181,9 +180,6 @@ export const DropdownMenu = ({
           </MenuItem>
           <MenuItem onClick={onInputHelperClick}>
             {i18n("cmenu_showInputHelper")}
-          </MenuItem>
-          <MenuItem onClick={onLiveArticleHelperClick}>
-            {i18n("cmenu_showLiveArticleHelper")}
           </MenuItem>
           <MenuItem divider />
         </React.Fragment>

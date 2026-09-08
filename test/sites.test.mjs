@@ -1565,6 +1565,7 @@ test('src/plugins exports EasyReading and provides modular plugin architecture',
   const available = pluginsModule.getAvailablePlugins();
   assert.ok(Array.isArray(available));
   assert.ok(available.some((p) => p.id === 'easy_reading'));
+  assert.ok(available.some((p) => p.id === 'live_update'));
 
   // getAvailablePlugins queries app.plugins or app.getPluginList
   const mockAppWithPlugins = {
@@ -1578,4 +1579,138 @@ test('src/plugins exports EasyReading and provides modular plugin architecture',
   assert.equal(appList[0].name, 'easy_reading');
   assert.equal(appList[0].prefKey, 'enableEasyReading');
   assert.equal(appList[0].icon, 'book');
+});
+
+test('src/plugins exports LiveUpdate and provides timer and keyboard lifecycle', async () => {
+  const pluginsModule = await import('../src/plugins/index.js');
+  const liveUpdateModule = await import('../src/plugins/live_update/index.js');
+
+  assert.equal(pluginsModule.LiveUpdate, liveUpdateModule.LiveUpdate);
+  assert.equal(pluginsModule.LiveUpdatePlugin, liveUpdateModule.LiveUpdatePlugin);
+  assert.equal(liveUpdateModule.default, liveUpdateModule.LiveUpdate);
+
+  assert.equal(liveUpdateModule.LiveUpdate.name, 'live_update');
+  const instance = new liveUpdateModule.LiveUpdate();
+  assert.equal(instance.name, 'live_update');
+
+  // Metadata queries
+  const meta = instance.getMetadata();
+  assert.equal(meta.id, 'live_update');
+  assert.equal(meta.name, 'live_update');
+  assert.equal(meta.prefKey, 'enableLiveUpdate');
+  assert.ok(meta.title && meta.title.length > 0);
+  assert.ok(meta.description && meta.description.length > 0);
+  assert.equal(meta.icon, 'sync');
+
+  const staticMeta = liveUpdateModule.LiveUpdate.getMetadata();
+  assert.equal(staticMeta.id, 'live_update');
+  assert.equal(staticMeta.prefKey, 'enableLiveUpdate');
+
+  // Timer & sending logic
+  const sentCommands = [];
+  const mockApp = {
+    buf: { pageState: 3 },
+    send(cmd) {
+      sentCommands.push(cmd);
+    },
+  };
+  const plugin = new liveUpdateModule.LiveUpdate(mockApp, { enabled: true, intervalSec: 1 });
+  plugin.init({ app: mockApp, buf: mockApp.buf });
+  plugin.enabled = true;
+
+  assert.equal(plugin.active, false);
+  plugin.start();
+  assert.equal(plugin.active, true);
+  assert.ok(plugin.timer !== null);
+
+  // Interval adjustment
+  plugin.setIntervalSec(2);
+  assert.equal(plugin.intervalSec, 2);
+  assert.equal(plugin.active, true);
+
+  plugin.stop();
+  assert.equal(plugin.active, false);
+  assert.equal(plugin.timer, null);
+
+  plugin.toggle();
+  assert.equal(plugin.active, true);
+  plugin.toggle();
+  assert.equal(plugin.active, false);
+
+  // Keyboard navigation
+  let prevented = false;
+  let stoppedPropagation = false;
+  const mockEvent = (key, opts = {}) => ({
+    key,
+    ctrlKey: !!opts.ctrlKey,
+    altKey: !!opts.altKey,
+    shiftKey: !!opts.shiftKey,
+    preventDefault() { prevented = true; },
+    stopPropagation() { stoppedPropagation = true; },
+  });
+
+  // End key in post mode (pageState 3)
+  prevented = false;
+  const handledEnd = plugin.handleKeyDown(mockEvent('End'));
+  assert.equal(handledEnd, true);
+  assert.equal(prevented, true);
+  assert.equal(plugin.active, true);
+
+  // Non-alt key cancels active
+  plugin.handleKeyDown(mockEvent('j'));
+  assert.equal(plugin.active, false);
+
+  // Alt modifier does not cancel active
+  plugin.start();
+  plugin.handleKeyDown(mockEvent('Alt', { altKey: true }));
+  assert.equal(plugin.active, true);
+
+  // Clean up
+  plugin.destroy();
+  assert.equal(plugin.active, false);
+  assert.equal(plugin.timer, null);
+});
+
+test('ContextMenu and DropdownMenu decouple LiveHelper and remove right-click item', async () => {
+  const fs = await import('fs');
+  const path = await import('path');
+
+  const dropdownSource = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/DropdownMenu.js'),
+    'utf-8'
+  );
+  const contextMenuSource = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/index.js'),
+    'utf-8'
+  );
+  const prefModalSource = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/PrefModal.js'),
+    'utf-8'
+  );
+
+  // DropdownMenu no longer renders LiveHelper item
+  assert.ok(
+    !dropdownSource.includes('cmenu_showLiveArticleHelper'),
+    'DropdownMenu must not contain cmenu_showLiveArticleHelper'
+  );
+  assert.ok(
+    !dropdownSource.includes('onLiveArticleHelperClick'),
+    'DropdownMenu must not contain onLiveArticleHelperClick'
+  );
+
+  // ContextMenu no longer imports LiveHelperModal or injects callbacks
+  assert.ok(
+    !contextMenuSource.includes('LiveHelperModal'),
+    'ContextMenu must not import or render LiveHelperModal'
+  );
+  assert.ok(
+    !contextMenuSource.includes('onToggleLiveHelperModalState'),
+    'ContextMenu must not inject onToggleLiveHelperModalState'
+  );
+
+  // PrefModal General tab no longer duplicates endTurnsOnLiveUpdate
+  assert.ok(
+    !prefModalSource.includes('name="endTurnsOnLiveUpdate"'),
+    'PrefModal General tab must not contain redundant endTurnsOnLiveUpdate checkbox'
+  );
 });

@@ -1710,6 +1710,10 @@ test('PrefModal redesign includes Extensions/Plugins tab with Mac-style toggle l
     prefModalSource.includes('PrefModal__TabSubtitle'),
     'PrefModal should render subtitle below TabLegend divider'
   );
+  assert.ok(
+    !prefModalSource.includes('name="endTurnsOnLiveUpdate"'),
+    'PrefModal General tab must not contain duplicate endTurnsOnLiveUpdate checkbox'
+  );
 
   // 3. PrefModal.css defines Mac list and switch styles
   assert.ok(
@@ -2715,4 +2719,35 @@ test('App setNavCmd dispatches navigation commands and replaces legacy setBBSCmd
   assert.ok(currentAppSource.includes('setNavCmd(cmd)'), 'App should declare setNavCmd(cmd)');
   assert.ok(currentAppSource.includes('this.setNavCmd(action)'), 'App wheel handler should call setNavCmd');
   assert.ok(currentAppSource.includes("this.setNavCmd('doEnter')"), 'App left click handler should call setNavCmd');
+});
+test('DropdownMenu hides and positions before showing to prevent top-left popup flicker', () => {
+  const dropdownJsSource = fs.readFileSync(path.resolve('src/components/ContextMenu/DropdownMenu.js'), 'utf-8');
+  const dropdownCssSource = fs.readFileSync(path.resolve('src/components/ContextMenu/DropdownMenu.css'), 'utf-8');
+  const contextMenuSource = fs.readFileSync(path.resolve('src/components/ContextMenu/index.js'), 'utf-8');
+
+  // 1. DropdownMenu.css defines default hidden visibility
+  assert.ok(
+    dropdownCssSource.includes('visibility: hidden;'),
+    'DropdownMenu.css must define visibility: hidden for .DropdownMenu--reset'
+  );
+
+  // 2. DropdownMenu.js uses useLayoutEffect and open prop
+  assert.ok(
+    dropdownJsSource.includes('useLayoutEffect'),
+    'DropdownMenu must use useLayoutEffect instead of useEffect to position before paint'
+  );
+  assert.ok(
+    dropdownJsSource.includes('open,'),
+    'DropdownMenu must accept open prop'
+  );
+  assert.ok(
+    dropdownJsSource.includes('el.style.visibility = "visible";'),
+    'DropdownMenu must reveal element with visibility: visible only after positioning'
+  );
+
+  // 3. ContextMenu passes open prop to DropdownMenu
+  assert.ok(
+    contextMenuSource.includes('<DropdownMenu') && contextMenuSource.includes('open={open}'),
+    'ContextMenu must pass open prop to DropdownMenu'
+  );
 });

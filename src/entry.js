@@ -2,6 +2,7 @@
 import './css/ui.css';
 import './css/main.css';
 import './css/color.css';
+import './plugins/live_update/LiveHelperModal.css';
 import './js/main';
 
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
