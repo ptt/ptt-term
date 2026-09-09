@@ -23,6 +23,7 @@ export const DEFAULT_PREFS = {
   captureConnectionLog: false,
   enableInputHelper: true,
   enableTouchDebugHUD: false,
+  enableAutoLogin: true,
 
   // locale
   uiLocale: "auto",

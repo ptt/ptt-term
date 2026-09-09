@@ -36,6 +36,9 @@
   "cmenu_showLiveArticleHelper": {
     "message": "Live article helper ..."
   },
+  "cmenu_auto_login": {
+    "message": "BBS Login ..."
+  },
   "cmenu_settings": {
     "message": "Settings"
   },
@@ -128,6 +131,39 @@
   },
   "plugin_input_helper_desc": {
     "message": "Visual input palette for ANSI color codes, special symbols, fullwidth punctuation, and emoticons."
+  },
+  "plugin_auto_login_title": {
+    "message": "Auto Login"
+  },
+  "plugin_auto_login_desc": {
+    "message": "Prompt login modal to autofill and remember credentials with browser password manager and typeahead into terminal."
+  },
+  "login_modal_title": {
+    "message": "BBS Login"
+  },
+  "login_modal_desc": {
+    "message": "Use browser password manager to autofill or save credentials. Passwords are not saved by the app."
+  },
+  "login_modal_username": {
+    "message": "Username"
+  },
+  "login_modal_password": {
+    "message": "Password"
+  },
+  "login_modal_username_placeholder": {
+    "message": "Enter BBS username"
+  },
+  "login_modal_password_placeholder": {
+    "message": "Enter password"
+  },
+  "login_modal_submit": {
+    "message": "Login"
+  },
+  "login_modal_cancel": {
+    "message": "Cancel"
+  },
+  "login_modal_logging_in": {
+    "message": "Logging in..."
   },
   "options_picPreviewWhitelistOnly": {
     "message": "Only preview images from trusted image hosts (Security & Privacy)"

@@ -542,7 +542,7 @@ export class ContextMenu extends React.Component {
       isTouchDevice,
     } = this.state;
     const { app } = this.props;
-    const anyModalShown = showsSettings;
+    const anyModalShown = Boolean(showsSettings || app?.modalShown);
 
     const registeredItems = this.getRegisteredItems();
     const menuContext = {
@@ -630,6 +630,7 @@ export class ContextMenu extends React.Component {
             normalEnabled={normalEnabled}
             selEnabled={selEnabled}
             mouseBrowsingEnabled={mouseBrowsingEnabled}
+            pluginItems={pluginItems}
             inputHelperEnabled={true}
             liveHelperEnabled={false}
             selectedText={selectedText}

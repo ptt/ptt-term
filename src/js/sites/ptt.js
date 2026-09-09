@@ -340,6 +340,18 @@ export class PttSite extends BaseSite {
     }
     return false;
   }
+
+  /**
+   * Check if text or termBuf matches PTT login prompt.
+   * Matches string definitions from pttbbs mbbsd / daemon / logind:
+   * "請輸入代號，或以 guest 參觀，或以 new 註冊: " or "請輸入代號"
+   * @param {string} text
+   * @param {TermBuf} [termBuf]
+   * @returns {boolean}
+   */
+  checkLoginPrompt(text, termBuf) {
+    return super.checkLoginPrompt(text, termBuf);
+  }
 }
 
 // ---------------------------------------------------------------------------

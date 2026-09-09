@@ -388,7 +388,7 @@ test('Extension list supports groups with colored Bands for categories (User Int
   assert.equal(bbsGroup.title, 'Taiwan BBS');
   assert.equal(bbsGroup.titleKey, 'plugin_group_bbs');
   const bbsPluginIds = bbsGroup.plugins.map((p) => p.id);
-  assert.deepEqual(bbsPluginIds, ['easy_reading', 'anti_idle', 'auto_wrap', 'mouse_browsing', 'live_update']);
+  assert.deepEqual(bbsPluginIds, ['easy_reading', 'auto_login', 'auto_wrap', 'anti_idle', 'mouse_browsing', 'live_update']);
 
   // Group 3: Debug & Development (fps meter, debug hud, packet logger)
   const debugGroup = groups.find((g) => g.id === 'debug');
@@ -398,8 +398,8 @@ test('Extension list supports groups with colored Bands for categories (User Int
   const debugPluginIds = debugGroup.plugins.map((p) => p.id);
   assert.deepEqual(debugPluginIds, ['fps_meter', 'touch_debug_hud', 'conn_log']);
 
-  // Verify all 10 plugins have their group attribute defined
-  assert.equal(plugins.length, 10);
+  // Verify all 11 plugins have their group attribute defined
+  assert.equal(plugins.length, 11);
   for (const p of plugins) {
     assert.ok(p.group, `Plugin ${p.id} must define a group`);
   }

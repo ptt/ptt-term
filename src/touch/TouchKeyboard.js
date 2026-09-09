@@ -2139,7 +2139,9 @@ export class TouchKeyboard extends React.Component {
     } = this.state;
 
     const isTouchDevice = this.state.isTouchDevice || this.checkTouchDevice();
-    const anyModalShown = Boolean(this.props.anyModalShown);
+    const anyModalShown = Boolean(
+      this.props.anyModalShown || this.props.app?.modalShown
+    );
     if (!isTouchDevice || anyModalShown) {
       return null;
     }

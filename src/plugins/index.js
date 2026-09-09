@@ -37,6 +37,10 @@ import {
   TouchDebugHUD,
   TouchDebugHUDPlugin,
 } from './touch_debug_hud/index.js';
+import {
+  AutoLogin,
+  AutoLoginPlugin,
+} from './auto_login/index.js';
 
 export {
   EasyReading,
@@ -58,6 +62,8 @@ export {
   FpsMeterPlugin,
   TouchDebugHUD,
   TouchDebugHUDPlugin,
+  AutoLogin,
+  AutoLoginPlugin,
 };
 
 export const PLUGIN_GROUPS = [
@@ -73,7 +79,7 @@ export const PLUGIN_GROUPS = [
     titleKey: 'plugin_group_bbs',
     title: 'Taiwan BBS',
     color: '#34c759',
-    pluginIds: ['easy_reading', 'anti_idle', 'auto_wrap', 'mouse_browsing', 'live_update'],
+    pluginIds: ['easy_reading', 'auto_login', 'auto_wrap', 'anti_idle', 'mouse_browsing', 'live_update'],
   },
   {
     id: 'debug',
@@ -87,6 +93,7 @@ export const PLUGIN_GROUPS = [
 export const PLUGIN_GROUP_MAP = {
   media_previewer: 'ui',
   input_helper: 'ui',
+  auto_login: 'bbs',
   easy_reading: 'bbs',
   anti_idle: 'bbs',
   auto_wrap: 'bbs',
@@ -151,6 +158,7 @@ export function groupPlugins(plugins = []) {
 }
 
 export const BUILTIN_PLUGINS = [
+  AutoLogin,
   MediaPreviewer,
   InputHelper,
   EasyReading,

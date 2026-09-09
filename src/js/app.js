@@ -34,6 +34,7 @@ export class App extends Event {
 
   this.view = new TermView();
   this.buf = new TermBuf(80, 24);
+  this.buf.app = this;
   this.enableVisualBell = false;
   this.backspaceKey = 'control-h';
   this.deleteKey = 'escape-sequence';
@@ -52,6 +53,7 @@ export class App extends Event {
   this.view.setBuf(this.buf);
   this.view.setCore(this);
   this.stream = new Stream(null, { charset: this.site ? this.site.charset : 'big5' });
+  this.stream.app = this;
   this.telnetFilter = new TelnetFilter();
   this.ansiFilter = new AnsiFilter(this.buf, { stream: this.stream });
   this.stream.registerFilter(this.telnetFilter);
@@ -541,6 +543,7 @@ export class App extends Event {
     if (this.stream) {
       this.stream.charset = this.site ? this.site.charset : 'big5';
     }
+    this.site?.resetLoginPrompt?.();
     console.info("app onConnect");
     this.connectState = 1;
     this.updateTabIcon('connect');
@@ -568,6 +571,7 @@ export class App extends Event {
       this.timerEverySec.cancel();
     }
     this.conn.isConnected = false;
+    this.site?.resetLoginPrompt?.();
 
     this.cancelMbTimer();
 

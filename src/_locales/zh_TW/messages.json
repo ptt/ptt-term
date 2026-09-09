@@ -36,6 +36,9 @@
   "cmenu_showLiveArticleHelper": {
     "message": "Live 文小幫手 ..."
   },
+  "cmenu_auto_login": {
+    "message": "帳號登入 ..."
+  },
   "cmenu_settings": {
     "message": "設定"
   },
@@ -128,6 +131,39 @@
   },
   "plugin_input_helper_desc": {
     "message": "提供視覺化輸入小幫手面板，支援 ANSI 色彩代碼、特殊符號、常用標點與表情符號輸入。"
+  },
+  "plugin_auto_login_title": {
+    "message": "帳號登入"
+  },
+  "plugin_auto_login_desc": {
+    "message": "提供帳號密碼登入視窗，可利用瀏覽器密碼管理員記住密碼並代輸出至終端機。"
+  },
+  "login_modal_title": {
+    "message": "BBS 帳號登入"
+  },
+  "login_modal_desc": {
+    "message": "利用瀏覽器自動填入或記憶密碼，本程式不會另外儲存您的帳號與密碼。"
+  },
+  "login_modal_username": {
+    "message": "帳號"
+  },
+  "login_modal_password": {
+    "message": "密碼"
+  },
+  "login_modal_username_placeholder": {
+    "message": "請輸入帳號"
+  },
+  "login_modal_password_placeholder": {
+    "message": "請輸入密碼"
+  },
+  "login_modal_submit": {
+    "message": "登入"
+  },
+  "login_modal_cancel": {
+    "message": "取消"
+  },
+  "login_modal_logging_in": {
+    "message": "登入中..."
   },
   "options_picPreviewWhitelistOnly": {
     "message": "僅預覽受信任圖床的圖片 (建議開啟，維護隱私與安全)"

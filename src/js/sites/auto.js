@@ -126,6 +126,16 @@ export class AutoSite extends BaseSite {
     }
   }
 
+  resetLoginPrompt() {
+    super.resetLoginPrompt();
+    this.pttSite?.resetLoginPrompt?.();
+    this.maple3Site?.resetLoginPrompt?.();
+  }
+
+  checkLoginPrompt(text, termBuf) {
+    return this.getActiveSite().checkLoginPrompt(text, termBuf);
+  }
+
   onTelopt(cmd, opt, termBuf) {
     if (this.isLocked) {
       return;
@@ -139,15 +149,31 @@ export class AutoSite extends BaseSite {
   }
 
   onData(data, termBuf) {
-    if (this.isLocked) {
-      return;
+    if (!this.isLocked) {
+      // If Telnet options were negotiated (e.g. TTYPE, ECHO, SGA)
+      // but screen data starts arriving and no TELOPT_BINARY was received,
+      // this is a non-PTTCurrent BBS (e.g. classic Maple 2.x or very old PTT).
+      if (this.hasTelnet) {
+        console.log('[AutoSite] Screen data received after Telnet negotiation without TELOPT_BINARY -> Maple or legacy');
+        this.lockSite('maple3', termBuf);
+      }
     }
-    // If Telnet options were negotiated (e.g. TTYPE, ECHO, SGA)
-    // but screen data starts arriving and no TELOPT_BINARY was received,
-    // this is a non-PTTCurrent BBS (e.g. classic Maple 2.x or very old PTT).
-    if (this.hasTelnet) {
-      console.log('[AutoSite] Screen data received after Telnet negotiation without TELOPT_BINARY -> Maple or legacy');
-      this.lockSite('maple3', termBuf);
+
+    const text = this._decodeIncoming(data);
+    if (!this.isLocked && text) {
+      if (text.includes('[您的帳號]')) {
+        console.log('[AutoSite] Detected Maple BBS login prompt [您的帳號] -> Maple');
+        this.lockSite('maple3', termBuf);
+      }
+    }
+
+    if (!this._loginPromptFired) {
+      const active = this.getActiveSite();
+      if (active.checkLoginPrompt(text, termBuf) || this.checkLoginPrompt(text, termBuf)) {
+        this._loginPromptFired = true;
+        active._loginPromptFired = true;
+        this.fireLoginPrompt(termBuf);
+      }
     }
   }
 
@@ -160,6 +186,17 @@ export class AutoSite extends BaseSite {
     let row1Text = termBuf.getRowText(1, 0, cols);
     let lastRowText = termBuf.getRowText(lastRowNum, 0, cols);
     let row23Text = termBuf.rows > 23 ? termBuf.getRowText(23, 0, cols) : lastRowText;
+
+    // Check Maple 3 login signature [您的帳號]
+    const startRow = Math.max(1, (termBuf.rows || 24) - 6);
+    const endRow = termBuf.rows || 24;
+    for (let r = startRow; r <= endRow; r++) {
+      const rowStr = termBuf.getRowText(r, 0, cols);
+      if (rowStr && rowStr.includes('[您的帳號]')) {
+        this.lockSite('maple3', termBuf);
+        return;
+      }
+    }
 
     // Check Maple 3 signatures
     if (/\[←\]離開\s*\[→\]閱讀/.test(row1Text) ||

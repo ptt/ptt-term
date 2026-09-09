@@ -1,13 +1,19 @@
+import { Event } from '../event.js';
 import { CHARSETS } from '../conv.js';
+import { b2u } from '../string_util.js';
 export { CHARSETS };
 
-export class BaseSite {
+export class BaseSite extends Event {
   constructor(name = 'base', charset = CHARSETS.BIG5) {
+    super();
     this.name = name;
     this.charset = charset;
     this.fixed_last_row = null;
     this.max_rows = null;
     this.max_cols = null;
+    this._loginPromptFired = false;
+    this._byteBuffer = null;
+    this._textBuffer = '';
   }
 
   set charset(val) {
@@ -34,6 +40,15 @@ export class BaseSite {
   }
 
   /**
+   * Reset login prompt detection state (e.g. on new connection).
+   */
+  resetLoginPrompt() {
+    this._loginPromptFired = false;
+    this._byteBuffer = null;
+    this._textBuffer = '';
+  }
+
+  /**
    * Attach this site to a terminal, buffer, or keyboard target to listen for terminal events.
    * @param {EventTarget} term 
    */
@@ -42,7 +57,11 @@ export class BaseSite {
     this._attachedTerm = term;
     if (term) {
       this._keyListener = (e) => this.onKey(e);
-      term.addEventListener('term:key', this._keyListener);
+      term.addEventListener?.('term:key', this._keyListener);
+      this._connectListener = () => this.resetLoginPrompt();
+      this._disconnectListener = () => this.resetLoginPrompt();
+      term.addEventListener?.('term:connect', this._connectListener);
+      term.addEventListener?.('term:disconnect', this._disconnectListener);
     }
   }
 
@@ -50,11 +69,15 @@ export class BaseSite {
    * Detach this site from the terminal.
    */
   detach() {
-    if (this._attachedTerm && this._keyListener) {
-      this._attachedTerm.removeEventListener('term:key', this._keyListener);
+    if (this._attachedTerm) {
+      if (this._keyListener) this._attachedTerm.removeEventListener?.('term:key', this._keyListener);
+      if (this._connectListener) this._attachedTerm.removeEventListener?.('term:connect', this._connectListener);
+      if (this._disconnectListener) this._attachedTerm.removeEventListener?.('term:disconnect', this._disconnectListener);
     }
     this._attachedTerm = null;
     this._keyListener = null;
+    this._connectListener = null;
+    this._disconnectListener = null;
   }
 
   /**
@@ -602,11 +625,137 @@ export class BaseSite {
   onTelopt(cmd, opt, termBuf) {}
 
   /**
+   * Decode incoming raw data (bytes or string), maintain a sliding buffer across packets,
+   * and strip ANSI escape codes for prompt detection.
+   * @param {string|Uint8Array|ArrayBuffer|Array} data
+   * @returns {string}
+   */
+  _decodeIncoming(data) {
+    if (!data) return '';
+    let text = '';
+    if (typeof data === 'string') {
+      this._textBuffer = ((this._textBuffer || '') + data).slice(-512);
+      text = b2u(this._textBuffer);
+    } else {
+      const bytes = data instanceof Uint8Array
+        ? data
+        : new Uint8Array(data.buffer ? data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) : data);
+
+      if (this._byteBuffer && this._byteBuffer.length > 0) {
+        const merged = new Uint8Array(this._byteBuffer.length + bytes.length);
+        merged.set(this._byteBuffer);
+        merged.set(bytes, this._byteBuffer.length);
+        this._byteBuffer = merged.slice(-512);
+      } else {
+        this._byteBuffer = bytes.slice(-512);
+      }
+
+      if (this.isUtf8) {
+        try {
+          text = new TextDecoder('utf-8', { fatal: false }).decode(this._byteBuffer);
+        } catch {
+          text = String.fromCharCode.apply(null, this._byteBuffer);
+        }
+      } else {
+        try {
+          text = b2u(this._byteBuffer);
+        } catch {
+          text = String.fromCharCode.apply(null, this._byteBuffer);
+        }
+      }
+    }
+
+    if (!text) return '';
+    return text.replace(/\x1b(?:\[[0-?]*[ -/]*[@-~]|\([B0UK]|\)[B0UK]|[@-Z\\-_])/g, '');
+  }
+
+  /**
+   * Check whether incoming decoded text or current termBuf matches a generic BBS login prompt.
+   * "請輸入代號" is common across Taiwan BBS systems (PTT, Maple MSG_UID, SOB, etc.).
+   * @param {string} text
+   * @param {TermBuf} [termBuf]
+   * @returns {boolean}
+   */
+  checkLoginPrompt(text, termBuf) {
+    if (termBuf && typeof termBuf.getRowText === 'function') {
+      const lastRowNum = typeof this.getLastRowNum === 'function' ? this.getLastRowNum(termBuf) : ((termBuf.rows || 24) - 1);
+      const lastRowText = termBuf.getRowText(lastRowNum, 0, termBuf.cols || 80);
+      if (
+        this.isMenuScreen(termBuf) ||
+        this.isListScreen(termBuf) ||
+        this.isEditingScreen(termBuf) ||
+        (typeof this.parseReadingStatus === 'function' && Boolean(this.parseReadingStatus(lastRowText, termBuf))) ||
+        /瀏覽\s*(?:第|\(?\d+%\)?|P\.)/.test(lastRowText)
+      ) {
+        return false;
+      }
+    }
+    if (text && text.includes('請輸入代號')) {
+      return true;
+    }
+    if (termBuf && typeof termBuf.getRowText === 'function') {
+      const startRow = Math.max(1, (termBuf.rows || 24) - 6);
+      const endRow = termBuf.rows || 24;
+      for (let r = startRow; r <= endRow; r++) {
+        const rowStr = termBuf.getRowText(r, 0, termBuf.cols || 80);
+        if (rowStr && rowStr.includes('請輸入代號')) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Dispatch login prompt event to notify subscribers (e.g. auto_login plugin).
+   * @param {TermBuf} [termBuf]
+   */
+  fireLoginPrompt(termBuf) {
+    const detail = { site: this, siteType: this.name };
+    const eventNames = ['login', 'term:login', 'term:login-prompt'];
+
+    if (termBuf && typeof termBuf.dispatchEvent === 'function') {
+      for (const name of eventNames) {
+        termBuf.dispatchEvent(new CustomEvent(name, { detail }));
+      }
+    }
+
+    const app =
+      termBuf?.app ||
+      termBuf?.view?.app ||
+      termBuf?.view?.core ||
+      this._attachedTerm?.app ||
+      (this._attachedTerm && typeof this._attachedTerm.send === 'function' ? this._attachedTerm : null);
+
+    if (app && typeof app.dispatchEvent === 'function' && app !== termBuf) {
+      for (const name of eventNames) {
+        app.dispatchEvent(new CustomEvent(name, { detail }));
+      }
+    }
+
+    if (typeof this.dispatchEvent === 'function') {
+      for (const name of eventNames) {
+        this.dispatchEvent(new CustomEvent(name, { detail }));
+      }
+    }
+  }
+
+  /**
    * Called when display data is dispatched to the terminal parser.
-   * @param {string} data Raw data chunk
+   * Inspects incoming data for login prompt and fires login event.
+   * @param {string|Uint8Array} data Raw data chunk
    * @param {TermBuf} termBuf
    */
-  onData(data, termBuf) {}
+  onData(data, termBuf) {
+    if (this._loginPromptFired) {
+      return;
+    }
+    const text = this._decodeIncoming(data);
+    if (this.checkLoginPrompt(text, termBuf)) {
+      this._loginPromptFired = true;
+      this.fireLoginPrompt(termBuf);
+    }
+  }
 
 
   /**

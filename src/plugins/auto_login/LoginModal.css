@@ -1,0 +1,120 @@
+dialog.LoginModal {
+  max-width: 90vw;
+  width: 360px;
+}
+
+.LoginModal__Form {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 24px;
+}
+
+.LoginModal__Header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.LoginModal__TitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.LoginModal__TitleIcon {
+  color: #007aff;
+  flex-shrink: 0;
+}
+
+.LoginModal__Title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+.LoginModal__CloseBtn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  color: #8e8e93;
+  cursor: pointer;
+  padding: 0;
+}
+
+.LoginModal__CloseBtn:hover {
+  color: #1d1d1f;
+}
+
+.LoginModal__Hint {
+  font-size: 13px;
+  line-height: 1.4;
+  color: #6e6e73;
+  margin: 0 0 16px 0;
+}
+
+.LoginModal__Field {
+  margin-bottom: 16px;
+}
+
+.LoginModal__Field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #3a3a3c;
+  margin-bottom: 6px;
+}
+
+.LoginModal__Input {
+  width: 100%;
+  height: 40px;
+  padding: 8px 12px;
+  font-size: 16px; /* Prevents auto-zoom on iOS Safari */
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background-color: #f5f5f7;
+  color: #1d1d1f;
+  box-sizing: border-box;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.LoginModal__Input:focus {
+  outline: none;
+  border-color: #007aff;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+}
+
+.LoginModal__Footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.LoginModal__Btn {
+  min-height: 38px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.LoginModal__Btn--submit {
+  background-color: #007aff;
+  border-color: #007aff;
+  color: #ffffff;
+}
+
+.LoginModal__Btn--submit:hover:not(:disabled) {
+  background-color: #0062cc;
+  border-color: #0062cc;
+}
+
+.LoginModal__Btn--submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

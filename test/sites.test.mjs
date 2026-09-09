@@ -2169,6 +2169,126 @@ test('MediaPreviewer exposes getHyperlinkPreviewHook for screen integration', as
   assert.equal(hook.createPreviewRequest('https://imgur.com/abc1234'), null);
 });
 
+test('BaseSite and PttSite checkLoginPrompt matches 請輸入代號 across Taiwan BBSes', async () => {
+  const { u2b } = await import('../src/js/string_util.js');
+  const baseSite = new BaseSite();
+  const pttSite = new PttSite();
 
+  // 1. Generic login prompt in BaseSite
+  assert.equal(baseSite.checkLoginPrompt('請輸入代號，或以 guest 參觀，或以 new 註冊: '), true);
+  assert.equal(baseSite.checkLoginPrompt('請輸入代號，或以 guest 參觀: '), true);
+  assert.equal(baseSite.checkLoginPrompt('請輸入代號: '), true);
+  assert.equal(baseSite.checkLoginPrompt('請輸入代號'), true);
 
+  // 2. Inherited by PttSite
+  assert.equal(pttSite.checkLoginPrompt('請輸入代號，或以 guest 參觀，或以 new 註冊: '), true);
+  assert.equal(pttSite.checkLoginPrompt('請輸入代號'), true);
 
+  // 3. Big5 binary decoding in onData
+  const pttBig5 = Uint8Array.from(u2b('請輸入代號，或以 guest 參觀，或以 new 註冊: '), c => c.charCodeAt(0));
+  let loginFired = false;
+  const mockBuf = {
+    app: {
+      dispatchEvent(e) {
+        if (e.type === 'login') loginFired = true;
+      },
+    },
+    dispatchEvent() {},
+  };
+  pttSite.onData(pttBig5, mockBuf);
+  assert.equal(loginFired, true);
+
+  // Guarded so it only fires once per session
+  loginFired = false;
+  pttSite.onData(pttBig5, mockBuf);
+  assert.equal(loginFired, false);
+
+  // Reset allows firing again on next session
+  pttSite.resetLoginPrompt();
+  pttSite.onData(pttBig5, mockBuf);
+  assert.equal(loginFired, true);
+
+  // 4. Fallback to termBuf inspection when raw text is empty
+  const termBufPrompt = {
+    rows: 24,
+    cols: 80,
+    getRowText: (r) => (r === 21 ? '請輸入代號，或以 guest 參觀，或以 new 註冊: ' : ''),
+  };
+  assert.equal(baseSite.checkLoginPrompt('', termBufPrompt), true);
+  assert.equal(pttSite.checkLoginPrompt('', termBufPrompt), true);
+
+  // 5. Returns false if already in article list or reading screen
+  const readingTermBuf = {
+    rows: 24,
+    cols: 80,
+    getRowText: (r) => (r === 23 ? '  瀏覽 第 1/1 頁 (100%)  目前顯示: 第 01~20 行 (y)回應 (←)離開 ' : ''),
+  };
+  assert.equal(pttSite.checkLoginPrompt('請輸入代號', readingTermBuf), false);
+  assert.equal(baseSite.checkLoginPrompt('請輸入代號', readingTermBuf), false);
+});
+
+test('Maple3Site checkLoginPrompt matches maplebbs-itoc strings', async () => {
+  const { u2b } = await import('../src/js/string_util.js');
+  const site = new Maple3Site();
+
+  // 1. Strings from maplebbs-itoc bbsd.c:604 and global.h:391
+  assert.equal(site.checkLoginPrompt('   [您的帳號] '), true);
+  assert.equal(site.checkLoginPrompt('請輸入代號：'), true);
+  assert.equal(site.checkLoginPrompt('請輸入代號'), true);
+  assert.equal(site.checkLoginPrompt('other screen'), false);
+
+  // 2. Big5 binary decoding in onData
+  const mapleBig5 = Uint8Array.from(u2b('   [您的帳號] '), c => c.charCodeAt(0));
+  let loginFired = false;
+  const mockBuf = {
+    app: {
+      dispatchEvent(e) {
+        if (e.type === 'login') loginFired = true;
+      },
+    },
+    dispatchEvent() {},
+  };
+  site.onData(mapleBig5, mockBuf);
+  assert.equal(loginFired, true);
+});
+
+test('AutoSite onData fires login on 請輸入代號 without locking to PTT, and locks to maple3 on [您的帳號]', async () => {
+  const { u2b } = await import('../src/js/string_util.js');
+
+  // Case 1: Maple login prompt [您的帳號] locks AutoSite to maple3 and fires login
+  const auto1 = new AutoSite();
+  let fired1 = false;
+  const mockBuf1 = {
+    rows: 24,
+    cols: 80,
+    app: {
+      dispatchEvent(e) {
+        if (e.type === 'login') fired1 = true;
+      },
+    },
+    dispatchEvent() {},
+  };
+  const mapleChunk = Uint8Array.from(u2b('   [您的帳號] '), c => c.charCodeAt(0));
+  auto1.onData(mapleChunk, mockBuf1);
+  assert.equal(auto1.name, 'maple3');
+  assert.equal(auto1.isLocked, true);
+  assert.equal(fired1, true);
+
+  // Case 2: Generic BBS login prompt 請輸入代號 triggers login, but does NOT lock to PTT
+  const auto2 = new AutoSite();
+  let fired2 = false;
+  const mockBuf2 = {
+    rows: 24,
+    cols: 80,
+    app: {
+      dispatchEvent(e) {
+        if (e.type === 'login') fired2 = true;
+      },
+    },
+    dispatchEvent() {},
+  };
+  const pttChunk = Uint8Array.from(u2b('請輸入代號，或以 guest 參觀: '), c => c.charCodeAt(0));
+  auto2.onData(pttChunk, mockBuf2);
+  assert.equal(fired2, true, '請輸入代號 must fire login event');
+  assert.equal(auto2.isLocked, false, '請輸入代號 must NOT lock AutoSite to PTT');
+});

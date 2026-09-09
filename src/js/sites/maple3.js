@@ -143,4 +143,32 @@ export class Maple3Site extends BaseSite {
   getEditorEscapeChar() {
     return '\x03';
   }
+
+  /**
+   * Check if text or termBuf matches Maple BBS login prompt.
+   * Matches string definitions from maplebbs-itoc:
+   * "[您的帳號]" (bbsd.c:604) or "請輸入代號：" / "請輸入代號" (global.h MSG_UID)
+   * @param {string} text
+   * @param {TermBuf} [termBuf]
+   * @returns {boolean}
+   */
+  checkLoginPrompt(text, termBuf) {
+    if (super.checkLoginPrompt(text, termBuf)) {
+      return true;
+    }
+    if (text && text.includes('[您的帳號]')) {
+      return true;
+    }
+    if (termBuf && typeof termBuf.getRowText === 'function') {
+      const startRow = Math.max(1, (termBuf.rows || 24) - 6);
+      const endRow = termBuf.rows || 24;
+      for (let r = startRow; r <= endRow; r++) {
+        const rowStr = termBuf.getRowText(r, 0, termBuf.cols || 80);
+        if (rowStr && rowStr.includes('[您的帳號]')) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 }
