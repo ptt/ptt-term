@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Event } from '../src/js/event.js';
-import { setTimer, getQueryVariable, resolveWebSocketUrl, parseConnectUrl } from '../src/js/util.js';
+import { setTimer, getQueryVariable, resolveWebSocketUrl, parseConnectUrl, hasProcess, isBrowser } from '../src/js/util.js';
 import { uint8ArrayToBinaryString } from '../src/js/websocket.js';
 import { bytesToHex, ConnectionLog } from '../src/js/conn_log.js';
 
@@ -305,4 +305,22 @@ test('resolveWebSocketUrl resolves absolute and relative WebSocket URLs', () => 
 
   // Node environment fallback when location is null
   assert.equal(resolveWebSocketUrl('/bbs', null), 'ws://localhost/bbs');
+});
+
+test('hasProcess and isBrowser correctly identify Node vs Browser environments', () => {
+  // 1. Running inside Node.js test runner
+  assert.equal(hasProcess(), true, 'hasProcess() should return true in Node.js');
+  assert.equal(isBrowser(), false, 'isBrowser() should return false in Node.js');
+
+  // 2. Node.js with mocked window and document: isBrowser must STILL return false!
+  const origWindow = globalThis.window;
+  const origDoc = globalThis.document;
+  try {
+    globalThis.window = {};
+    globalThis.document = {};
+    assert.equal(isBrowser(), false, 'isBrowser() must remain false in Node even if window/document are mocked');
+  } finally {
+    globalThis.window = origWindow;
+    globalThis.document = origDoc;
+  }
 });

@@ -1,6 +1,7 @@
 import React from "preact/compat";
 import { readValuesWithDefault, updatePref } from "../../js/pref.js";
 import { _ } from "../../js/i18n.js";
+import { isBrowser } from "../../js/util.js";
 
 let _InputHelperModal = null;
 
@@ -11,12 +12,7 @@ class InputHelperOverlay extends (React?.Component || class {}) {
   }
 
   componentDidMount() {
-    if (
-      !this.state.Component &&
-      typeof window !== "undefined" &&
-      typeof document !== "undefined" &&
-      (typeof process === "undefined" || !process.versions?.node)
-    ) {
+    if (!this.state.Component && isBrowser()) {
       import("./InputHelperModal.js")
         .then((mod) => {
           _InputHelperModal = mod.default || mod.InputHelperModal;
@@ -133,11 +129,7 @@ export class InputHelper {
         ? Boolean(prefs.enableInputHelper)
         : true;
 
-    if (
-      typeof window !== "undefined" &&
-      typeof document !== "undefined" &&
-      (typeof process === "undefined" || !process.versions?.node)
-    ) {
+    if (isBrowser()) {
       import("./InputHelperModal.js")
         .then((mod) => {
           _InputHelperModal = mod.default || mod.InputHelperModal;

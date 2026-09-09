@@ -1,7 +1,8 @@
 import { readValuesWithDefault, updatePref } from "../../js/pref.js";
 import { _ } from "../../js/i18n.js";
+import { isBrowser } from "../../js/util.js";
 
-if (typeof document !== 'undefined' && (typeof process === 'undefined' || !process.versions?.node)) {
+if (isBrowser()) {
   import('./ConnectionLog.css');
 }
 

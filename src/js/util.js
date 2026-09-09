@@ -63,3 +63,11 @@ export function resolveWebSocketUrl(rawUrl, loc = (typeof window !== 'undefined'
   const parsed = parseConnectUrl(rawUrl, loc);
   return parsed ? parsed.url : '';
 }
+
+export function hasProcess() {
+  return typeof process !== 'undefined' && Boolean(process.versions?.node);
+}
+
+export function isBrowser() {
+  return typeof window !== 'undefined' && typeof document !== 'undefined' && !hasProcess();
+}
