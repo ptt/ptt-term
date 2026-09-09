@@ -15,7 +15,7 @@ class AutoLoginOverlay extends (React?.Component || class {}) {
       !this.state.Component &&
       typeof window !== "undefined" &&
       typeof document !== "undefined" &&
-      !process?.versions?.node
+      (typeof process === "undefined" || !process.versions?.node)
     ) {
       import("./LoginModal.js")
         .then((mod) => {
@@ -163,7 +163,7 @@ export class AutoLogin {
     if (
       typeof window !== "undefined" &&
       typeof document !== "undefined" &&
-      !process?.versions?.node
+      (typeof process === "undefined" || !process.versions?.node)
     ) {
       import("./LoginModal.js")
         .then((mod) => {

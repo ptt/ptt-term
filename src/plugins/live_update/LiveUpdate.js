@@ -15,7 +15,7 @@ class LiveUpdateOverlay extends (React?.Component || class {}) {
       !this.state.Component &&
       typeof window !== "undefined" &&
       typeof document !== "undefined" &&
-      !process?.versions?.node
+      (typeof process === "undefined" || !process.versions?.node)
     ) {
       import("./LiveHelperModal.js")
         .then((mod) => {

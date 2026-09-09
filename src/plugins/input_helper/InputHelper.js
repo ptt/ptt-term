@@ -15,7 +15,7 @@ class InputHelperOverlay extends (React?.Component || class {}) {
       !this.state.Component &&
       typeof window !== "undefined" &&
       typeof document !== "undefined" &&
-      !process?.versions?.node
+      (typeof process === "undefined" || !process.versions?.node)
     ) {
       import("./InputHelperModal.js")
         .then((mod) => {
@@ -136,7 +136,7 @@ export class InputHelper {
     if (
       typeof window !== "undefined" &&
       typeof document !== "undefined" &&
-      !process?.versions?.node
+      (typeof process === "undefined" || !process.versions?.node)
     ) {
       import("./InputHelperModal.js")
         .then((mod) => {

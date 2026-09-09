@@ -59,6 +59,17 @@ export class App extends Event {
   this.stream.registerFilter(this.telnetFilter);
   this.stream.registerFilter(this.ansiFilter);
   this.parser = this.ansiFilter;
+  this.inputArea = typeof document !== 'undefined' ? document.getElementById('t') : null;
+  this.termWin = typeof document !== 'undefined' ? document.getElementById('TermWindow') : null;
+
+  // horizontally center term window
+  if (this.termWin) {
+    this.termWin.setAttribute("align", "center");
+  }
+  if (this.view?.mainDisplay) {
+    this.view.mainDisplay.style.transformOrigin = 'center';
+  }
+
   this.plugins = [];
   this.inputInterceptors = [];
   this.overlays = [];
@@ -70,13 +81,6 @@ export class App extends Event {
   this.wheelDeltaYAccum = 0;
   this.lastWheelEventTime = 0;
   this.lastWheelCmdTime = 0;
-
-  this.inputArea = document.getElementById('t');
-  this.termWin = document.getElementById('TermWindow');
-
-  // horizontally center term window
-  this.termWin.setAttribute("align", "center");
-  this.view.mainDisplay.style.transformOrigin = 'center';
 
   this.mouseLeftButtonDown = false;
   this.mouseRightButtonDown = false;
@@ -642,6 +646,7 @@ export class App extends Event {
   }
 
   setInputAreaFocus(force = false) {
+    if (!this.inputArea) return;
     if (this.modalShown || this.contextMenuShown) {
       this._debugTouchLog('setInputAreaFocus blocked: modal or context menu active');
       return;

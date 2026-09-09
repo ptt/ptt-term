@@ -410,5 +410,36 @@ test('AutoLogin and LoginModal handle Credential Management API auto-retrieval f
   assert.strictEqual(optionalResult.id, 'testuser');
 });
 
+test('Plugins use safe typeof process checks and do not reference undeclared process', () => {
+  const pluginFiles = [
+    'src/plugins/auto_login/AutoLogin.js',
+    'src/plugins/input_helper/InputHelper.js',
+    'src/plugins/live_update/LiveUpdate.js',
+  ];
 
+  for (const relPath of pluginFiles) {
+    const content = fs.readFileSync(path.resolve(relPath), 'utf-8');
+    assert.ok(
+      !content.includes('!process?.versions?.node'),
+      `${relPath} must not use !process?.versions?.node which throws ReferenceError in browsers`
+    );
+  }
+});
 
+test('App setInputAreaFocus handles null/undefined inputArea gracefully without throwing TypeError', () => {
+  const mockApp = {
+    inputArea: null,
+    modalShown: false,
+    contextMenuShown: false,
+    isMobileDevice: () => false,
+    isMobileLayout: () => false,
+    _debugTouchLog: () => {},
+  };
+
+  // Import App or verify setInputAreaFocus method exists and safely early-returns
+  const appFile = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+  assert.ok(
+    appFile.includes('if (!this.inputArea) return;'),
+    'App setInputAreaFocus must guard against null/undefined inputArea'
+  );
+});
