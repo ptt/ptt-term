@@ -1822,6 +1822,152 @@ test('src/plugins exports AntiIdle and delegates keepalive to site', async () =>
   assert.equal(sentData.length, 1);
 });
 
+test('src/plugins exports AutoWrap and wraps pasted text', async () => {
+  const pluginsModule = await import('../src/plugins/index.js');
+  const autoWrapModule = await import('../src/plugins/auto_wrap/index.js');
+
+  assert.equal(pluginsModule.AutoWrap, autoWrapModule.AutoWrap);
+  assert.equal(pluginsModule.AutoWrapPlugin, autoWrapModule.AutoWrapPlugin);
+  assert.equal(autoWrapModule.default, autoWrapModule.AutoWrap);
+
+  const meta = autoWrapModule.AutoWrap.getMetadata();
+  assert.equal(meta.id, 'auto_wrap');
+  assert.equal(meta.prefKey, 'enableAutoWrap');
+  assert.equal(meta.group, 'bbs');
+  assert.equal(typeof meta.renderOptions, 'function');
+
+  // getAvailablePlugins discovery
+  const available = pluginsModule.getAvailablePlugins();
+  assert.ok(available.some((p) => p.id === 'auto_wrap'));
+
+  const longText = 'This is a very long line of text that should definitely be wrapped across multiple lines when pasted into BBS.';
+  const autoWrap = new autoWrapModule.AutoWrap(null, {
+    enabled: true,
+    lineWrap: 40,
+  });
+
+  const wrapped = autoWrap.wrap(longText, '\r');
+  assert.ok(wrapped.includes('\r'), 'Long text should contain wrapped newlines');
+  for (const line of wrapped.split('\r')) {
+    assert.ok(line.length <= 40, `Line "${line}" exceeds wrap limit 40`);
+  }
+
+  // When disabled, text is returned as is
+  autoWrap.enabled = false;
+  assert.equal(autoWrap.wrap(longText, '\r'), longText);
+
+  // transformPaste delegates to wrap
+  autoWrap.enabled = true;
+  assert.equal(autoWrap.transformPaste(longText, '\r'), wrapped);
+});
+
+test('AutoWrap intercepts term:paste event to adjust data before propagating to term', async () => {
+  const { AutoWrap } = await import('../src/plugins/auto_wrap/index.js');
+  const { Event } = await import('../src/js/event.js');
+
+  class MockApp extends Event {
+    constructor() {
+      super();
+      this.pastedToTerm = null;
+      this.view = {
+        paste: (text) => {
+          this.pastedToTerm = text;
+        }
+      };
+    }
+
+    dispatchPaste(content, originalEvent = null) {
+      const detail = {
+        data: content,
+        text: content,
+        originalEvent,
+      };
+      const event = new CustomEvent('term:paste', {
+        detail,
+        cancelable: true,
+      });
+      Object.defineProperty(event, 'data', {
+        get() {
+          return detail.data;
+        },
+        set(val) {
+          detail.data = val;
+          detail.text = val;
+        },
+        configurable: true,
+      });
+
+      this.dispatchEvent(event);
+      if (event.defaultPrevented) {
+        return false;
+      }
+
+      const result = detail.data ?? detail.text;
+      if (typeof result !== 'string') {
+        return false;
+      }
+
+      this.view.paste(result);
+      return true;
+    }
+  }
+
+  const app = new MockApp();
+  const autoWrap = new AutoWrap(app, { enabled: true, lineWrap: 30 });
+
+  const longText = 'A quick brown fox jumps over the lazy dog repeatedly until wrapped.';
+  app.dispatchPaste(longText);
+
+  assert.ok(app.pastedToTerm, 'Term should have received pasted text');
+  assert.notEqual(app.pastedToTerm, longText, 'Pasted text should have been adjusted/wrapped');
+  assert.ok(app.pastedToTerm.includes('\r'), 'Adjusted text should contain wrapped newlines');
+  for (const line of app.pastedToTerm.split('\r')) {
+    assert.ok(line.length <= 30, `Line "${line}" should not exceed 30 chars`);
+  }
+
+  // Another plugin can further adjust data in term:paste before term receives it
+  const app2 = new MockApp();
+  const autoWrap2 = new AutoWrap(app2, { enabled: true, lineWrap: 30 });
+
+  app2.addEventListener('term:paste', (e) => {
+    e.data = e.data.toUpperCase();
+  });
+
+  app2.dispatchPaste('hello world this is a long text to test chaining');
+  assert.ok(app2.pastedToTerm.includes('\r'));
+  assert.equal(app2.pastedToTerm, app2.pastedToTerm.toUpperCase(), 'Second plugin should have uppercased data');
+
+  // If a plugin calls preventDefault(), term does not receive the paste
+  const app3 = new MockApp();
+  const autoWrap3 = new AutoWrap(app3, { enabled: true, lineWrap: 30 });
+
+  app3.addEventListener('term:paste', (e) => {
+    e.preventDefault();
+  });
+
+  const res = app3.dispatchPaste('some text');
+  assert.equal(res, false);
+  assert.equal(app3.pastedToTerm, null, 'Term should not receive paste when cancelled');
+
+  // TermView has a standalone paste method and is decoupled from lineWrap
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const termViewSrc = fs.readFileSync(path.resolve('src/js/term_view.js'), 'utf-8');
+  assert.ok(termViewSrc.includes('paste(text)'), 'TermView must implement paste(text)');
+  assert.ok(!termViewSrc.includes('this.lineWrap'), 'TermView must not store lineWrap');
+  assert.ok(!termViewSrc.includes('wrapText'), 'TermView must not import or call wrapText');
+  assert.ok(!termViewSrc.includes('dispatchTransformPaste'), 'TermView must not call dispatchTransformPaste');
+
+  const appSrc = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+  assert.ok(appSrc.includes('dispatchPaste(content'), 'App must implement dispatchPaste');
+  assert.ok(appSrc.includes("'term:paste'"), 'App dispatchPaste must dispatch term:paste event');
+  assert.ok(!appSrc.includes('this.view.lineWrap ='), 'App must not set this.view.lineWrap');
+
+  autoWrap.destroy();
+  autoWrap2.destroy();
+  autoWrap3.destroy();
+});
+
 test('src/plugins exports MediaPreviewer and resolves trusted image urls', async () => {
   const pluginsModule = await import('../src/plugins/index.js');
   const mediaModule = await import('../src/plugins/media_previewer/index.js');

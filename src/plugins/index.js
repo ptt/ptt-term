@@ -18,6 +18,10 @@ import {
   AntiIdle,
 } from './anti_idle/index.js';
 import {
+  AutoWrap,
+  AutoWrapPlugin,
+} from './auto_wrap/index.js';
+import {
   MediaPreviewer,
   MediaPreviewerPlugin,
 } from './media_previewer/index.js';
@@ -44,6 +48,8 @@ export {
   MouseBrowsing,
   InputHelper,
   AntiIdle,
+  AutoWrap,
+  AutoWrapPlugin,
   MediaPreviewer,
   MediaPreviewerPlugin,
   ConnectionLog,
@@ -67,7 +73,7 @@ export const PLUGIN_GROUPS = [
     titleKey: 'plugin_group_bbs',
     title: 'Taiwan BBS',
     color: '#34c759',
-    pluginIds: ['easy_reading', 'anti_idle', 'mouse_browsing', 'live_update'],
+    pluginIds: ['easy_reading', 'anti_idle', 'auto_wrap', 'mouse_browsing', 'live_update'],
   },
   {
     id: 'debug',
@@ -83,6 +89,7 @@ export const PLUGIN_GROUP_MAP = {
   input_helper: 'ui',
   easy_reading: 'bbs',
   anti_idle: 'bbs',
+  auto_wrap: 'bbs',
   mouse_browsing: 'bbs',
   live_update: 'bbs',
   fps_meter: 'debug',
@@ -148,6 +155,7 @@ export const BUILTIN_PLUGINS = [
   InputHelper,
   EasyReading,
   AntiIdle,
+  AutoWrap,
   MouseBrowsing,
   LiveUpdate,
   FpsMeter,

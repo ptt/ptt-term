@@ -6,7 +6,7 @@ import { termColors, termInvColors } from './term_buf';
 import { renderRowHtml, renderScreen } from './term_ui';
 import { _ } from './i18n';
 import { setTimer } from './util';
-import { wrapText, u2b } from './string_util';
+import { u2b } from './string_util';
 
 const ENTER_CHAR = '\r';
 const DEFINE_INPUT_BUFFER_SIZE = 12;
@@ -46,7 +46,6 @@ export class TermView extends Event {
   this.curRow = 0;
   this.curCol = 0;
 
-  this.lineWrap = 78;
 
   //this.DBDetection = false;
   this.blinkOn = false;
@@ -438,19 +437,25 @@ export class TermView extends Event {
     e.target.value='';
   }
 
+  paste(text) {
+    if (typeof text !== 'string') {
+      return;
+    }
+    text = text.replace(/\r\n/g, '\r');
+    text = text.replace(/\n/g, '\r');
+    text = text.replace(/\r/g, ENTER_CHAR);
+
+    //FIXME: stop user from pasting DBCS words with 2-color
+    const escChar = this.buf?.site?.getEditorEscapeChar?.() ?? '\x15';
+    text = text.replace(/\x1b/g, escChar);
+
+    this._convSend(text);
+  }
+
   onTextInput(text, isPasting) {
     if (isPasting) {
-      text = text.replace(/\r\n/g, '\r');
-      text = text.replace(/\n/g, '\r');
-      text = text.replace(/\r/g, ENTER_CHAR);
-
-      if(text.indexOf('\x1b') < 0 && this.lineWrap > 0) {
-        text = wrapText(text, this.lineWrap, ENTER_CHAR);
-      }
-
-      //FIXME: stop user from pasting DBCS words with 2-color
-      const escChar = this.buf.site.getEditorEscapeChar();
-      text = text.replace(/\x1b/g, escChar);
+      this.paste(text);
+      return;
     }
     this._convSend(text);
   }

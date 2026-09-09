@@ -172,6 +172,25 @@ const renderPluginIcon = (icon) => {
           <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
         </svg>
       );
+    case "wrap":
+    case "wrap_text":
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <path d="M3 12h15a3 3 0 1 1 0 6h-4" />
+          <polyline points="16 16 14 18 16 20" />
+          <line x1="3" y1="18" x2="10" y2="18" />
+        </svg>
+      );
     default:
       return (
         <svg
@@ -472,6 +491,7 @@ export class PrefModal extends React.Component {
   pluginHasOptions = (plugin) => {
     return (
       Boolean(plugin.renderOptions) ||
+      plugin.id === "auto_wrap" ||
       plugin.id === "live_update" ||
       plugin.id === "anti_idle" ||
       plugin.id === "media_previewer" ||
@@ -529,6 +549,11 @@ export class PrefModal extends React.Component {
           nextValues = changeNestedValue(nextValues, "antiIdleTime", 0);
         }
       }
+      if (name === "enableAutoWrap") {
+        if (checked && (!nextValues.lineWrap || nextValues.lineWrap <= 0)) {
+          nextValues = changeNestedValue(nextValues, "lineWrap", 78);
+        }
+      }
       return { values: nextValues };
     });
   };
@@ -539,6 +564,9 @@ export class PrefModal extends React.Component {
       let nextValues = changeNestedValue(prevState.values, name, numVal);
       if (name === "antiIdleTime") {
         nextValues = changeNestedValue(nextValues, "enableAntiIdle", numVal > 0);
+      }
+      if (name === "lineWrap") {
+        nextValues = changeNestedValue(nextValues, "enableAutoWrap", numVal > 0);
       }
       return { values: nextValues };
     });
@@ -717,18 +745,6 @@ export class PrefModal extends React.Component {
                       />
                       {_("options_enableVisualBell")}
                     </label>
-                  </div>
-                  <div className="form-group" id="lineWrap">
-                    <label className="control-label">
-                      {_("options_lineWrap")}
-                    </label>
-                    <input
-                      className="form-control"
-                      name="lineWrap"
-                      type="number"
-                      value={values.lineWrap}
-                      onChange={this.handleNumberInputChange}
-                    />
                   </div>
                 </div>
               </fieldset>
@@ -1284,6 +1300,26 @@ export class PrefModal extends React.Component {
                                   />
                                   <span className="PrefModal__MacSubUnit">
                                     {_("options_liveUpdateIntervalSec")}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                            {!plugin.renderOptions && plugin.id === "auto_wrap" && (
+                              <div className="PrefModal__MacSubOptionRow">
+                                <span className="PrefModal__MacSubLabel">
+                                  {_("options_lineWrap")}
+                                </span>
+                                <div className="PrefModal__MacSubInlineInput">
+                                  <input
+                                    className="form-control"
+                                    type="number"
+                                    name="lineWrap"
+                                    min="1"
+                                    value={values.lineWrap || 78}
+                                    onChange={this.handleNumberInputChange}
+                                  />
+                                  <span className="PrefModal__MacSubUnit">
+                                    {_("options_lineWrap_unit") || "字元"}
                                   </span>
                                 </div>
                               </div>

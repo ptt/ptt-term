@@ -439,6 +439,16 @@ export class App extends Event {
     return false;
   }
 
+  dispatchTransformPaste(text, enterChar = '\r') {
+    let result = text;
+    for (const interceptor of this.inputInterceptors) {
+      if (interceptor.transformPaste) {
+        result = interceptor.transformPaste(result, enterChar);
+      }
+    }
+    return result;
+  }
+
   hasActiveInputInterceptor() {
     for (const interceptor of this.inputInterceptors) {
       if (interceptor.isActive?.()) {
@@ -772,17 +782,71 @@ export class App extends Event {
     });
   }
 
-  onPasteDone(content) {
-  //this.conn.convSend(content);
-  this.view.onTextInput(content, true);
+  dispatchPaste(content, originalEvent = null) {
+    if (typeof content !== 'string') {
+      return false;
+    }
+
+    const detail = {
+      data: content,
+      text: content,
+      originalEvent,
+    };
+    let event;
+    if (typeof CustomEvent !== 'undefined') {
+      event = new CustomEvent('term:paste', {
+        detail,
+        cancelable: true,
+      });
+    } else {
+      event = {
+        type: 'term:paste',
+        detail,
+        defaultPrevented: false,
+        preventDefault() {
+          this.defaultPrevented = true;
+        },
+      };
+    }
+    Object.defineProperty(event, 'data', {
+      get() {
+        return detail.data;
+      },
+      set(val) {
+        detail.data = val;
+        detail.text = val;
+      },
+      configurable: true,
+    });
+
+    this.dispatchEvent(event);
+    if (event.defaultPrevented) {
+      return false;
+    }
+
+    const result = detail.data ?? detail.text;
+    if (typeof result !== 'string') {
+      return false;
+    }
+
+    if (this.view?.paste) {
+      this.view.paste(result);
+    } else if (this.view?.onTextInput) {
+      this.view.onTextInput(result, true);
+    }
+    return true;
+  }
+
+  onPasteDone(content, originalEvent = null) {
+    this.dispatchPaste(content, originalEvent);
   }
 
   onDOMPaste(e) {
-  let str = e.clipboardData.getData('text');
-  if (str) {
-    e.preventDefault();
-    this.onPasteDone(str);
-  }
+    let str = e.clipboardData ? e.clipboardData.getData('text') : '';
+    if (str) {
+      e.preventDefault();
+      this.dispatchPaste(str, e);
+    }
   }
 
   onSymFont(content) {
@@ -1156,9 +1220,7 @@ export class App extends Event {
       this.view.dbcsDetect = value;
       break;
     case 'lineWrap':
-      if (this.conn) {
-        this.conn.lineWrap = value;
-      }
+    case 'enableAutoWrap':
       break;
     case 'fontFace': {
       let fontFace = value;

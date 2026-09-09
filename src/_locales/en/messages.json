@@ -87,6 +87,12 @@
   "plugin_anti_idle_desc": {
     "message": "Periodically sends keepalive signals to the BBS site when idle to prevent disconnects."
   },
+  "plugin_auto_wrap_title": {
+    "message": "AutoWrap"
+  },
+  "plugin_auto_wrap_desc": {
+    "message": "Automatically wrap lines when pasting text longer than the specified limit."
+  },
   "plugin_media_previewer_title": {
     "message": "Media & Image Previewer"
   },
@@ -191,6 +197,9 @@
   },
   "options_lineWrap": {
     "message": "Wrap line for pasting text longer than"
+  },
+  "options_lineWrap_unit": {
+    "message": "chars"
   },
   "options_advanced": {
     "message": "Advanced"

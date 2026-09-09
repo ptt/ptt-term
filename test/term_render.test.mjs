@@ -9,6 +9,7 @@ import {
 } from '../src/js/touch_controller.js';
 import {
   AntiIdle,
+  AutoWrap,
   MediaPreviewer,
   LiveUpdate,
   MouseBrowsing,
@@ -3393,6 +3394,7 @@ test('Plugins implement renderOptions and decouple easy_reading from core and Co
 
   // 3. Plugins provide renderOptions
   assert.equal(typeof AntiIdle.renderOptions, 'function');
+  assert.equal(typeof AutoWrap.renderOptions, 'function');
   assert.equal(typeof MediaPreviewer.renderOptions, 'function');
   assert.equal(typeof LiveUpdate.renderOptions, 'function');
   assert.equal(typeof MouseBrowsing.renderOptions, 'function');
@@ -3403,6 +3405,12 @@ test('Plugins implement renderOptions and decouple easy_reading from core and Co
     handleNumberInputChange: () => {},
   });
   assert.ok(antiIdleEl && typeof antiIdleEl === 'object');
+
+  const autoWrapEl = AutoWrap.renderOptions({
+    values: { lineWrap: 78 },
+    handleNumberInputChange: () => {},
+  });
+  assert.ok(autoWrapEl && typeof autoWrapEl === 'object');
 
   const mediaPreviewerEl = MediaPreviewer.renderOptions({
     values: { picPreviewWhitelistOnly: true },

@@ -87,6 +87,12 @@
   "plugin_anti_idle_desc": {
     "message": "當終端機閒置超過指定時間時，自動向站台發送 keepalive 訊號以維持連線。"
   },
+  "plugin_auto_wrap_title": {
+    "message": "自動換行"
+  },
+  "plugin_auto_wrap_desc": {
+    "message": "貼上長文時若超過指定長度則自動換行，避免 BBS 文章或推文截斷與排版混亂。"
+  },
   "plugin_media_previewer_title": {
     "message": "圖片與媒體預覽"
   },
@@ -190,7 +196,10 @@
     "message": "防閒置間隔 (秒)"
   },
   "options_lineWrap": {
-    "message": "超過此長度自動換行 (字元)"
+    "message": "貼上長文時超過此長度自動換行"
+  },
+  "options_lineWrap_unit": {
+    "message": "字元"
   },
   "options_advanced": {
     "message": "進階"
@@ -383,11 +392,7 @@
     "message": "新功能"
   },
   "about_new_content": {
-    "message": [
-      "Websocket 連線",
-      "Canvas 渲染模式",
-      "平滑化 ASCII Art"
-    ]
+    "message": ["Websocket 連線", "Canvas 渲染模式", "平滑化 ASCII Art"]
   },
   "alert_developerModeHeader": {
     "message": "開發者模式"
