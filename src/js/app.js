@@ -706,36 +706,30 @@ export class App extends Event {
   }
 
   doCopyAnsi() {
-  if (!this.lastSelection)
-    return;
+    if (!this.lastSelection)
+      return;
 
-  const selection = this.lastSelection;
-  let pageLines = null;
-  if (this.hasActiveInputInterceptor() && this.buf.pageState == 3) {
-    const interceptor = this.inputInterceptors.find((i) => i.pageLines);
-    pageLines = interceptor?.pageLines || null;
-  }
-
-  let ansiText = '';
-  if (selection.start.row == selection.end.row) {
-    ansiText += this.buf.getText(selection.start.row, selection.start.col, selection.end.col, true, true, false, pageLines);
-  } else {
-    for (let i = selection.start.row; i <= selection.end.row; ++i) {
-      let scol = 0;
-      let ecol = this.buf.cols-1;
-      if (i == selection.start.row) {
-        scol = selection.start.col;
-      } else if (i == selection.end.row) {
-        ecol = selection.end.col;
-      }
-      ansiText += this.buf.getText(i, scol, ecol, true, true, false, pageLines);
-      if (i != selection.end.row ) {
-        ansiText += '\r';
+    const selection = this.lastSelection;
+    let ansiText = '';
+    if (selection.start.row == selection.end.row) {
+      ansiText += this.buf.getText(selection.start.row, selection.start.col, selection.end.col, true, true, false);
+    } else {
+      for (let i = selection.start.row; i <= selection.end.row; ++i) {
+        let scol = 0;
+        let ecol = this.buf.cols - 1;
+        if (i == selection.start.row) {
+          scol = selection.start.col;
+        } else if (i == selection.end.row) {
+          ecol = selection.end.col;
+        }
+        ansiText += this.buf.getText(i, scol, ecol, true, true, false);
+        if (i != selection.end.row) {
+          ansiText += '\r';
+        }
       }
     }
-  }
 
-  this.doCopy(ansiText);
+    this.doCopy(ansiText);
   }
 
   onDOMCopy(e) {
