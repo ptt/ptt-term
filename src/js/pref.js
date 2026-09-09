@@ -15,6 +15,7 @@ export const DEFAULT_PREFS = {
   showFps: false,
   smoothAnsiArt: true,
   captureConnectionLog: false,
+  enableInputHelper: true,
 
   // mouse browsing
   useMouseBrowsing: false,

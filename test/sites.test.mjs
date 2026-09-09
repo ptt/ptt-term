@@ -1613,24 +1613,22 @@ test('ContextMenu and DropdownMenu decouple LiveHelper and remove right-click it
     'utf-8'
   );
 
-  // DropdownMenu no longer renders LiveHelper item
+  // DropdownMenu conditionally renders helper items linked to extensions
   assert.ok(
-    !dropdownSource.includes('cmenu_showLiveArticleHelper'),
-    'DropdownMenu must not contain cmenu_showLiveArticleHelper'
+    dropdownSource.includes('liveHelperEnabled &&') &&
+    dropdownSource.includes('cmenu_showLiveArticleHelper'),
+    'DropdownMenu must conditionally render cmenu_showLiveArticleHelper when liveHelperEnabled'
   );
   assert.ok(
-    !dropdownSource.includes('onLiveArticleHelperClick'),
-    'DropdownMenu must not contain onLiveArticleHelperClick'
+    dropdownSource.includes('inputHelperEnabled &&') &&
+    dropdownSource.includes('cmenu_showInputHelper'),
+    'DropdownMenu must conditionally render cmenu_showInputHelper when inputHelperEnabled'
   );
 
-  // ContextMenu no longer imports LiveHelperModal or injects callbacks
+  // ContextMenu no longer imports legacy LiveHelperModal
   assert.ok(
     !contextMenuSource.includes('LiveHelperModal'),
-    'ContextMenu must not import or render LiveHelperModal'
-  );
-  assert.ok(
-    !contextMenuSource.includes('onToggleLiveHelperModalState'),
-    'ContextMenu must not inject onToggleLiveHelperModalState'
+    'ContextMenu must not import or render legacy LiveHelperModal'
   );
 
   // PrefModal Plugins tab provides sub-options for live_update

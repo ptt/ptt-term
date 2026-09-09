@@ -73,13 +73,18 @@ export const DropdownMenu = ({
   normalEnabled,
   selEnabled,
   mouseBrowsingEnabled,
+  inputHelperEnabled = true,
+  liveHelperEnabled = false,
   selectedText,
   onMenuSelect,
   onInputHelperClick,
+  onLiveArticleHelperClick,
+  onLiveHelperClick,
   onSettingsClick,
 }) => {
   const menuRef = useRef(null);
   const openedAtRef = useRef(0);
+  const handleLiveArticleClick = onLiveArticleHelperClick || onLiveHelperClick;
 
   useLayoutEffect(() => {
     const el = menuRef.current;
@@ -205,9 +210,16 @@ export const DropdownMenu = ({
           >
             {i18n("cmenu_mouseBrowsing")}
           </MenuItem>
-          <MenuItem onClick={onInputHelperClick}>
-            {i18n("cmenu_showInputHelper")}
-          </MenuItem>
+          {inputHelperEnabled && (
+            <MenuItem onClick={onInputHelperClick}>
+              {i18n("cmenu_showInputHelper")}
+            </MenuItem>
+          )}
+          {liveHelperEnabled && (
+            <MenuItem onClick={handleLiveArticleClick}>
+              {i18n("cmenu_showLiveArticleHelper")}
+            </MenuItem>
+          )}
           <MenuItem divider />
         </React.Fragment>
       )}

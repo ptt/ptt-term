@@ -254,6 +254,16 @@ export class App {
     }
   }
 
+  get inputHelper() {
+    return this.getPlugin('input_helper') || this.getPlugin('InputHelper') || null;
+  }
+
+  set inputHelper(val) {
+    if (val && !this.plugins.includes(val)) {
+      this.registerPlugin(val);
+    }
+  }
+
   get connLog() {
     return this.getPlugin('conn_log') || this.getPlugin('ConnectionLog') || this._connLog || null;
   }
@@ -1160,6 +1170,11 @@ export class App {
     case 'enableEasyReading':
       if (this.easyReading) {
         this.easyReading.enabled = !!value;
+      }
+      break;
+    case 'enableInputHelper':
+      if (this.inputHelper) {
+        this.inputHelper.enabled = !!value;
       }
       break;
     case 'antiIdleTime':

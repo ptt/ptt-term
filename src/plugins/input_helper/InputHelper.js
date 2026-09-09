@@ -65,6 +65,11 @@ export class InputHelper {
     if (app) this.app = app;
     if (view) this.view = view;
     if (buf) this.buf = buf;
+    const prefs = readValuesWithDefault();
+    this.enabled =
+      prefs.enableInputHelper !== undefined
+        ? Boolean(prefs.enableInputHelper)
+        : true;
   }
 
   destroy() {

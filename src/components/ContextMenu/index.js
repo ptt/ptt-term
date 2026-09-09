@@ -416,6 +416,22 @@ export class ContextMenu extends React.Component {
     });
   };
 
+  handleLiveArticleHelperClick = (event) => {
+    if (event) {
+      event.stopPropagation();
+    }
+    const { app } = this.props;
+    if (app) {
+      app.contextMenuShown = false;
+    }
+    this.setState({
+      ...initialState,
+    });
+    const liveUpdatePlugin = app?.liveUpdate || app?.getPlugin?.("live_update");
+    liveUpdatePlugin?.showModal?.(true);
+  };
+  handleLiveHelperClick = this.handleLiveArticleHelperClick;
+
   handleSettingsClick = (event) => {
     event.stopPropagation();
     const { app } = this.props;
@@ -494,6 +510,14 @@ export class ContextMenu extends React.Component {
     } = this.state;
     const { app } = this.props;
     const anyModalShown = showsInputHelper || showsSettings;
+    const liveUpdatePlugin = app?.liveUpdate || app?.getPlugin?.("live_update");
+    const liveHelperEnabled = Boolean(
+      liveUpdatePlugin ? liveUpdatePlugin.enabled : false
+    );
+    const inputHelperPlugin = app?.inputHelper || app?.getPlugin?.("input_helper");
+    const inputHelperEnabled = Boolean(
+      inputHelperPlugin ? inputHelperPlugin.enabled : true
+    );
 
     return (
       <React.Fragment>
@@ -514,9 +538,13 @@ export class ContextMenu extends React.Component {
             mouseBrowsingEnabled={
               app && app.buf ? app.buf.useMouseBrowsing : false
             }
+            inputHelperEnabled={inputHelperEnabled}
+            liveHelperEnabled={liveHelperEnabled}
             selectedText={selectedText}
             onMenuSelect={this.handleMenuSelect}
             onInputHelperClick={this.handleInputHelperClick}
+            onLiveArticleHelperClick={this.handleLiveArticleHelperClick}
+            onLiveHelperClick={this.handleLiveArticleHelperClick}
             onSettingsClick={this.handleSettingsClick}
           />
         </div>

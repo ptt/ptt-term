@@ -3098,4 +3098,79 @@ test('CanvasScreen and TermView handle Select All, lastSelection, and Mac/PC hot
   );
 });
 
+test('ContextMenu and DropdownMenu dynamically link Live Helper and Input Helper to extension toggles', () => {
+  const dropdownSource = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/DropdownMenu.js'),
+    'utf-8'
+  );
+  const contextMenuSource = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/index.js'),
+    'utf-8'
+  );
+  const appSource = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+  const prefSource = fs.readFileSync(path.resolve('src/js/pref.js'), 'utf-8');
+  const inputHelperSource = fs.readFileSync(
+    path.resolve('src/plugins/input_helper/InputHelper.js'),
+    'utf-8'
+  );
+
+  // 1. DEFAULT_PREFS defines enableInputHelper
+  assert.ok(
+    prefSource.includes('enableInputHelper: true'),
+    'DEFAULT_PREFS must include enableInputHelper: true'
+  );
+
+  // 2. DropdownMenu accepts inputHelperEnabled and liveHelperEnabled props
+  assert.ok(
+    dropdownSource.includes('inputHelperEnabled = true'),
+    'DropdownMenu must accept inputHelperEnabled with default true'
+  );
+  assert.ok(
+    dropdownSource.includes('liveHelperEnabled = false'),
+    'DropdownMenu must accept liveHelperEnabled with default false'
+  );
+  assert.ok(
+    dropdownSource.includes('inputHelperEnabled &&') &&
+      dropdownSource.includes('cmenu_showInputHelper'),
+    'DropdownMenu must conditionally render cmenu_showInputHelper'
+  );
+  assert.ok(
+    dropdownSource.includes('liveHelperEnabled &&') &&
+      dropdownSource.includes('cmenu_showLiveArticleHelper'),
+    'DropdownMenu must conditionally render cmenu_showLiveArticleHelper'
+  );
+
+  // 3. ContextMenu derives liveHelperEnabled and inputHelperEnabled from plugins
+  assert.ok(
+    contextMenuSource.includes('const liveUpdatePlugin = app?.liveUpdate || app?.getPlugin?.("live_update");'),
+    'ContextMenu must resolve liveUpdate plugin'
+  );
+  assert.ok(
+    contextMenuSource.includes('const inputHelperPlugin = app?.inputHelper || app?.getPlugin?.("input_helper");'),
+    'ContextMenu must resolve inputHelper plugin'
+  );
+  assert.ok(
+    contextMenuSource.includes('handleLiveArticleHelperClick'),
+    'ContextMenu must define handleLiveArticleHelperClick'
+  );
+  assert.ok(
+    contextMenuSource.includes('liveUpdatePlugin?.showModal?.(true)'),
+    'handleLiveArticleHelperClick must open live update modal'
+  );
+
+  // 4. InputHelper plugin reads preference on init and App handles onValuesPrefChange
+  assert.ok(
+    inputHelperSource.includes('readValuesWithDefault()'),
+    'InputHelper init must read preferences'
+  );
+  assert.ok(
+    inputHelperSource.includes('this.enabled ='),
+    'InputHelper init must set enabled'
+  );
+  assert.ok(
+    appSource.includes("case 'enableInputHelper':"),
+    'App onValuesPrefChange must handle enableInputHelper'
+  );
+});
+
 
