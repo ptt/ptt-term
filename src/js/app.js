@@ -867,23 +867,11 @@ export class App {
     if (this.mouseBrowsing) {
       this.mouseBrowsing.switchMouseBrowsing();
       this.useMouseBrowsing = this.mouseBrowsing.enabled;
-      return;
+      return this.useMouseBrowsing;
     }
     this.useMouseBrowsing = !this.useMouseBrowsing;
     this.buf.useMouseBrowsing = this.useMouseBrowsing;
-
-  if (!this.buf.useMouseBrowsing) {
-    if (this.buf.termWin) this.buf.termWin.style.cursor = 'auto';
-    this.buf.clearHighlight();
-    this.buf.mouseCursor=0;
-    this.buf.nowHighlight=-1;
-    this.buf.tempMouseCol=0;
-    this.buf.tempMouseRow=0;
-  } else {
-    this.buf.resetMousePos();
-    this.view.redraw(true);
-    this.view.updateCursorPos();
-  }
+    return this.useMouseBrowsing;
   }
 
   antiIdle() {
@@ -975,98 +963,32 @@ export class App {
   return {col: col, row: row};
   }
 
-  _navigateRowAndEnter(targetRow) {
-  const diff = this.buf.cur_y - targetRow;
-  const sendstr =
-    (diff > 0 ? '\x1b[A'.repeat(diff) : '\x1b[B'.repeat(-diff)) + '\r';
-  this.send(sendstr);
-  }
-
   onMouse_click(e) {
-  const cX = e.clientX, cY = e.clientY;
-  if (!this.conn || !this.conn.isConnected)
-    return;
+    if (!this.conn || !this.conn.isConnected)
+      return;
 
-  // disable auto update pushthread if any command is issued;
-  this.onDisableLiveHelperModalState();
+    // disable auto update pushthread if any command is issued;
+    this.onDisableLiveHelperModalState();
 
-  if (this.dispatchMouseClick(e))
-    return;
-
-  // TODO Move this to mouse browsing module.
-  switch (this.buf.mouseCursor) {
-    case 1:
-      this.send('\x1b[D');  //Arrow Left
-      break;
-    case 2:
-      this.send('\x1b[5~'); //Page Up
-      break;
-    case 3:
-      this.send('\x1b[6~'); //Page Down
-      break;
-    case 4:
-      this.send('\x1b[1~'); //Home
-      break;
-    case 5:
-      this.send('\x1b[4~'); //End
-      break;
-    case 6:
-      if (this.buf.nowHighlight != -1) {
-        this._navigateRowAndEnter(this.buf.nowHighlight);
-      }
-      break;
-    case 7: {
-      const pos = this.clientToPos(cX, cY);
-      this._navigateRowAndEnter(pos.row);
-      break;
-    }
-    case 0:
-      this.send('\x1b[D'); //Arrow Left
-      break;
-    case 8: {
-      const cmd = this.site.getThreadCommand('prevThread');
-      if (cmd) this.send(cmd);
-      break;
-    }
-    case 9: {
-      const cmd = this.site.getThreadCommand('nextThread');
-      if (cmd) this.send(cmd);
-      break;
-    }
-    case 10: {
-      const cmd = this.site.getThreadCommand('firstThread');
-      if (cmd) this.send(cmd);
-      break;
-    }
-    case 12: {
-      const cmd = this.site.getThreadCommand('refreshPost');
-      if (cmd) this.send(cmd);
-      break;
-    }
-    case 13: {
-      const cmd = this.site.getThreadCommand('lastThreadList');
-      if (cmd) this.send(cmd);
-      break;
-    }
-    case 14: {
-      const cmd = this.site.getThreadCommand('lastThreadReading');
-      if (cmd) this.send(cmd);
-      break;
-    }
-    default:
-      //do nothing
-      break;
-  }
+    this.dispatchMouseClick(e);
   }
 
   onMouse_move(cX, cY) {
-  const pos = this.clientToPos(cX, cY);
-  this.buf.onMouse_move(pos.col, pos.row, false);
+    const pos = this.clientToPos(cX, cY);
+    if (this.mouseBrowsing) {
+      this.mouseBrowsing.onMouseMove(pos.col, pos.row, false);
+    } else {
+      this.buf.onMouse_move(pos.col, pos.row, false);
+    }
   }
 
   resetMouseCursor(cX, cY) {
-  if (this.buf.termWin) this.buf.termWin.style.cursor = 'auto';
-  this.buf.mouseCursor = 11;
+    if (this.mouseBrowsing) {
+      this.mouseBrowsing.resetMouseCursor();
+    } else {
+      if (this.buf.termWin) this.buf.termWin.style.cursor = 'auto';
+      this.buf.mouseCursor = 11;
+    }
   }
 
   isMobileLayout() {

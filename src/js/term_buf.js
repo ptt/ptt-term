@@ -6,16 +6,6 @@ import { isForceWidthCode } from './symbol_table';
 import { u2bTable } from '../conv/uao';
 import { getSite } from './sites';
 import { playTerminalBell } from './bell.js';
-import cursorBack from '../cursor/back.png';
-import cursorPageup from '../cursor/pageup.png';
-import cursorPagedown from '../cursor/pagedown.png';
-import cursorHome from '../cursor/home.png';
-import cursorEnd from '../cursor/end.png';
-import cursorPrevous from '../cursor/prevous.png';
-import cursorNext from '../cursor/next.png';
-import cursorFirst from '../cursor/first.png';
-import cursorRefresh from '../cursor/refresh.png';
-import cursorLast from '../cursor/last.png';
 
 export const termColors = [
   // dark
@@ -57,24 +47,6 @@ export const termInvColors = [
   '#00FF00', // magenta
   '#FF0000', // cyan
   '#000000'  // white
-];
-
-const mouseCursorMap = [
-  'auto',                                                // 0
-  `url(${cursorBack}) 0 6,auto`,                         // 1
-  `url(${cursorPageup}) 6 0,auto`,                       // 2
-  `url(${cursorPagedown}) 6 21,auto`,                    // 3
-  `url(${cursorHome}) 0 0,auto`,                         // 4
-  `url(${cursorEnd}) 0 0,auto`,                          // 5
-  'pointer',                                             // 6
-  'default',                                             // 7
-  `url(${cursorPrevous}) 6 0,auto`,                      // 8
-  `url(${cursorNext}) 6 0,auto`,                         // 9
-  `url(${cursorFirst}) 0 0,auto`,                        // 10
-  'auto',                                                // 11
-  `url(${cursorRefresh}) 0 0,auto`,                      // 12
-  `url(${cursorLast}) 0 0,auto`,                         // 13
-  `url(${cursorLast}) 0 0,auto`                          // 14
 ];
 
 export class TermChar {
@@ -1389,140 +1361,15 @@ export class TermBuf extends Event {
    * @param {number} lastRowNum
    * @param {number} cols
    */
-  _calcListRowMouseCursor(trow, tcol, lastRowNum, cols) {
-    if ( tcol <= 6 ) {
-      this.clearHighlight();
-      this.mouseCursor = 1;
-    } else if ( tcol >= cols-16 ) {
-      this.clearHighlight();
-      if ( trow > (lastRowNum + 1) / 2 )
-        this.mouseCursor = 3;
-      else
-        this.mouseCursor = 2;
-    } else {
-      if (!this.isLineEmpty(trow)) {
-        this.mouseCursor = 6;
-        this.nowHighlight = trow;
-      } else {
-        this.mouseCursor = 11;
-      }
-    }
-  }
-
-  /**
-   * @param {number} tcol
-   * @param {number} trow
-   * @param {boolean} [doRefresh]
-   */
   onMouse_move(tcol, trow, doRefresh) {
-    tcol = (typeof tcol === 'number' && Number.isFinite(tcol)) ? Math.floor(tcol) : 0;
-    trow = (typeof trow === 'number' && Number.isFinite(trow)) ? Math.floor(trow) : 0;
-    this.tempMouseCol = tcol;
-    this.tempMouseRow = trow;
-
-    if (this.nowHighlight != trow || doRefresh) {
-      this.clearHighlight();
-    }
-
-    let lastRowNum = this.site.getLastRowNum(this);
-    let cols = this.cols;
-
-    switch( this.pageState ) {
-    case 0: //NORMAL
-      //SetCursor(m_ArrowCursor);
-      //m_CursorState = 0;
-      this.mouseCursor = 0;
-      break;
-
-    case 4: //LIST
-      if (trow>1 && trow < lastRowNum-1) {              //m_pTermData->m_RowsPerPage-1
-        this._calcListRowMouseCursor(trow, tcol, lastRowNum, cols);
-      } else if ( trow == 1 || trow == 2 ) {
-        this.mouseCursor = 2;
-      } else if ( trow === 0 ) {
-        this.mouseCursor = 4;
-      } else { // trow == lastRowNum
-        this.mouseCursor = 5;
-      }
-      break;
-
-    case 2: //LIST
-      if (trow > 2 && trow < lastRowNum) {              //m_pTermData->m_RowsPerPage-1
-        this._calcListRowMouseCursor(trow, tcol, lastRowNum, cols);
-      } else if ( trow == 1 || trow == 2 ) {
-        if ( tcol < 2 )//[
-          this.mouseCursor = 8;
-        else if ( tcol > cols-5 )//]
-          this.mouseCursor = 9;
-        else
-          this.mouseCursor = 2;
-      } else if ( trow === 0 ) {
-        if ( tcol < 2 )//=
-          this.mouseCursor = 10;
-        else if ( tcol > cols-5 )//]
-          this.mouseCursor = 9;
-        else
-          this.mouseCursor = 4;
-      } else { // trow == lastRowNum
-        if ( tcol < 2 )
-          this.mouseCursor = 12;
-        else if ( tcol > cols-5 )
-          this.mouseCursor = 13;
-        else
-          this.mouseCursor = 5;
-      }
-      break;
-
-    case 3: //READING
-      if ( trow == lastRowNum) {
-        if ( tcol < 2 )//]
-          this.mouseCursor = 12;
-        else if ( tcol > cols-5 )
-          this.mouseCursor = 14;
-        else
-          this.mouseCursor = 5;
-      } else if ( trow === 0 || trow == 1 || trow == 2 ) {
-        if (tcol < 2)
-          this.mouseCursor = trow === 0 ? 10 : 8;
-        else if ( tcol > cols-5 )//]
-          this.mouseCursor = 9;
-        else if ( tcol < 7 )
-          this.mouseCursor = 1;
-        else
-          this.mouseCursor = 2;
-      } else if ( tcol < 7 )
-        this.mouseCursor = 1;
-      else if ( trow < (lastRowNum + 1) / 2 )
-        this.mouseCursor = 2;
-      else
-        this.mouseCursor = 3;
-      break;
-
-    case 1: //MENU
-      if ( trow>0 && trow < lastRowNum ) {
-        if (tcol > 7)
-          this.mouseCursor = 7;
-        else
-          this.mouseCursor = 1;
-      } else {
-        this.mouseCursor = 0;
-        //SetCursor(m_ArrowCursor);m_CursorState=0;
-      }
-      break;
-
-    default:
-      this.mouseCursor = 0;
-      break;
-    }
-
-    if (this.termWin && this.termWin.style) {
-      this.termWin.style.cursor = mouseCursorMap[this.mouseCursor];
+    if (this.view?.app?.mouseBrowsing) {
+      this.view.app.mouseBrowsing.onMouseMove(tcol, trow, doRefresh);
     }
   }
 
   resetMousePos() {
-    if (this.useMouseBrowsing) {
-      this.onMouse_move(this.tempMouseCol, this.tempMouseRow, true);
+    if (this.view?.app?.mouseBrowsing) {
+      this.view.app.mouseBrowsing.resetMousePos();
     }
   }
 

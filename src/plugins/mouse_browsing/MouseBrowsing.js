@@ -1,22 +1,32 @@
 import { readValuesWithDefault, updatePref } from "../../js/pref.js";
 import { _ } from "../../js/i18n.js";
+const cursorBack = new URL("../../cursor/back.png", import.meta.url).href;
+const cursorPageup = new URL("../../cursor/pageup.png", import.meta.url).href;
+const cursorPagedown = new URL("../../cursor/pagedown.png", import.meta.url).href;
+const cursorHome = new URL("../../cursor/home.png", import.meta.url).href;
+const cursorEnd = new URL("../../cursor/end.png", import.meta.url).href;
+const cursorPrevous = new URL("../../cursor/prevous.png", import.meta.url).href;
+const cursorNext = new URL("../../cursor/next.png", import.meta.url).href;
+const cursorFirst = new URL("../../cursor/first.png", import.meta.url).href;
+const cursorRefresh = new URL("../../cursor/refresh.png", import.meta.url).href;
+const cursorLast = new URL("../../cursor/last.png", import.meta.url).href;
 
 export const MOUSE_CURSOR_MAP = [
-  "auto",
-  "w-resize",
-  "n-resize",
-  "s-resize",
-  "nw-resize",
-  "sw-resize",
-  "pointer",
-  "pointer",
-  "w-resize",
-  "e-resize",
-  "w-resize",
-  "default",
-  "w-resize",
-  "e-resize",
-  "e-resize",
+  "auto", // 0
+  `url(${cursorBack}) 0 6,auto`, // 1
+  `url(${cursorPageup}) 6 0,auto`, // 2
+  `url(${cursorPagedown}) 6 21,auto`, // 3
+  `url(${cursorHome}) 0 0,auto`, // 4
+  `url(${cursorEnd}) 0 0,auto`, // 5
+  "pointer", // 6
+  "default", // 7
+  `url(${cursorPrevous}) 6 0,auto`, // 8
+  `url(${cursorNext}) 6 0,auto`, // 9
+  `url(${cursorFirst}) 0 0,auto`, // 10
+  "auto", // 11
+  `url(${cursorRefresh}) 0 0,auto`, // 12
+  `url(${cursorLast}) 0 0,auto`, // 13
+  `url(${cursorLast}) 0 0,auto`, // 14
 ];
 
 export class MouseBrowsing {
@@ -97,12 +107,21 @@ export class MouseBrowsing {
 
   setEnabled(val) {
     this.enabled = !!val;
-    if (this.buf) {
-      this.buf.useMouseBrowsing = this.enabled;
+    const buf = this.buf || this.app?.buf;
+    if (buf) {
+      buf.useMouseBrowsing = this.enabled;
       if (!this.enabled) {
-        this.buf.clearHighlight();
-        this.buf.mouseCursor = 0;
-        this.buf.resetMousePos();
+        const termWin = this.app?.termWin || buf.termWin;
+        if (termWin && termWin.style) termWin.style.cursor = "auto";
+        buf.clearHighlight();
+        buf.mouseCursor = 0;
+        buf.nowHighlight = -1;
+        buf.tempMouseCol = 0;
+        buf.tempMouseRow = 0;
+      } else {
+        this.resetMousePos();
+        this.view?.redraw?.(true);
+        this.view?.updateCursorPos?.();
       }
     }
     if (this.app) {
@@ -122,6 +141,133 @@ export class MouseBrowsing {
     const sendstr =
       (diff > 0 ? "\x1b[A".repeat(diff) : "\x1b[B".repeat(-diff)) + "\r";
     this.app.send(sendstr);
+  }
+
+  _calcListRowMouseCursor(trow, tcol, lastRowNum, cols) {
+    const buf = this.buf || this.app?.buf;
+    if (!buf) return;
+    if (tcol <= 6) {
+      buf.clearHighlight();
+      buf.mouseCursor = 1;
+    } else if (tcol >= cols - 16) {
+      buf.clearHighlight();
+      if (trow > (lastRowNum + 1) / 2) buf.mouseCursor = 3;
+      else buf.mouseCursor = 2;
+    } else {
+      if (!buf.isLineEmpty(trow)) {
+        buf.mouseCursor = 6;
+        buf.nowHighlight = trow;
+      } else {
+        buf.mouseCursor = 11;
+      }
+    }
+  }
+
+  onMouseMove(tcol, trow, doRefresh) {
+    if (!this.enabled) return;
+    const buf = this.buf || this.app?.buf;
+    if (!buf) return;
+    tcol =
+      typeof tcol === "number" && Number.isFinite(tcol) ? Math.floor(tcol) : 0;
+    trow =
+      typeof trow === "number" && Number.isFinite(trow) ? Math.floor(trow) : 0;
+    buf.tempMouseCol = tcol;
+    buf.tempMouseRow = trow;
+
+    if (buf.nowHighlight !== trow || doRefresh) {
+      buf.clearHighlight();
+    }
+
+    const site = this.app?.site || buf.site;
+    const lastRowNum = site?.getLastRowNum
+      ? site.getLastRowNum(buf)
+      : buf.rows - 1;
+    const cols = buf.cols;
+
+    switch (buf.pageState) {
+      case 0: // NORMAL
+        buf.mouseCursor = 0;
+        break;
+
+      case 4: // LIST
+        if (trow > 1 && trow < lastRowNum - 1) {
+          this._calcListRowMouseCursor(trow, tcol, lastRowNum, cols);
+        } else if (trow == 1 || trow == 2) {
+          buf.mouseCursor = 2;
+        } else if (trow === 0) {
+          buf.mouseCursor = 4;
+        } else {
+          buf.mouseCursor = 5;
+        }
+        break;
+
+      case 2: // LIST
+        if (trow > 2 && trow < lastRowNum) {
+          this._calcListRowMouseCursor(trow, tcol, lastRowNum, cols);
+        } else if (trow == 1 || trow == 2) {
+          if (tcol < 2) buf.mouseCursor = 8;
+          else if (tcol > cols - 5) buf.mouseCursor = 9;
+          else buf.mouseCursor = 2;
+        } else if (trow === 0) {
+          if (tcol < 2) buf.mouseCursor = 10;
+          else if (tcol > cols - 5) buf.mouseCursor = 9;
+          else buf.mouseCursor = 4;
+        } else {
+          if (tcol < 2) buf.mouseCursor = 12;
+          else if (tcol > cols - 5) buf.mouseCursor = 13;
+          else buf.mouseCursor = 5;
+        }
+        break;
+
+      case 3: // READING
+        if (trow == lastRowNum) {
+          if (tcol < 2) buf.mouseCursor = 12;
+          else if (tcol > cols - 5) buf.mouseCursor = 14;
+          else buf.mouseCursor = 5;
+        } else if (trow === 0 || trow == 1 || trow == 2) {
+          if (tcol < 2) buf.mouseCursor = trow === 0 ? 10 : 8;
+          else if (tcol > cols - 5) buf.mouseCursor = 9;
+          else if (tcol < 7) buf.mouseCursor = 1;
+          else buf.mouseCursor = 2;
+        } else if (tcol < 7) buf.mouseCursor = 1;
+        else if (trow < (lastRowNum + 1) / 2) buf.mouseCursor = 2;
+        else buf.mouseCursor = 3;
+        break;
+
+      case 1: // MENU
+        if (trow > 0 && trow < lastRowNum) {
+          if (tcol > 7) buf.mouseCursor = 7;
+          else buf.mouseCursor = 1;
+        } else {
+          buf.mouseCursor = 0;
+        }
+        break;
+
+      default:
+        buf.mouseCursor = 0;
+        break;
+    }
+
+    const termWin = this.app?.termWin || buf.termWin;
+    if (termWin && termWin.style) {
+      termWin.style.cursor = MOUSE_CURSOR_MAP[buf.mouseCursor] || "auto";
+    }
+  }
+
+  resetMouseCursor() {
+    const buf = this.buf || this.app?.buf;
+    const termWin = this.app?.termWin || buf?.termWin;
+    if (termWin && termWin.style) termWin.style.cursor = "auto";
+    if (buf) buf.mouseCursor = 11;
+  }
+
+  resetMousePos() {
+    if (this.enabled) {
+      const buf = this.buf || this.app?.buf;
+      if (buf) {
+        this.onMouseMove(buf.tempMouseCol, buf.tempMouseRow, true);
+      }
+    }
   }
 
   handleMouseClick(e) {
