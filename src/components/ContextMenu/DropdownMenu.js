@@ -81,6 +81,7 @@ export const DropdownMenu = ({
   onLiveArticleHelperClick,
   onLiveHelperClick,
   onSettingsClick,
+  pluginItems = [],
 }) => {
   const menuRef = useRef(null);
   const openedAtRef = useRef(0);
@@ -201,24 +202,40 @@ export const DropdownMenu = ({
               {isMac ? "⌘A" : "Ctrl+A"}
             </span>
           </MenuItem>
-          <MenuItem
-            eventKey="mouseBrowsing"
-            onSelect={onMenuSelect}
-            className={cx({
-              "DropdownMenu__Item--checked": mouseBrowsingEnabled,
-            })}
-          >
-            {i18n("cmenu_mouseBrowsing")}
-          </MenuItem>
-          {inputHelperEnabled && (
-            <MenuItem onClick={onInputHelperClick}>
-              {i18n("cmenu_showInputHelper")}
-            </MenuItem>
-          )}
-          {liveHelperEnabled && (
-            <MenuItem onClick={handleLiveArticleClick}>
-              {i18n("cmenu_showLiveArticleHelper")}
-            </MenuItem>
+          {pluginItems && pluginItems.length > 0 ? (
+            pluginItems.map((item) => (
+              <MenuItem
+                key={item.id}
+                onClick={item.onClick}
+                className={cx({
+                  "DropdownMenu__Item--checked": item.checked,
+                })}
+              >
+                {typeof item.label === "function" ? item.label() : item.label}
+              </MenuItem>
+            ))
+          ) : (
+            <React.Fragment>
+              <MenuItem
+                eventKey="mouseBrowsing"
+                onSelect={onMenuSelect}
+                className={cx({
+                  "DropdownMenu__Item--checked": mouseBrowsingEnabled,
+                })}
+              >
+                {i18n("cmenu_mouseBrowsing")}
+              </MenuItem>
+              {inputHelperEnabled && (
+                <MenuItem onClick={onInputHelperClick}>
+                  {i18n("cmenu_showInputHelper")}
+                </MenuItem>
+              )}
+              {liveHelperEnabled && (
+                <MenuItem onClick={handleLiveArticleClick}>
+                  {i18n("cmenu_showLiveArticleHelper")}
+                </MenuItem>
+              )}
+            </React.Fragment>
           )}
           <MenuItem divider />
         </React.Fragment>

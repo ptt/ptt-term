@@ -93,6 +93,20 @@ export class InputHelper {
     };
   }
 
+  getContextMenuItems() {
+    return [
+      {
+        id: "input_helper",
+        order: 10,
+        label: () => _("cmenu_showInputHelper"),
+        visible: (app, { normalEnabled }) => normalEnabled && Boolean(this.enabled),
+        onClick: () => {
+          this.show();
+        },
+      },
+    ];
+  }
+
   init({ app, view, buf } = {}) {
     if (app) {
       this.app = app;
@@ -102,6 +116,7 @@ export class InputHelper {
         }
       };
       app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
+      app.registerContextMenuItem?.(this.getContextMenuItems()[0]);
     }
     if (view) this.view = view;
     if (buf) this.buf = buf;
@@ -128,6 +143,7 @@ export class InputHelper {
     this.showsModal = false;
     if (this.app) {
       this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
+      this.app.unregisterContextMenuItem?.("input_helper");
     }
   }
 

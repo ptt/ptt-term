@@ -53,6 +53,45 @@ const initialState = {
 };
 
 export class ContextMenu extends React.Component {
+  static _registeredItems = [];
+
+  static registerItem(item) {
+    if (!item || !item.id) return;
+    const idx = ContextMenu._registeredItems.findIndex((i) => i.id === item.id);
+    if (idx !== -1) {
+      ContextMenu._registeredItems[idx] = item;
+    } else {
+      ContextMenu._registeredItems.push(item);
+    }
+  }
+
+  static unregisterItem(idOrItem) {
+    const id = typeof idOrItem === "string" ? idOrItem : idOrItem?.id;
+    const idx = ContextMenu._registeredItems.findIndex((i) => i.id === id);
+    if (idx !== -1) {
+      ContextMenu._registeredItems.splice(idx, 1);
+    }
+  }
+
+  static getRegisteredItems() {
+    return [...ContextMenu._registeredItems];
+  }
+
+  getRegisteredItems() {
+    const staticItems = ContextMenu.getRegisteredItems();
+    const appItems = this.props.app?.getContextMenuItems?.() || [];
+    const itemMap = new Map();
+    for (const item of staticItems) {
+      itemMap.set(item.id, item);
+    }
+    for (const item of appItems) {
+      itemMap.set(item.id, item);
+    }
+    return Array.from(itemMap.values()).sort(
+      (a, b) => (a.order ?? 100) - (b.order ?? 100)
+    );
+  }
+
   _isMounted = false;
 
   state = {
@@ -96,6 +135,15 @@ export class ContextMenu extends React.Component {
         if (!this.isInstanceActive()) return;
         this.showMenuAt(x, y);
       };
+      this._onContextMenuUpdate = () => {
+        if (this.isInstanceActive()) {
+          this.forceUpdate();
+        }
+      };
+      app.addEventListener?.(
+        "term:context-menu:update",
+        this._onContextMenuUpdate
+      );
     }
 
     this.contextMenuHandler = (event) => {
@@ -215,6 +263,12 @@ export class ContextMenu extends React.Component {
     const { app } = this.props;
     if (app && app.openContextMenu) {
       app.openContextMenu = null;
+    }
+    if (app && this._onContextMenuUpdate) {
+      app.removeEventListener?.(
+        "term:context-menu:update",
+        this._onContextMenuUpdate
+      );
     }
     window.removeEventListener("resize", this.handleResizeOrTouch, false);
     window.removeEventListener(
@@ -415,7 +469,16 @@ export class ContextMenu extends React.Component {
       event.stopPropagation();
     }
     this.handleHide();
-    this.props.app?.getPlugin?.("input_helper")?.show?.();
+    const registered = this.getRegisteredItems().find(
+      (item) => item.id === "input_helper"
+    );
+    if (registered && typeof registered.onClick === "function") {
+      registered.onClick(this.props.app, {
+        closeMenu: () => this.handleHide(),
+        event,
+        state: this.state,
+      });
+    }
   };
 
   handleLiveArticleHelperClick = (event) => {
@@ -429,8 +492,16 @@ export class ContextMenu extends React.Component {
     this.setState({
       ...initialState,
     });
-    const liveUpdatePlugin = app?.liveUpdate || app?.getPlugin?.("live_update");
-    liveUpdatePlugin?.showModal?.(true);
+    const registered = this.getRegisteredItems().find(
+      (item) => item.id === "live_update"
+    );
+    if (registered && typeof registered.onClick === "function") {
+      registered.onClick(app, {
+        closeMenu: () => this.handleHide(),
+        event,
+        state: this.state,
+      });
+    }
   };
   handleLiveHelperClick = this.handleLiveArticleHelperClick;
 
@@ -472,13 +543,74 @@ export class ContextMenu extends React.Component {
     } = this.state;
     const { app } = this.props;
     const anyModalShown = showsSettings;
-    const liveUpdatePlugin = app?.liveUpdate || app?.getPlugin?.("live_update");
-    const liveHelperEnabled = Boolean(
-      liveUpdatePlugin ? liveUpdatePlugin.enabled : false
-    );
-    const inputHelperPlugin = app?.inputHelper || app?.getPlugin?.("input_helper");
-    const inputHelperEnabled = Boolean(
-      inputHelperPlugin ? inputHelperPlugin.enabled : true
+
+    const registeredItems = this.getRegisteredItems();
+    const menuContext = {
+      open,
+      pageX,
+      pageY,
+      urlEnabled,
+      normalEnabled,
+      selEnabled,
+      selectedText,
+      contextOnUrl: this.state.contextOnUrl,
+      isTouchDevice,
+    };
+
+    const pluginItems = [];
+    for (const item of registeredItems) {
+      const isVisible =
+        typeof item.visible === "function"
+          ? item.visible(app, menuContext)
+          : item.visible !== undefined
+          ? Boolean(item.visible)
+          : normalEnabled;
+      if (!isVisible) continue;
+
+      const isChecked =
+        typeof item.checked === "function"
+          ? item.checked(app, menuContext)
+          : Boolean(item.checked);
+
+      const isEnabled =
+        typeof item.enabled === "function"
+          ? item.enabled(app, menuContext)
+          : item.enabled !== undefined
+          ? Boolean(item.enabled)
+          : true;
+
+      const label =
+        typeof item.label === "function"
+          ? item.label(app)
+          : item.label || item.id;
+
+      pluginItems.push({
+        id: item.id,
+        label,
+        checked: isChecked,
+        enabled: isEnabled,
+        order: item.order ?? 100,
+        onClick: (event) => {
+          if (event) event.stopPropagation();
+          this.handleHide();
+          if (typeof item.onClick === "function") {
+            item.onClick(app, {
+              event,
+              closeMenu: () => this.handleHide(),
+              state: this.state,
+            });
+          }
+        },
+      });
+    }
+    pluginItems.sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
+
+    const mouseBrowsingEnabled = Boolean(
+      app && app.useMouseBrowsing !== undefined
+        ? app.useMouseBrowsing
+        : app && app.buf
+        ? app.buf.useMouseBrowsing
+        : false
     );
 
     return (
@@ -497,11 +629,9 @@ export class ContextMenu extends React.Component {
             urlEnabled={urlEnabled}
             normalEnabled={normalEnabled}
             selEnabled={selEnabled}
-            mouseBrowsingEnabled={
-              Boolean(app?.getPlugin?.("mouse_browsing")?.enabled ?? (app && app.buf ? app.buf.useMouseBrowsing : false))
-            }
-            inputHelperEnabled={inputHelperEnabled}
-            liveHelperEnabled={liveHelperEnabled}
+            mouseBrowsingEnabled={mouseBrowsingEnabled}
+            inputHelperEnabled={true}
+            liveHelperEnabled={false}
             selectedText={selectedText}
             onMenuSelect={this.handleMenuSelect}
             onInputHelperClick={this.handleInputHelperClick}

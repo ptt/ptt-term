@@ -94,6 +94,21 @@ export class MouseBrowsing {
     };
   }
 
+  getContextMenuItems() {
+    return [
+      {
+        id: "mouse_browsing",
+        order: 5,
+        label: () => _("cmenu_mouseBrowsing"),
+        checked: () => Boolean(this.enabled),
+        visible: (app, { normalEnabled }) => normalEnabled,
+        onClick: () => {
+          this.switchMouseBrowsing();
+        },
+      },
+    ];
+  }
+
   init({ app, view, buf } = {}) {
     if (app) {
       this.app = app;
@@ -115,6 +130,7 @@ export class MouseBrowsing {
       app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
       app.addEventListener?.("term:mouse-move", this._onMouseMoveBound);
       app.addEventListener?.("term:reset-mouse-cursor", this._onResetMouseCursorBound);
+      app.registerContextMenuItem?.(this.getContextMenuItems()[0]);
     }
     if (view) this.view = view;
     if (buf) this.buf = buf;
@@ -140,6 +156,7 @@ export class MouseBrowsing {
       this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
       this.app.removeEventListener?.("term:mouse-move", this._onMouseMoveBound);
       this.app.removeEventListener?.("term:reset-mouse-cursor", this._onResetMouseCursorBound);
+      this.app.unregisterContextMenuItem?.("mouse_browsing");
     }
     if (this.buf) {
       this.buf.useMouseBrowsing = false;

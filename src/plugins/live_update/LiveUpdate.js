@@ -68,6 +68,20 @@ export class LiveUpdate {
     };
   }
 
+  getContextMenuItems() {
+    return [
+      {
+        id: 'live_update',
+        order: 20,
+        label: () => _('cmenu_showLiveArticleHelper'),
+        visible: (app, { normalEnabled }) => normalEnabled && Boolean(this.enabled),
+        onClick: () => {
+          this.showModal(true);
+        },
+      },
+    ];
+  }
+
   init({ app, view, buf } = {}) {
     if (app) this.app = app;
     if (view) this.view = view;
@@ -105,7 +119,6 @@ export class LiveUpdate {
       this._onEasyReadingSwitchBound = (e) => {
         if (e.detail?.doSwitch && this.active) {
           this.stop();
-          this.hideModal();
         }
       };
       this._onClickBound = () => {
@@ -118,6 +131,7 @@ export class LiveUpdate {
       this.app.addEventListener?.('term:disconnect', this._onDisconnectBound);
       this.app.addEventListener?.('term:easy-reading:switch', this._onEasyReadingSwitchBound);
       this.app.addEventListener?.('term:click', this._onClickBound);
+      this.app.registerContextMenuItem?.(this.getContextMenuItems()[0]);
     }
 
     const prefs = readValuesWithDefault();
@@ -154,6 +168,7 @@ export class LiveUpdate {
       this.app.removeEventListener?.('term:disconnect', this._onDisconnectBound);
       this.app.removeEventListener?.('term:easy-reading:switch', this._onEasyReadingSwitchBound);
       this.app.removeEventListener?.('term:click', this._onClickBound);
+      this.app.unregisterContextMenuItem?.('live_update');
     }
     if (this.ui) {
       this.ui.destroy();

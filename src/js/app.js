@@ -60,6 +60,7 @@ export class App extends Event {
   this.plugins = [];
   this.inputInterceptors = [];
   this.overlays = [];
+  this.contextMenuItems = [];
   this.initPlugins(BUILTIN_PLUGINS);
   this.suppressWheelUntil = 0;
   this.suppressWheelContinuous = false;
@@ -185,6 +186,18 @@ export class App extends Event {
       plugin.init({ app: this, core: this, view: this.view, buf: this.buf });
     }
     this.registerInputInterceptor(plugin);
+    if (plugin.getContextMenuItems) {
+      const items = plugin.getContextMenuItems();
+      if (Array.isArray(items)) {
+        for (const item of items) {
+          this.registerContextMenuItem(item);
+        }
+      }
+    } else if (Array.isArray(plugin.contextMenuItems)) {
+      for (const item of plugin.contextMenuItems) {
+        this.registerContextMenuItem(item);
+      }
+    }
   }
 
   unregisterPlugin(plugin) {
@@ -192,6 +205,20 @@ export class App extends Event {
     if (idx !== -1) {
       this.plugins.splice(idx, 1);
       this.unregisterInputInterceptor(plugin);
+      if (plugin.getContextMenuItems) {
+        const items = plugin.getContextMenuItems();
+        if (Array.isArray(items)) {
+          for (const item of items) {
+            this.unregisterContextMenuItem(item.id);
+          }
+        }
+      } else if (Array.isArray(plugin.contextMenuItems)) {
+        for (const item of plugin.contextMenuItems) {
+          this.unregisterContextMenuItem(item.id);
+        }
+      } else if (plugin.id) {
+        this.unregisterContextMenuItem(plugin.id);
+      }
       if (plugin.id) {
         this.unregisterOverlay(plugin.id);
       }
@@ -225,6 +252,34 @@ export class App extends Event {
 
   getOverlays() {
     return [...this.overlays];
+  }
+
+  registerContextMenuItem(item) {
+    if (!item || !item.id) return;
+    const idx = this.contextMenuItems.findIndex((i) => i.id === item.id);
+    if (idx !== -1) {
+      this.contextMenuItems[idx] = item;
+    } else {
+      this.contextMenuItems.push(item);
+    }
+    this.dispatchEvent(
+      new CustomEvent('term:context-menu:update', { detail: { item } })
+    );
+  }
+
+  unregisterContextMenuItem(idOrItem) {
+    const id = typeof idOrItem === 'string' ? idOrItem : idOrItem?.id;
+    const idx = this.contextMenuItems.findIndex((i) => i.id === id);
+    if (idx !== -1) {
+      const [removed] = this.contextMenuItems.splice(idx, 1);
+      this.dispatchEvent(
+        new CustomEvent('term:context-menu:update', { detail: { removed } })
+      );
+    }
+  }
+
+  getContextMenuItems() {
+    return [...this.contextMenuItems];
   }
 
   initPlugins(pluginClasses = BUILTIN_PLUGINS) {

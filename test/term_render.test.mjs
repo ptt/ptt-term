@@ -3140,22 +3140,24 @@ test('ContextMenu and DropdownMenu dynamically link Live Helper and Input Helper
     'DropdownMenu must conditionally render cmenu_showLiveArticleHelper'
   );
 
-  // 3. ContextMenu derives liveHelperEnabled and inputHelperEnabled from plugins
+  // 3. ContextMenu allows plugins to register items without proactive lookup
   assert.ok(
-    contextMenuSource.includes('const liveUpdatePlugin = app?.liveUpdate || app?.getPlugin?.("live_update");'),
-    'ContextMenu must resolve liveUpdate plugin'
+    contextMenuSource.includes('getRegisteredItems') &&
+      contextMenuSource.includes('registerItem') &&
+      appSource.includes('registerContextMenuItem'),
+    'ContextMenu and App must provide context menu item registration'
   );
   assert.ok(
-    contextMenuSource.includes('const inputHelperPlugin = app?.inputHelper || app?.getPlugin?.("input_helper");'),
-    'ContextMenu must resolve inputHelper plugin'
+    !contextMenuSource.includes('app?.getPlugin?.("live_update")'),
+    'ContextMenu must not proactively query getPlugin("live_update")'
+  );
+  assert.ok(
+    !contextMenuSource.includes('app?.getPlugin?.("input_helper")'),
+    'ContextMenu must not proactively query getPlugin("input_helper")'
   );
   assert.ok(
     contextMenuSource.includes('handleLiveArticleHelperClick'),
     'ContextMenu must define handleLiveArticleHelperClick'
-  );
-  assert.ok(
-    contextMenuSource.includes('liveUpdatePlugin?.showModal?.(true)'),
-    'handleLiveArticleHelperClick must open live update modal'
   );
 
   // 4. InputHelper plugin reads preference on init and App handles onValuesPrefChange
@@ -3265,11 +3267,10 @@ test('InputHelper decouples UI from ContextMenu and renders via PluginOverlay', 
     'ContextMenu must not manage showsInputHelper state'
   );
 
-  // ContextMenu delegates to input_helper plugin
+  // ContextMenu delegates to registered input_helper item
   assert.ok(
-    contextMenuSource.includes('getPlugin?.("input_helper")?.show?.()') ||
-      contextMenuSource.includes("getPlugin?.('input_helper')?.show?.()"),
-    'ContextMenu handleInputHelperClick must delegate to input_helper plugin show'
+    contextMenuSource.includes('item.id === "input_helper"'),
+    'ContextMenu handleInputHelperClick must delegate to registered input_helper item'
   );
 
   // InputHelper defines renderOverlay
@@ -3281,6 +3282,42 @@ test('InputHelper decouples UI from ContextMenu and renders via PluginOverlay', 
     inputHelperSource.includes('term:overlay:update'),
     'InputHelper must trigger term:overlay:update on modal toggle'
   );
+});
+
+test('ContextMenu allows plugins to register menu items and unregister dynamically', () => {
+  const testItem = {
+    id: 'test_plugin_item',
+    label: 'Test Plugin Action',
+    order: 15,
+    visible: () => true,
+    onClick: () => {},
+  };
+
+  const registeredItems = [];
+  const appMock = {
+    contextMenuItems: registeredItems,
+    registerContextMenuItem(item) {
+      const idx = this.contextMenuItems.findIndex((i) => i.id === item.id);
+      if (idx !== -1) this.contextMenuItems[idx] = item;
+      else this.contextMenuItems.push(item);
+    },
+    unregisterContextMenuItem(id) {
+      const idx = this.contextMenuItems.findIndex((i) =>
+        typeof id === 'string' ? i.id === id : i.id === id?.id
+      );
+      if (idx !== -1) this.contextMenuItems.splice(idx, 1);
+    },
+    getContextMenuItems() {
+      return [...this.contextMenuItems];
+    },
+  };
+
+  appMock.registerContextMenuItem(testItem);
+  assert.equal(appMock.getContextMenuItems().length, 1);
+  assert.equal(appMock.getContextMenuItems()[0].id, 'test_plugin_item');
+
+  appMock.unregisterContextMenuItem('test_plugin_item');
+  assert.equal(appMock.getContextMenuItems().length, 0);
 });
 
 
