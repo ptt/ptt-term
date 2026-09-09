@@ -594,5 +594,23 @@
   },
   "options_fontList_empty": {
     "message": "尚未設定任何字型，將使用系統預設 monospace。"
+  },
+  "touch_input_sheet_title": {
+    "message": "輸入訊息"
+  },
+  "touch_input_sheet_placeholder": {
+    "message": "輸入訊息或文章內容..."
+  },
+  "touch_input_sheet_send": {
+    "message": "送出"
+  },
+  "touch_input_sheet_send_enter": {
+    "message": "送出換行 (↵)"
+  },
+  "touch_input_sheet_auto_wrap": {
+    "message": "自動折行"
+  },
+  "touch_input_sheet_direct_mode": {
+    "message": "切換終端直接輸入"
   }
 }

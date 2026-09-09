@@ -3,6 +3,7 @@ import cx from "classnames";
 import React from "react";
 import { readValuesWithDefault, writeValues } from "../js/pref.js";
 import { computeToolbarLayout } from "./TouchController.js";
+import { TouchInputSheet } from "./TouchInputSheet.js";
 // TouchDebugHUD overlay is rendered globally via PluginOverlay in AppOverlay.
 
 const SHIFT_NUMBER_MAP = {
@@ -52,6 +53,8 @@ export class TouchKeyboard extends React.Component {
     isTouchDevice: false,
     isToolbarCollapsed: false,
     isSystemKeyboardOpen: false,
+    isEditAreaOpen: false,
+    isDirectInputMode: false,
     isCtrlMode: false,
     isAlphaMode: false,
     ctrlPreviousMode: null,
@@ -435,7 +438,7 @@ export class TouchKeyboard extends React.Component {
       };
       this.inputAreaBlurHandler = () => {
         if (!this.isInstanceActive()) return;
-        this.setState({ isSystemKeyboardOpen: false });
+        this.setState({ isSystemKeyboardOpen: false, isDirectInputMode: false });
         if (this.props.app.inputArea) {
           this.props.app.inputArea.setAttribute("inputmode", "none");
           this.props.app.inputArea.setAttribute("virtualkeyboardpolicy", "manual");
@@ -1098,6 +1101,72 @@ export class TouchKeyboard extends React.Component {
     window?.scrollTo?.(0, 0);
   };
 
+  toggleEditArea = (event) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    const nextState = !this.state.isEditAreaOpen;
+    this.setState({ isEditAreaOpen: nextState }, () => {
+      if (nextState) {
+        this.inputSheetRef?.focusTextarea?.();
+      }
+    });
+    if (nextState) {
+      this.inputSheetRef?.focusTextarea?.();
+    }
+  };
+
+  handleCloseEditArea = () => {
+    this.setState({ isEditAreaOpen: false });
+    this.inputSheetRef?.blurTextarea?.();
+  };
+
+  handleSwitchToDirectInput = () => {
+    this.setState({ isEditAreaOpen: false, isDirectInputMode: true }, () => {
+      this.handleFloatingKeyboardToggle();
+    });
+  };
+
+  handleKeyboardPointerDown = (event) => {
+    this._keyboardPointerDownTime = Date.now();
+    this._longPressFired = false;
+    if (this._longPressTimer) {
+      clearTimeout(this._longPressTimer);
+    }
+    this._longPressTimer = setTimeout(() => {
+      this._longPressFired = true;
+      this.handleSwitchToDirectInput();
+    }, 600);
+    this.handleFloatingKeyboardPointerDown(event);
+  };
+
+  handleKeyboardPointerUp = (event) => {
+    if (this._longPressTimer) {
+      clearTimeout(this._longPressTimer);
+      this._longPressTimer = null;
+    }
+  };
+
+  handleKeyboardClick = (event) => {
+    if (this._longPressTimer) {
+      clearTimeout(this._longPressTimer);
+      this._longPressTimer = null;
+    }
+    if (this._longPressFired) {
+      this._longPressFired = false;
+      return;
+    }
+    if (this.state.isDirectInputMode) {
+      this.handleFloatingKeyboardToggle(event);
+      if (this.state.isSystemKeyboardOpen) {
+        this.setState({ isDirectInputMode: false });
+      }
+      return;
+    }
+    this.toggleEditArea(event);
+  };
+
   handleFloatingMenuToggle = (event, targetEl) => {
     if (Date.now() < this.suppressInteractionUntil) {
       return;
@@ -1629,7 +1698,9 @@ export class TouchKeyboard extends React.Component {
   );
 
   renderKeyboardToggle = () => {
-    const isOpen = Boolean(this.state.isSystemKeyboardOpen);
+    const isOpen = Boolean(
+      this.state.isSystemKeyboardOpen || this.state.isEditAreaOpen
+    );
     return (
       <label
         key="toolbar-syskbd-toggle"
@@ -1637,11 +1708,13 @@ export class TouchKeyboard extends React.Component {
         className={`TouchFloatingToolbar__Btn TouchFloatingToolbar__Btn--system ${
           isOpen ? "TouchFloatingToolbar__Btn--active" : ""
         }`}
-        title="切換鍵盤 (Toggle Keyboard)"
-        aria-label="Toggle Keyboard"
+        title="輸入訊息 (Input Message)"
+        aria-label="Input Message"
         role="button"
-        onPointerDown={this.handleFloatingKeyboardPointerDown}
-        onClick={this.handleFloatingKeyboardToggle}
+        onPointerDown={this.handleKeyboardPointerDown}
+        onPointerUp={this.handleKeyboardPointerUp}
+        onPointerCancel={this.handleKeyboardPointerUp}
+        onClick={this.handleKeyboardClick}
       >
         <svg
           width="16"
@@ -2245,14 +2318,28 @@ export class TouchKeyboard extends React.Component {
     };
 
     return (
-      <div
-        className={cx("TouchFloatingToolbar", "nomouse_command", {
-          "TouchFloatingToolbar--force-show": isTouchDevice,
-          "TouchFloatingToolbar--collapsed": isToolbarCollapsed,
-          "TouchFloatingToolbar--stacked": isStackedMode,
-          "TouchFloatingToolbar--dragging": this.state.isDragging,
-        })}
-        style={toolbarStyle}
+      <React.Fragment>
+        <TouchInputSheet
+          ref={(ref) => {
+            this.inputSheetRef = ref;
+          }}
+          open={Boolean(this.state.isEditAreaOpen)}
+          app={this.props.app}
+          onClose={this.handleCloseEditArea}
+          onSwitchDirectInput={this.handleSwitchToDirectInput}
+        />
+        <div
+          className={cx("TouchFloatingToolbar", "nomouse_command", {
+            "TouchFloatingToolbar--force-show": isTouchDevice,
+            "TouchFloatingToolbar--collapsed": isToolbarCollapsed,
+            "TouchFloatingToolbar--stacked": isStackedMode,
+            "TouchFloatingToolbar--dragging": this.state.isDragging,
+            "TouchFloatingToolbar--hidden": this.state.isEditAreaOpen,
+          })}
+          style={{
+            ...toolbarStyle,
+            ...(this.state.isEditAreaOpen ? { display: "none" } : {}),
+          }}
         onTouchStart={(e) => e.stopPropagation()}
         onPointerDown={(e) => {
           e.stopPropagation();
@@ -2455,7 +2542,8 @@ export class TouchKeyboard extends React.Component {
           </React.Fragment>
         )}
       </div>
-    );
+    </React.Fragment>
+  );
   }
 }
 

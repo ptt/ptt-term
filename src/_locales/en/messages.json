@@ -598,5 +598,23 @@
   },
   "options_fontList_empty": {
     "message": "No fonts configured. Monospace fallback will be used."
+  },
+  "touch_input_sheet_title": {
+    "message": "Input Message"
+  },
+  "touch_input_sheet_placeholder": {
+    "message": "Type message, post content..."
+  },
+  "touch_input_sheet_send": {
+    "message": "Send"
+  },
+  "touch_input_sheet_send_enter": {
+    "message": "Send + Enter (↵)"
+  },
+  "touch_input_sheet_auto_wrap": {
+    "message": "Auto Wrap"
+  },
+  "touch_input_sheet_direct_mode": {
+    "message": "Switch to direct terminal input"
   }
 }

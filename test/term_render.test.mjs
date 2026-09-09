@@ -3498,6 +3498,58 @@ test('DOMScreen and CanvasScreen support hyperlink hover and preview hooks and T
   assert.equal(dispatchedEvents[2].type, 'term:hyperlink-leave');
 });
 
+test('calculatePTTByteLength calculates Big5 BBS byte width accurately', async () => {
+  const { calculatePTTByteLength } = await import('../src/js/string_util.js');
+  assert.equal(calculatePTTByteLength(''), 0);
+  assert.equal(calculatePTTByteLength('Hello'), 5);
+  assert.equal(calculatePTTByteLength('你好'), 4);
+  assert.equal(calculatePTTByteLength('Hello 你好!'), 11);
+  assert.equal(calculatePTTByteLength('推 批踢踢'), 9);
+});
+
+test('TouchInputSheet component source defines UI, title, counter and auto-wrap', () => {
+  const touchInputSheetSource = fs.readFileSync(
+    path.resolve('src/touch/TouchInputSheet.js'),
+    'utf-8'
+  );
+  assert.ok(touchInputSheetSource.includes('class TouchInputSheet'));
+  assert.ok(touchInputSheetSource.includes('TouchInputSheet__Textarea'));
+  assert.ok(touchInputSheetSource.includes('TouchInputSheet__Title'));
+  assert.ok(touchInputSheetSource.includes('TouchInputSheet__Counter'));
+  assert.ok(touchInputSheetSource.includes('handleSend'));
+  assert.ok(touchInputSheetSource.includes('wrapText'));
+  assert.ok(touchInputSheetSource.includes('appendEnter'));
+  assert.ok(touchInputSheetSource.includes('autoWrap'));
+});
+
+test('TouchKeyboard integrates TouchInputSheet and toggles edit area', () => {
+  const touchKbSource = fs.readFileSync(
+    path.resolve('src/touch/TouchKeyboard.js'),
+    'utf-8'
+  );
+  assert.ok(touchKbSource.includes('<TouchInputSheet'));
+  assert.ok(touchKbSource.includes('isEditAreaOpen'));
+  assert.ok(touchKbSource.includes('toggleEditArea'));
+  assert.ok(touchKbSource.includes('handleCloseEditArea'));
+  assert.ok(touchKbSource.includes('handleKeyboardClick'));
+  assert.ok(touchKbSource.includes('TouchFloatingToolbar--hidden'));
+});
+
+test('TouchInputSheet stops key event propagation and registers input interceptor for physical keyboard', () => {
+  const touchInputSheetSource = fs.readFileSync(
+    path.resolve('src/touch/TouchInputSheet.js'),
+    'utf-8'
+  );
+  assert.ok(touchInputSheetSource.includes('registerInterceptor'));
+  assert.ok(touchInputSheetSource.includes('unregisterInterceptor'));
+  assert.ok(touchInputSheetSource.includes('attachTextareaRef'));
+  assert.ok(touchInputSheetSource.includes('handleNativeKeyStop'));
+  assert.ok(touchInputSheetSource.includes('handleKeyUp'));
+  assert.ok(touchInputSheetSource.includes('handleKeyPress'));
+  assert.ok(touchInputSheetSource.includes('registerInputInterceptor'));
+});
+
+
 
 
 

@@ -73,6 +73,31 @@ export function wrapText(it, maxLen, enterChar) {
   return result;
 };
 
+/**
+ * Calculates display byte length for PTT / Big5 BBS:
+ * - ASCII: 1 byte
+ * - Non-ASCII / CJK / full-width: 2 bytes
+ * @param {string} str
+ * @returns {number}
+ */
+export function calculatePTTByteLength(str) {
+  if (!str) return 0;
+  let bytes = 0;
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      bytes += 2;
+      i++;
+    } else if (code > 0x7f) {
+      bytes += 2;
+    } else {
+      bytes += 1;
+    }
+  }
+  return bytes;
+}
+
+
 export function u2b(it) {
   let data = '';
   for (let i = 0; i < it.length; ++i) {
