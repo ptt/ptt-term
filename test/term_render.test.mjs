@@ -1638,7 +1638,7 @@ test('PrefModal locks termSizeMode to fixed-font-size and disables select on tou
 
   // PrefModal renders options_touchFixedFontNote when isTouch is true
   assert.ok(prefModalSource.includes('{isTouch && ('));
-  assert.ok(prefModalSource.includes('{i18n("options_touchFixedFontNote")}'));
+  assert.ok(prefModalSource.includes('{_("options_touchFixedFontNote")}'));
 
   // PrefModal shows fontSize input on touch or when fixed-font-size
   assert.ok(
@@ -1688,7 +1688,7 @@ test('PrefModal redesign includes Extensions/Plugins tab with Mac-style toggle l
     'PrefModal should have plugins tab in nav'
   );
   assert.ok(
-    prefModalSource.includes('{i18n("options_plugins")}'),
+    prefModalSource.includes('{_("options_plugins")}'),
     'PrefModal should render options_plugins translation key'
   );
 
@@ -1904,7 +1904,7 @@ test('PrefModal extension options container and checkboxes are constrained to pr
 
   // 4. media_previewer checkbox wraps translation in span for flex container
   assert.ok(
-    prefModalSource.includes('<span>{i18n("options_picPreviewWhitelistOnly")}</span>'),
+    prefModalSource.includes('<span>{_("options_picPreviewWhitelistOnly")}</span>'),
     'media_previewer option label text must be wrapped in a span'
   );
 });
@@ -3425,16 +3425,16 @@ test('Plugins implement renderOptions and decouple easy_reading from core and Co
   assert.ok(mouseBrowsingEl && typeof mouseBrowsingEl === 'object');
 });
 
-test('i18n exports _ as alias of getI18nMessage with en_US -> zh_TW -> str fallback chain', async () => {
-  const { _, getI18nMessage } = await import('../src/js/i18n.js');
-  assert.equal(_, getI18nMessage, '_ must be an alias of getI18nMessage');
+test('i18n exports _ as alias of getMessage with substitutions support', async () => {
+  const { _, getMessage } = await import('../src/js/i18n.js');
+  assert.equal(_, getMessage, '_ must be an alias of getMessage');
 
-  // Existing key found in en_US or zh_TW
+  // Existing key found in current locale
   assert.equal(_('plugin_easy_reading_title'), 'Easy Reading');
   assert.equal(_('options_antiIdleTime'), 'Anti-idle interval (sec)');
 
-  // Key missing in both en_US and zh_TW falls back to key string
-  assert.equal(_('completely_non_existent_key_xyz'), 'completely_non_existent_key_xyz');
+  // Key missing returns empty string (matching Chrome getMessage)
+  assert.equal(_('completely_non_existent_key_xyz'), '');
 });
 
 test('DOMScreen and CanvasScreen support hyperlink hover and preview hooks and TermView broadcasts events', async () => {

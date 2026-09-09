@@ -1,5 +1,5 @@
 import React from "react";
-import { i18n } from "../js/i18n";
+import { _ } from "../js/i18n";
 import "./PageTopAlert.css";
 
 export const DeveloperModeAlert = ({ onDismiss }) => (
@@ -15,11 +15,11 @@ export const DeveloperModeAlert = ({ onDismiss }) => (
     >
       <span aria-hidden="true">&times;</span>
     </button>
-    <h4>{i18n("alert_developerModeHeader")}</h4>
-    <p>{i18n("alert_developerModeText")}</p>
+    <h4>{_("alert_developerModeHeader")}</h4>
+    <p>{_("alert_developerModeText")}</p>
     <p>
       <button type="button" className="btn btn-purple" onClick={onDismiss}>
-        {i18n("alert_developerModeDismiss")}
+        {_("alert_developerModeDismiss")}
       </button>
     </p>
   </div>

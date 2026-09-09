@@ -209,7 +209,7 @@ export class MouseBrowsing {
     return {
       id: "mouse_browsing",
       name: "mouse_browsing",
-      title: _("cmenu_mouseBrowsing"),
+      title: _("plugin_mouse_browsing_title") || _("cmenu_mouseBrowsing"),
       description: _("plugin_mouse_browsing_desc"),
       prefKey: "useMouseBrowsing",
       icon: "mouse",
@@ -247,7 +247,7 @@ export class MouseBrowsing {
   }
 
   get title() {
-    return _("cmenu_mouseBrowsing");
+    return _("plugin_mouse_browsing_title") || _("cmenu_mouseBrowsing");
   }
 
   get description() {

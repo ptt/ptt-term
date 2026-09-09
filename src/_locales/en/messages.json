@@ -111,6 +111,18 @@
   "plugin_touch_debug_hud_desc": {
     "message": "On-screen diagnostic HUD tracking mobile touch events, virtual keyboard state, viewport metrics, and one-click diagnostic report copying."
   },
+  "plugin_mouse_browsing_title": {
+    "message": "Mouse Browsing"
+  },
+  "plugin_mouse_browsing_desc": {
+    "message": "Navigate BBS with mouse clicks and wheel scrolling, supporting click to enter boards/articles, text selection, and row highlighting."
+  },
+  "plugin_input_helper_title": {
+    "message": "Input Helper"
+  },
+  "plugin_input_helper_desc": {
+    "message": "Visual input palette for ANSI color codes, special symbols, fullwidth punctuation, and emoticons."
+  },
   "options_picPreviewWhitelistOnly": {
     "message": "Only preview images from trusted image hosts (Security & Privacy)"
   },
@@ -182,6 +194,18 @@
   },
   "options_advanced": {
     "message": "Advanced"
+  },
+  "options_uiLocale": {
+    "message": "UI Language"
+  },
+  "options_locale_auto": {
+    "message": "Auto (Follow system language)"
+  },
+  "options_locale_zhTW": {
+    "message": "Traditional Chinese (正體中文)"
+  },
+  "options_locale_enUS": {
+    "message": "English (US)"
   },
   "options_useCanvasEngine": {
     "message": "Render by HTML5 Canvas"

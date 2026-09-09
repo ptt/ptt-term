@@ -4,7 +4,7 @@ import { Event } from './event.js';
 import { TermKeyboard } from './term_keyboard';
 import { termColors, termInvColors } from './term_buf';
 import { renderRowHtml, renderScreen } from './term_ui';
-import { i18n } from './i18n';
+import { _ } from './i18n';
 import { setTimer } from './util';
 import { wrapText, u2b } from './string_util';
 

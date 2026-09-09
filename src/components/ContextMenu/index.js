@@ -1,6 +1,6 @@
 import cx from "classnames";
 import React from "react";
-import { i18n } from "../../js/i18n";
+import { _ } from "../../js/i18n";
 import { readValuesWithDefault, writeValues } from "../../js/pref";
 import { TouchKeyboard } from "../../touch/TouchKeyboard";
 import DropdownMenu from "./DropdownMenu";

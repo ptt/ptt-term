@@ -1,6 +1,6 @@
 import cx from "classnames";
 import React, { useRef, useLayoutEffect } from "react";
-import { i18n } from "../../js/i18n";
+import { _ } from "../../js/i18n";
 import "./DropdownMenu.css";
 
 const top = (mouseHeight, menuHeight) => {
@@ -159,19 +159,19 @@ export const DropdownMenu = ({
       {selEnabled && (
         <React.Fragment>
           <MenuItem eventKey="copy" onSelect={onMenuSelect}>
-            {i18n("cmenu_copy")}
+            {_("cmenu_copy")}
             <span className="DropdownMenu__Item__HotKey">
               {isMac ? "⌘C" : "Ctrl+C"}
             </span>
           </MenuItem>
           <MenuItem eventKey="copyAnsi" onSelect={onMenuSelect}>
-            {i18n("cmenu_copyAnsi")}
+            {_("cmenu_copyAnsi")}
           </MenuItem>
         </React.Fragment>
       )}
       {normalEnabled && (
         <MenuItem eventKey="paste" onSelect={onMenuSelect}>
-          {i18n("cmenu_paste")}
+          {_("cmenu_paste")}
           <span className="DropdownMenu__Item__HotKey">
             {isMac ? "⌘V" : "Shift+Insert"}
           </span>
@@ -179,17 +179,17 @@ export const DropdownMenu = ({
       )}
       {selEnabled && (
         <MenuItem eventKey="searchGoogle" onSelect={onMenuSelect}>
-          {i18n("cmenu_searchGoogle")}{" "}
+          {_("cmenu_searchGoogle")}{" "}
           <span>'{normalizeSelectedText(selectedText)}'</span>
         </MenuItem>
       )}
       {urlEnabled && (
         <React.Fragment>
           <MenuItem eventKey="openUrlNewTab" onSelect={onMenuSelect}>
-            {i18n("cmenu_openUrlNewTab")}
+            {_("cmenu_openUrlNewTab")}
           </MenuItem>
           <MenuItem eventKey="copyLinkUrl" onSelect={onMenuSelect}>
-            {i18n("cmenu_copyLinkUrl")}
+            {_("cmenu_copyLinkUrl")}
           </MenuItem>
         </React.Fragment>
       )}
@@ -197,7 +197,7 @@ export const DropdownMenu = ({
       {normalEnabled && (
         <React.Fragment>
           <MenuItem eventKey="selectAll" onSelect={onMenuSelect}>
-            {i18n("cmenu_selectAll")}
+            {_("cmenu_selectAll")}
             <span className="DropdownMenu__Item__HotKey">
               {isMac ? "⌘A" : "Ctrl+A"}
             </span>
@@ -223,16 +223,16 @@ export const DropdownMenu = ({
                   "DropdownMenu__Item--checked": mouseBrowsingEnabled,
                 })}
               >
-                {i18n("cmenu_mouseBrowsing")}
+                {_("cmenu_mouseBrowsing")}
               </MenuItem>
               {inputHelperEnabled && (
                 <MenuItem onClick={onInputHelperClick}>
-                  {i18n("cmenu_showInputHelper")}
+                  {_("cmenu_showInputHelper")}
                 </MenuItem>
               )}
               {liveHelperEnabled && (
                 <MenuItem onClick={handleLiveArticleClick}>
-                  {i18n("cmenu_showLiveArticleHelper")}
+                  {_("cmenu_showLiveArticleHelper")}
                 </MenuItem>
               )}
             </React.Fragment>
@@ -240,7 +240,7 @@ export const DropdownMenu = ({
           <MenuItem divider />
         </React.Fragment>
       )}
-      <MenuItem onClick={onSettingsClick}>{i18n("cmenu_settings")}</MenuItem>
+      <MenuItem onClick={onSettingsClick}>{_("cmenu_settings")}</MenuItem>
     </ul>
   );
 };

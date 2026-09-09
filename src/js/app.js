@@ -9,7 +9,7 @@ import { Stream } from './stream';
 import { Websocket } from './websocket';
 import { BUILTIN_PLUGINS } from '../plugins/index.js';
 import { TouchController } from './touch_controller';
-import { i18n } from './i18n';
+import { _, setupI18n } from './i18n';
 import { unescapeStr } from './string_util';
 import { setTimer, parseConnectUrl } from './util';
 import { setTerminalBellEnabled, setWindowFocused } from './bell.js';
@@ -1057,6 +1057,11 @@ export class App extends Event {
     this.dispatchEvent(new CustomEvent('term:pref-change', { detail: { key: name, value } }));
     this.dispatchEvent(new CustomEvent('prefChange', { detail: { name, value } }));
     switch (name) {
+    case 'uiLocale':
+      setupI18n(value);
+      this.dispatchEvent(new CustomEvent('term:i18n:change', { detail: { lang: value } }));
+      this.dispatchEvent(new CustomEvent('term:overlay:update'));
+      break;
     case 'useMouseBrowsing': {
       const useMouseBrowsing = !!value;
       this.useMouseBrowsing = useMouseBrowsing;

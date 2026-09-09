@@ -2,7 +2,7 @@ import cx from "classnames";
 import React from "react";
 import NativeDialog from "../../components/NativeDialog";
 import ColorSpan from "../../components/Row/WordSegmentBuilder/ColorSpan";
-import { i18n } from "../../js/i18n";
+import { _ } from "../../js/i18n";
 import "./InputHelperModal.css";
 
 const SYMBOLS = {
@@ -744,7 +744,7 @@ export class InputHelperModal extends React.Component {
         }}
       >
         <div className="modal-header" onMouseDown={this.handleMouseDown} style={{ cursor: "move" }}>
-          <h4 className="modal-title">{i18n("inputHelperTitle")}</h4>
+          <h4 className="modal-title">{_("inputHelperTitle")}</h4>
           <button type="button" className="close" onClick={onHide} aria-label="Close">
             &times;
           </button>
@@ -753,19 +753,19 @@ export class InputHelperModal extends React.Component {
           <ul className="nav nav-tabs">
             <li className={activeTab === "colors" ? "active" : ""}>
               <a href="#" onClick={this.selectTab("colors")}>
-                {i18n("colorTitle")}
+                {_("colorTitle")}
               </a>
             </li>
             <li className={cx("dropdown", { active: activeTab.startsWith("symbols.") })}>
               <a href="#" className="dropdown-toggle" onClick={this.toggleSymbolDropdown}>
-                {i18n("symTitle")} <span className="caret" />
+                {_("symTitle")} <span className="caret" />
               </a>
               {symbolDropdownOpen && (
                 <ul className="dropdown-menu" style={{ display: "block" }}>
                   {Object.keys(SYMBOLS).map((group) => (
                     <li key={group} className={activeTab === `symbols.${group}` ? "active" : ""}>
                       <a href="#" onClick={this.selectTab(`symbols.${group}`)}>
-                        {i18n(`symTitle_${group}`)}
+                        {_(`symTitle_${group}`)}
                       </a>
                     </li>
                   ))}
@@ -774,14 +774,14 @@ export class InputHelperModal extends React.Component {
             </li>
             <li className={cx("dropdown", { active: activeTab.startsWith("emoticons.") })}>
               <a href="#" className="dropdown-toggle" onClick={this.toggleEmoDropdown}>
-                {i18n("emoTitle")} <span className="caret" />
+                {_("emoTitle")} <span className="caret" />
               </a>
               {emoDropdownOpen && (
                 <ul className="dropdown-menu" style={{ display: "block" }}>
                   {Object.keys(EMOTICONS).map((group) => (
                     <li key={group} className={activeTab === `emoticons.${group}` ? "active" : ""}>
                       <a href="#" onClick={this.selectTab(`emoticons.${group}`)}>
-                        {i18n(`emoTitle_${group}`)}
+                        {_(`emoTitle_${group}`)}
                       </a>
                     </li>
                   ))}
@@ -811,9 +811,9 @@ export class InputHelperModal extends React.Component {
                     </ul>
                   </div>
                   <div className="col-xs-12 col-sm-5">
-                    {i18n("colorHelperTooltip1")}
+                    {_("colorHelperTooltip1")}
                     <br />
-                    {i18n("colorHelperTooltip2")}
+                    {_("colorHelperTooltip2")}
                   </div>
                 </div>
                 <div className="InputHelperModal__Preview">
@@ -824,7 +824,7 @@ export class InputHelperModal extends React.Component {
                       bg,
                       blink: isBlink,
                     }}
-                    inner={i18n("colorHelperPreview")}
+                    inner={_("colorHelperPreview")}
                   />
                 </div>
                 <div className="row InputHelperModal__ColorActionRow">
@@ -837,7 +837,7 @@ export class InputHelperModal extends React.Component {
                           checked={isBlink}
                           onChange={this.handleBlinkChange}
                         />
-                        {i18n("colorHelperBlink")}
+                        {_("colorHelperBlink")}
                       </label>
                     </div>
                   </div>
@@ -848,7 +848,7 @@ export class InputHelperModal extends React.Component {
                         className="btn btn-default"
                         onClick={this.handleSendClick}
                       >
-                        {i18n("colorHelperSend")}
+                        {_("colorHelperSend")}
                       </button>
                       <button
                         type="button"
@@ -861,18 +861,18 @@ export class InputHelperModal extends React.Component {
                         <ul className="dropdown-menu dropdown-menu-right" style={{ display: "block" }}>
                           <li>
                             <a href="#" onClick={this.handleSendSelect("foreground")}>
-                              {i18n("colorHelperSendMenuFore")}
+                              {_("colorHelperSendMenuFore")}
                             </a>
                           </li>
                           <li>
                             <a href="#" onClick={this.handleSendSelect("background")}>
-                              {i18n("colorHelperSendMenuBack")}
+                              {_("colorHelperSendMenuBack")}
                             </a>
                           </li>
                           <li className="divider" />
                           <li>
                             <a href="#" onClick={this.handleSendReset}>
-                              {i18n("colorHelperSendMenuReset")}
+                              {_("colorHelperSendMenuReset")}
                             </a>
                           </li>
                         </ul>

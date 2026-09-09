@@ -1,7 +1,7 @@
 import cx from "classnames";
 import React from "react";
 import NativeDialog from "../NativeDialog";
-import { i18n } from "../../js/i18n";
+import { _, setLocale } from "../../js/i18n";
 import { FontManager } from "./FontManager";
 import "./PrefModal.css";
 import {
@@ -290,7 +290,7 @@ const replaceMsg = (msg, replacements) => {
 };
 
 const replaceI18n = (id, replacements) => {
-  const msg = i18n(id);
+  const msg = _(id);
   if (Array.isArray(msg)) {
     return msg.map((it) => replaceMsg(it, replacements));
   }
@@ -378,7 +378,7 @@ const SelectOptionGroup = ({
   onChange,
 }) => {
   const currentKey = options[value];
-  const currentText = currentKey ? i18n(currentKey) : "";
+  const currentText = currentKey ? _(currentKey) : "";
   return (
     <div className="form-group" id={controlId}>
       <label className="control-label">{label}</label>
@@ -390,7 +390,7 @@ const SelectOptionGroup = ({
       >
         {options.map((key, index) => (
           <option key={key} value={index}>
-            {parseOptionText(i18n(key)).label}
+            {parseOptionText(_(key)).label}
           </option>
         ))}
       </select>
@@ -432,6 +432,17 @@ export class PrefModal extends React.Component {
     ),
   };
 
+  componentDidMount() {
+    this._onI18nChange = () => this.forceUpdate();
+    this.props.app?.addEventListener?.("term:i18n:change", this._onI18nChange);
+  }
+
+  componentWillUnmount() {
+    if (this._onI18nChange) {
+      this.props.app?.removeEventListener?.("term:i18n:change", this._onI18nChange);
+    }
+  }
+
   componentDidUpdate(prevProps) {
     if (!prevProps.show && this.props.show) {
       this.setState({
@@ -447,6 +458,7 @@ export class PrefModal extends React.Component {
 
   handleResetClick = () => {
     const defaultValues = getDefaultPrefs();
+    setLocale(defaultValues.uiLocale || "auto");
     writeValues(defaultValues);
     this.props.onReset(defaultValues);
     this.setState({ values: defaultValues });
@@ -533,6 +545,10 @@ export class PrefModal extends React.Component {
   };
 
   handleTextInputChange = ({ target: { name, value } }) => {
+    if (name === "uiLocale") {
+      setLocale(value);
+      this.props.app?.onPrefChange?.("uiLocale", value);
+    }
     this.setState((prevState) => ({
       values: changeNestedValue(prevState.values, name, value),
     }));
@@ -585,41 +601,41 @@ export class PrefModal extends React.Component {
       >
         <div className="PrefModal__Grid">
           <div className="PrefModal__Grid__Col--left">
-            <h3>{i18n("menu_settings")}</h3>
+            <h3>{_("menu_settings")}</h3>
             <ul className="nav nav-pills nav-stacked">
               <li className={navActiveKey === "general" ? "active" : ""}>
                 <a href="#" onClick={this.handleNavSelect("general")}>
-                  {i18n("options_general")}
+                  {_("options_general")}
                 </a>
               </li>
               <li className={navActiveKey === "appearance" ? "active" : ""}>
                 <a href="#" onClick={this.handleNavSelect("appearance")}>
-                  {i18n("options_appearance")}
+                  {_("options_appearance")}
                 </a>
               </li>
               <li className={navActiveKey === "font" ? "active" : ""}>
                 <a href="#" onClick={this.handleNavSelect("font")}>
-                  {i18n("options_fontFace")}
+                  {_("options_fontFace")}
                 </a>
               </li>
               <li className={navActiveKey === "mouse" ? "active" : ""}>
                 <a href="#" onClick={this.handleNavSelect("mouse")}>
-                  {i18n("options_mouse")}
+                  {_("options_mouse")}
                 </a>
               </li>
               <li className={navActiveKey === "plugins" ? "active" : ""}>
                 <a href="#" onClick={this.handleNavSelect("plugins")}>
-                  {i18n("options_plugins")}
+                  {_("options_plugins")}
                 </a>
               </li>
               <li className={navActiveKey === "advanced" ? "active" : ""}>
                 <a href="#" onClick={this.handleNavSelect("advanced")}>
-                  {i18n("options_advanced")}
+                  {_("options_advanced")}
                 </a>
               </li>
               <li className={navActiveKey === "about" ? "active" : ""}>
                 <a href="#" onClick={this.handleNavSelect("about")}>
-                  {i18n("options_about")}
+                  {_("options_about")}
                 </a>
               </li>
             </ul>
@@ -628,14 +644,14 @@ export class PrefModal extends React.Component {
               className="btn btn-default PrefModal__Grid__Col--left__Reset"
               onClick={this.handleResetClick}
             >
-              {i18n("options_reset")}
+              {_("options_reset")}
             </button>
           </div>
           <div className="PrefModal__Grid__Col--right">
             {navActiveKey === "general" && (
               <fieldset className="PrefModal__Grid__Col--right__Fieldset">
                 <TabLegend
-                  title={i18n("options_general")}
+                  title={_("options_general")}
                   onCloseClick={this.handleCloseClick}
                 />
                 <div className="PrefModal__TabBody">
@@ -647,13 +663,13 @@ export class PrefModal extends React.Component {
                         checked={values.warnBeforeClose ?? true}
                         onChange={this.handleCheckboxChange}
                       />
-                      {i18n("options_warnBeforeClose")}
+                      {_("options_warnBeforeClose")}
                     </label>
                   </div>
 
                   <div className="form-group" id="enableBell">
                     <label className="control-label">
-                      {i18n("options_enableBell")}
+                      {_("options_enableBell")}
                     </label>
                     <select
                       className="form-control"
@@ -668,20 +684,20 @@ export class PrefModal extends React.Component {
                       onChange={this.handleTextInputChange}
                     >
                       <option key="options_bellAlways" value="always">
-                        {parseOptionText(i18n("options_bellAlways")).label}
+                        {parseOptionText(_("options_bellAlways")).label}
                       </option>
                       <option key="options_bellBackground" value="background">
-                        {parseOptionText(i18n("options_bellBackground")).label}
+                        {parseOptionText(_("options_bellBackground")).label}
                       </option>
                       <option key="options_bellOff" value="off">
-                        {parseOptionText(i18n("options_bellOff")).label}
+                        {parseOptionText(_("options_bellOff")).label}
                       </option>
                     </select>
                     {renderOptionDesc(
                       {
-                        always: i18n("options_bellAlways"),
-                        background: i18n("options_bellBackground"),
-                        off: i18n("options_bellOff"),
+                        always: _("options_bellAlways"),
+                        background: _("options_bellBackground"),
+                        off: _("options_bellOff"),
                       }[
                         values.enableBell === false || values.enableBell === "off"
                           ? "off"
@@ -699,12 +715,12 @@ export class PrefModal extends React.Component {
                         checked={values.enableVisualBell}
                         onChange={this.handleCheckboxChange}
                       />
-                      {i18n("options_enableVisualBell")}
+                      {_("options_enableVisualBell")}
                     </label>
                   </div>
                   <div className="form-group" id="lineWrap">
                     <label className="control-label">
-                      {i18n("options_lineWrap")}
+                      {_("options_lineWrap")}
                     </label>
                     <input
                       className="form-control"
@@ -720,13 +736,13 @@ export class PrefModal extends React.Component {
             {navActiveKey === "appearance" && (
               <fieldset className="PrefModal__Grid__Col--right__Fieldset">
                 <TabLegend
-                  title={i18n("options_appearance")}
+                  title={_("options_appearance")}
                   onCloseClick={this.handleCloseClick}
                 />
                 <div className="PrefModal__TabBody">
                   <div className="form-group" id="colorScheme">
                   <label className="control-label">
-                    {i18n("options_colorScheme")}
+                    {_("options_colorScheme")}
                   </label>
                   <select
                     className="form-control"
@@ -736,13 +752,13 @@ export class PrefModal extends React.Component {
                   >
                     {Object.keys(COLOR_SCHEMES).map((key) => (
                       <option key={key} value={key}>
-                        {parseOptionText(i18n(COLOR_SCHEMES[key].titleI18n)).label}
+                        {parseOptionText(_(COLOR_SCHEMES[key].titleI18n)).label}
                       </option>
                     ))}
                   </select>
                   {renderOptionDesc(
                     COLOR_SCHEMES[values.colorScheme || "default"]
-                      ? i18n(COLOR_SCHEMES[values.colorScheme || "default"].titleI18n)
+                      ? _(COLOR_SCHEMES[values.colorScheme || "default"].titleI18n)
                       : ""
                   )}
                   <div className="PrefModal__ColorSchemePreview">
@@ -753,7 +769,7 @@ export class PrefModal extends React.Component {
                 </div>
                 <div className="form-group" id="lineHeight">
                   <label className="control-label">
-                    {i18n("options_lineHeight")}
+                    {_("options_lineHeight")}
                   </label>
                   <select
                     className="form-control"
@@ -771,7 +787,7 @@ export class PrefModal extends React.Component {
                 </div>
                 <div className="form-group" id="cursorStyle">
                   <label className="control-label">
-                    {i18n("options_cursorStyle")}
+                    {_("options_cursorStyle")}
                   </label>
                   <select
                     className="form-control"
@@ -780,24 +796,24 @@ export class PrefModal extends React.Component {
                     onChange={this.handleCaretShapeChange}
                   >
                     <option key="options_caretIbeam" value="ibeam">
-                      {parseOptionText(i18n("options_caretIbeam")).label}
+                      {parseOptionText(_("options_caretIbeam")).label}
                     </option>
                     <option key="options_caretBlock" value="block">
-                      {parseOptionText(i18n("options_caretBlock")).label}
+                      {parseOptionText(_("options_caretBlock")).label}
                     </option>
                     <option key="options_caretHalfBlock" value="half-block">
-                      {parseOptionText(i18n("options_caretHalfBlock")).label}
+                      {parseOptionText(_("options_caretHalfBlock")).label}
                     </option>
                     <option key="options_caretUnderline" value="underline">
-                      {parseOptionText(i18n("options_caretUnderline")).label}
+                      {parseOptionText(_("options_caretUnderline")).label}
                     </option>
                   </select>
                   {renderOptionDesc(
                     {
-                      ibeam: i18n("options_caretIbeam"),
-                      block: i18n("options_caretBlock"),
-                      "half-block": i18n("options_caretHalfBlock"),
-                      underline: i18n("options_caretUnderline"),
+                      ibeam: _("options_caretIbeam"),
+                      block: _("options_caretBlock"),
+                      "half-block": _("options_caretHalfBlock"),
+                      underline: _("options_caretUnderline"),
                     }[caretShape]
                   )}
                 </div>
@@ -809,12 +825,12 @@ export class PrefModal extends React.Component {
                       checked={caretBlink}
                       onChange={this.handleCaretBlinkChange}
                     />
-                    {i18n("options_caretBlink")}
+                    {_("options_caretBlink")}
                   </label>
                 </div>
                 <div className="form-group" id="termMargin">
                   <label className="control-label">
-                    {i18n("options_termMargin")}
+                    {_("options_termMargin")}
                   </label>
                   <input
                     className="form-control"
@@ -826,7 +842,7 @@ export class PrefModal extends React.Component {
                 </div>
                 <div className="form-group" id="termSizeMode">
                   <label className="control-label">
-                    {i18n("options_termSize")}
+                    {_("options_termSize")}
                   </label>
                   <select
                     className="form-control"
@@ -836,21 +852,21 @@ export class PrefModal extends React.Component {
                     onChange={this.handleTextInputChange}
                   >
                     <option key="options_fixedTermSize" value="fixed-term-size">
-                      {parseOptionText(i18n("options_fixedTermSize")).label}
+                      {parseOptionText(_("options_fixedTermSize")).label}
                     </option>
                     <option key="options_fixedFontSize" value="fixed-font-size">
-                      {parseOptionText(i18n("options_fixedFontSize")).label}
+                      {parseOptionText(_("options_fixedFontSize")).label}
                     </option>
                     <option key="options_maxFontSize" value="max-font-size">
-                      {parseOptionText(i18n("options_maxFontSize")).label}
+                      {parseOptionText(_("options_maxFontSize")).label}
                     </option>
                   </select>
                   {!isTouch &&
                     renderOptionDesc(
                       {
-                        "fixed-term-size": i18n("options_fixedTermSize"),
-                        "fixed-font-size": i18n("options_fixedFontSize"),
-                        "max-font-size": i18n("options_maxFontSize"),
+                        "fixed-term-size": _("options_fixedTermSize"),
+                        "fixed-font-size": _("options_fixedFontSize"),
+                        "max-font-size": _("options_maxFontSize"),
                       }[values.termSizeMode]
                     )}
                   {isTouch && (
@@ -863,7 +879,7 @@ export class PrefModal extends React.Component {
                         display: 'block'
                       }}
                     >
-                      {i18n("options_touchFixedFontNote")}
+                      {_("options_touchFixedFontNote")}
                     </span>
                   )}
                 </div>
@@ -871,7 +887,7 @@ export class PrefModal extends React.Component {
                   <div>
                     <div className="form-group" id="termSize_cols">
                       <label className="control-label">
-                        {i18n("options_cols")}
+                        {_("options_cols")}
                       </label>
                       <input
                         className="form-control"
@@ -883,7 +899,7 @@ export class PrefModal extends React.Component {
                     </div>
                     <div className="form-group" id="termSize_rows">
                       <label className="control-label">
-                        {i18n("options_rows")}
+                        {_("options_rows")}
                       </label>
                       <input
                         className="form-control"
@@ -901,7 +917,7 @@ export class PrefModal extends React.Component {
                           checked={values.fontFitWindowWidth}
                           onChange={this.handleCheckboxChange}
                         />
-                        {i18n("options_fontFitWindowWidth")}
+                        {_("options_fontFitWindowWidth")}
                       </label>
                     </div>
                   </div>
@@ -909,7 +925,7 @@ export class PrefModal extends React.Component {
                 {(isTouch || values.termSizeMode === "fixed-font-size") && (
                   <div className="form-group" id="fontSize">
                     <label className="control-label">
-                      {i18n("options_fontSize")}
+                      {_("options_fontSize")}
                     </label>
                     <input
                       className="form-control"
@@ -923,7 +939,7 @@ export class PrefModal extends React.Component {
                 {!isTouch && values.termSizeMode === "max-font-size" && (
                   <div className="form-group" id="maxFontSize">
                     <label className="control-label">
-                      {i18n("options_fontSizeMax")}
+                      {_("options_fontSizeMax")}
                     </label>
                     <input
                       className="form-control"
@@ -940,13 +956,13 @@ export class PrefModal extends React.Component {
             {navActiveKey === "font" && (
               <fieldset className="PrefModal__Grid__Col--right__Fieldset">
                 <TabLegend
-                  title={i18n("options_fontFace")}
+                  title={_("options_fontFace")}
                   onCloseClick={this.handleCloseClick}
                 />
                 <div className="PrefModal__TabBody">
                   <div className="form-group" id="fontFace">
                     <label className="control-label">
-                      {i18n("options_fontFaceAndPriority")}
+                      {_("options_fontFaceAndPriority")}
                     </label>
                     <FontManager
                       value={values.fontFace}
@@ -963,13 +979,13 @@ export class PrefModal extends React.Component {
             {navActiveKey === "mouse" && (
               <fieldset className="PrefModal__Grid__Col--right__Fieldset">
                 <TabLegend
-                  title={i18n("options_mouse")}
+                  title={_("options_mouse")}
                   onCloseClick={this.handleCloseClick}
                 />
                 <div className="PrefModal__TabBody">
                   <div className="form-group" id="rightClickAction">
                   <label className="control-label">
-                    {i18n("options_rightClickAction")}
+                    {_("options_rightClickAction")}
                   </label>
                   <select
                     className="form-control"
@@ -978,16 +994,16 @@ export class PrefModal extends React.Component {
                     onChange={this.handleTextInputChange}
                   >
                     <option value="menu">
-                      {parseOptionText(i18n("options_rightClickAction_menu")).label}
+                      {parseOptionText(_("options_rightClickAction_menu")).label}
                     </option>
                     <option value="paste">
-                      {parseOptionText(i18n("options_rightClickAction_paste")).label}
+                      {parseOptionText(_("options_rightClickAction_paste")).label}
                     </option>
                   </select>
                   {renderOptionDesc(
                     (values.rightClickAction || "menu") === "paste"
-                      ? i18n("options_rightClickAction_paste")
-                      : i18n("options_rightClickAction_menu")
+                      ? _("options_rightClickAction_paste")
+                      : _("options_rightClickAction_menu")
                   )}
                 </div>
                 <div className="checkbox">
@@ -998,7 +1014,7 @@ export class PrefModal extends React.Component {
                       checked={values.copyOnSelect}
                       onChange={this.handleCheckboxChange}
                     />
-                    {i18n("options_copyOnSelect")}
+                    {_("options_copyOnSelect")}
                   </label>
                 </div>
                 <div className="checkbox">
@@ -1009,7 +1025,7 @@ export class PrefModal extends React.Component {
                       checked={values.trimTrailingSpaces ?? true}
                       onChange={this.handleCheckboxChange}
                     />
-                    {i18n("options_trimTrailingSpaces")}
+                    {_("options_trimTrailingSpaces")}
                   </label>
                 </div>
                 <div className="checkbox">
@@ -1020,7 +1036,7 @@ export class PrefModal extends React.Component {
                       checked={values.supportMouseReporting ?? true}
                       onChange={this.handleCheckboxChange}
                     />
-                    {i18n("options_supportMouseReporting")}
+                    {_("options_supportMouseReporting")}
                   </label>
                 </div>
                 <span
@@ -1034,7 +1050,7 @@ export class PrefModal extends React.Component {
                     display: "block",
                   }}
                 >
-                  {i18n("options_supportMouseReporting_desc")}
+                  {_("options_supportMouseReporting_desc")}
                 </span>
                 </div>
               </fieldset>
@@ -1042,16 +1058,16 @@ export class PrefModal extends React.Component {
             {navActiveKey === "plugins" && (
               <fieldset className="PrefModal__Grid__Col--right__Fieldset">
                 <TabLegend
-                  title={i18n("options_plugins")}
+                  title={_("options_plugins")}
                   onCloseClick={this.handleCloseClick}
                 />
                 <div className="PrefModal__TabBody">
                   <p className="PrefModal__TabSubtitle">
-                  {i18n("options_plugins_desc")}
+                  {_("options_plugins_desc")}
                 </p>
                 <div className="PrefModal__MacList">
                   {groupPlugins(plugins).map((group) => {
-                    const groupTitle = i18n(group.titleKey) || group.title;
+                    const groupTitle = _(group.titleKey) || group.title;
                     const isGroupCollapsed = Boolean(
                       this.state.collapsedGroupIds?.[group.id]
                     );
@@ -1185,8 +1201,8 @@ export class PrefModal extends React.Component {
                                 aria-expanded={isExpanded}
                                 title={
                                   isExpanded
-                                    ? i18n("options_collapse") || "收起選項"
-                                    : i18n("options_expand") || "展開選項"
+                                    ? _("options_collapse") || "收起選項"
+                                    : _("options_expand") || "展開選項"
                                 }
                               >
                                 Options...
@@ -1216,7 +1232,7 @@ export class PrefModal extends React.Component {
                                       )}
                                       onChange={this.handleCheckboxChange}
                                     />
-                                    <span>{i18n("options_endTurnsOnLiveUpdate")}</span>
+                                    <span>{_("options_endTurnsOnLiveUpdate")}</span>
                                   </label>
                                 </div>
                                 <div className="checkbox PrefModal__MacSubCheckbox">
@@ -1229,12 +1245,12 @@ export class PrefModal extends React.Component {
                                       )}
                                       onChange={this.handleCheckboxChange}
                                     />
-                                    <span>{i18n("options_showLiveUpdateToolbar")}</span>
+                                    <span>{_("options_showLiveUpdateToolbar")}</span>
                                   </label>
                                 </div>
                                 <div className="PrefModal__MacSubOptionRow">
                                   <span className="PrefModal__MacSubLabel">
-                                    {i18n("options_liveUpdateInterval")}
+                                    {_("options_liveUpdateInterval")}
                                   </span>
                                   <div className="PrefModal__MacSubInlineInput">
                                     <input
@@ -1246,7 +1262,7 @@ export class PrefModal extends React.Component {
                                       onChange={this.handleNumberInputChange}
                                     />
                                     <span className="PrefModal__MacSubUnit">
-                                      {i18n("options_liveUpdateIntervalSec")}
+                                      {_("options_liveUpdateIntervalSec")}
                                     </span>
                                   </div>
                                 </div>
@@ -1255,7 +1271,7 @@ export class PrefModal extends React.Component {
                             {!plugin.renderOptions && plugin.id === "anti_idle" && (
                               <div className="PrefModal__MacSubOptionRow">
                                 <span className="PrefModal__MacSubLabel">
-                                  {i18n("options_antiIdleTime")}
+                                  {_("options_antiIdleTime")}
                                 </span>
                                 <div className="PrefModal__MacSubInlineInput">
                                   <input
@@ -1267,7 +1283,7 @@ export class PrefModal extends React.Component {
                                     onChange={this.handleNumberInputChange}
                                   />
                                   <span className="PrefModal__MacSubUnit">
-                                    {i18n("options_liveUpdateIntervalSec")}
+                                    {_("options_liveUpdateIntervalSec")}
                                   </span>
                                 </div>
                               </div>
@@ -1283,7 +1299,7 @@ export class PrefModal extends React.Component {
                                     )}
                                     onChange={this.handleCheckboxChange}
                                   />
-                                  <span>{i18n("options_picPreviewWhitelistOnly")}</span>
+                                  <span>{_("options_picPreviewWhitelistOnly")}</span>
                                 </label>
                               </div>
                             )}
@@ -1297,12 +1313,12 @@ export class PrefModal extends React.Component {
                                       checked={values.mouseBrowsingHighlight}
                                       onChange={this.handleCheckboxChange}
                                     />
-                                    <span>{i18n("options_mouseBrowsingHighlight")}</span>
+                                    <span>{_("options_mouseBrowsingHighlight")}</span>
                                   </label>
                                 </div>
 
                                 <div className="PrefModal__Grid__Col--right__MouseBrowsingHighlightColor">
-                                  {i18n("options_highlightColor")}
+                                  {_("options_highlightColor")}
                                   <select
                                     className={cx(
                                       "form-control",
@@ -1321,7 +1337,7 @@ export class PrefModal extends React.Component {
                                 </div>
                                 <SelectOptionGroup
                                   controlId="mouseLeftFunction"
-                                  label={i18n("options_mouseLeftFunction")}
+                                  label={_("options_mouseLeftFunction")}
                                   name="mouseLeftFunction"
                                   value={values.mouseLeftFunction}
                                   options={MOUSE_LEFT_OPTIONS}
@@ -1329,7 +1345,7 @@ export class PrefModal extends React.Component {
                                 />
                                 <SelectOptionGroup
                                   controlId="mouseMiddleFunction"
-                                  label={i18n("options_mouseMiddleFunction")}
+                                  label={_("options_mouseMiddleFunction")}
                                   name="mouseMiddleFunction"
                                   value={values.mouseMiddleFunction}
                                   options={MOUSE_MIDDLE_OPTIONS}
@@ -1337,7 +1353,7 @@ export class PrefModal extends React.Component {
                                 />
                                 <SelectOptionGroup
                                   controlId="mouseWheelFunction1"
-                                  label={i18n("options_mouseWheelFunction1")}
+                                  label={_("options_mouseWheelFunction1")}
                                   name="mouseWheelFunction1"
                                   value={values.mouseWheelFunction1}
                                   options={MOUSE_WHEEL_OPTIONS}
@@ -1345,7 +1361,7 @@ export class PrefModal extends React.Component {
                                 />
                                 <SelectOptionGroup
                                   controlId="mouseWheelFunction2"
-                                  label={i18n("options_mouseWheelFunction2")}
+                                  label={_("options_mouseWheelFunction2")}
                                   name="mouseWheelFunction2"
                                   value={values.mouseWheelFunction2}
                                   options={MOUSE_WHEEL_OPTIONS}
@@ -1353,7 +1369,7 @@ export class PrefModal extends React.Component {
                                 />
                                 <SelectOptionGroup
                                   controlId="mouseWheelFunction3"
-                                  label={i18n("options_mouseWheelFunction3")}
+                                  label={_("options_mouseWheelFunction3")}
                                   name="mouseWheelFunction3"
                                   value={values.mouseWheelFunction3}
                                   options={MOUSE_WHEEL_OPTIONS}
@@ -1377,13 +1393,41 @@ export class PrefModal extends React.Component {
             {navActiveKey === "advanced" && (
               <fieldset className="PrefModal__Grid__Col--right__Fieldset">
                 <TabLegend
-                  title={i18n("options_advanced")}
+                  title={_("options_advanced")}
                   onCloseClick={this.handleCloseClick}
                 />
                 <div className="PrefModal__TabBody">
+                  <div className="form-group" id="uiLocale">
+                    <label className="control-label">
+                      {_("options_uiLocale")}
+                    </label>
+                    <select
+                      className="form-control"
+                      name="uiLocale"
+                      value={values.uiLocale || "auto"}
+                      onChange={this.handleTextInputChange}
+                    >
+                      <option value="auto">
+                        {parseOptionText(_("options_locale_auto")).label}
+                      </option>
+                      <option value="zh_tw">
+                        {parseOptionText(_("options_locale_zhTW")).label}
+                      </option>
+                      <option value="en_us">
+                        {parseOptionText(_("options_locale_enUS")).label}
+                      </option>
+                    </select>
+                    {renderOptionDesc(
+                      {
+                        auto: _("options_locale_auto"),
+                        zh_tw: _("options_locale_zhTW"),
+                        en_us: _("options_locale_enUS"),
+                      }[values.uiLocale || "auto"]
+                    )}
+                  </div>
                   <div className="form-group" id="backspaceKey">
                   <label className="control-label">
-                    {i18n("options_backspaceKey")}
+                    {_("options_backspaceKey")}
                   </label>
                   <select
                     className="form-control"
@@ -1392,21 +1436,21 @@ export class PrefModal extends React.Component {
                     onChange={this.handleTextInputChange}
                   >
                     <option value="control-h">
-                      {parseOptionText(i18n("options_keyControlH")).label}
+                      {parseOptionText(_("options_keyControlH")).label}
                     </option>
                     <option value="control-?">
-                      {parseOptionText(i18n("options_keyControlQuestion")).label}
+                      {parseOptionText(_("options_keyControlQuestion")).label}
                     </option>
                   </select>
                   {renderOptionDesc(
                     (values.backspaceKey || "control-h") === "control-?"
-                      ? i18n("options_keyControlQuestion")
-                      : i18n("options_keyControlH")
+                      ? _("options_keyControlQuestion")
+                      : _("options_keyControlH")
                   )}
                 </div>
                 <div className="form-group" id="deleteKey">
                   <label className="control-label">
-                    {i18n("options_deleteKey")}
+                    {_("options_deleteKey")}
                   </label>
                   <select
                     className="form-control"
@@ -1415,20 +1459,20 @@ export class PrefModal extends React.Component {
                     onChange={this.handleTextInputChange}
                   >
                     <option value="escape-sequence">
-                      {parseOptionText(i18n("options_keyEscapeSequence")).label}
+                      {parseOptionText(_("options_keyEscapeSequence")).label}
                     </option>
                     <option value="control-?">
-                      {parseOptionText(i18n("options_keyControlQuestion")).label}
+                      {parseOptionText(_("options_keyControlQuestion")).label}
                     </option>
                     <option value="control-h">
-                      {parseOptionText(i18n("options_keyControlH")).label}
+                      {parseOptionText(_("options_keyControlH")).label}
                     </option>
                   </select>
                   {renderOptionDesc(
                     {
-                      "escape-sequence": i18n("options_keyEscapeSequence"),
-                      "control-?": i18n("options_keyControlQuestion"),
-                      "control-h": i18n("options_keyControlH"),
+                      "escape-sequence": _("options_keyEscapeSequence"),
+                      "control-?": _("options_keyControlQuestion"),
+                      "control-h": _("options_keyControlH"),
                     }[values.deleteKey || "escape-sequence"]
                   )}
                 </div>
@@ -1440,7 +1484,7 @@ export class PrefModal extends React.Component {
                       checked={values.useCanvasEngine}
                       onChange={this.handleCheckboxChange}
                     />
-                    {i18n("options_useCanvasEngine")}
+                    {_("options_useCanvasEngine")}
                   </label>
                 </div>
                 <div className="checkbox PrefModal__Grid__Col--right__SubCheckbox">
@@ -1452,7 +1496,7 @@ export class PrefModal extends React.Component {
                       disabled={!values.useCanvasEngine}
                       onChange={this.handleCheckboxChange}
                     />
-                    {i18n("options_smoothAnsiArt")}
+                    {_("options_smoothAnsiArt")}
                   </label>
                 </div>
                 </div>
@@ -1461,8 +1505,8 @@ export class PrefModal extends React.Component {
             {navActiveKey === "about" && (
               <div className="PrefModal__About">
                 <TabLegend
-                  title={i18n("appName")}
-                  subtitle={i18n("about_appName_subtitle")}
+                  title={_("appName")}
+                  subtitle={_("about_appName_subtitle")}
                   onCloseClick={this.handleCloseClick}
                 />
                 <div className="PrefModal__TabBody">
@@ -1471,10 +1515,10 @@ export class PrefModal extends React.Component {
                   </div>
                   <div>
                     <legend>
-                      {i18n("about_version_title")} - {APP.NAME} v
+                      {_("about_version_title")} - {APP.NAME} v
                       {APP.VERSION}
                       {process.env.DEVELOPER_MODE
-                        ? ` (${i18n("alert_developerModeHeader")})`
+                        ? ` (${_("alert_developerModeHeader")})`
                         : ""}
                     </legend>
                     <ul>
@@ -1487,9 +1531,9 @@ export class PrefModal extends React.Component {
                     </ul>
                   </div>
                   <div>
-                    <legend>{i18n("about_new_title")}</legend>
+                    <legend>{_("about_new_title")}</legend>
                     <ul>
-                      {i18n("about_new_content").map((text, index) => (
+                      {_("about_new_content").map((text, index) => (
                         <li key={index}>{text}</li>
                       ))}
                     </ul>

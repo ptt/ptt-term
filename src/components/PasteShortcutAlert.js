@@ -1,5 +1,5 @@
 import React from "react";
-import { i18n } from "../js/i18n";
+import { _ } from "../js/i18n";
 import "./PageTopAlert.css";
 
 export const PasteShortcutAlert = ({ onDismiss }) => (
@@ -16,11 +16,11 @@ export const PasteShortcutAlert = ({ onDismiss }) => (
     >
       <span aria-hidden="true">&times;</span>
     </button>
-    <h4>{i18n("alert_pasteShortcutHeader")}</h4>
-    <p>{i18n("alert_pasteShortcutText")}</p>
+    <h4>{_("alert_pasteShortcutHeader")}</h4>
+    <p>{_("alert_pasteShortcutText")}</p>
     <p>
       <button type="button" className="btn btn-primary" onClick={onDismiss}>
-        {i18n("alert_pasteShortcutClose")}
+        {_("alert_pasteShortcutClose")}
       </button>
     </p>
   </div>

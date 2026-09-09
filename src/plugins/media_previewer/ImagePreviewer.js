@@ -14,7 +14,7 @@ import {
   registerImageIntersection,
   resetSharedImageObserverForTest,
 } from "./image_preview_util.js";
-import { i18n } from "../../js/i18n.js";
+import { _ } from "../../js/i18n.js";
 
 export {
   TRUSTED_IMAGE_DOMAINS,
@@ -217,7 +217,7 @@ ImagePreviewer.OnHover = ({ left, top, value, error, href }) => {
         }}
       >
         <span style={{ fontSize: "14px" }}>⚠️</span>
-        <span>{i18n("imagePreview_failed") || "無法載入圖片預覽"}</span>
+        <span>{_("imagePreview_failed") || "無法載入圖片預覽"}</span>
         {hostname && (
           <span style={{ opacity: 0.6, fontSize: "11px" }}>({hostname})</span>
         )}
@@ -287,7 +287,7 @@ ImagePreviewer.OnHover = ({ left, top, value, error, href }) => {
         }}
       >
         <LoadingSpinner style={{ width: 14, height: 14, flexShrink: 0 }} />
-        <span>{i18n("imagePreview_loading") || "載入圖片中..."}</span>
+        <span>{_("imagePreview_loading") || "載入圖片中..."}</span>
         {hostname && (
           <span style={{ opacity: 0.6, fontSize: "11px" }}>({hostname})</span>
         )}

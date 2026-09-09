@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { i18n } from "../js/i18n";
+import { _ } from "../js/i18n";
 import "./PageTopAlert.css";
 
 export const ConnectionAlert = ({ onDismiss }) => {
@@ -47,11 +47,11 @@ export const ConnectionAlert = ({ onDismiss }) => {
       >
         <span aria-hidden="true">&times;</span>
       </button>
-      <h4>{i18n("alert_connectionHeader")}</h4>
-      <p>{i18n("alert_connectionText")}</p>
+      <h4>{_("alert_connectionHeader")}</h4>
+      <p>{_("alert_connectionText")}</p>
       <p>
         <button type="button" className="btn btn-danger" onClick={onDismiss}>
-          {i18n("alert_connectionReconnect")}
+          {_("alert_connectionReconnect")}
         </button>
       </p>
     </div>

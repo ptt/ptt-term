@@ -43,7 +43,7 @@ export class InputHelper {
     return {
       id: "input_helper",
       name: "input_helper",
-      title: _("cmenu_showInputHelper"),
+      title: _("plugin_input_helper_title") || _("cmenu_showInputHelper"),
       description: _("plugin_input_helper_desc"),
       prefKey: "enableInputHelper",
       icon: "palette",
@@ -76,7 +76,7 @@ export class InputHelper {
   }
 
   get title() {
-    return _("cmenu_showInputHelper");
+    return _("plugin_input_helper_title") || _("cmenu_showInputHelper");
   }
 
   get description() {

@@ -23,6 +23,9 @@ export const DEFAULT_PREFS = {
   enableInputHelper: true,
   enableTouchDebugHUD: false,
 
+  // locale
+  uiLocale: "auto",
+
   // keyboard
   backspaceKey: "control-h",
   deleteKey: "escape-sequence",
@@ -98,6 +101,9 @@ export const readValuesWithDefault = () => {
       if (saved.lineHeight !== undefined) {
         const parsedLineHeight = parseFloat(saved.lineHeight);
         prefs.lineHeight = !isNaN(parsedLineHeight) && parsedLineHeight > 0 ? parsedLineHeight : 1.0;
+      }
+      if (saved.uiLocale !== undefined) {
+        prefs.uiLocale = saved.uiLocale;
       }
     }
     return prefs;

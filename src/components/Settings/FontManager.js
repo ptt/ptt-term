@@ -1,6 +1,6 @@
 import React from "react";
 import cx from "classnames";
-import { i18n } from "../../js/i18n";
+import { _ } from "../../js/i18n";
 import { DEFAULT_PREFS } from "../../js/pref";
 import {
   parseFontList,
@@ -178,7 +178,7 @@ export class FontManager extends React.Component {
       <div className="FontManager">
         <div className="FontManager__Toolbar">
           <span className="FontManager__Toolbar__Title">
-            {i18n("options_fontList_title")}
+            {_("options_fontList_title")}
           </span>
           <div className="FontManager__Toolbar__Actions">
             {canQueryLocalFonts && (
@@ -189,24 +189,24 @@ export class FontManager extends React.Component {
                 disabled={isQuerying}
                 title={
                   hasQueried
-                    ? `${i18n("options_fontList_queried")} (${deviceFonts.length})`
-                    : i18n("options_fontList_queryDevice")
+                    ? `${_("options_fontList_queried")} (${deviceFonts.length})`
+                    : _("options_fontList_queryDevice")
                 }
               >
                 {isQuerying
-                  ? i18n("options_fontList_querying")
+                  ? _("options_fontList_querying")
                   : hasQueried
-                    ? `✓ ${i18n("options_fontList_queried")} (${deviceFonts.length})`
-                    : i18n("options_fontList_queryDevice")}
+                    ? `✓ ${_("options_fontList_queried")} (${deviceFonts.length})`
+                    : _("options_fontList_queryDevice")}
               </button>
             )}
             <button
               type="button"
               className="btn btn-default btn-xs"
               onClick={this.handleRestoreDefault}
-              title={i18n("options_fontList_restoreDefault")}
+              title={_("options_fontList_restoreDefault")}
             >
-              {i18n("options_fontList_restoreDefault")}
+              {_("options_fontList_restoreDefault")}
             </button>
           </div>
         </div>
@@ -220,7 +220,7 @@ export class FontManager extends React.Component {
         <div className="FontManager__List">
           {fontList.length === 0 ? (
             <div className="FontManager__Empty">
-              {i18n("options_fontList_empty")}
+              {_("options_fontList_empty")}
             </div>
           ) : (
             fontList.map((font, idx) => {
@@ -242,7 +242,7 @@ export class FontManager extends React.Component {
                 >
                   <span
                     className="FontManager__Item__Handle"
-                    title={i18n("options_fontList_title")}
+                    title={_("options_fontList_title")}
                   >
                     ⋮⋮
                   </span>
@@ -252,7 +252,7 @@ export class FontManager extends React.Component {
                       className="FontManager__Item__Preview"
                       style={{ fontFamily: `'${font}', monospace` }}
                     >
-                      {i18n("options_fontList_preview")} ({font})
+                      {_("options_fontList_preview")} ({font})
                     </span>
                   </div>
                   <div className="FontManager__Item__Controls">
@@ -261,7 +261,7 @@ export class FontManager extends React.Component {
                       className="btn btn-default btn-xs"
                       disabled={idx === 0}
                       onClick={() => this.handleMoveUp(idx)}
-                      title={i18n("options_fontList_moveUp")}
+                      title={_("options_fontList_moveUp")}
                     >
                       ▲
                     </button>
@@ -270,7 +270,7 @@ export class FontManager extends React.Component {
                       className="btn btn-default btn-xs"
                       disabled={idx === fontList.length - 1}
                       onClick={() => this.handleMoveDown(idx)}
-                      title={i18n("options_fontList_moveDown")}
+                      title={_("options_fontList_moveDown")}
                     >
                       ▼
                     </button>
@@ -278,7 +278,7 @@ export class FontManager extends React.Component {
                       type="button"
                       className="btn btn-danger btn-xs"
                       onClick={() => this.handleRemove(idx)}
-                      title={i18n("options_fontList_remove")}
+                      title={_("options_fontList_remove")}
                     >
                       <TrashIcon />
                     </button>
@@ -297,9 +297,9 @@ export class FontManager extends React.Component {
             onKeyDown={this.handleSelectKeyDown}
           >
             <option value="" disabled>
-              {i18n("options_fontList_selectThenAdd")}
+              {_("options_fontList_selectThenAdd")}
             </option>
-            <optgroup label={i18n("options_fontList_presetGroup")}>
+            <optgroup label={_("options_fontList_presetGroup")}>
               {PRESET_FONTS.map((f) => (
                 <option key={`preset-${f}`} value={f}>
                   {f}
@@ -308,7 +308,7 @@ export class FontManager extends React.Component {
             </optgroup>
             {deviceFonts.length > 0 && (
               <optgroup
-                label={`${i18n("options_fontList_deviceGroup")} (${deviceFonts.length})`}
+                label={`${_("options_fontList_deviceGroup")} (${deviceFonts.length})`}
               >
                 {deviceFonts.map((f) => (
                   <option key={`device-${f}`} value={f}>
@@ -325,7 +325,7 @@ export class FontManager extends React.Component {
             disabled={!selectedFont}
             onClick={() => this.handleAdd()}
           >
-            {i18n("options_fontList_add")}
+            {_("options_fontList_add")}
           </button>
         </div>
       </div>

@@ -111,6 +111,18 @@
   "plugin_touch_debug_hud_desc": {
     "message": "在螢幕上顯示行動裝置觸控、虛擬鍵盤、視區尺寸與事件即時診斷 HUD，並可一鍵複製診斷報告。"
   },
+  "plugin_mouse_browsing_title": {
+    "message": "滑鼠瀏覽"
+  },
+  "plugin_mouse_browsing_desc": {
+    "message": "使用滑鼠點擊與滾輪瀏覽 BBS，支援點擊進入看板與文章、選取文字與高亮效果。"
+  },
+  "plugin_input_helper_title": {
+    "message": "輸入小幫手"
+  },
+  "plugin_input_helper_desc": {
+    "message": "提供視覺化輸入小幫手面板，支援 ANSI 色彩代碼、特殊符號、常用標點與表情符號輸入。"
+  },
   "options_picPreviewWhitelistOnly": {
     "message": "僅預覽受信任圖床的圖片 (建議開啟，維護隱私與安全)"
   },
@@ -142,13 +154,13 @@
     "message": "Delete 鍵送出"
   },
   "options_keyControlH": {
-    "message": "Control-H (Will send out ^H (ASCII 8))"
+    "message": "Control-H (將送出 ^H (ASCII 8))"
   },
   "options_keyControlQuestion": {
-    "message": "Control-? (Will send out ^? (ASCII 127))"
+    "message": "Control-? (將送出 ^? (ASCII 127))"
   },
   "options_keyEscapeSequence": {
-    "message": "標準跳脫字元序列 (Will send out ^[[3~ (ESC [ 3 ~))"
+    "message": "標準跳脫字元序列 (將送出 ^[[3~ (ESC [ 3 ~))"
   },
   "options_bellAlways": {
     "message": "隨時播放提示音"
@@ -182,6 +194,18 @@
   },
   "options_advanced": {
     "message": "進階"
+  },
+  "options_uiLocale": {
+    "message": "介面語言"
+  },
+  "options_locale_auto": {
+    "message": "自動 (跟隨系統語言)"
+  },
+  "options_locale_zhTW": {
+    "message": "正體中文 (繁體中文)"
+  },
+  "options_locale_enUS": {
+    "message": "English (英文)"
   },
   "options_useCanvasEngine": {
     "message": "以 HTML5 Canvas 技術繪製畫面"

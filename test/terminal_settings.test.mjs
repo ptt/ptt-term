@@ -77,6 +77,7 @@ test('applyColorScheme updates termColors in-place and sets CSS variables', () =
 });
 
 test('DEFAULT_PREFS includes new terminal settings with sensible defaults', () => {
+  assert.equal(DEFAULT_PREFS.uiLocale, 'auto');
   assert.equal(DEFAULT_PREFS.warnBeforeClose, true);
   assert.equal(DEFAULT_PREFS.colorScheme, 'default');
   assert.equal(DEFAULT_PREFS.trimTrailingSpaces, true);
@@ -189,7 +190,11 @@ test('PrefModal source code includes Mouse tab, colorScheme, visualBell, lineHei
     'Appearance tab must contain lineHeight selector'
   );
 
-  // 5. Advanced tab contains backspaceKey and deleteKey selectors
+  // 5. Advanced tab contains uiLocale, backspaceKey and deleteKey selectors
+  assert.ok(
+    prefModalSrc.includes('name="uiLocale"'),
+    'Advanced tab must contain uiLocale selector'
+  );
   assert.ok(
     prefModalSrc.includes('name="backspaceKey"'),
     'Advanced tab must contain backspaceKey selector'
@@ -254,6 +259,10 @@ test('i18n files define all required translations for new settings', () => {
     'options_keyControlH',
     'options_keyControlQuestion',
     'options_keyEscapeSequence',
+    'options_uiLocale',
+    'options_locale_auto',
+    'options_locale_zhTW',
+    'options_locale_enUS',
     'plugin_group_ui',
     'plugin_group_bbs',
     'plugin_group_debug',
@@ -287,6 +296,18 @@ test('parseOptionText extracts option label and description from parentheses', (
   assert.deepEqual(parseOptionText('1.0 (預設)'), {
     label: '1.0',
     desc: '預設',
+  });
+  assert.deepEqual(parseOptionText('Control-H (將送出 ^H (ASCII 8))'), {
+    label: 'Control-H',
+    desc: '將送出 ^H (ASCII 8)',
+  });
+  assert.deepEqual(parseOptionText('Control-? (將送出 ^? (ASCII 127))'), {
+    label: 'Control-?',
+    desc: '將送出 ^? (ASCII 127)',
+  });
+  assert.deepEqual(parseOptionText('標準跳脫字元序列 (將送出 ^[[3~ (ESC [ 3 ~))'), {
+    label: '標準跳脫字元序列',
+    desc: '將送出 ^[[3~ (ESC [ 3 ~)',
   });
   assert.deepEqual(parseOptionText('Control-H (Will send out ^H (ASCII 8))'), {
     label: 'Control-H',
