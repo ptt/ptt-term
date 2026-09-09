@@ -194,7 +194,7 @@ export function serializeCaretStyle(shape, blink) {
 
 /**
  * Parse an option label and extract any parenthesized note/description.
- * Supports both ASCII () and fullwidth （） parentheses.
+ * Supports both ASCII () and fullwidth （） parentheses, including nested parentheses.
  * @param {string} text
  * @returns {{ label: string, desc: string }}
  */
@@ -202,10 +202,27 @@ export function parseOptionText(text) {
   if (typeof text !== "string") {
     return { label: text, desc: "" };
   }
-  const match = text.match(/^(.*?)\s*[(（]([^()（）]+)[)）]\s*$/);
-  if (match) {
-    return { label: match[1].trim(), desc: match[2].trim() };
+  const trimmed = text.trim();
+  const lastChar = trimmed[trimmed.length - 1];
+  if (lastChar === ")" || lastChar === "）") {
+    let depth = 0;
+    for (let i = trimmed.length - 1; i >= 0; i--) {
+      const ch = trimmed[i];
+      if (ch === ")" || ch === "）") {
+        depth++;
+      } else if (ch === "(" || ch === "（") {
+        depth--;
+        if (depth === 0) {
+          const label = trimmed.slice(0, i).trim();
+          const desc = trimmed.slice(i + 1, trimmed.length - 1).trim();
+          if (label) {
+            return { label, desc };
+          }
+          break;
+        }
+      }
+    }
   }
-  return { label: text.trim(), desc: "" };
+  return { label: trimmed, desc: "" };
 }
 

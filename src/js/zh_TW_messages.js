@@ -170,13 +170,13 @@ export const zh_TW = {
     message: "Delete 鍵送出",
   },
   options_keyControlH: {
-    message: "Control-H (^H, 8)",
+    message: "Control-H (Will send out ^H (ASCII 8))",
   },
   options_keyControlQuestion: {
-    message: "Control-? (^?, 127)",
+    message: "Control-? (Will send out ^? (ASCII 127))",
   },
   options_keyEscapeSequence: {
-    message: "標準跳脫字元序列 (^[3~)",
+    message: "標準跳脫字元序列 (Will send out ^[[3~ (ESC [ 3 ~))",
   },
   options_bellAlways: {
     message: "隨時播放提示音",

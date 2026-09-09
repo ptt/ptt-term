@@ -277,6 +277,22 @@ test('parseOptionText extracts option label and description from parentheses', (
     label: '1.0',
     desc: '預設',
   });
+  assert.deepEqual(parseOptionText('Control-H (Will send out ^H (ASCII 8))'), {
+    label: 'Control-H',
+    desc: 'Will send out ^H (ASCII 8)',
+  });
+  assert.deepEqual(parseOptionText('Control-? (Will send out ^? (ASCII 127))'), {
+    label: 'Control-?',
+    desc: 'Will send out ^? (ASCII 127)',
+  });
+  assert.deepEqual(parseOptionText('標準跳脫字元序列 (Will send out ^[[3~ (ESC [ 3 ~))'), {
+    label: '標準跳脫字元序列',
+    desc: 'Will send out ^[[3~ (ESC [ 3 ~)',
+  });
+  assert.deepEqual(parseOptionText('Standard ESC sequence (Will send out ^[[3~ (ESC [ 3 ~))'), {
+    label: 'Standard ESC sequence',
+    desc: 'Will send out ^[[3~ (ESC [ 3 ~)',
+  });
   assert.deepEqual(parseOptionText('Control-H (^H, 8)'), {
     label: 'Control-H',
     desc: '^H, 8',
