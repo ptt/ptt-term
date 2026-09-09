@@ -877,8 +877,7 @@ test('ContextMenu and TouchKeyboard handle Ctrl mode, letter dispatch, and top-r
     path.resolve('src/touch/TouchKeyboard.js'),
     'utf-8'
   );
-
-  assert.ok(contextMenuSource.includes('<TouchKeyboard'));
+  assert.ok(!contextMenuSource.includes('<TouchKeyboard'), 'ContextMenu decouples TouchKeyboard to PluginOverlay');
 
   // 1. Verify Ctrl mode state, handlers, and render methods exist
   assert.ok(keyboardSource.includes('isCtrlMode: false'));
@@ -2614,10 +2613,10 @@ test('src/touch module cleanly exports TouchController, computeToolbarLayout, To
     path.resolve('src/components/ContextMenu/index.js'),
     'utf-8'
   );
-  assert.ok(contextMenuSource.includes('from "../../touch/TouchKeyboard"'));
-  assert.ok(contextMenuSource.includes('<TouchKeyboard'));
+  assert.ok(!contextMenuSource.includes('<TouchKeyboard'), 'ContextMenu must not directly embed TouchKeyboard');
   assert.ok(
-    contextMenuSource.includes('onMenuToggle={this.handleFloatingMenuToggle}')
+    contextMenuSource.includes('handleFloatingMenuToggle = (event, targetEl) =>'),
+    'ContextMenu must preserve handleFloatingMenuToggle handler'
   );
 
   const touchControllerLegacySource = fs.readFileSync(

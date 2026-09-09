@@ -2,7 +2,6 @@ import cx from "classnames";
 import React from "react";
 import { _ } from "../../js/i18n";
 import { readValuesWithDefault, writeValues } from "../../js/pref";
-import { TouchKeyboard } from "../../touch/TouchKeyboard";
 import DropdownMenu from "./DropdownMenu";
 import PrefModal from "../Settings/PrefModal";
 
@@ -135,6 +134,7 @@ export class ContextMenu extends React.Component {
         if (!this.isInstanceActive()) return;
         this.showMenuAt(x, y);
       };
+      app.handleFloatingMenuToggle = this.handleFloatingMenuToggle;
       this._onContextMenuUpdate = () => {
         if (this.isInstanceActive()) {
           this.forceUpdate();
@@ -263,6 +263,9 @@ export class ContextMenu extends React.Component {
     const { app } = this.props;
     if (app && app.openContextMenu) {
       app.openContextMenu = null;
+    }
+    if (app && app.handleFloatingMenuToggle === this.handleFloatingMenuToggle) {
+      app.handleFloatingMenuToggle = null;
     }
     if (app && this._onContextMenuUpdate) {
       app.removeEventListener?.(
@@ -615,11 +618,6 @@ export class ContextMenu extends React.Component {
 
     return (
       <React.Fragment>
-        <TouchKeyboard
-          app={app}
-          onMenuToggle={this.handleFloatingMenuToggle}
-          anyModalShown={anyModalShown}
-        />
         <div className={cx({ open })}>
           <DropdownMenu
             open={open}

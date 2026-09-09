@@ -612,5 +612,11 @@
   },
   "touch_input_sheet_direct_mode": {
     "message": "切換終端直接輸入"
+  },
+  "plugin_virtual_keyboard_title": {
+    "message": "虛擬鍵盤 (觸控工具列)"
+  },
+  "plugin_virtual_keyboard_desc": {
+    "message": "在觸控螢幕上提供方向鍵、快捷鍵工具列與行動文字輸入面板"
   }
 }

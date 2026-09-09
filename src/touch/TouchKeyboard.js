@@ -1175,6 +1175,8 @@ export class TouchKeyboard extends React.Component {
 
     if (this.props.onMenuToggle) {
       this.props.onMenuToggle(event, targetEl);
+    } else if (this.props.app?.handleFloatingMenuToggle) {
+      this.props.app.handleFloatingMenuToggle(event, targetEl);
     } else if (this.props.app) {
       const target =
         targetEl ||

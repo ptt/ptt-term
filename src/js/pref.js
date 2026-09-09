@@ -24,6 +24,7 @@ export const DEFAULT_PREFS = {
   enableInputHelper: true,
   enableTouchDebugHUD: false,
   enableAutoLogin: true,
+  enableVirtualKeyboard: true,
 
   // locale
   uiLocale: "auto",

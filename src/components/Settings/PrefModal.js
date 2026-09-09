@@ -207,6 +207,30 @@ const renderPluginIcon = (icon) => {
           <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
         </svg>
       );
+    case "keyboard":
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="2" y="4" width="20" height="16" rx="2" />
+          <line x1="6" y1="8" x2="6" y2="8" />
+          <line x1="10" y1="8" x2="10" y2="8" />
+          <line x1="14" y1="8" x2="14" y2="8" />
+          <line x1="18" y1="8" x2="18" y2="8" />
+          <line x1="6" y1="12" x2="6" y2="12" />
+          <line x1="10" y1="12" x2="10" y2="12" />
+          <line x1="14" y1="12" x2="14" y2="12" />
+          <line x1="18" y1="12" x2="18" y2="12" />
+          <line x1="7" y1="16" x2="17" y2="16" />
+        </svg>
+      );
     default:
       return (
         <svg

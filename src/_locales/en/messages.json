@@ -616,5 +616,11 @@
   },
   "touch_input_sheet_direct_mode": {
     "message": "Switch to direct terminal input"
+  },
+  "plugin_virtual_keyboard_title": {
+    "message": "Virtual Keyboard"
+  },
+  "plugin_virtual_keyboard_desc": {
+    "message": "Provide on-screen keypad toolbar, arrow keys, and mobile input sheet on touch devices"
   }
 }

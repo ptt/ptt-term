@@ -41,6 +41,12 @@ import {
   AutoLogin,
   AutoLoginPlugin,
 } from './auto_login/index.js';
+import {
+  VirtualKeyboard,
+  VirtualKeyboardPlugin,
+  TouchKeyboardPlugin,
+  TouchUIPlugin,
+} from './virtual_keyboard/index.js';
 
 export {
   EasyReading,
@@ -64,6 +70,10 @@ export {
   TouchDebugHUDPlugin,
   AutoLogin,
   AutoLoginPlugin,
+  VirtualKeyboard,
+  VirtualKeyboardPlugin,
+  TouchKeyboardPlugin,
+  TouchUIPlugin,
 };
 
 export const PLUGIN_GROUPS = [
@@ -72,7 +82,7 @@ export const PLUGIN_GROUPS = [
     titleKey: 'plugin_group_ui',
     title: 'User Interface',
     color: '#007aff',
-    pluginIds: ['media_previewer', 'input_helper'],
+    pluginIds: ['media_previewer', 'input_helper', 'virtual_keyboard'],
   },
   {
     id: 'bbs',
@@ -91,6 +101,9 @@ export const PLUGIN_GROUPS = [
 ];
 
 export const PLUGIN_GROUP_MAP = {
+  virtual_keyboard: 'ui',
+  touch_keyboard: 'ui',
+  touch_ui: 'ui',
   media_previewer: 'ui',
   input_helper: 'ui',
   auto_login: 'bbs',
@@ -169,6 +182,7 @@ export const BUILTIN_PLUGINS = [
   FpsMeter,
   TouchDebugHUDPlugin,
   ConnectionLog,
+  VirtualKeyboardPlugin,
 ];
 
 export function getAvailablePlugins(app) {
