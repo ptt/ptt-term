@@ -106,6 +106,7 @@ export class TouchDebugHUDPlugin {
   setEnabled(enabled) {
     const isEnabled = Boolean(enabled);
     this.enabled = isEnabled;
+    this.app?.dispatchEvent?.(new CustomEvent("term:overlay:update"));
     if (this.component) {
       this.component.setHudEnabled(isEnabled);
     } else if (typeof window !== "undefined") {
@@ -126,6 +127,11 @@ export class TouchDebugHUDPlugin {
         );
       }
     }
+  }
+
+  renderOverlay({ app } = {}) {
+    const targetApp = app || this.app;
+    return React.createElement(TouchDebugHUD, { app: targetApp });
   }
 
   toggle() {

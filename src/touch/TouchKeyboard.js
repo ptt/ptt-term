@@ -3,7 +3,7 @@ import cx from "classnames";
 import React from "react";
 import { readValuesWithDefault, writeValues } from "../js/pref.js";
 import { computeToolbarLayout } from "./TouchController.js";
-import { TouchDebugHUD } from "./TouchDebugHUD.js";
+// TouchDebugHUD overlay is rendered globally via PluginOverlay in AppOverlay.
 
 const SHIFT_NUMBER_MAP = {
   1: "!",
@@ -2145,7 +2145,7 @@ export class TouchKeyboard extends React.Component {
     const isTouchDevice = this.state.isTouchDevice || this.checkTouchDevice();
     const anyModalShown = Boolean(this.props.anyModalShown);
     if (!isTouchDevice || anyModalShown) {
-      return <TouchDebugHUD app={this.props.app} />;
+      return null;
     }
     const isStackedMode = isStacked && !isToolbarCollapsed;
     const viewportWidth =
@@ -2247,8 +2247,7 @@ export class TouchKeyboard extends React.Component {
     };
 
     return (
-      <React.Fragment>
-        <div
+      <div
         className={cx("TouchFloatingToolbar", "nomouse_command", {
           "TouchFloatingToolbar--force-show": isTouchDevice,
           "TouchFloatingToolbar--collapsed": isToolbarCollapsed,
@@ -2458,8 +2457,6 @@ export class TouchKeyboard extends React.Component {
           </React.Fragment>
         )}
       </div>
-        <TouchDebugHUD app={this.props.app} />
-      </React.Fragment>
     );
   }
 }

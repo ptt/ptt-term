@@ -1917,7 +1917,9 @@ test('src/plugins exports TouchDebugHUD and provides plugin metadata and lifecyc
   assert.equal(hudPlugin.prefKey, 'enableTouchDebugHUD');
   assert.equal(hudPlugin.icon, 'debug');
 
-  assert.equal(hudPlugin.isActive(), false);
+  assert.equal(typeof hudPlugin.renderOverlay, 'function');
+  const overlayNode = hudPlugin.renderOverlay({ app: mockApp });
+  assert.ok(overlayNode);
   hudPlugin.setEnabled(true);
   assert.equal(hudPlugin.enabled, true);
   hudPlugin.setEnabled(false);
