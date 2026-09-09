@@ -220,6 +220,24 @@ export class App {
     );
   }
 
+  getPluginList() {
+    return this.plugins.map((p) => {
+      if (p.getMetadata) {
+        return p.getMetadata();
+      }
+      return {
+        id: p.id || p.name || p.constructor?.name,
+        name: p.name || p.constructor?.name,
+        title: p.title || p.name,
+        description: p.description || '',
+        prefKey: p.prefKey,
+        enabled: p.enabled,
+        icon: p.icon || 'extension',
+        badge: p.badge,
+      };
+    });
+  }
+
   dispatchScreenUpdate(changedLineHtmlStrs) {
     for (const plugin of this.plugins) {
       if (plugin.onScreenUpdate?.(changedLineHtmlStrs)) {
@@ -1162,11 +1180,10 @@ export class App {
       setTerminalBellEnabled(value);
       break;
     case 'enableEasyReading':
-      /*if (this.connectedUrl.hostname == 'ptt.cc') {
-        this.view.useEasyReadingMode = value;
-      } else {
-        this.view.useEasyReadingMode = false;
-      }*/
+      this.view.useEasyReadingMode = !!value;
+      if (this.easyReading) {
+        this.easyReading.enabled = !!value;
+      }
       break;
     case 'antiIdleTime':
       this.antiIdleTime = value * 1000;

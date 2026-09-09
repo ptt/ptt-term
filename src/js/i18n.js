@@ -16,6 +16,21 @@ export function i18n(str) {
   }
 }
 
+export function getI18nMessage(str) {
+  if (i18n_val && i18n_val[str]) {
+    return i18n_val[str].message ?? i18n_val[str];
+  }
+  if (en_US && en_US[str]) {
+    return en_US[str].message ?? en_US[str];
+  }
+  if (zh_TW && zh_TW[str]) {
+    return zh_TW[str].message ?? zh_TW[str];
+  }
+  return str;
+}
+
+export const _ = getI18nMessage;
+
 export function setupI18n(callback) {
   i18n_val = locale[getLang()];
 }

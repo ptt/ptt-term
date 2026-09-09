@@ -71,8 +71,25 @@ export const en_US = {
   options_general: {
     message: "General",
   },
+  options_plugins: {
+    message: "Add-ons",
+  },
+  options_plugins_desc: {
+    message: "Manage extended features and custom modules",
+  },
   options_about: {
     message: "About",
+  },
+
+  // plugins
+  plugin_easy_reading_title: {
+    message: "Easy Reading",
+  },
+  plugin_easy_reading_desc: {
+    message: "Automatically stitch article pages for continuous scrolling, with inline image/video previews and live push updates.",
+  },
+  plugin_builtin: {
+    message: "Built-in",
   },
 
   // options

@@ -1,13 +1,65 @@
 import { readValuesWithDefault } from '../../js/pref.js';
+import { _ } from '../../js/i18n.js';
 
 export const INFLIGHT_WATCHDOG_MS = 1500;
 export const MAX_INFLIGHT_RETRIES = 2;
 
 export class EasyReading {
+  static id = 'easy_reading';
   static name = 'easy_reading';
+  static prefKey = 'enableEasyReading';
+
+  static getMetadata() {
+    return {
+      id: 'easy_reading',
+      name: 'easy_reading',
+      title: _('plugin_easy_reading_title'),
+      description: _('plugin_easy_reading_desc'),
+      prefKey: 'enableEasyReading',
+      icon: 'book',
+      badge: _('plugin_builtin'),
+    };
+  }
+
+  get id() {
+    return 'easy_reading';
+  }
 
   get name() {
     return 'easy_reading';
+  }
+
+  get prefKey() {
+    return 'enableEasyReading';
+  }
+
+  get title() {
+    return _('plugin_easy_reading_title');
+  }
+
+  get description() {
+    return _('plugin_easy_reading_desc');
+  }
+
+  get icon() {
+    return 'book';
+  }
+
+  get badge() {
+    return _('plugin_builtin');
+  }
+
+  getMetadata() {
+    return {
+      id: this.id,
+      name: this.name,
+      title: this.title,
+      description: this.description,
+      prefKey: this.prefKey,
+      enabled: this.enabled,
+      icon: this.icon,
+      badge: this.badge,
+    };
   }
 
   constructor(core, view, termBuf) {

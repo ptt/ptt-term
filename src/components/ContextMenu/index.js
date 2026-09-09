@@ -617,6 +617,7 @@ export class ContextMenu extends React.Component {
           onChange={this.handleLiveHelperChange}
         />
         <PrefModal
+          app={app}
           show={showsSettings}
           isTouch={isTouchDevice}
           onSave={this.handlePrefSave}

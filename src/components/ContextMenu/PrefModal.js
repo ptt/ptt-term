@@ -11,8 +11,49 @@ import {
   readValuesWithDefault,
   writeValues,
 } from "../../js/pref";
+import { getAvailablePlugins } from "../../plugins/index.js";
 
 export { getDefaultPrefs, readValuesWithDefault, writeValues };
+
+const renderPluginIcon = (icon) => {
+  switch (icon) {
+    case "book":
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+          <line x1="9" y1="7" x2="15" y2="7" />
+          <line x1="9" y1="11" x2="13" y2="11" />
+        </svg>
+      );
+    default:
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polygon points="12 2 2 7 12 12 22 7 12 2" />
+          <polyline points="2 17 12 22 22 17" />
+          <polyline points="2 12 12 17 22 12" />
+        </svg>
+      );
+  }
+};
 
 const replaceMsg = (msg, replacements) => {
   return msg.split(/#(\S+)#/gi).map((it, index) => {
@@ -185,9 +226,15 @@ export class PrefModal extends React.Component {
     }));
   };
 
+  getPlugins() {
+    const { app } = this.props;
+    return getAvailablePlugins(app);
+  }
+
   render() {
     const { show } = this.props;
     const { navActiveKey, values } = this.state;
+    const plugins = this.getPlugins();
     const isTouch = Boolean(
       this.props.isTouch !== undefined
         ? this.props.isTouch
@@ -227,6 +274,11 @@ export class PrefModal extends React.Component {
               <li className={navActiveKey === "mouseBrowsing" ? "active" : ""}>
                 <a href="#" onClick={this.handleNavSelect("mouseBrowsing")}>
                   {i18n("options_mouseBrowsing")}
+                </a>
+              </li>
+              <li className={navActiveKey === "plugins" ? "active" : ""}>
+                <a href="#" onClick={this.handleNavSelect("plugins")}>
+                  {i18n("options_plugins")}
                 </a>
               </li>
               <li className={navActiveKey === "advanced" ? "active" : ""}>
@@ -287,17 +339,6 @@ export class PrefModal extends React.Component {
                       onChange={this.handleCheckboxChange}
                     />
                     {i18n("options_enableNotifications")}
-                  </label>
-                </div>
-                <div className="checkbox">
-                  <label>
-                    <input
-                      type="checkbox"
-                      name="enableEasyReading"
-                      checked={values.enableEasyReading}
-                      onChange={this.handleCheckboxChange}
-                    />
-                    {i18n("options_enableEasyReading")}
                   </label>
                 </div>
                 <div className="checkbox">
@@ -632,6 +673,60 @@ export class PrefModal extends React.Component {
                   options={MOUSE_WHEEL_OPTIONS}
                   onChange={this.handleNumberInputChange}
                 />
+              </fieldset>
+            )}
+            {navActiveKey === "plugins" && (
+              <fieldset className="PrefModal__Grid__Col--right__Fieldset">
+                <TabLegend
+                  title={i18n("options_plugins")}
+                  onCloseClick={this.handleCloseClick}
+                />
+                <p className="PrefModal__TabSubtitle">
+                  {i18n("options_plugins_desc")}
+                </p>
+                <div className="PrefModal__MacList">
+                  {plugins.map((plugin) => {
+                    const isChecked = Boolean(
+                      plugin.prefKey ? values[plugin.prefKey] : plugin.enabled
+                    );
+                    return (
+                      <div
+                        key={plugin.id || plugin.name}
+                        className={cx("PrefModal__MacListItem", {
+                          "PrefModal__MacListItem--enabled": isChecked,
+                        })}
+                      >
+                        <div className="PrefModal__MacListItemIcon">
+                          {renderPluginIcon(plugin.icon)}
+                        </div>
+                        <div className="PrefModal__MacListItemContent">
+                          <div className="PrefModal__MacListItemTitle">
+                            <span>{plugin.title || plugin.name}</span>
+                            {plugin.badge && (
+                              <span className="PrefModal__MacBadge">
+                                {plugin.badge}
+                              </span>
+                            )}
+                          </div>
+                          {plugin.description && (
+                            <div className="PrefModal__MacListItemDesc">
+                              {plugin.description}
+                            </div>
+                          )}
+                        </div>
+                        <label className="PrefModal__MacSwitch">
+                          <input
+                            type="checkbox"
+                            name={plugin.prefKey || `plugin_${plugin.id}`}
+                            checked={isChecked}
+                            onChange={this.handleCheckboxChange}
+                          />
+                          <span className="PrefModal__MacSwitchSlider" />
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
               </fieldset>
             )}
             {navActiveKey === "advanced" && (

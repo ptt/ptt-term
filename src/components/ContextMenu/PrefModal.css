@@ -140,6 +140,142 @@ dialog.PrefModal .NativeDialog__content {
   margin-bottom: 0.04em;
 }
 
+.PrefModal__TabSubtitle {
+  font-size: 13px;
+  color: #6e6e73;
+  margin: -10px 0 14px;
+  line-height: 1.4;
+}
+
+/* Mac-style Plugins Grouped List */
+.PrefModal__MacList {
+  background: #ffffff;
+  border: 1px solid #d2d2d7;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  margin-top: 8px;
+  margin-bottom: 20px;
+}
+
+.PrefModal__MacListItem {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e5e5ea;
+  transition: background-color 0.15s ease;
+}
+
+.PrefModal__MacListItem:last-child {
+  border-bottom: none;
+}
+
+.PrefModal__MacListItem:hover {
+  background-color: #f5f5f7;
+}
+
+.PrefModal__MacListItemIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #007aff 0%, #0051a8 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 5px rgba(0, 122, 255, 0.25);
+}
+
+.PrefModal__MacListItemContent {
+  margin-left: 14px;
+  flex-grow: 1;
+  min-width: 0;
+  padding-right: 14px;
+}
+
+.PrefModal__MacListItemTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1d1d1f;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.3;
+}
+
+.PrefModal__MacBadge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #e8e8ed;
+  color: #6e6e73;
+  letter-spacing: 0.02em;
+}
+
+.PrefModal__MacListItemDesc {
+  font-size: 12px;
+  color: #6e6e73;
+  margin-top: 3px;
+  line-height: 1.45;
+}
+
+/* Mac-style iOS/macOS Toggle Switch */
+.PrefModal__MacSwitch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.PrefModal__MacSwitch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.PrefModal__MacSwitchSlider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #e5e5ea;
+  border-radius: 24px;
+  transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+.PrefModal__MacSwitchSlider::before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.PrefModal__MacSwitch input:checked + .PrefModal__MacSwitchSlider {
+  background-color: #34c759;
+}
+
+.PrefModal__MacSwitch input:focus + .PrefModal__MacSwitchSlider {
+  box-shadow: 0 0 0 2px rgba(52, 199, 89, 0.3);
+}
+
+.PrefModal__MacSwitch input:checked + .PrefModal__MacSwitchSlider::before {
+  transform: translateX(20px);
+}
+
 @media (max-width: 640px) {
   dialog.PrefModal {
     width: calc(100vw - 16px);
@@ -204,5 +340,46 @@ dialog.PrefModal .NativeDialog__content {
 
   .PrefModal__Grid__Col--right__SubCheckbox {
     margin-left: 10px;
+  }
+
+  .PrefModal__TabSubtitle {
+    font-size: 12px;
+    margin: -6px 0 10px;
+  }
+
+  .PrefModal__MacListItem {
+    padding: 10px 10px;
+  }
+
+  .PrefModal__MacListItemIcon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .PrefModal__MacListItemContent {
+    margin-left: 10px;
+    padding-right: 8px;
+  }
+
+  .PrefModal__MacListItemTitle {
+    font-size: 13px;
+  }
+
+  .PrefModal__MacListItemDesc {
+    font-size: 11px;
+  }
+
+  .PrefModal__MacSwitch {
+    width: 38px;
+    height: 22px;
+  }
+
+  .PrefModal__MacSwitchSlider::before {
+    height: 18px;
+    width: 18px;
+  }
+
+  .PrefModal__MacSwitch input:checked + .PrefModal__MacSwitchSlider::before {
+    transform: translateX(16px);
   }
 }

@@ -1537,6 +1537,90 @@ test('PrefModal locks termSizeMode to fixed-font-size and disables select on tou
   assert.ok(prefModalCss.includes('@media (max-width: 640px)'), 'PrefModal should have responsive rules for narrow screens');
 });
 
+test('PrefModal redesign includes Extensions/Plugins tab with Mac-style toggle list', () => {
+  const prefModalSource = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/PrefModal.js'),
+    'utf-8'
+  );
+  const prefModalCss = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/PrefModal.css'),
+    'utf-8'
+  );
+
+  // 1. PrefModal has plugins tab in nav
+  assert.ok(
+    prefModalSource.includes('handleNavSelect("plugins")'),
+    'PrefModal should have plugins tab in nav'
+  );
+  assert.ok(
+    prefModalSource.includes('{i18n("options_plugins")}'),
+    'PrefModal should render options_plugins translation key'
+  );
+
+  // 2. PrefModal queries plugins and displays them in Mac-style list
+  assert.ok(
+    prefModalSource.includes('getPlugins()'),
+    'PrefModal should query plugins via getPlugins()'
+  );
+  assert.ok(
+    prefModalSource.includes('PrefModal__MacList'),
+    'PrefModal should render PrefModal__MacList container'
+  );
+  assert.ok(
+    prefModalSource.includes('PrefModal__MacListItem'),
+    'PrefModal should render PrefModal__MacListItem rows'
+  );
+  assert.ok(
+    prefModalSource.includes('PrefModal__MacSwitch'),
+    'PrefModal should render Mac-style on/off toggle switches'
+  );
+  assert.ok(
+    prefModalSource.includes('plugin.title || plugin.name'),
+    'PrefModal should display title provided by queried plugin'
+  );
+  assert.ok(
+    prefModalSource.includes('plugin.description'),
+    'PrefModal should display descriptions provided by queried plugin'
+  );
+  assert.ok(
+    prefModalSource.includes('PrefModal__TabSubtitle'),
+    'PrefModal should render subtitle below TabLegend divider'
+  );
+
+  // 3. PrefModal.css defines Mac list and switch styles
+  assert.ok(
+    prefModalCss.includes('.PrefModal__TabSubtitle'),
+    'PrefModal.css must style .PrefModal__TabSubtitle'
+  );
+  assert.ok(
+    prefModalCss.includes('.PrefModal__MacList'),
+    'PrefModal.css must style .PrefModal__MacList'
+  );
+  assert.ok(
+    prefModalCss.includes('.PrefModal__MacSwitch'),
+    'PrefModal.css must style .PrefModal__MacSwitch'
+  );
+  assert.ok(
+    prefModalCss.includes('.PrefModal__MacSwitchSlider'),
+    'PrefModal.css must style .PrefModal__MacSwitchSlider'
+  );
+
+  // 4. App defines getPluginList and ContextMenu passes app to PrefModal
+  const appSource = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+  assert.ok(
+    appSource.includes('getPluginList()'),
+    'App must define getPluginList()'
+  );
+  const contextMenuSource = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/index.js'),
+    'utf-8'
+  );
+  assert.ok(
+    contextMenuSource.includes('app={app}'),
+    'ContextMenu must pass app prop to PrefModal'
+  );
+});
+
 test('ContextMenu handles letter keypad mode with continuous typing, Shift toggle, and outside dismiss', () => {
   const keyboardSource = fs.readFileSync(
     path.resolve('src/touch/TouchKeyboard.js'),

@@ -1546,4 +1546,36 @@ test('src/plugins exports EasyReading and provides modular plugin architecture',
   assert.equal(instance.name, 'easy_reading');
   assert.equal(easyReadingModule.INFLIGHT_WATCHDOG_MS, 1500);
   assert.equal(easyReadingModule.MAX_INFLIGHT_RETRIES, 2);
+
+  // Plugin metadata queries
+  const meta = instance.getMetadata();
+  assert.equal(meta.id, 'easy_reading');
+  assert.equal(meta.name, 'easy_reading');
+  assert.equal(meta.prefKey, 'enableEasyReading');
+  assert.ok(meta.title && meta.title.length > 0);
+  assert.ok(meta.description && meta.description.length > 0);
+  assert.equal(meta.icon, 'book');
+
+  // Static metadata queries
+  const staticMeta = easyReadingModule.EasyReading.getMetadata();
+  assert.equal(staticMeta.id, 'easy_reading');
+  assert.equal(staticMeta.prefKey, 'enableEasyReading');
+
+  // getAvailablePlugins discovery
+  const available = pluginsModule.getAvailablePlugins();
+  assert.ok(Array.isArray(available));
+  assert.ok(available.some((p) => p.id === 'easy_reading'));
+
+  // getAvailablePlugins queries app.plugins or app.getPluginList
+  const mockAppWithPlugins = {
+    plugins: [instance],
+    getPluginList() {
+      return this.plugins.map((p) => p.getMetadata());
+    },
+  };
+  const appList = pluginsModule.getAvailablePlugins(mockAppWithPlugins);
+  assert.equal(appList.length, 1);
+  assert.equal(appList[0].name, 'easy_reading');
+  assert.equal(appList[0].prefKey, 'enableEasyReading');
+  assert.equal(appList[0].icon, 'book');
 });

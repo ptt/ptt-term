@@ -71,8 +71,25 @@ export const zh_TW = {
   options_general: {
     message: "一般",
   },
+  options_plugins: {
+    message: "附加功能",
+  },
+  options_plugins_desc: {
+    message: "管理附加的功能與自訂模組",
+  },
   options_about: {
     message: "關於",
+  },
+
+  // plugins
+  plugin_easy_reading_title: {
+    message: "好讀模式",
+  },
+  plugin_easy_reading_desc: {
+    message: "閱讀文章時自動拼接後續分頁，支援圖片/影片預覽、推文即時更新與連續捲動。",
+  },
+  plugin_builtin: {
+    message: "內建",
   },
 
   // options
