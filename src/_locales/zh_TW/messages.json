@@ -613,10 +613,58 @@
   "touch_input_sheet_direct_mode": {
     "message": "切換終端直接輸入"
   },
+  "plugin_pwa_prompt_title": {
+    "message": "PWA 安裝指引"
+  },
+  "plugin_pwa_prompt_desc": {
+    "message": "引導使用者將 PTT Term 安裝為 PWA 獨立應用程式 (支援 iOS / Android / 桌面版)"
+  },
   "plugin_virtual_keyboard_title": {
     "message": "虛擬鍵盤 (觸控工具列)"
   },
   "plugin_virtual_keyboard_desc": {
     "message": "在觸控螢幕上提供方向鍵、快捷鍵工具列與行動文字輸入面板"
+  },
+  "cmenu_pwa_install_mobile": {
+    "message": "📱 安裝至主畫面 (PWA)"
+  },
+  "cmenu_pwa_install_desktop": {
+    "message": "💻 安裝桌面版 App (PWA)"
+  },
+  "pwa_prompt_title_ios": {
+    "message": "將 PTT Term 加入主畫面"
+  },
+  "pwa_prompt_title_android": {
+    "message": "安裝 PTT Term 應用程式"
+  },
+  "pwa_prompt_title_desktop": {
+    "message": "安裝 PTT Term 桌面版 App"
+  },
+  "pwa_prompt_native_desc": {
+    "message": "安裝為 PWA 獨立應用程式，享有全螢幕瀏覽、獨立視窗與流暢不中斷的連線體驗。"
+  },
+  "pwa_prompt_ios_desc": {
+    "message": "加入主畫面可享受沉浸式全螢幕終端、全黑狀態列與完整的觸控體驗："
+  },
+  "pwa_prompt_android_desc": {
+    "message": "可將 PTT Term 加入主畫面，享有全螢幕獨立視窗體驗："
+  },
+  "pwa_prompt_desktop_desc": {
+    "message": "將 PTT Term 安裝為桌面應用程式，享受乾淨獨立視窗與專屬桌面捷徑："
+  },
+  "pwa_prompt_btn_install": {
+    "message": "立即安裝"
+  },
+  "pwa_prompt_btn_got_it": {
+    "message": "我知道了"
+  },
+  "pwa_prompt_btn_later": {
+    "message": "稍後再說"
+  },
+  "pwa_prompt_btn_remind_later": {
+    "message": "下次提醒我"
+  },
+  "pwa_prompt_btn_not_needed": {
+    "message": "我不需要"
   }
 }

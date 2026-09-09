@@ -380,7 +380,7 @@ test('Extension list supports groups with colored Bands for categories (User Int
   assert.equal(uiGroup.title, 'User Interface');
   assert.equal(uiGroup.titleKey, 'plugin_group_ui');
   const uiPluginIds = uiGroup.plugins.map((p) => p.id);
-  assert.deepEqual(uiPluginIds, ['media_previewer', 'input_helper', 'virtual_keyboard']);
+  assert.deepEqual(uiPluginIds, ['media_previewer', 'input_helper', 'virtual_keyboard', 'pwa_prompt']);
 
   // Group 2: Taiwan BBS (easy reading, anti-idle, auto wrap, mouse browsing, live article helper)
   const bbsGroup = groups.find((g) => g.id === 'bbs');
@@ -398,8 +398,8 @@ test('Extension list supports groups with colored Bands for categories (User Int
   const debugPluginIds = debugGroup.plugins.map((p) => p.id);
   assert.deepEqual(debugPluginIds, ['fps_meter', 'touch_debug_hud', 'conn_log']);
 
-  // Verify all 12 plugins have their group attribute defined
-  assert.equal(plugins.length, 12);
+  // Verify all plugins have their group attribute defined
+  assert.equal(plugins.length, 13);
   for (const p of plugins) {
     assert.ok(p.group, `Plugin ${p.id} must define a group`);
   }

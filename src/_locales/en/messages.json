@@ -617,10 +617,58 @@
   "touch_input_sheet_direct_mode": {
     "message": "Switch to direct terminal input"
   },
+  "plugin_pwa_prompt_title": {
+    "message": "PWA Install Guide"
+  },
+  "plugin_pwa_prompt_desc": {
+    "message": "Guides users to install PTT Term as a PWA app (iOS / Android / Desktop)"
+  },
   "plugin_virtual_keyboard_title": {
     "message": "Virtual Keyboard"
   },
   "plugin_virtual_keyboard_desc": {
     "message": "Provide on-screen keypad toolbar, arrow keys, and mobile input sheet on touch devices"
+  },
+  "cmenu_pwa_install_mobile": {
+    "message": "📱 Add to Home Screen (PWA)"
+  },
+  "cmenu_pwa_install_desktop": {
+    "message": "💻 Install Desktop App (PWA)"
+  },
+  "pwa_prompt_title_ios": {
+    "message": "Add PTT Term to Home Screen"
+  },
+  "pwa_prompt_title_android": {
+    "message": "Install PTT Term App"
+  },
+  "pwa_prompt_title_desktop": {
+    "message": "Install PTT Term Desktop App"
+  },
+  "pwa_prompt_native_desc": {
+    "message": "Install as a PWA app to enjoy fullscreen browsing, dedicated window, and seamless connection."
+  },
+  "pwa_prompt_ios_desc": {
+    "message": "Add to Home Screen for an immersive fullscreen terminal, black status bar, and complete touch experience:"
+  },
+  "pwa_prompt_android_desc": {
+    "message": "Add PTT Term to Home Screen for a fullscreen standalone app experience:"
+  },
+  "pwa_prompt_desktop_desc": {
+    "message": "Install PTT Term as a desktop app to enjoy a standalone window and shortcut:"
+  },
+  "pwa_prompt_btn_install": {
+    "message": "Install"
+  },
+  "pwa_prompt_btn_got_it": {
+    "message": "Got It"
+  },
+  "pwa_prompt_btn_later": {
+    "message": "Later"
+  },
+  "pwa_prompt_btn_remind_later": {
+    "message": "Remind Me Later"
+  },
+  "pwa_prompt_btn_not_needed": {
+    "message": "No Thanks"
   }
 }

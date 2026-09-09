@@ -24,7 +24,8 @@ export const DEFAULT_PREFS = {
   enableInputHelper: true,
   enableTouchDebugHUD: false,
   enableAutoLogin: true,
-  enableVirtualKeyboard: true,
+  enablePwaPrompt: false,
+  enableVirtualKeyboard: false,
 
   // locale
   uiLocale: "auto",
@@ -58,8 +59,41 @@ export const DEFAULT_PREFS = {
 
 export const PREF_STORAGE_KEY = "pttchrome.pref.v1";
 
+export const isMobileEnvironment = () => {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  const platform = navigator.platform || "";
+  const maxTouchPoints = navigator.maxTouchPoints || 0;
+  const isIPadOS = platform === "MacIntel" && maxTouchPoints > 1 && !/Chrome\//.test(ua);
+  return (
+    /iPad|iPhone|iPod|Android|Mobile/i.test(ua) || isIPadOS
+  );
+};
+
+export const isStandaloneMode = () => {
+  if (typeof window === "undefined") return false;
+  return Boolean(
+    window.navigator?.standalone === true ||
+      (typeof window.matchMedia === "function" &&
+        (window.matchMedia("(display-mode: standalone)").matches ||
+          window.matchMedia("(display-mode: fullscreen)").matches ||
+          window.matchMedia("(display-mode: window-controls-overlay)").matches))
+  );
+};
+
+export const getDefaultPwaPrompt = () => {
+  if (isStandaloneMode()) return false;
+  return isMobileEnvironment();
+};
+
+export const getDefaultVirtualKeyboard = () => {
+  return isMobileEnvironment();
+};
+
 export const getDefaultPrefs = () => ({
   ...DEFAULT_PREFS,
+  enablePwaPrompt: getDefaultPwaPrompt(),
+  enableVirtualKeyboard: getDefaultVirtualKeyboard(),
   termSize: { ...DEFAULT_PREFS.termSize },
 });
 
@@ -78,6 +112,9 @@ export const readValuesWithDefault = () => {
         ...(saved && saved.termSize),
       },
     };
+    if (isStandaloneMode()) {
+      prefs.enablePwaPrompt = false;
+    }
     if (saved) {
       if (saved.enableAntiIdle === undefined && saved.antiIdleTime !== undefined) {
         prefs.enableAntiIdle = Boolean(saved.antiIdleTime > 0);

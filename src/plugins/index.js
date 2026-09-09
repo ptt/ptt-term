@@ -42,6 +42,10 @@ import {
   AutoLoginPlugin,
 } from './auto_login/index.js';
 import {
+  PwaPrompt,
+  PwaPromptPlugin,
+} from './pwa_prompt/index.js';
+import {
   VirtualKeyboard,
   VirtualKeyboardPlugin,
   TouchKeyboardPlugin,
@@ -70,6 +74,8 @@ export {
   TouchDebugHUDPlugin,
   AutoLogin,
   AutoLoginPlugin,
+  PwaPrompt,
+  PwaPromptPlugin,
   VirtualKeyboard,
   VirtualKeyboardPlugin,
   TouchKeyboardPlugin,
@@ -82,7 +88,7 @@ export const PLUGIN_GROUPS = [
     titleKey: 'plugin_group_ui',
     title: 'User Interface',
     color: '#007aff',
-    pluginIds: ['media_previewer', 'input_helper', 'virtual_keyboard'],
+    pluginIds: ['media_previewer', 'input_helper', 'virtual_keyboard', 'pwa_prompt'],
   },
   {
     id: 'bbs',
@@ -106,6 +112,7 @@ export const PLUGIN_GROUP_MAP = {
   touch_ui: 'ui',
   media_previewer: 'ui',
   input_helper: 'ui',
+  pwa_prompt: 'ui',
   auto_login: 'bbs',
   easy_reading: 'bbs',
   anti_idle: 'bbs',
@@ -183,6 +190,7 @@ export const BUILTIN_PLUGINS = [
   TouchDebugHUDPlugin,
   ConnectionLog,
   VirtualKeyboardPlugin,
+  PwaPromptPlugin,
 ];
 
 export function getAvailablePlugins(app) {

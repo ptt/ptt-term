@@ -51,7 +51,7 @@ export class VirtualKeyboardPlugin {
     this.app = app || null;
     this.view = options.view || null;
     this.buf = options.buf || null;
-    this.enabled = options.enabled ?? true;
+    this.enabled = options.enabled ?? false;
     this._onPrefChangeBound = null;
   }
 
@@ -127,7 +127,7 @@ export class VirtualKeyboardPlugin {
     try {
       const prefs = readValuesWithDefault();
       const val = prefs?.enableVirtualKeyboard ?? prefs?.enableTouchKeyboard;
-      this.setEnabled(val !== undefined ? Boolean(val) : true);
+      this.setEnabled(val !== undefined ? Boolean(val) : false);
     } catch (e) {}
   }
 

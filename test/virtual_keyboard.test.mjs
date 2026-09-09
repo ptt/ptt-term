@@ -17,7 +17,11 @@ import {
   getAvailablePlugins,
 } from '../src/plugins/index.js';
 
-import { DEFAULT_PREFS } from '../src/js/pref.js';
+import {
+  DEFAULT_PREFS,
+  getDefaultVirtualKeyboard,
+  isMobileEnvironment,
+} from '../src/js/pref.js';
 
 test('VirtualKeyboard plugin exports, metadata, and registration', () => {
   // 1. Exports & aliases
@@ -71,9 +75,41 @@ test('VirtualKeyboard plugin exports, metadata, and registration', () => {
   // 5. Default prefs
   assert.strictEqual(
     DEFAULT_PREFS.enableVirtualKeyboard,
-    true,
-    'DEFAULT_PREFS must have enableVirtualKeyboard: true'
+    false,
+    'DEFAULT_PREFS must default enableVirtualKeyboard to false for desktop'
   );
+});
+
+test('VirtualKeyboard runtime default: desktop disabled, mobile enabled', () => {
+  const origWindow = globalThis.window;
+  const origUA = Object.getOwnPropertyDescriptor(globalThis.navigator, 'userAgent');
+  const origTouch = Object.getOwnPropertyDescriptor(globalThis.navigator, 'maxTouchPoints');
+
+  try {
+    // 1. In Node / desktop environment: defaults to false
+    assert.strictEqual(getDefaultVirtualKeyboard(), false, 'Desktop environment should default to false');
+
+    // 2. In simulated Mobile environment (iPhone): defaults to true
+    globalThis.window = {};
+    Object.defineProperty(globalThis.navigator, 'userAgent', {
+      value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)',
+      configurable: true,
+    });
+    Object.defineProperty(globalThis.navigator, 'maxTouchPoints', {
+      value: 5,
+      configurable: true,
+    });
+    assert.strictEqual(isMobileEnvironment(), true);
+    assert.strictEqual(getDefaultVirtualKeyboard(), true, 'Mobile environment should default to true');
+  } finally {
+    globalThis.window = origWindow;
+    if (origUA) {
+      Object.defineProperty(globalThis.navigator, 'userAgent', origUA);
+    }
+    if (origTouch) {
+      Object.defineProperty(globalThis.navigator, 'maxTouchPoints', origTouch);
+    }
+  }
 });
 
 test('VirtualKeyboard lifecycle, preference sync, and renderOverlay', () => {
@@ -94,25 +130,27 @@ test('VirtualKeyboard lifecycle, preference sync, and renderOverlay', () => {
   };
 
   const plugin = new VirtualKeyboardPlugin(mockApp);
-  assert.strictEqual(plugin.enabled, true);
+  assert.strictEqual(plugin.enabled, false);
 
   plugin.init({ app: mockApp });
   assert.strictEqual(mockApp.virtualKeyboard, plugin);
+  assert.strictEqual(plugin.enabled, false);
 
   // setEnabled
   overlayUpdated = false;
-  plugin.setEnabled(false);
-  assert.strictEqual(plugin.enabled, false);
+  plugin.setEnabled(true);
+  assert.strictEqual(plugin.enabled, true);
   assert.strictEqual(overlayUpdated, true);
 
   // toggle
   overlayUpdated = false;
   const toggled = plugin.toggle();
-  assert.strictEqual(toggled, true);
-  assert.strictEqual(plugin.enabled, true);
+  assert.strictEqual(toggled, false);
+  assert.strictEqual(plugin.enabled, false);
   assert.strictEqual(overlayUpdated, true);
 
   // renderOverlay when enabled
+  plugin.setEnabled(true);
   const rendered = plugin.renderOverlay({ app: mockApp });
   assert.ok(rendered, 'renderOverlay must return an element when enabled');
 

@@ -426,6 +426,7 @@ test('Plugins use safe typeof process checks and do not reference undeclared pro
     'src/plugins/auto_login/AutoLogin.js',
     'src/plugins/input_helper/InputHelper.js',
     'src/plugins/live_update/LiveUpdate.js',
+    'src/plugins/pwa_prompt/PwaPrompt.js',
   ];
 
   for (const relPath of pluginFiles) {
