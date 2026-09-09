@@ -1,5 +1,37 @@
+import React from "preact/compat";
 import { readValuesWithDefault, updatePref } from "../../js/pref.js";
 import { _ } from "../../js/i18n.js";
+
+let _InputHelperModal = null;
+
+class InputHelperOverlay extends (React?.Component || class {}) {
+  constructor(props) {
+    super(props);
+    this.state = { Component: _InputHelperModal };
+  }
+
+  componentDidMount() {
+    if (
+      !this.state.Component &&
+      typeof window !== "undefined" &&
+      typeof document !== "undefined" &&
+      !process?.versions?.node
+    ) {
+      import("./InputHelperModal.js")
+        .then((mod) => {
+          _InputHelperModal = mod.default || mod.InputHelperModal;
+          this.setState({ Component: _InputHelperModal });
+        })
+        .catch(() => {});
+    }
+  }
+
+  render() {
+    const Component = this.state.Component;
+    if (!Component) return null;
+    return React.createElement(Component, this.props);
+  }
+}
 
 export class InputHelper {
   static id = "input_helper";
@@ -78,6 +110,18 @@ export class InputHelper {
       prefs.enableInputHelper !== undefined
         ? Boolean(prefs.enableInputHelper)
         : true;
+
+    if (
+      typeof window !== "undefined" &&
+      typeof document !== "undefined" &&
+      !process?.versions?.node
+    ) {
+      import("./InputHelperModal.js")
+        .then((mod) => {
+          _InputHelperModal = mod.default || mod.InputHelperModal;
+        })
+        .catch(() => {});
+    }
   }
 
   destroy() {
@@ -89,14 +133,66 @@ export class InputHelper {
 
   show() {
     this.showsModal = true;
+    this.app?.dispatchEvent?.(new CustomEvent("term:overlay:update"));
   }
 
   hide() {
     this.showsModal = false;
+    this.app?.dispatchEvent?.(new CustomEvent("term:overlay:update"));
   }
 
   toggle() {
     this.showsModal = !this.showsModal;
+    this.app?.dispatchEvent?.(new CustomEvent("term:overlay:update"));
     return this.showsModal;
+  }
+
+  handleReset = () => {
+    const resetCmd = this.app?.site?.getEditorColorResetCommand?.();
+    if (resetCmd) {
+      this.app?.send?.(resetCmd);
+    }
+  };
+
+  handleCmdSend = (cmd) => {
+    const app = this.app;
+    if (!app) return;
+    const sel = app.view?.getSelectionColRow?.();
+    if (sel && app.buf?.pageState == 6) {
+      const resetCmd = app.site?.getEditorColorResetCommand?.() || "";
+      let y = app.buf.cur_y;
+      let selCmd = "\x1b[H";
+      if (y > sel.end.row) {
+        selCmd += "\x1b[A".repeat(y - sel.end.row);
+      } else if (y < sel.end.row) {
+        selCmd += "\x1b[B".repeat(sel.end.row - y);
+      }
+      let x = app.buf.cur_x;
+      if (x > sel.end.col) {
+        selCmd += "\x1b[D".repeat(x - sel.end.col);
+      } else if (x < sel.end.col) {
+        selCmd += "\x1b[C".repeat(sel.end.col - x);
+      }
+      app.send(cmd + resetCmd + selCmd);
+    } else {
+      app.send(cmd);
+    }
+  };
+
+  handleConvSend = (str) => {
+    this.app?.send?.(str);
+  };
+
+  renderOverlay({ app } = {}) {
+    if (!this.showsModal && !_InputHelperModal) return null;
+    const targetApp = app || this.app;
+    return React.createElement(InputHelperOverlay, {
+      show: this.showsModal,
+      site: targetApp ? targetApp.site : null,
+      onHide: () => this.hide(),
+      onReset: this.handleReset,
+      onCmdSend: this.handleCmdSend,
+      onConvSend: this.handleConvSend,
+    });
   }
 }

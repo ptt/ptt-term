@@ -3245,4 +3245,43 @@ test('PluginOverlay and App provide modular overlay registration for plugins', (
   assert.equal(appMock.getOverlays().length, 0);
 });
 
+test('InputHelper decouples UI from ContextMenu and renders via PluginOverlay', () => {
+  const contextMenuSource = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/index.js'),
+    'utf-8'
+  );
+  const inputHelperSource = fs.readFileSync(
+    path.resolve('src/plugins/input_helper/InputHelper.js'),
+    'utf-8'
+  );
+
+  // ContextMenu no longer imports or renders InputHelperModal
+  assert.ok(
+    !contextMenuSource.includes('InputHelperModal'),
+    'ContextMenu must not import or render InputHelperModal'
+  );
+  assert.ok(
+    !contextMenuSource.includes('showsInputHelper'),
+    'ContextMenu must not manage showsInputHelper state'
+  );
+
+  // ContextMenu delegates to input_helper plugin
+  assert.ok(
+    contextMenuSource.includes('getPlugin?.("input_helper")?.show?.()') ||
+      contextMenuSource.includes("getPlugin?.('input_helper')?.show?.()"),
+    'ContextMenu handleInputHelperClick must delegate to input_helper plugin show'
+  );
+
+  // InputHelper defines renderOverlay
+  assert.ok(
+    inputHelperSource.includes('renderOverlay'),
+    'InputHelper must define renderOverlay'
+  );
+  assert.ok(
+    inputHelperSource.includes('term:overlay:update'),
+    'InputHelper must trigger term:overlay:update on modal toggle'
+  );
+});
+
+
 

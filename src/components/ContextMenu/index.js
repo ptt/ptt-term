@@ -4,7 +4,6 @@ import { i18n } from "../../js/i18n";
 import { readValuesWithDefault, writeValues } from "../../js/pref";
 import { TouchKeyboard } from "../../touch/TouchKeyboard";
 import DropdownMenu from "./DropdownMenu";
-import InputHelperModal from "./InputHelperModal";
 import PrefModal from "./PrefModal";
 
 const EVENT_KEY_BY_HOT_KEY = {
@@ -50,7 +49,6 @@ const initialState = {
   normalEnabled: false,
   selEnabled: false,
   // --- Modal state ---
-  showsInputHelper: false,
   showsSettings: false,
 };
 
@@ -413,12 +411,11 @@ export class ContextMenu extends React.Component {
   };
 
   handleInputHelperClick = (event) => {
-    event.stopPropagation();
-    this.props.app.contextMenuShown = false;
-    this.setState({
-      ...initialState,
-      showsInputHelper: true,
-    });
+    if (event) {
+      event.stopPropagation();
+    }
+    this.handleHide();
+    this.props.app?.getPlugin?.("input_helper")?.show?.();
   };
 
   handleLiveArticleHelperClick = (event) => {
@@ -448,45 +445,6 @@ export class ContextMenu extends React.Component {
     });
   };
 
-  handleInputHelperHide = () => {
-    this.setState({ showsInputHelper: false });
-  };
-
-  handleInputHelperReset = () => {
-    const resetCmd = this.props.app.site.getEditorColorResetCommand();
-    this.props.app.send(resetCmd);
-  };
-
-  handleInputHelperCmdSend = (cmd) => {
-    const { app } = this.props;
-    const sel = app.view.getSelectionColRow();
-    if (sel && app.buf.pageState == 6) {
-      const resetCmd = app.site.getEditorColorResetCommand();
-      let y = app.buf.cur_y;
-      let selCmd = "";
-      selCmd += "\x1b[H";
-      if (y > sel.end.row) {
-        selCmd += "\x1b[A".repeat(y - sel.end.row);
-      } else if (y < sel.end.row) {
-        selCmd += "\x1b[B".repeat(sel.end.row - y);
-      }
-      let x = app.buf.cur_x;
-      if (x > sel.end.col) {
-        selCmd += "\x1b[D".repeat(x - sel.end.col);
-      } else if (x < sel.end.col) {
-        selCmd += "\x1b[C".repeat(sel.end.col - x);
-      }
-      app.send(cmd + resetCmd + selCmd);
-    } else {
-      app.send(cmd);
-    }
-  };
-
-  handleInputHelperConvSend = (str) => {
-    const { app } = this.props;
-    app.send(str);
-  };
-
   handlePrefSave = (values) => {
     const { app } = this.props;
     const nextState = onPrefSaveImpl(app, values);
@@ -509,12 +467,11 @@ export class ContextMenu extends React.Component {
       normalEnabled,
       selEnabled,
       selectedText,
-      showsInputHelper,
       showsSettings,
       isTouchDevice,
     } = this.state;
     const { app } = this.props;
-    const anyModalShown = showsInputHelper || showsSettings;
+    const anyModalShown = showsSettings;
     const liveUpdatePlugin = app?.liveUpdate || app?.getPlugin?.("live_update");
     const liveHelperEnabled = Boolean(
       liveUpdatePlugin ? liveUpdatePlugin.enabled : false
@@ -553,14 +510,6 @@ export class ContextMenu extends React.Component {
             onSettingsClick={this.handleSettingsClick}
           />
         </div>
-        <InputHelperModal
-          show={showsInputHelper}
-          site={app ? app.site : null}
-          onHide={this.handleInputHelperHide}
-          onReset={this.handleInputHelperReset}
-          onCmdSend={this.handleInputHelperCmdSend}
-          onConvSend={this.handleInputHelperConvSend}
-        />
         <PrefModal
           app={app}
           show={showsSettings}
