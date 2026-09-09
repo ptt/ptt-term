@@ -12,11 +12,12 @@ import {
   writeValues,
   parseCaretStyle,
   serializeCaretStyle,
+  parseOptionText,
 } from "../../js/pref";
 import { COLOR_SCHEMES } from "../../js/color_schemes.js";
 import { getAvailablePlugins } from "../../plugins/index.js";
 
-export { getDefaultPrefs, readValuesWithDefault, writeValues };
+export { getDefaultPrefs, readValuesWithDefault, writeValues, parseOptionText };
 
 const renderPluginIcon = (icon) => {
   switch (icon) {
@@ -255,6 +256,24 @@ const TabLegend = ({ title, subtitle, onCloseClick }) => (
   </legend>
 );
 
+export function renderOptionDesc(rawText) {
+  const { desc } = parseOptionText(rawText);
+  if (!desc) return null;
+  return (
+    <span
+      className="help-block"
+      style={{
+        fontSize: "12px",
+        opacity: 0.7,
+        marginTop: "4px",
+        display: "block",
+      }}
+    >
+      {desc}
+    </span>
+  );
+}
+
 const SelectOptionGroup = ({
   controlId,
   label,
@@ -262,23 +281,28 @@ const SelectOptionGroup = ({
   value,
   options,
   onChange,
-}) => (
-  <div className="form-group" id={controlId}>
-    <label className="control-label">{label}</label>
-    <select
-      className="form-control"
-      name={name}
-      value={value}
-      onChange={onChange}
-    >
-      {options.map((key, index) => (
-        <option key={key} value={index}>
-          {i18n(key)}
-        </option>
-      ))}
-    </select>
-  </div>
-);
+}) => {
+  const currentKey = options[value];
+  const currentText = currentKey ? i18n(currentKey) : "";
+  return (
+    <div className="form-group" id={controlId}>
+      <label className="control-label">{label}</label>
+      <select
+        className="form-control"
+        name={name}
+        value={value}
+        onChange={onChange}
+      >
+        {options.map((key, index) => (
+          <option key={key} value={index}>
+            {parseOptionText(i18n(key)).label}
+          </option>
+        ))}
+      </select>
+      {renderOptionDesc(currentText)}
+    </div>
+  );
+};
 
 export class PrefModal extends React.Component {
   state = {
@@ -538,15 +562,28 @@ export class PrefModal extends React.Component {
                     onChange={this.handleTextInputChange}
                   >
                     <option key="options_bellAlways" value="always">
-                      {i18n("options_bellAlways")}
+                      {parseOptionText(i18n("options_bellAlways")).label}
                     </option>
                     <option key="options_bellBackground" value="background">
-                      {i18n("options_bellBackground")}
+                      {parseOptionText(i18n("options_bellBackground")).label}
                     </option>
                     <option key="options_bellOff" value="off">
-                      {i18n("options_bellOff")}
+                      {parseOptionText(i18n("options_bellOff")).label}
                     </option>
                   </select>
+                  {renderOptionDesc(
+                    {
+                      always: i18n("options_bellAlways"),
+                      background: i18n("options_bellBackground"),
+                      off: i18n("options_bellOff"),
+                    }[
+                      values.enableBell === false || values.enableBell === "off"
+                        ? "off"
+                        : values.enableBell === "background"
+                          ? "background"
+                          : "always"
+                    ]
+                  )}
                 </div>
                 <div className="checkbox">
                   <label>
@@ -591,10 +628,15 @@ export class PrefModal extends React.Component {
                   >
                     {Object.keys(COLOR_SCHEMES).map((key) => (
                       <option key={key} value={key}>
-                        {i18n(COLOR_SCHEMES[key].titleI18n)}
+                        {parseOptionText(i18n(COLOR_SCHEMES[key].titleI18n)).label}
                       </option>
                     ))}
                   </select>
+                  {renderOptionDesc(
+                    COLOR_SCHEMES[values.colorScheme || "default"]
+                      ? i18n(COLOR_SCHEMES[values.colorScheme || "default"].titleI18n)
+                      : ""
+                  )}
                   <div className="PrefModal__ColorSchemePreview">
                     {(COLOR_SCHEMES[values.colorScheme || "default"] || COLOR_SCHEMES["default"]).colors.map((c, i) => (
                       <span key={i} style={{ backgroundColor: c }} />
@@ -630,18 +672,26 @@ export class PrefModal extends React.Component {
                     onChange={this.handleCaretShapeChange}
                   >
                     <option key="options_caretIbeam" value="ibeam">
-                      {i18n("options_caretIbeam")}
+                      {parseOptionText(i18n("options_caretIbeam")).label}
                     </option>
                     <option key="options_caretBlock" value="block">
-                      {i18n("options_caretBlock")}
+                      {parseOptionText(i18n("options_caretBlock")).label}
                     </option>
                     <option key="options_caretHalfBlock" value="half-block">
-                      {i18n("options_caretHalfBlock")}
+                      {parseOptionText(i18n("options_caretHalfBlock")).label}
                     </option>
                     <option key="options_caretUnderline" value="underline">
-                      {i18n("options_caretUnderline")}
+                      {parseOptionText(i18n("options_caretUnderline")).label}
                     </option>
                   </select>
+                  {renderOptionDesc(
+                    {
+                      ibeam: i18n("options_caretIbeam"),
+                      block: i18n("options_caretBlock"),
+                      "half-block": i18n("options_caretHalfBlock"),
+                      underline: i18n("options_caretUnderline"),
+                    }[caretShape]
+                  )}
                 </div>
                 <div className="checkbox" id="caretBlink">
                   <label>
@@ -678,15 +728,23 @@ export class PrefModal extends React.Component {
                     onChange={this.handleTextInputChange}
                   >
                     <option key="options_fixedTermSize" value="fixed-term-size">
-                      {i18n("options_fixedTermSize")}
+                      {parseOptionText(i18n("options_fixedTermSize")).label}
                     </option>
                     <option key="options_fixedFontSize" value="fixed-font-size">
-                      {i18n("options_fixedFontSize")}
+                      {parseOptionText(i18n("options_fixedFontSize")).label}
                     </option>
                     <option key="options_maxFontSize" value="max-font-size">
-                      {i18n("options_maxFontSize")}
+                      {parseOptionText(i18n("options_maxFontSize")).label}
                     </option>
                   </select>
+                  {!isTouch &&
+                    renderOptionDesc(
+                      {
+                        "fixed-term-size": i18n("options_fixedTermSize"),
+                        "fixed-font-size": i18n("options_fixedFontSize"),
+                        "max-font-size": i18n("options_maxFontSize"),
+                      }[values.termSizeMode]
+                    )}
                   {isTouch && (
                     <span
                       className="help-block"
@@ -808,12 +866,17 @@ export class PrefModal extends React.Component {
                     onChange={this.handleTextInputChange}
                   >
                     <option value="menu">
-                      {i18n("options_rightClickAction_menu")}
+                      {parseOptionText(i18n("options_rightClickAction_menu")).label}
                     </option>
                     <option value="paste">
-                      {i18n("options_rightClickAction_paste")}
+                      {parseOptionText(i18n("options_rightClickAction_paste")).label}
                     </option>
                   </select>
+                  {renderOptionDesc(
+                    (values.rightClickAction || "menu") === "paste"
+                      ? i18n("options_rightClickAction_paste")
+                      : i18n("options_rightClickAction_menu")
+                  )}
                 </div>
                 <div className="checkbox">
                   <label>
@@ -1154,12 +1217,17 @@ export class PrefModal extends React.Component {
                     onChange={this.handleTextInputChange}
                   >
                     <option value="control-h">
-                      {i18n("options_keyControlH")}
+                      {parseOptionText(i18n("options_keyControlH")).label}
                     </option>
                     <option value="control-?">
-                      {i18n("options_keyControlQuestion")}
+                      {parseOptionText(i18n("options_keyControlQuestion")).label}
                     </option>
                   </select>
+                  {renderOptionDesc(
+                    (values.backspaceKey || "control-h") === "control-?"
+                      ? i18n("options_keyControlQuestion")
+                      : i18n("options_keyControlH")
+                  )}
                 </div>
                 <div className="form-group" id="deleteKey">
                   <label className="control-label">
@@ -1172,15 +1240,22 @@ export class PrefModal extends React.Component {
                     onChange={this.handleTextInputChange}
                   >
                     <option value="escape-sequence">
-                      {i18n("options_keyEscapeSequence")}
+                      {parseOptionText(i18n("options_keyEscapeSequence")).label}
                     </option>
                     <option value="control-?">
-                      {i18n("options_keyControlQuestion")}
+                      {parseOptionText(i18n("options_keyControlQuestion")).label}
                     </option>
                     <option value="control-h">
-                      {i18n("options_keyControlH")}
+                      {parseOptionText(i18n("options_keyControlH")).label}
                     </option>
                   </select>
+                  {renderOptionDesc(
+                    {
+                      "escape-sequence": i18n("options_keyEscapeSequence"),
+                      "control-?": i18n("options_keyControlQuestion"),
+                      "control-h": i18n("options_keyControlH"),
+                    }[values.deleteKey || "escape-sequence"]
+                  )}
                 </div>
                 <div className="checkbox">
                   <label>

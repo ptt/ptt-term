@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { COLOR_SCHEMES, applyColorScheme } from '../src/js/color_schemes.js';
 import { termColors } from '../src/js/color_schemes.js';
-import { DEFAULT_PREFS, readValuesWithDefault } from '../src/js/pref.js';
+import { DEFAULT_PREFS, readValuesWithDefault, parseOptionText } from '../src/js/pref.js';
 import { TermKeyboard } from '../src/js/term_keyboard.js';
 
 test('COLOR_SCHEMES defines all standard terminal color palettes with 16 colors each', () => {
@@ -259,3 +259,64 @@ test('i18n files define all required translations for new settings', () => {
     'zh_TW note text must match user request exactly'
   );
 });
+
+test('parseOptionText extracts option label and description from parentheses', () => {
+  assert.deepEqual(parseOptionText('僅在背景時播放 (視窗不在前景)'), {
+    label: '僅在背景時播放',
+    desc: '視窗不在前景',
+  });
+  assert.deepEqual(parseOptionText('關閉 (靜音)'), {
+    label: '關閉',
+    desc: '靜音',
+  });
+  assert.deepEqual(parseOptionText('總是播放'), {
+    label: '總是播放',
+    desc: '',
+  });
+  assert.deepEqual(parseOptionText('1.0 (預設)'), {
+    label: '1.0',
+    desc: '預設',
+  });
+  assert.deepEqual(parseOptionText('Control-H (^H, 8)'), {
+    label: 'Control-H',
+    desc: '^H, 8',
+  });
+  assert.deepEqual(parseOptionText('標準跳脫字元序列 (^[3~)'), {
+    label: '標準跳脫字元序列',
+    desc: '^[3~',
+  });
+  assert.deepEqual(parseOptionText('全形括號測試 （說明內容）'), {
+    label: '全形括號測試',
+    desc: '說明內容',
+  });
+  assert.deepEqual(parseOptionText(null), {
+    label: null,
+    desc: '',
+  });
+});
+
+test('PrefModal source renders option descriptions beneath comboboxes and places supportMouseReporting note below checkbox', () => {
+  const prefModalSrc = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/PrefModal.js'),
+    'utf-8'
+  );
+
+  // supportMouseReporting note must NOT be inside .checkbox div
+  const checkboxMatch = prefModalSrc.match(/<div className="checkbox">[\s\S]*?name="supportMouseReporting"[\s\S]*?<\/div>/);
+  assert.ok(checkboxMatch, 'Must find supportMouseReporting checkbox div');
+  assert.ok(
+    !checkboxMatch[0].includes('options_supportMouseReporting_desc'),
+    'options_supportMouseReporting_desc must NOT be inside checkbox div'
+  );
+
+  // PrefModal must use parseOptionText and renderOptionDesc
+  assert.ok(
+    prefModalSrc.includes('renderOptionDesc'),
+    'PrefModal must use renderOptionDesc to render option notes beneath comboboxes'
+  );
+  assert.ok(
+    prefModalSrc.includes('parseOptionText'),
+    'PrefModal must use parseOptionText to strip parentheses from combo options'
+  );
+});
+

@@ -191,3 +191,21 @@ export function serializeCaretStyle(shape, blink) {
   if (shape === CARET_SHAPES.HALF_BLOCK) return "reverse";
   return shape;
 }
+
+/**
+ * Parse an option label and extract any parenthesized note/description.
+ * Supports both ASCII () and fullwidth （） parentheses.
+ * @param {string} text
+ * @returns {{ label: string, desc: string }}
+ */
+export function parseOptionText(text) {
+  if (typeof text !== "string") {
+    return { label: text, desc: "" };
+  }
+  const match = text.match(/^(.*?)\s*[(（]([^()（）]+)[)）]\s*$/);
+  if (match) {
+    return { label: match[1].trim(), desc: match[2].trim() };
+  }
+  return { label: text.trim(), desc: "" };
+}
+
