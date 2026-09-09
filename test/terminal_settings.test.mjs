@@ -412,4 +412,51 @@ test('PrefModal and PrefModal.css implement category bands with distinct colors 
   assert.ok(prefModalCss.includes('.PrefModal__MacListItem--debug'), 'PrefModal.css must define Debug item accent');
 });
 
+test('PrefModal category bands can be clicked to collapse and expand extension groups', () => {
+  const prefModalSrc = fs.readFileSync(PREF_MODAL_JS_PATH, 'utf-8');
+  const prefModalCss = fs.readFileSync(PREF_MODAL_CSS_PATH, 'utf-8');
+
+  // State and toggle handler
+  assert.ok(
+    prefModalSrc.includes('collapsedGroupIds: {}'),
+    'PrefModal state must track collapsedGroupIds'
+  );
+  assert.ok(
+    prefModalSrc.includes('handleToggleGroupCollapse'),
+    'PrefModal must provide handleToggleGroupCollapse method'
+  );
+
+  // Band click and accessibility attributes
+  assert.ok(
+    prefModalSrc.includes('onClick={this.handleToggleGroupCollapse(group.id)}'),
+    'PrefModal band must attach click handler to toggle collapse'
+  );
+  assert.ok(
+    prefModalSrc.includes('aria-expanded={!isGroupCollapsed}'),
+    'PrefModal band must set aria-expanded attribute'
+  );
+  assert.ok(
+    prefModalSrc.includes('PrefModal__MacListBandChevron'),
+    'PrefModal band must render disclosure chevron'
+  );
+  assert.ok(
+    prefModalSrc.includes('PrefModal__MacListBand--collapsed'),
+    'PrefModal band must apply collapsed class name when group is collapsed'
+  );
+
+  // CSS pointer, transitions and collapsed chevron rotation
+  assert.ok(
+    prefModalCss.includes('cursor: pointer;'),
+    'PrefModal.css must set cursor: pointer on band'
+  );
+  assert.ok(
+    prefModalCss.includes('.PrefModal__MacListBandChevron'),
+    'PrefModal.css must style .PrefModal__MacListBandChevron'
+  );
+  assert.ok(
+    prefModalCss.includes('.PrefModal__MacListBand--collapsed .PrefModal__MacListBandChevron'),
+    'PrefModal.css must rotate chevron when band is collapsed'
+  );
+});
+
 

@@ -404,6 +404,7 @@ export class PrefModal extends React.Component {
     navActiveKey: "general",
     values: readValuesWithDefault(),
     expandedPluginId: null,
+    collapsedGroupIds: {},
   };
 
   replacements = {
@@ -479,6 +480,19 @@ export class PrefModal extends React.Component {
     this.setState((prevState) => ({
       expandedPluginId:
         prevState.expandedPluginId === pluginId ? null : pluginId,
+    }));
+  };
+
+  handleToggleGroupCollapse = (groupId) => (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    this.setState((prevState) => ({
+      collapsedGroupIds: {
+        ...prevState.collapsedGroupIds,
+        [groupId]: !prevState.collapsedGroupIds?.[groupId],
+      },
     }));
   };
 
@@ -1029,15 +1043,45 @@ export class PrefModal extends React.Component {
                 <div className="PrefModal__MacList">
                   {groupPlugins(plugins).map((group) => {
                     const groupTitle = i18n(group.titleKey) || group.title;
+                    const isGroupCollapsed = Boolean(
+                      this.state.collapsedGroupIds?.[group.id]
+                    );
                     return (
                       <React.Fragment key={group.id}>
                         <div
                           className={cx(
                             "PrefModal__MacListBand",
-                            `PrefModal__MacListBand--${group.id}`
+                            `PrefModal__MacListBand--${group.id}`,
+                            {
+                              "PrefModal__MacListBand--collapsed": isGroupCollapsed,
+                            }
                           )}
+                          onClick={this.handleToggleGroupCollapse(group.id)}
+                          role="button"
+                          tabIndex={0}
+                          aria-expanded={!isGroupCollapsed}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              this.handleToggleGroupCollapse(group.id)(e);
+                            }
+                          }}
                         >
                           <div className="PrefModal__MacListBandHeader">
+                            <span className="PrefModal__MacListBandChevron">
+                              <svg
+                                viewBox="0 0 10 10"
+                                width="9"
+                                height="9"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <polyline points="2 3 5 6 8 3" />
+                              </svg>
+                            </span>
                             {renderGroupIcon(group.id)}
                             <span className="PrefModal__MacListBandTitle">
                               {groupTitle}
@@ -1047,7 +1091,8 @@ export class PrefModal extends React.Component {
                             {group.plugins.length}
                           </span>
                         </div>
-                        {group.plugins.map((plugin) => {
+                        {!isGroupCollapsed
+                          ? group.plugins.map((plugin) => {
                           const pluginId = plugin.id || plugin.name;
                           const isChecked = Boolean(
                             plugin.prefKey ? values[plugin.prefKey] : plugin.enabled
@@ -1311,8 +1356,9 @@ export class PrefModal extends React.Component {
                         )}
                             </div>
                           );
-                        })}
-                      </React.Fragment>
+                        })
+                      : null}
+                    </React.Fragment>
                     );
                   })}
                 </div>

@@ -258,13 +258,44 @@ dialog.PrefModal .NativeDialog__content {
   border-bottom: 1px solid #e5e5ea;
   box-sizing: border-box;
   user-select: none;
-  cursor: default;
+  cursor: pointer;
+  transition: background-color 0.15s ease, filter 0.15s ease;
+}
+
+.PrefModal__MacListBand:hover {
+  filter: brightness(0.96);
+}
+
+.PrefModal__MacListBand:active {
+  filter: brightness(0.92);
+}
+
+.PrefModal__MacListBand:focus-visible {
+  outline: 2px solid #007aff;
+  outline-offset: -2px;
 }
 
 .PrefModal__MacListBandHeader {
   display: flex;
   align-items: center;
   gap: 7px;
+}
+
+.PrefModal__MacListBandChevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  color: inherit;
+  opacity: 0.7;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: rotate(0deg);
+}
+
+.PrefModal__MacListBand--collapsed .PrefModal__MacListBandChevron {
+  transform: rotate(-90deg);
 }
 
 .PrefModal__MacListBandIcon {
