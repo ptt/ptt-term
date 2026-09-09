@@ -85,6 +85,18 @@ export class ConnectionLog {
     if (app) {
       this.app = app;
       app.connLog = this;
+      this._onPrefChangeBound = (e) => {
+        if (e.detail?.key === "captureConnectionLog") {
+          this.setEnabled(Boolean(e.detail.value));
+        }
+      };
+      this._onSocketBound = (e) => {
+        if (e.detail?.socket) {
+          this.attachSocket(e.detail.socket);
+        }
+      };
+      app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
+      app.addEventListener?.("term:socket", this._onSocketBound);
       if (app.conn?.rawSocket) {
         this.attachSocket(app.conn.rawSocket);
       }
@@ -95,6 +107,10 @@ export class ConnectionLog {
   destroy() {
     this.setEnabled(false);
     this.attachSocket(null);
+    if (this.app) {
+      this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
+      this.app.removeEventListener?.("term:socket", this._onSocketBound);
+    }
   }
 
   syncFromPrefs() {

@@ -244,11 +244,8 @@ export class TermBuf extends Event {
     this.scrollStart = 0;
     this.scrollEnd = validRows - 1;
     this._nowHighlight = -1;
-    this.tempMouseCol = 0;
-    this.tempMouseRow = 0;
     this.mouseCursor = 0;
     this.highlightCursor = true;
-    this.useMouseBrowsing = true;
     this.locator = new Locator(this);
     //this.scrollingTop=0;
     //this.scrollingBottom=23;
@@ -1133,11 +1130,7 @@ export class TermBuf extends Event {
       this.updateCharAttr();
 
       this.setPageState();
-      if (this.useMouseBrowsing) {
-        // clear highlight and reset cursor on page change
-        // without the redraw being called here
-        this.clearHighlight();
-      }
+      this.clearHighlight();
 
       this.dispatchEvent(new CustomEvent('change'));
 
@@ -1359,23 +1352,7 @@ export class TermBuf extends Event {
     return true;
   }
 
-  /**
-   * @param {number} trow
-   * @param {number} tcol
-   * @param {number} lastRowNum
-   * @param {number} cols
-   */
-  onMouse_move(tcol, trow, doRefresh) {
-    if (this.view?.app?.mouseBrowsing) {
-      this.view.app.mouseBrowsing.onMouseMove(tcol, trow, doRefresh);
-    }
-  }
 
-  resetMousePos() {
-    if (this.view?.app?.mouseBrowsing) {
-      this.view.app.mouseBrowsing.resetMousePos();
-    }
-  }
 
   /**
    * @param {number} row

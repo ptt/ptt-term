@@ -63,7 +63,24 @@ export class AntiIdle {
   }
 
   init({ app, view, buf } = {}) {
-    if (app) this.app = app;
+    if (app) {
+      this.app = app;
+      this._onTickBound = (e) => this.tick(e.detail?.intervalMs || 1000);
+      this._onActivityBound = () => this.resetIdle();
+      this._onPrefChangeBound = (e) => {
+        const { key, value } = e.detail || {};
+        if (key === "antiIdleTime") {
+          this.setInterval(value);
+        } else if (key === "enableAntiIdle") {
+          this.enabled = Boolean(value);
+        }
+      };
+      app.addEventListener?.("term:tick", this._onTickBound);
+      app.addEventListener?.("term:send", this._onActivityBound);
+      app.addEventListener?.("term:user-activity", this._onActivityBound);
+      app.addEventListener?.("term:connect", this._onActivityBound);
+      app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
+    }
     if (view) this.view = view;
     if (buf) this.buf = buf;
     this.syncFromPrefs();
@@ -104,5 +121,12 @@ export class AntiIdle {
 
   destroy() {
     this.idleTime = 0;
+    if (this.app) {
+      this.app.removeEventListener?.("term:tick", this._onTickBound);
+      this.app.removeEventListener?.("term:send", this._onActivityBound);
+      this.app.removeEventListener?.("term:user-activity", this._onActivityBound);
+      this.app.removeEventListener?.("term:connect", this._onActivityBound);
+      this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
+    }
   }
 }

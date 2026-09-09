@@ -16,14 +16,16 @@ import { setTerminalBellEnabled, setWindowFocused } from './bell.js';
 import { readValuesWithDefault, writeValues } from './pref.js';
 import AppOverlay from '../components/AppOverlay';
 import { getSite } from './sites';
+import { Event } from './event';
 import iconLogo from 'Icon/logo.png';
 import iconLogoConnect from 'Icon/logo_connect.png';
 import iconLogoDisconnect from 'Icon/logo_disconnect.png';
 
 function noop() {}
 
-export class App {
+export class App extends Event {
   constructor() {
+    super();
 
   this.useMouseBrowsing = true;
   this.preventContextMenuOnMouseUp = false;
@@ -48,8 +50,6 @@ export class App {
   this.plugins = [];
   this.inputInterceptors = [];
   this.initPlugins(BUILTIN_PLUGINS);
-  this._lastEasyReadingWheelTime = 0;
-  this._lastEasyReadingHideTime = 0;
   this.suppressWheelUntil = 0;
   this.suppressWheelContinuous = false;
   this.suppressWheelStartedAt = 0;
@@ -162,22 +162,6 @@ export class App {
   }
   }
 
-  get lastEasyReadingWheelTime() {
-    return this.easyReading ? this.easyReading.lastWheelTime : (this._lastEasyReadingWheelTime || 0);
-  }
-  set lastEasyReadingWheelTime(val) {
-    if (this.easyReading) this.easyReading.lastWheelTime = val;
-    this._lastEasyReadingWheelTime = val;
-  }
-
-  get lastEasyReadingHideTime() {
-    return this.easyReading ? this.easyReading.lastHideTime : (this._lastEasyReadingHideTime || 0);
-  }
-  set lastEasyReadingHideTime(val) {
-    if (this.easyReading) this.easyReading.lastHideTime = val;
-    this._lastEasyReadingHideTime = val;
-  }
-
   registerPlugin(plugin) {
     if (!plugin || this.plugins.includes(plugin)) return;
     this.plugins.push(plugin);
@@ -212,92 +196,6 @@ export class App {
     return this.plugins.find(
       (p) => p.id === name || p.name === name || p.constructor?.name === name
     );
-  }
-
-  get easyReading() {
-    return this.getPlugin('easy_reading') || this.getPlugin('EasyReading') || null;
-  }
-
-  set easyReading(val) {
-    if (val && !this.plugins.includes(val)) {
-      this.registerPlugin(val);
-    }
-  }
-
-  get liveUpdate() {
-    return this.getPlugin('live_update') || this.getPlugin('LiveUpdate') || null;
-  }
-
-  set liveUpdate(val) {
-    if (val && !this.plugins.includes(val)) {
-      this.registerPlugin(val);
-    }
-  }
-
-  get mouseBrowsing() {
-    return this.getPlugin('mouse_browsing') || this.getPlugin('MouseBrowsing') || null;
-  }
-
-  set mouseBrowsing(val) {
-    if (val && !this.plugins.includes(val)) {
-      this.registerPlugin(val);
-    }
-  }
-
-  get inputHelper() {
-    return this.getPlugin('input_helper') || this.getPlugin('InputHelper') || null;
-  }
-
-  set inputHelper(val) {
-    if (val && !this.plugins.includes(val)) {
-      this.registerPlugin(val);
-    }
-  }
-
-  get connLog() {
-    return this.getPlugin('conn_log') || this.getPlugin('ConnectionLog') || this._connLog || null;
-  }
-
-  set connLog(val) {
-    this._connLog = val;
-    if (val && !this.plugins.includes(val)) {
-      this.registerPlugin(val);
-    }
-  }
-
-  get antiIdle() {
-    return this.getPlugin('anti_idle') || this.getPlugin('AntiIdle') || null;
-  }
-
-  set antiIdle(val) {
-    if (val && !this.plugins.includes(val)) {
-      this.registerPlugin(val);
-    }
-  }
-
-  get fpsMeter() {
-    return this.getPlugin('fps_meter') || this.getPlugin('FpsMeter') || this.view?.fpsMeter || null;
-  }
-
-  set fpsMeter(val) {
-    if (val && !this.plugins.includes(val)) {
-      this.registerPlugin(val);
-    }
-  }
-
-  get touchDebugHUD() {
-    return (
-      this.getPlugin('touch_debug_hud') ||
-      this.getPlugin('TouchDebugHUD') ||
-      this.getPlugin('TouchDebugHUDPlugin') ||
-      null
-    );
-  }
-
-  set touchDebugHUD(val) {
-    if (val && !this.plugins.includes(val)) {
-      this.registerPlugin(val);
-    }
   }
 
   getPluginList() {
@@ -478,6 +376,7 @@ export class App {
 
   _setupWebsocketConn(url) {
     const wsConn = new Websocket(url);
+    this.dispatchEvent(new CustomEvent('term:socket', { detail: { socket: wsConn } }));
     for (const plugin of this.plugins) {
       plugin.onAttachSocket?.(wsConn);
     }
@@ -524,9 +423,9 @@ export class App {
     this.connectState = 1;
     this.updateTabIcon('connect');
     this.view.buf.setTitle({conn: this.connectedUrl.hostname});
-    this.antiIdle?.resetIdle?.();
+    this.dispatchEvent(new CustomEvent('term:connect'));
     this.timerEverySec = setTimer(true, () => {
-      this.antiIdle?.tick?.(1000);
+      this.dispatchEvent(new CustomEvent('term:tick', { detail: { intervalMs: 1000 } }));
       this.view.onBlink();
     }, 1000);
   }
@@ -551,7 +450,7 @@ export class App {
     this.cancelMbTimer();
 
     this.connectState = 2;
-    this.antiIdle?.resetIdle?.();
+    this.dispatchEvent(new CustomEvent('term:disconnect'));
 
     this.showAlert('connection', {
       onDismiss: () => {
@@ -562,12 +461,8 @@ export class App {
   }
 
   send(data) {
-    this.antiIdle?.resetIdle?.();
-    if (this.stream) {
-      this.stream.send(data);
-    } else if (this.conn) {
-      this.conn.send(data);
-    }
+    this.dispatchEvent(new CustomEvent('term:send', { detail: { data } }));
+    this.stream.send(data);
   }
 
   sendKey(key) {
@@ -575,13 +470,9 @@ export class App {
   }
 
   sendData(str) {
-    this.antiIdle?.resetIdle?.();
+    this.dispatchEvent(new CustomEvent('term:send', { detail: { data: str } }));
     if (this.connectState == 1) {
-      if (this.stream) {
-        this.stream.send(str);
-      } else if (this.conn) {
-        this.conn.convSend(str);
-      }
+      this.stream.send(str);
     }
   }
 
@@ -669,23 +560,8 @@ export class App {
   }
 
   switchToEasyReadingMode(doSwitch) {
-    if (this.easyReading) {
-      this.easyReading.leaveCurrentPost();
-    }
-    if (doSwitch) {
-      this.liveUpdate?.stop();
-      this.liveUpdate?.hideModal();
-      this.easyReading?.clearRows?.();
-      if (this.buf.pageState == 3 && (this.stream || this.conn)) {
-        const cmd = this.site.getReenterArticleCommand(this.buf);
-        this.send(cmd);
-      }
-    } else {
-      this.easyReading?.hide();
-    }
-    // request the full screen
-    if (this.stream || this.conn)
-      this.send(unescapeStr('^L'));
+    this.dispatchEvent(new CustomEvent('term:easy-reading:switch', { detail: { doSwitch } }));
+    this.send(unescapeStr('^L'));
   }
 
   async doCopy(str) {
@@ -717,7 +593,8 @@ export class App {
   const selection = this.lastSelection;
   let pageLines = null;
   if (this.hasActiveInputInterceptor() && this.buf.pageState == 3) {
-    pageLines = this.easyReading?.pageLines || null;
+    const interceptor = this.inputInterceptors.find((i) => i.pageLines);
+    pageLines = interceptor?.pageLines || null;
   }
 
   let ansiText = '';
@@ -743,7 +620,8 @@ export class App {
   }
 
   onDOMCopy(e) {
-  if (this.strToCopy) {
+    this.dispatchEvent(new CustomEvent('term:user-activity', { detail: { type: 'copy' } }));
+    if (this.strToCopy) {
     e.clipboardData.setData('text', this.strToCopy);
     e.preventDefault();
     console.log('copied: ', this.strToCopy);
@@ -858,21 +736,16 @@ export class App {
   }
 
   this.buf.resize(cols, rows);
-  if (this.stream) {
-    this.stream.sendNaws(cols, rows);
-  } else if (this.conn) {
-    this.conn.sendNaws(cols, rows);
-  }
+  this.stream.sendNaws(cols, rows);
   }
 
   switchMouseBrowsing() {
-    if (this.mouseBrowsing) {
-      this.mouseBrowsing.switchMouseBrowsing();
-      this.useMouseBrowsing = this.mouseBrowsing.enabled;
+    const mb = this.getPlugin('mouse_browsing');
+    if (mb?.switchMouseBrowsing) {
+      this.useMouseBrowsing = mb.switchMouseBrowsing();
       return this.useMouseBrowsing;
     }
     this.useMouseBrowsing = !this.useMouseBrowsing;
-    this.buf.useMouseBrowsing = this.useMouseBrowsing;
     return this.useMouseBrowsing;
   }
 
@@ -952,27 +825,21 @@ export class App {
     if (!this.conn || !this.conn.isConnected)
       return;
 
-    this.liveUpdate?.stop?.();
-
+    this.dispatchEvent(new CustomEvent('term:click', { detail: { event: e } }));
     this.dispatchMouseClick(e);
   }
 
   onMouse_move(cX, cY) {
     const pos = this.clientToPos(cX, cY);
-    if (this.mouseBrowsing) {
-      this.mouseBrowsing.onMouseMove(pos.col, pos.row, false);
-    } else {
-      this.buf.onMouse_move(pos.col, pos.row, false);
-    }
+    this.dispatchEvent(new CustomEvent('term:mouse-move', {
+      detail: { col: pos.col, row: pos.row, clientX: cX, clientY: cY, refresh: false }
+    }));
   }
 
   resetMouseCursor(cX, cY) {
-    if (this.mouseBrowsing) {
-      this.mouseBrowsing.resetMouseCursor();
-    } else {
-      if (this.buf.termWin) this.buf.termWin.style.cursor = 'auto';
-      this.buf.mouseCursor = 11;
-    }
+    this.dispatchEvent(new CustomEvent('term:reset-mouse-cursor', {
+      detail: { clientX: cX, clientY: cY }
+    }));
   }
 
   isMobileLayout() {
@@ -1064,21 +931,16 @@ export class App {
 
   onPrefChange(name, value) {
   try {
+    this.dispatchEvent(new CustomEvent('term:pref-change', { detail: { key: name, value } }));
+    this.dispatchEvent(new CustomEvent('prefChange', { detail: { name, value } }));
     switch (name) {
     case 'useMouseBrowsing': {
       const useMouseBrowsing = !!value;
       this.useMouseBrowsing = useMouseBrowsing;
-      this.buf.useMouseBrowsing = useMouseBrowsing;
-
-      if (!this.buf.useMouseBrowsing) {
-        if (this.buf.termWin) this.buf.termWin.style.cursor = 'auto';
-        this.buf.clearHighlight();
-        this.buf.mouseCursor = 0;
-        this.buf.nowHighlight = -1;
-        this.buf.tempMouseCol = 0;
-        this.buf.tempMouseRow = 0;
+      if (!useMouseBrowsing) {
+        if (this.buf?.termWin) this.buf.termWin.style.cursor = 'auto';
+        this.buf?.clearHighlight?.();
       }
-      this.buf.resetMousePos();
       this.view.redraw(true);
       this.view.updateCursorPos();
       break;
@@ -1114,26 +976,6 @@ export class App {
     case 'copyOnSelect':
       this.copyOnSelect = value;
       break;
-    case 'enableLiveUpdate':
-      if (this.liveUpdate) {
-        this.liveUpdate.setEnabled(!!value);
-      }
-      break;
-    case 'endTurnsOnLiveUpdate':
-      if (this.liveUpdate) {
-        this.liveUpdate.setEndTurnsOn(!!value);
-      }
-      break;
-    case 'liveUpdateInterval':
-      if (this.liveUpdate) {
-        this.liveUpdate.setIntervalSec(value);
-      }
-      break;
-    case 'showLiveUpdateToolbar':
-      if (this.liveUpdate) {
-        this.liveUpdate.setShowToolbar(!!value);
-      }
-      break;
     case 'enablePicPreview':
       // TODO: move this to ImagePreview.
       this.view.enablePicPreview = value;
@@ -1143,24 +985,6 @@ export class App {
       break;
     case 'enableBell':
       setTerminalBellEnabled(value);
-      break;
-    case 'enableEasyReading':
-      if (this.easyReading) {
-        this.easyReading.enabled = !!value;
-      }
-      break;
-    case 'enableInputHelper':
-      if (this.inputHelper) {
-        this.inputHelper.enabled = !!value;
-      }
-      break;
-    case 'antiIdleTime':
-      this.antiIdle?.setInterval?.(value);
-      break;
-    case 'enableAntiIdle':
-      if (this.antiIdle) {
-        this.antiIdle.enabled = Boolean(value);
-      }
       break;
     case 'dbcsDetect':
       this.view.dbcsDetect = value;
@@ -1188,34 +1012,23 @@ export class App {
       break;
     case 'useCanvasEngine':
       this.view.useCanvasEngine = !!value;
-      this.view.fpsMeter.setIsCanvas(this.view.useCanvasEngine);
+      this.view.fpsMeter?.setIsCanvas?.(this.view.useCanvasEngine);
       this.view.redraw(true);
       break;
     case 'showFps':
       this.view.setShowFps(!!value);
-      this.fpsMeter?.setEnabled?.(!!value);
-      break;
-    case 'enableTouchDebugHUD':
-      this.touchDebugHUD?.setEnabled?.(!!value);
       break;
     case 'smoothAnsi':
     case 'smoothAnsiArt':
       this.view.smoothAnsiArt = !!value;
-      this.view.fpsMeter.setSmoothAnsiArt(this.view.smoothAnsiArt);
+      this.view.fpsMeter?.setSmoothAnsiArt?.(this.view.smoothAnsiArt);
       this.view.redraw(true);
-      break;
-    case 'captureConnectionLog':
-      this.connLog.setEnabled(!!value);
       break;
     case 'supportMouseReporting':
       if (this.buf?.locator) {
         this.buf.locator.enabled = !!value;
       }
-      if (this.mouseBrowsing) {
-        this.mouseBrowsing.setSupportMouseReporting?.(value);
-      }
       break;
-
 
     default:
       break;
@@ -1268,7 +1081,7 @@ export class App {
         this.setInputAreaFocus();
         return;
       }
-      if (this.buf.useMouseBrowsing) {
+      if (this.useMouseBrowsing) {
         let doMouseCommand = true;
         if (e.target.className)
           if (this.checkClass(e.target.className))
@@ -1279,7 +1092,9 @@ export class App {
         if (skipMouseClick) {
           doMouseCommand = false;
           const pos = this.clientToPos(e.clientX, e.clientY);
-          this.buf.onMouse_move(pos.col, pos.row, true);
+          this.dispatchEvent(new CustomEvent('term:mouse-move', {
+            detail: { col: pos.col, row: pos.row, clientX: e.clientX, clientY: e.clientY, refresh: true }
+          }));
         }
         if (doMouseCommand) {
           this.onMouse_click(e);

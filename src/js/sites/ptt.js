@@ -330,11 +330,11 @@ export class PttSite extends BaseSite {
    * @returns {boolean}
    */
   handleCustomLink(url, app) {
-    if (!url || !app || !app.conn) return false;
+    if (!url || !app) return false;
     const m = /#aid=([0-9A-Za-z_-]{8})/.exec(url);
     if (m) {
       const aid = m[1];
-      app.conn.send(`#${aid}\r`);
+      app.send(`#${aid}\r`);
       app.setInputAreaFocus();
       return true;
     }

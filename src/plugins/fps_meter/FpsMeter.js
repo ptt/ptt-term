@@ -101,6 +101,12 @@ export class FpsMeter {
     if (app) {
       this.app = app;
       app.fpsMeter = this;
+      this._onPrefChangeBound = (e) => {
+        if (e.detail?.key === "showFps") {
+          this.setEnabled(Boolean(e.detail.value));
+        }
+      };
+      app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
       if (!this.onToggleCanvas) {
         this.onToggleCanvas = (isCanvas) => {
           if (this.app?.onPrefChange) {
@@ -140,6 +146,9 @@ export class FpsMeter {
 
   destroy() {
     this.setEnabled(false);
+    if (this.app) {
+      this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
+    }
   }
 
   ensureElement() {
@@ -349,8 +358,9 @@ export class FpsMeter {
     const mainText = `FPS: ${fpsText} (${durationText} ms)`;
     const canvasText = `[${engine}]`;
     const ansiText = this.smoothAnsiArt ? "[SmoothANSI]" : "[OriginalANSI]";
-    const isTouchDbgOn = this.app?.touchDebugHUD
-      ? this.app.touchDebugHUD.isActive()
+    const hud = this.app?.getPlugin?.("touch_debug_hud") || this.app?.touchDebugHUD;
+    const isTouchDbgOn = hud
+      ? hud.isActive()
       : typeof window !== "undefined" && window.isTouchDebugHUDActive
       ? window.isTouchDebugHUDActive()
       : false;
@@ -420,10 +430,11 @@ export class FpsMeter {
   }
 
   toggleTouchDebug() {
+    const hud = this.app?.getPlugin?.("touch_debug_hud") || this.app?.touchDebugHUD;
     if (this.onToggleTouchDebug) {
       this.onToggleTouchDebug();
-    } else if (this.app?.touchDebugHUD) {
-      this.app.touchDebugHUD.toggle();
+    } else if (hud) {
+      hud.toggle();
     } else if (typeof window !== "undefined") {
       if (window.toggleTouchDebugHUD) {
         window.toggleTouchDebugHUD();

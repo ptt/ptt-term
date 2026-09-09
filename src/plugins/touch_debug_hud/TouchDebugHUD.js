@@ -77,6 +77,12 @@ export class TouchDebugHUDPlugin {
     if (app) {
       this.app = app;
       app.touchDebugHUD = this;
+      this._onPrefChangeBound = (e) => {
+        if (e.detail?.key === "enableTouchDebugHUD") {
+          this.setEnabled(Boolean(e.detail.value));
+        }
+      };
+      app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
     }
     if (view) this.view = view;
     if (buf) this.buf = buf;
@@ -145,6 +151,9 @@ export class TouchDebugHUDPlugin {
 
   destroy() {
     this.setEnabled(false);
+    if (this.app) {
+      this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
+    }
     if (typeof window !== "undefined" && this._onChanged) {
       window.removeEventListener("term:touch-debug-changed", this._onChanged);
       window.removeEventListener("touch-debug:changed", this._onChanged);

@@ -3168,8 +3168,9 @@ test('ContextMenu and DropdownMenu dynamically link Live Helper and Input Helper
     'InputHelper init must set enabled'
   );
   assert.ok(
-    appSource.includes("case 'enableInputHelper':"),
-    'App onValuesPrefChange must handle enableInputHelper'
+    appSource.includes("case 'enableInputHelper':") ||
+      (appSource.includes('term:pref-change') && inputHelperSource.includes('term:pref-change')),
+    'App onValuesPrefChange must broadcast preferences or handle enableInputHelper'
   );
 });
 

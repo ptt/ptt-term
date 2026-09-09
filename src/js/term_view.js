@@ -328,18 +328,21 @@ export class TermView extends Event {
         this.fpsMeter?.recordFrame?.(performance.now() - t0, false);
       }
 
-      if (this.app?.dispatchScreenUpdate?.(changedLineHtmlStrs)) {
-        // Handled by plugin
-      } else if (this.app?.easyReading) {
-        if (this.app.easyReading.enabled) {
-          this.app.easyReading.updatePage(changedLineHtmlStrs);
-        } else if (this.app.easyReading.isActive?.()) {
-          this.app.easyReading.hide();
-        }
-      }
+      this.app?.dispatchEvent?.(
+        new CustomEvent('term:screen-update', { detail: { changedLineHtmlStrs } })
+      );
 
-      if (this.buf.prevPageState !== this.buf.pageState && (this.panX > 0 || this.panY > 0)) {
-        this.resetPan();
+      this.app?.dispatchScreenUpdate?.(changedLineHtmlStrs);
+
+      if (this.buf.prevPageState !== this.buf.pageState) {
+        this.app?.dispatchEvent?.(
+          new CustomEvent('term:state-change', {
+            detail: { state: this.buf.pageState, prevState: this.buf.prevPageState },
+          })
+        );
+        if (this.panX > 0 || this.panY > 0) {
+          this.resetPan();
+        }
       }
       this.buf.prevPageState = this.buf.pageState;
     }
@@ -973,17 +976,16 @@ export class TermView extends Event {
   }
 
   get useEasyReadingMode() {
-    return this.app?.easyReading?.enabled ?? this._easyReading?.enabled ?? false;
+    return this.app?.getPlugin?.('easy_reading')?.enabled ?? this._easyReading?.enabled ?? false;
   }
   set useEasyReadingMode(val) {
-    if (this.app?.easyReading) {
-      this.app.easyReading.enabled = Boolean(val);
-    } else if (this._easyReading) {
-      this._easyReading.enabled = Boolean(val);
+    const plugin = this.app?.getPlugin?.('easy_reading') || this._easyReading;
+    if (plugin) {
+      plugin.enabled = Boolean(val);
     }
   }
 
   isEasyReadingActive() {
-    return this.app?.easyReading?.isActive?.() ?? this._easyReading?.isActive?.() ?? false;
+    return (this.app?.getPlugin?.('easy_reading') || this._easyReading)?.isActive?.() ?? false;
   }
 }

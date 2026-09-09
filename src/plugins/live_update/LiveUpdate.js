@@ -73,6 +73,53 @@ export class LiveUpdate {
     if (view) this.view = view;
     if (buf) this.buf = buf;
 
+    if (this.app) {
+      this._onPrefChangeBound = (e) => {
+        const { key, value } = e.detail || {};
+        switch (key) {
+          case 'enableLiveUpdate':
+            this.setEnabled(Boolean(value));
+            break;
+          case 'endTurnsOnLiveUpdate':
+            this.setEndTurnsOn(Boolean(value));
+            break;
+          case 'liveUpdateInterval':
+            this.setIntervalSec(value);
+            break;
+          case 'showLiveUpdateToolbar':
+            this.setShowToolbar(Boolean(value));
+            break;
+        }
+      };
+      this._onStateChangeBound = (e) => {
+        const state = e.detail?.state;
+        if (state !== 2 && state !== 3 && this.active) {
+          this.stop();
+        }
+      };
+      this._onDisconnectBound = () => {
+        if (this.active) {
+          this.stop();
+        }
+      };
+      this._onEasyReadingSwitchBound = (e) => {
+        if (e.detail?.doSwitch && this.active) {
+          this.stop();
+          this.hideModal();
+        }
+      };
+      this._onClickBound = () => {
+        if (this.active) {
+          this.stop();
+        }
+      };
+      this.app.addEventListener?.('term:pref-change', this._onPrefChangeBound);
+      this.app.addEventListener?.('term:state-change', this._onStateChangeBound);
+      this.app.addEventListener?.('term:disconnect', this._onDisconnectBound);
+      this.app.addEventListener?.('term:easy-reading:switch', this._onEasyReadingSwitchBound);
+      this.app.addEventListener?.('term:click', this._onClickBound);
+    }
+
     const prefs = readValuesWithDefault();
     this.enabled = Boolean(
       prefs.enableLiveUpdate !== undefined
@@ -101,6 +148,13 @@ export class LiveUpdate {
   destroy() {
     this.stop();
     this.hideModal();
+    if (this.app) {
+      this.app.removeEventListener?.('term:pref-change', this._onPrefChangeBound);
+      this.app.removeEventListener?.('term:state-change', this._onStateChangeBound);
+      this.app.removeEventListener?.('term:disconnect', this._onDisconnectBound);
+      this.app.removeEventListener?.('term:easy-reading:switch', this._onEasyReadingSwitchBound);
+      this.app.removeEventListener?.('term:click', this._onClickBound);
+    }
     if (this.ui) {
       this.ui.destroy();
       this.ui = null;

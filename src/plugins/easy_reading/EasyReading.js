@@ -128,6 +128,32 @@ export class EasyReading {
         targetCore.easyReading = this;
       }
       targetCore.registerInputInterceptor?.(this);
+      this._onPrefChangeBound = (e) => {
+        if (e.detail?.key === 'enableEasyReading') {
+          this.enabled = Boolean(e.detail.value);
+          if (!this.enabled && this.isActive()) {
+            this.hide();
+          }
+        }
+      };
+      this._onEasyReadingSwitchBound = (e) => {
+        this.leaveCurrentPost();
+        if (e.detail?.doSwitch) {
+          this.clearRows();
+          if (this._termBuf?.pageState == 3 && this._core?.send) {
+            const cmd = this._core.site?.getReenterArticleCommand?.(this._termBuf);
+            if (cmd) this._core.send(cmd);
+          }
+        } else {
+          this.hide();
+        }
+      };
+      this._onScreenUpdateBound = (e) => {
+        this.onScreenUpdate(e.detail?.changedLineHtmlStrs);
+      };
+      targetCore.addEventListener?.('term:pref-change', this._onPrefChangeBound);
+      targetCore.addEventListener?.('term:easy-reading:switch', this._onEasyReadingSwitchBound);
+      targetCore.addEventListener?.('term:screen-update', this._onScreenUpdateBound);
     }
     if (targetBuf) {
       targetBuf._easyReading = this;
@@ -164,6 +190,9 @@ export class EasyReading {
       this._bufListenersAttached = false;
     }
     if (this._core) {
+      this._core.removeEventListener?.('term:pref-change', this._onPrefChangeBound);
+      this._core.removeEventListener?.('term:easy-reading:switch', this._onEasyReadingSwitchBound);
+      this._core.removeEventListener?.('term:screen-update', this._onScreenUpdateBound);
       this._core.unregisterInputInterceptor?.(this);
       if (this._core.easyReading === this) {
         this._core.easyReading = null;
@@ -302,10 +331,6 @@ export class EasyReading {
     }
     this.lastWheelTime = 0;
     this.lastHideTime = 0;
-    if (this._core) {
-      this._core.lastEasyReadingWheelTime = 0;
-      this._core.lastEasyReadingHideTime = 0;
-    }
   }
 
   showEasyReading() {
@@ -318,7 +343,6 @@ export class EasyReading {
     }
     this.lastHideTime = Date.now();
     if (this._core) {
-      this._core.lastEasyReadingHideTime = this.lastHideTime;
       this._core.suppressInertialWheel?.(600);
     }
     this.clearRows();

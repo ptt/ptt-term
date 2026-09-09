@@ -52,6 +52,9 @@ export class MouseBrowsing {
     const prefs = readValuesWithDefault();
     this.enabled = options.enabled ?? (prefs.useMouseBrowsing ?? false);
     this.supportMouseReporting = options.supportMouseReporting ?? (prefs.supportMouseReporting ?? true);
+    this.tempMouseCol = 0;
+    this.tempMouseRow = 0;
+    this.mouseCursor = 0;
   }
 
   get id() {
@@ -92,7 +95,27 @@ export class MouseBrowsing {
   }
 
   init({ app, view, buf } = {}) {
-    if (app) this.app = app;
+    if (app) {
+      this.app = app;
+      this._onPrefChangeBound = (e) => {
+        const { key, value } = e.detail || {};
+        if (key === "useMouseBrowsing") {
+          this.setEnabled(Boolean(value));
+        } else if (key === "supportMouseReporting") {
+          this.setSupportMouseReporting(Boolean(value));
+        }
+      };
+      this._onMouseMoveBound = (e) => {
+        const { col, row, refresh } = e.detail || {};
+        this.onMouseMove(col, row, !!refresh);
+      };
+      this._onResetMouseCursorBound = () => {
+        this.resetMouseCursor();
+      };
+      app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
+      app.addEventListener?.("term:mouse-move", this._onMouseMoveBound);
+      app.addEventListener?.("term:reset-mouse-cursor", this._onResetMouseCursorBound);
+    }
     if (view) this.view = view;
     if (buf) this.buf = buf;
     if (this.buf) {
@@ -112,10 +135,12 @@ export class MouseBrowsing {
     updatePref("supportMouseReporting", this.supportMouseReporting);
   }
 
-
-
-
   destroy() {
+    if (this.app) {
+      this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
+      this.app.removeEventListener?.("term:mouse-move", this._onMouseMoveBound);
+      this.app.removeEventListener?.("term:reset-mouse-cursor", this._onResetMouseCursorBound);
+    }
     if (this.buf) {
       this.buf.useMouseBrowsing = false;
       this.buf.clearHighlight();
@@ -188,8 +213,12 @@ export class MouseBrowsing {
       typeof tcol === "number" && Number.isFinite(tcol) ? Math.floor(tcol) : 0;
     trow =
       typeof trow === "number" && Number.isFinite(trow) ? Math.floor(trow) : 0;
-    buf.tempMouseCol = tcol;
-    buf.tempMouseRow = trow;
+    this.tempMouseCol = tcol;
+    this.tempMouseRow = trow;
+    if (buf) {
+      buf.tempMouseCol = tcol;
+      buf.tempMouseRow = trow;
+    }
 
     // If mouse reporting is active, suppress heuristic icon switches
     const locator = buf.locator;
@@ -297,10 +326,9 @@ export class MouseBrowsing {
 
   resetMousePos() {
     if (this.enabled) {
-      const buf = this.buf || this.app?.buf;
-      if (buf) {
-        this.onMouseMove(buf.tempMouseCol, buf.tempMouseRow, true);
-      }
+      const col = this.tempMouseCol ?? this.buf?.tempMouseCol ?? 0;
+      const row = this.tempMouseRow ?? this.buf?.tempMouseRow ?? 0;
+      this.onMouseMove(col, row, true);
     }
   }
 

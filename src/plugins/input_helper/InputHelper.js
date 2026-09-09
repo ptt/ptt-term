@@ -62,7 +62,15 @@ export class InputHelper {
   }
 
   init({ app, view, buf } = {}) {
-    if (app) this.app = app;
+    if (app) {
+      this.app = app;
+      this._onPrefChangeBound = (e) => {
+        if (e.detail?.key === "enableInputHelper") {
+          this.enabled = Boolean(e.detail.value);
+        }
+      };
+      app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
+    }
     if (view) this.view = view;
     if (buf) this.buf = buf;
     const prefs = readValuesWithDefault();
@@ -74,6 +82,9 @@ export class InputHelper {
 
   destroy() {
     this.showsModal = false;
+    if (this.app) {
+      this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
+    }
   }
 
   show() {
