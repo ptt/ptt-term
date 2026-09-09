@@ -92,6 +92,38 @@ export function getTerminalBellMode() {
   return bellMode;
 }
 
+export const BELL_SUSPEND_DELAY_MS = 500;
+
+let suspendTimer = null;
+
+export function cancelAudioSuspend() {
+  if (suspendTimer) {
+    clearTimeout(suspendTimer);
+    suspendTimer = null;
+  }
+}
+
+export function scheduleAudioSuspend(delayMs = BELL_SUSPEND_DELAY_MS) {
+  cancelAudioSuspend();
+  suspendTimer = setTimeout(() => {
+    suspendTimer = null;
+    if (
+      audioContext &&
+      audioContext.state === 'running' &&
+      typeof audioContext.suspend === 'function'
+    ) {
+      audioContext.suspend().catch(() => {});
+    }
+  }, delayMs);
+  if (suspendTimer && typeof suspendTimer.unref === 'function') {
+    suspendTimer.unref();
+  }
+}
+
+export function getAudioContext() {
+  return audioContext;
+}
+
 export function isTerminalBellEnabled() {
   return isBellEnabled && bellMode !== 'off';
 }
@@ -102,9 +134,12 @@ export function unlockAudioContext() {
     if (
       audioContext &&
       audioContext.state === 'suspended' &&
-      audioContext.resume
+      typeof audioContext.resume === 'function'
     ) {
-      audioContext.resume().catch(() => {});
+      audioContext.resume().then(() => {
+        // Suspend shortly after unlocking so the browser tab does not permanently show the audio/speaker icon.
+        scheduleAudioSuspend(100);
+      }).catch(() => {});
     }
     return true;
   } catch {
@@ -133,9 +168,11 @@ export function playTerminalBell(now = Date.now()) {
     if (!audioContext) audioContext = audioContextFactory();
     if (!audioContext) return false;
 
+    cancelAudioSuspend();
+
     if (
       audioContext.state === 'suspended' &&
-      audioContext.resume
+      typeof audioContext.resume === 'function'
     ) {
       audioContext.resume().catch(() => {});
     }
@@ -173,6 +210,7 @@ export function playTerminalBell(now = Date.now()) {
       } catch {
         // Disconnect failures are safely ignored.
       }
+      scheduleAudioSuspend(BELL_SUSPEND_DELAY_MS);
     };
 
     osc.start(t0);
@@ -185,6 +223,7 @@ export function playTerminalBell(now = Date.now()) {
 }
 
 export function resetBellAudioForTesting(factory) {
+  cancelAudioSuspend();
   audioContextFactory =
     factory ||
     (() => {

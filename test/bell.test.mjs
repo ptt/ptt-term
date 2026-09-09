@@ -13,6 +13,10 @@ import {
   unlockAudioContext,
   playTerminalBell,
   resetBellAudioForTesting,
+  scheduleAudioSuspend,
+  cancelAudioSuspend,
+  getAudioContext,
+  BELL_SUSPEND_DELAY_MS,
 } from '../src/js/bell.js';
 
 test('bell constants follow standard terminal conventions', () => {
@@ -174,3 +178,97 @@ test('bell multi-mode handling and window focus gating', () => {
   assert.equal(getTerminalBellMode(), 'off');
   assert.equal(isTerminalBellEnabled(), false);
 });
+
+test('audio context automatically suspends after bell playback to release audio output indicator', async () => {
+  let suspended = false;
+  let resumed = false;
+  let oscEnded = null;
+
+  class MockGainNode {
+    constructor() {
+      this.gain = {
+        setValueAtTime() {},
+        linearRampToValueAtTime() {},
+        exponentialRampToValueAtTime() {},
+      };
+    }
+    connect() {}
+    disconnect() {}
+  }
+
+  class MockOscillatorNode {
+    constructor() {
+      this.frequency = {
+        value: 0,
+        setValueAtTime() {},
+      };
+    }
+    connect() {}
+    disconnect() {}
+    start() {}
+    stop() {}
+    set onended(fn) {
+      oscEnded = fn;
+    }
+    get onended() {
+      return oscEnded;
+    }
+  }
+
+  class MockAudioContext {
+    constructor() {
+      this.currentTime = 0;
+      this.state = 'suspended';
+      this.destination = {};
+    }
+    createOscillator() {
+      return new MockOscillatorNode();
+    }
+    createGain() {
+      return new MockGainNode();
+    }
+    resume() {
+      resumed = true;
+      this.state = 'running';
+      return Promise.resolve();
+    }
+    suspend() {
+      suspended = true;
+      this.state = 'suspended';
+      return Promise.resolve();
+    }
+  }
+
+  resetBellAudioForTesting(() => new MockAudioContext());
+
+  // Play a bell
+  playTerminalBell(1000);
+  assert.equal(resumed, true);
+  assert.equal(suspended, false);
+  const ctx = getAudioContext();
+  assert.equal(ctx.state, 'running');
+
+  // Trigger onended with a short delay for test
+  assert.ok(oscEnded, 'osc.onended must be set');
+  scheduleAudioSuspend(20); // trigger fast suspend in test
+  assert.equal(ctx.state, 'running');
+
+  await new Promise(r => setTimeout(r, 50));
+  assert.equal(suspended, true);
+  assert.equal(ctx.state, 'suspended');
+
+  // Unlock audio context resumes then automatically suspends
+  suspended = false;
+  resumed = false;
+  resetBellAudioForTesting(() => new MockAudioContext());
+  unlockAudioContext();
+  const ctx2 = getAudioContext();
+  assert.equal(resumed, true);
+
+  await new Promise(r => setTimeout(r, 150));
+  assert.equal(suspended, true);
+  assert.equal(ctx2.state, 'suspended');
+
+  resetBellAudioForTesting();
+});
+
