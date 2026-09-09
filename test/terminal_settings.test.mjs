@@ -5,6 +5,7 @@ import path from 'node:path';
 import { COLOR_SCHEMES, applyColorScheme } from '../src/js/color_schemes.js';
 import { termColors } from '../src/js/color_schemes.js';
 import { DEFAULT_PREFS, readValuesWithDefault } from '../src/js/pref.js';
+import { TermKeyboard } from '../src/js/term_keyboard.js';
 
 test('COLOR_SCHEMES defines all standard terminal color palettes with 16 colors each', () => {
   const expectedSchemes = [
@@ -72,9 +73,49 @@ test('DEFAULT_PREFS includes new terminal settings with sensible defaults', () =
   assert.equal(DEFAULT_PREFS.colorScheme, 'default');
   assert.equal(DEFAULT_PREFS.trimTrailingSpaces, true);
   assert.equal(DEFAULT_PREFS.rightClickAction, 'menu');
+  assert.equal(DEFAULT_PREFS.enableVisualBell, false);
+  assert.equal(DEFAULT_PREFS.backspaceKey, 'control-h');
+  assert.equal(DEFAULT_PREFS.deleteKey, 'escape-sequence');
+  assert.equal(DEFAULT_PREFS.lineHeight, 1.0);
 });
 
-test('PrefModal source code includes Mouse tab, colorScheme selector, and notes', () => {
+test('TermKeyboard maps Backspace and Delete keys dynamically based on settings', () => {
+  const sent = [];
+  const sender = (data) => sent.push(data);
+
+  // 1. Default settings (backspace: control-h -> \b, delete: escape-sequence -> \x1b[3~)
+  const kbDefault = new TermKeyboard(sender);
+  assert.equal(kbDefault.getMappedKey('Backspace'), '\b');
+  assert.equal(kbDefault.getMappedKey('Delete'), '\x1b[3~');
+
+  kbDefault.sendKey('Backspace');
+  assert.equal(sent.pop(), '\b');
+  kbDefault.sendKey('Delete');
+  assert.equal(sent.pop(), '\x1b[3~');
+
+  // 2. Control-? (127 / \x7f) for Backspace
+  const kbCtrlQuestion = new TermKeyboard(sender, null, {
+    backspaceKey: 'control-?',
+    deleteKey: 'control-?',
+  });
+  assert.equal(kbCtrlQuestion.getMappedKey('Backspace'), '\x7f');
+  assert.equal(kbCtrlQuestion.getMappedKey('Delete'), '\x7f');
+
+  kbCtrlQuestion.sendKey('Backspace');
+  assert.equal(sent.pop(), '\x7f');
+  kbCtrlQuestion.sendKey('Delete');
+  assert.equal(sent.pop(), '\x7f');
+
+  // 3. Control-H for Delete
+  const kbCtrlHDelete = new TermKeyboard(sender, null, {
+    deleteKey: 'control-h',
+  });
+  assert.equal(kbCtrlHDelete.getMappedKey('Delete'), '\b');
+  kbCtrlHDelete.sendKey('Delete');
+  assert.equal(sent.pop(), '\b');
+});
+
+test('PrefModal source code includes Mouse tab, colorScheme, visualBell, lineHeight, and key mappings', () => {
   const prefModalSrc = fs.readFileSync(
     path.resolve('src/components/ContextMenu/PrefModal.js'),
     'utf-8'
@@ -108,13 +149,17 @@ test('PrefModal source code includes Mouse tab, colorScheme selector, and notes'
     'Mouse tab must contain supportMouseReporting description note'
   );
 
-  // 3. General tab contains warnBeforeClose
+  // 3. General tab contains warnBeforeClose and enableVisualBell
   assert.ok(
     prefModalSrc.includes('name="warnBeforeClose"'),
     'General tab must contain warnBeforeClose checkbox'
   );
+  assert.ok(
+    prefModalSrc.includes('name="enableVisualBell"'),
+    'General tab must contain enableVisualBell checkbox'
+  );
 
-  // 4. Appearance tab contains colorScheme selector and preview
+  // 4. Appearance tab contains colorScheme and lineHeight
   assert.ok(
     prefModalSrc.includes('name="colorScheme"'),
     'Appearance tab must contain colorScheme selector'
@@ -130,6 +175,20 @@ test('PrefModal source code includes Mouse tab, colorScheme selector, and notes'
   assert.ok(
     prefModalCss.includes('grid-template-columns: repeat(8, 1fr)'),
     'ColorSchemePreview must display 8 colors per row in 2 rows'
+  );
+  assert.ok(
+    prefModalSrc.includes('name="lineHeight"'),
+    'Appearance tab must contain lineHeight selector'
+  );
+
+  // 5. Advanced tab contains backspaceKey and deleteKey selectors
+  assert.ok(
+    prefModalSrc.includes('name="backspaceKey"'),
+    'Advanced tab must contain backspaceKey selector'
+  );
+  assert.ok(
+    prefModalSrc.includes('name="deleteKey"'),
+    'Advanced tab must contain deleteKey selector'
   );
 });
 
@@ -153,6 +212,14 @@ test('ContextMenu handles rightClickAction paste and Shift override', () => {
   );
 });
 
+test('CSS contains visual bell animation on screenContainer and row line height support', () => {
+  const mainCss = fs.readFileSync(path.resolve('src/css/main.css'), 'utf-8');
+  assert.ok(mainCss.includes('@keyframes visual-bell-flash'), 'main.css must define visual-bell-flash animation');
+  assert.ok(mainCss.includes('.visual-bell'), 'main.css must define visual-bell class');
+  assert.ok(mainCss.includes('filter: invert(1)'), 'visual-bell must invert colors');
+  assert.ok(mainCss.includes('line-height: var(--term-chh'), 'main.css rows must use --term-chh line-height');
+});
+
 test('i18n files define all required translations for new settings', () => {
   const zhTW = fs.readFileSync(path.resolve('src/js/zh_TW_messages.js'), 'utf-8');
   const enUS = fs.readFileSync(path.resolve('src/js/en_US_messages.js'), 'utf-8');
@@ -172,6 +239,13 @@ test('i18n files define all required translations for new settings', () => {
     'options_rightClickAction_menu',
     'options_rightClickAction_paste',
     'options_supportMouseReporting_desc',
+    'options_enableVisualBell',
+    'options_lineHeight',
+    'options_backspaceKey',
+    'options_deleteKey',
+    'options_keyControlH',
+    'options_keyControlQuestion',
+    'options_keyEscapeSequence',
   ];
 
   for (const key of requiredKeys) {

@@ -390,7 +390,7 @@ export class PrefModal extends React.Component {
 
   handleNumberInputChange = ({ target: { name, value } }) => {
     this.setState((prevState) => {
-      const numVal = parseInt(value, 10);
+      const numVal = name === "lineHeight" ? parseFloat(value) : parseInt(value, 10);
       let nextValues = changeNestedValue(prevState.values, name, numVal);
       if (name === "antiIdleTime") {
         nextValues = changeNestedValue(nextValues, "enableAntiIdle", numVal > 0);
@@ -548,6 +548,17 @@ export class PrefModal extends React.Component {
                     </option>
                   </select>
                 </div>
+                <div className="checkbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="enableVisualBell"
+                      checked={values.enableVisualBell}
+                      onChange={this.handleCheckboxChange}
+                    />
+                    {i18n("options_enableVisualBell")}
+                  </label>
+                </div>
                 <div className="form-group" id="lineWrap">
                   <label className="control-label">
                     {i18n("options_lineWrap")}
@@ -589,6 +600,24 @@ export class PrefModal extends React.Component {
                       <span key={i} style={{ backgroundColor: c }} />
                     ))}
                   </div>
+                </div>
+                <div className="form-group" id="lineHeight">
+                  <label className="control-label">
+                    {i18n("options_lineHeight")}
+                  </label>
+                  <select
+                    className="form-control"
+                    name="lineHeight"
+                    value={String(values.lineHeight || 1.0)}
+                    onChange={this.handleNumberInputChange}
+                  >
+                    <option value="1">1.0</option>
+                    <option value="1.1">1.1</option>
+                    <option value="1.2">1.2</option>
+                    <option value="1.3">1.3</option>
+                    <option value="1.4">1.4</option>
+                    <option value="1.5">1.5</option>
+                  </select>
                 </div>
                 <div className="form-group" id="cursorStyle">
                   <label className="control-label">
@@ -1114,6 +1143,45 @@ export class PrefModal extends React.Component {
                   title={i18n("options_advanced")}
                   onCloseClick={this.handleCloseClick}
                 />
+                <div className="form-group" id="backspaceKey">
+                  <label className="control-label">
+                    {i18n("options_backspaceKey")}
+                  </label>
+                  <select
+                    className="form-control"
+                    name="backspaceKey"
+                    value={values.backspaceKey || "control-h"}
+                    onChange={this.handleTextInputChange}
+                  >
+                    <option value="control-h">
+                      {i18n("options_keyControlH")}
+                    </option>
+                    <option value="control-?">
+                      {i18n("options_keyControlQuestion")}
+                    </option>
+                  </select>
+                </div>
+                <div className="form-group" id="deleteKey">
+                  <label className="control-label">
+                    {i18n("options_deleteKey")}
+                  </label>
+                  <select
+                    className="form-control"
+                    name="deleteKey"
+                    value={values.deleteKey || "escape-sequence"}
+                    onChange={this.handleTextInputChange}
+                  >
+                    <option value="escape-sequence">
+                      {i18n("options_keyEscapeSequence")}
+                    </option>
+                    <option value="control-?">
+                      {i18n("options_keyControlQuestion")}
+                    </option>
+                    <option value="control-h">
+                      {i18n("options_keyControlH")}
+                    </option>
+                  </select>
+                </div>
                 <div className="checkbox">
                   <label>
                     <input

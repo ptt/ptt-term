@@ -69,6 +69,8 @@ export class TermView extends Event {
   this.cursor = document.getElementById('cursor');
   this.termWin = document.getElementById('TermWindow');
   this.cursorStyle = 'blink';
+  this.lineHeight = 1.0;
+  this.fontSizePx = 24;
   this.enablePicPreview = true;
   this.picPreviewWhitelistOnly = true;
   this.scaleX = 1;
@@ -229,8 +231,24 @@ export class TermView extends Event {
     this.app?.stream?.send(data);
   }
 
-  sendKey(key) {
-    return this._keyboard ? this._keyboard.sendKey(key) : false;
+  get keyboard() {
+    return this._keyboard;
+  }
+
+  triggerVisualBell() {
+    const el = this.screenContainer || (typeof document !== 'undefined' ? document.getElementById('screenContainer') : null);
+    if (!el || !el.classList) return;
+    el.classList.remove('visual-bell');
+    void el.offsetWidth;
+    el.classList.add('visual-bell');
+    const onEnd = () => {
+      el.classList.remove('visual-bell');
+      el.removeEventListener('animationend', onEnd);
+    };
+    el.addEventListener('animationend', onEnd);
+    setTimeout(() => {
+      if (el && el.classList) el.classList.remove('visual-bell');
+    }, 200);
   }
 
   _convSend(data) {
@@ -289,9 +307,10 @@ export class TermView extends Event {
       const t0 = (this.showFps && this.fpsMeter?.enabled && typeof performance !== 'undefined')
         ? performance.now()
         : 0;
+      const currentFontSize = this.fontSizePx || (this.chw ? this.chw * 2 : this.chh);
       const screenInst = renderScreen(
         /* For Screen#componentDidUpdate */lines.slice(),
-        this.chh,
+        currentFontSize,
         /* showsLinkPreview */false,
         this.enablePicPreview,
         this.screenContainer,
@@ -306,6 +325,7 @@ export class TermView extends Event {
           rows: this.buf.rows,
           chw: this.chw,
           chh: this.chh,
+          fontSize: currentFontSize,
           fontFace: this.fontFace,
           highlightBG: this.highlightBG,
           nowHighlight: this.buf.nowHighlight,
@@ -446,22 +466,25 @@ export class TermView extends Event {
       return;
   }
 
-  setTermFontSize(cw, ch) {
+  setTermFontSize(cw, ch, fontSizePx) {
     const innerBounds = this.innerBounds;
     this.chw = cw;
     this.chh = ch;
-    const fontSize = this.chh + 'px';
+    this.fontSizePx = fontSizePx || (cw * 2);
+    const fontSize = this.fontSizePx + 'px';
+    const lineHeight = this.chh + 'px';
     const mainWidth = (this.chw * this.buf.cols + 10) + 'px';
     if (this.termWin && this.termWin.style) {
       this.termWin.style.setProperty('--term-font-size', fontSize);
       this.termWin.style.setProperty('--term-chw', this.chw + 'px');
       this.termWin.style.setProperty('--term-chh', this.chh + 'px');
+      this.termWin.style.setProperty('--term-line-height', lineHeight);
     }
     this.mainDisplay.style.fontSize = fontSize;
-    this.mainDisplay.style.lineHeight = fontSize;
+    this.mainDisplay.style.lineHeight = lineHeight;
     this.app?.dispatchFontUpdate?.({ fontSize });
     this.cursor.style.fontSize = fontSize;
-    this.cursor.style.lineHeight = fontSize;
+    this.cursor.style.lineHeight = lineHeight;
     this.applyCursorStyle();
     this.mainDisplay.style.overflowX = 'hidden';
     this.mainDisplay.style.overflowY = 'hidden';
@@ -799,23 +822,22 @@ export class TermView extends Event {
       let nowchw = this.chw;
       do {
         ++i;
-        nowchh = i*2;
+        nowchh = Math.round(i * 2 * (this.lineHeight || 1.0));
         nowchw = i;
         o_h = (nowchh) * rows;
         o_w = nowchw * cols;
       } while (o_h <= height && o_w <= width);
       --i;
-      nowchh = i*2;
       nowchw = i;
-      this.fixedResize(nowchh);
+      this.fixedResize(i * 2);
     }
   }
 
   fixedResize(fontSizePx) {
     let chw = fontSizePx / 2;
-    let chh = fontSizePx;
+    let chh = Math.round(fontSizePx * (this.lineHeight || 1.0));
 
-    this.setTermFontSize(chw, chh);
+    this.setTermFontSize(chw, chh, fontSizePx);
   }
 
   calcTermSizeFromFont(fontSizePx) {
@@ -823,7 +845,8 @@ export class TermView extends Event {
     let width = this.termWidth ? this.termWidth : this.innerBounds.width;
     let height = this.termHeight ? this.termHeight : this.innerBounds.height;
     let cols = Math.max(80, Math.min(200, Math.floor(2 * (width - 10) / fontSizePx)));
-    let rows = Math.max(24, Math.min(100, Math.floor(height / fontSizePx)));
+    let rowHeight = Math.round(fontSizePx * (this.lineHeight || 1.0));
+    let rows = Math.max(24, Math.min(100, Math.floor(height / rowHeight)));
     return this.buf.site.clampTermSize(cols, rows);
   }
 
@@ -833,7 +856,7 @@ export class TermView extends Event {
     let width = this.termWidth ? this.termWidth : this.innerBounds.width;
     let height = this.termHeight ? this.termHeight : this.innerBounds.height;
     let sizeX = Math.floor(2 * (width - 10) / termCols);
-    let sizeY = Math.floor(height / termRows);
+    let sizeY = Math.floor(height / (termRows * (this.lineHeight || 1.0)));
     return Math.min(sizeX, sizeY);
   }
 

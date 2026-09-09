@@ -72,6 +72,7 @@ export class CanvasScreen extends React.Component {
       this.props.fontFace !== prevProps.fontFace ||
       this.props.chw !== prevProps.chw ||
       this.props.chh !== prevProps.chh ||
+      this.props.fontSize !== prevProps.fontSize ||
       this.props.cols !== prevProps.cols ||
       this.props.rows !== prevProps.rows ||
       this.props.charset !== prevProps.charset ||
@@ -401,6 +402,7 @@ export class CanvasScreen extends React.Component {
       rows: this.getRows(),
       chw: this.getChw(),
       chh: this.getChh(),
+      fontSize: this.props.fontSize,
       lines: this.props.lines,
       charset: this.props.charset,
       currentHighlighted: this.state.currentHighlighted,

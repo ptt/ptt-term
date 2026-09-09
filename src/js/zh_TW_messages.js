@@ -157,6 +157,27 @@ export const zh_TW = {
   options_enableBell: {
     message: "終端機提示音 (Bell)",
   },
+  options_enableVisualBell: {
+    message: "螢幕閃爍警示 (Visual Bell)",
+  },
+  options_lineHeight: {
+    message: "行距 / 行高",
+  },
+  options_backspaceKey: {
+    message: "Backspace 鍵送出",
+  },
+  options_deleteKey: {
+    message: "Delete 鍵送出",
+  },
+  options_keyControlH: {
+    message: "Control-H (^H, 8)",
+  },
+  options_keyControlQuestion: {
+    message: "Control-? (^?, 127)",
+  },
+  options_keyEscapeSequence: {
+    message: "標準跳脫字元序列 (^[3~)",
+  },
   options_bellAlways: {
     message: "隨時播放提示音",
   },

@@ -304,8 +304,9 @@ export class CanvasRenderer {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const fontFace = options.fontFace || "MingLiu, monospace";
-    const fontString = `${chh}px ${fontFace}`;
-    const fontKey = `${chh}px ${fontFace}:${chw}`;
+    const fontSize = options.fontSize || (chw ? chw * 2 : chh);
+    const fontString = `${fontSize}px ${fontFace}`;
+    const fontKey = `${fontSize}px ${fontFace}:${chw}`;
 
     if (this.lastFontKey !== fontKey) {
       this.metricsCache.clear();

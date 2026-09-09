@@ -34,6 +34,15 @@ export class App extends Event {
 
   this.view = new TermView();
   this.buf = new TermBuf(80, 24);
+  this.enableVisualBell = false;
+  this.backspaceKey = 'control-h';
+  this.deleteKey = 'escape-sequence';
+  this.lineHeight = 1.0;
+  this.buf.addEventListener('bell', () => {
+    if (this.enableVisualBell) {
+      this.view.triggerVisualBell();
+    }
+  });
   this.site = getSite(process.env.SITE_TYPE || 'auto');
   this.buf.site = this.site;
   this.buf.setView(this.view);
@@ -1015,6 +1024,33 @@ export class App extends Event {
       break;
     case 'enableBell':
       setTerminalBellEnabled(value);
+      break;
+    case 'enableVisualBell':
+      this.enableVisualBell = !!value;
+      break;
+    case 'backspaceKey':
+      this.backspaceKey = value;
+      if (this.view && this.view._keyboard) {
+        this.view._keyboard.backspaceKey = value;
+      }
+      break;
+    case 'deleteKey':
+      this.deleteKey = value;
+      if (this.view && this.view._keyboard) {
+        this.view._keyboard.deleteKey = value;
+      }
+      break;
+    case 'lineHeight':
+      this.lineHeight = parseFloat(value) || 1.0;
+      if (this.view) {
+        this.view.lineHeight = this.lineHeight;
+      }
+      try {
+        this.applyTermSizeMode(this.prefValues);
+      } catch (e) {}
+      if (this.view) {
+        this.view.redraw(true);
+      }
       break;
     case 'dbcsDetect':
       this.view.dbcsDetect = value;

@@ -158,6 +158,27 @@ export const en_US = {
   options_enableBell: {
     message: "Terminal bell (BEL)",
   },
+  options_enableVisualBell: {
+    message: "Visual bell (screen flash)",
+  },
+  options_lineHeight: {
+    message: "Line spacing / Line height",
+  },
+  options_backspaceKey: {
+    message: "The Backspace key generates",
+  },
+  options_deleteKey: {
+    message: "The Delete key generates",
+  },
+  options_keyControlH: {
+    message: "Control-H (^H, 8)",
+  },
+  options_keyControlQuestion: {
+    message: "Control-? (^?, 127)",
+  },
+  options_keyEscapeSequence: {
+    message: "Standard ESC sequence (^[3~)",
+  },
   options_bellAlways: {
     message: "Always play sound",
   },

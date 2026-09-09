@@ -2,6 +2,7 @@ export const DEFAULT_PREFS = {
   enablePicPreview: true,
   picPreviewWhitelistOnly: true,
   enableBell: "always",
+  enableVisualBell: false,
   warnBeforeClose: true,
   enableEasyReading: false,
   enableLiveUpdate: false,
@@ -22,6 +23,10 @@ export const DEFAULT_PREFS = {
   enableInputHelper: true,
   enableTouchDebugHUD: false,
 
+  // keyboard
+  backspaceKey: "control-h",
+  deleteKey: "escape-sequence",
+
   // mouse browsing
   useMouseBrowsing: false,
   mouseBrowsingHighlight: true,
@@ -34,6 +39,7 @@ export const DEFAULT_PREFS = {
 
   // displays
   colorScheme: 'default',
+  lineHeight: 1.0,
   cursorStyle: 'blink',
   fontFitWindowWidth: false,
   fontFace: "MingLiu,SymMingLiu,'Noto Sans Mono CJK TC','PingFang TC',monospace",
@@ -88,6 +94,10 @@ export const readValuesWithDefault = () => {
       }
       if (saved.fontSize === 999 || saved.fontSize === undefined) {
         prefs.fontSize = DEFAULT_PREFS.fontSize;
+      }
+      if (saved.lineHeight !== undefined) {
+        const parsedLineHeight = parseFloat(saved.lineHeight);
+        prefs.lineHeight = !isNaN(parsedLineHeight) && parsedLineHeight > 0 ? parsedLineHeight : 1.0;
       }
     }
     return prefs;

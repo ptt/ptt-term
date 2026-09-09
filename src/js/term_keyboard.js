@@ -42,11 +42,26 @@ export class TermKeyboard extends Event {
   /**
    * @param {function(string): boolean} send
    * @param {function(object)|EventTarget} [onKey]
+   * @param {object} [options]
    */
-  constructor(send, onKey = null) {
+  constructor(send, onKey = null, options = {}) {
     super();
     this._sendFunc = send;
     this._onKey = onKey;
+    this.backspaceKey = options.backspaceKey || 'control-h';
+    this.deleteKey = options.deleteKey || 'escape-sequence';
+  }
+
+  getMappedKey(key) {
+    if (key === 'Backspace') {
+      return this.backspaceKey === 'control-?' ? '\x7f' : '\b';
+    }
+    if (key === 'Delete') {
+      if (this.deleteKey === 'control-?') return '\x7f';
+      if (this.deleteKey === 'control-h') return '\b';
+      return '\x1b[3~';
+    }
+    return KeyMap[key];
   }
 
   _send(data) {
@@ -66,7 +81,7 @@ export class TermKeyboard extends Event {
    * @returns {boolean}
    */
   sendKey(key) {
-    const mapped = KeyMap[key];
+    const mapped = this.getMappedKey(key);
     if (mapped) {
       return this._send(mapped);
     }
@@ -106,7 +121,7 @@ export class TermKeyboard extends Event {
         return false;
       }
 
-      let mapped = KeyMap[e.key];
+      let mapped = this.getMappedKey(e.key);
       if (mapped) {
         const sent = this._send(mapped);
         this._fireKeyEvent(e.key, mapped, e);
