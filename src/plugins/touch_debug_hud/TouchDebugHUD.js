@@ -89,7 +89,12 @@ export class TouchDebugHUDPlugin {
           this.setEnabled(Boolean(e.detail.value));
         }
       };
+      this._onToggleBound = () => this.toggle();
+      app.addEventListener?.("term:toggle-touch-debug", this._onToggleBound);
       app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
+      if (typeof window !== "undefined") {
+        window.addEventListener?.("term:toggle-touch-debug", this._onToggleBound);
+      }
     }
     if (view) this.view = view;
     if (buf) this.buf = buf;
@@ -114,6 +119,18 @@ export class TouchDebugHUDPlugin {
     const isEnabled = Boolean(enabled);
     this.enabled = isEnabled;
     this.app?.dispatchEvent?.(new CustomEvent("term:overlay:update"));
+    this.app?.dispatchEvent?.(
+      new CustomEvent("term:touch-debug-changed", {
+        detail: { enabled: isEnabled },
+      })
+    );
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("term:touch-debug-changed", {
+          detail: { enabled: isEnabled },
+        })
+      );
+    }
     if (this.component) {
       this.component.setHudEnabled(isEnabled);
     } else if (typeof window !== "undefined") {
@@ -122,11 +139,6 @@ export class TouchDebugHUDPlugin {
       } else if (!isEnabled && window.disableTouchDebugHUD) {
         window.disableTouchDebugHUD();
       } else {
-        window.dispatchEvent(
-          new CustomEvent("term:touch-debug-changed", {
-            detail: { enabled: isEnabled },
-          })
-        );
         window.dispatchEvent(
           new CustomEvent("touch-debug:changed", {
             detail: { enabled: isEnabled },
@@ -165,11 +177,15 @@ export class TouchDebugHUDPlugin {
   destroy() {
     this.setEnabled(false);
     if (this.app) {
+      this.app.removeEventListener?.("term:toggle-touch-debug", this._onToggleBound);
       this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
     }
-    if (typeof window !== "undefined" && this._onChanged) {
-      window.removeEventListener("term:touch-debug-changed", this._onChanged);
-      window.removeEventListener("touch-debug:changed", this._onChanged);
+    if (typeof window !== "undefined") {
+      window.removeEventListener?.("term:toggle-touch-debug", this._onToggleBound);
+      if (this._onChanged) {
+        window.removeEventListener("term:touch-debug-changed", this._onChanged);
+        window.removeEventListener("touch-debug:changed", this._onChanged);
+      }
     }
   }
 }

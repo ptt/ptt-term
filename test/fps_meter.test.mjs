@@ -305,3 +305,35 @@ test('FpsMeter dispatches term:toggle-touch-debug when window.toggleTouchDebugHU
   }
 });
 
+test('FpsMeter updates touch debug state when receiving term:touch-debug-changed event', () => {
+  const { documentMock } = setupMockDom();
+  global.document = documentMock;
+  const listeners = {};
+  const mockApp = {
+    addEventListener(name, fn) {
+      listeners[name] = fn;
+    },
+    removeEventListener(name) {
+      delete listeners[name];
+    },
+    dispatchEvent(evt) {
+      if (listeners[evt.type]) listeners[evt.type](evt);
+    },
+  };
+  let meter;
+
+  try {
+    meter = new FpsMeter(mockApp);
+    meter.setEnabled(true);
+    assert.equal(meter.touchDbgBtn.classList.contains('active'), false);
+
+    mockApp.dispatchEvent(new CustomEvent('term:touch-debug-changed', { detail: { enabled: true } }));
+    assert.equal(meter.touchDbgBtn.classList.contains('active'), true);
+
+    mockApp.dispatchEvent(new CustomEvent('term:touch-debug-changed', { detail: { enabled: false } }));
+    assert.equal(meter.touchDbgBtn.classList.contains('active'), false);
+  } finally {
+    if (meter) meter.destroy();
+    delete global.document;
+  }
+});
