@@ -372,6 +372,42 @@ export class TermBuf extends Event {
     this.view = view;
   }
 
+  get site() {
+    return this._site;
+  }
+
+  set site(val) {
+    if (this._site) {
+      this._site.detach(this);
+    }
+    this._site = val;
+    if (val) {
+      val.attach(this);
+    }
+  }
+
+  sendKey(key) {
+    return this.view ? this.view.sendKey(key) : false;
+  }
+
+  checkLeftDBCS() {
+    if (this.cur_x > 1 && this.lines) {
+      const line = this.lines[this.cur_y];
+      const ch = line && line[this.cur_x - 2];
+      if (ch && ch.isDBCSLead) return true;
+    }
+    return false;
+  }
+
+  checkCurrentDBCS() {
+    if (this.lines) {
+      const line = this.lines[this.cur_y];
+      const ch = line && line[this.cur_x];
+      if (ch && ch.isDBCSLead) return true;
+    }
+    return false;
+  }
+
   /**
    * @param {number[]} params
    */

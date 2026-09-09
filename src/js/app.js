@@ -513,6 +513,10 @@ export class App {
     }
   }
 
+  sendKey(key) {
+    return this.view ? this.view.sendKey(key) : false;
+  }
+
   sendData(str) {
     if (this.connectState == 1) {
       if (this.stream) {

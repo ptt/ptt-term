@@ -64,6 +64,22 @@ export class AutoSite extends BaseSite {
     return this.detectedSite || this.pttSite;
   }
 
+  attach(term) {
+    if (this.pttSite) this.pttSite._attachedTerm = term;
+    if (this.maple3Site) this.maple3Site._attachedTerm = term;
+    super.attach(term);
+  }
+
+  detach() {
+    if (this.pttSite) this.pttSite._attachedTerm = null;
+    if (this.maple3Site) this.maple3Site._attachedTerm = null;
+    super.detach();
+  }
+
+  onKey(e) {
+    return this.getActiveSite().onKey(e);
+  }
+
   lockSite(siteName, termBuf) {
     if (this.isLocked) {
       return;

@@ -1,6 +1,6 @@
-'use strict';
+import { Event } from './event.js';
 
-const KeyMap = {
+export const KeyMap = {
   'Backspace': '\b',
   'Tab': '\t',
   'Enter': '\r',
@@ -38,20 +38,21 @@ for (let i = 97; i <= 122; i++) {
 // FIXME: Under Mac, IME inputs will be sent as key of modified char.
 // Need to use key code directly.
 
-export class TermKeyboard {
-  // isLeftDB: function() -> bool
-  // isCurDB: function() -> bool
-  // send: function(data)
-  // site: BaseSite | function(): BaseSite
-  constructor(isLeftDB, isCurDB, send, site = null) {
-    this._checkLeftDB = isLeftDB;
-    this._checkCurDB = isCurDB;
+export class TermKeyboard extends Event {
+  /**
+   * @param {function(string): boolean} send
+   * @param {function(object)|EventTarget} [onKey]
+   */
+  constructor(send, onKey = null) {
+    super();
     this._sendFunc = send;
-    this._site = site;
+    this._onKey = onKey;
   }
 
   _send(data) {
-    this._sendFunc(data);
+    if (typeof this._sendFunc === 'function') {
+      this._sendFunc(data);
+    }
     return true;
   }
 
@@ -59,20 +60,33 @@ export class TermKeyboard {
     return this._send(String.fromCharCode(code));
   }
 
-  _checkDB(key) {
-    const site = typeof this._site === 'function' ? this._site() : this._site;
-    if (site && typeof site.checkDBCursor === 'function') {
-      return site.checkDBCursor(key, this._checkLeftDB, this._checkCurDB);
+  /**
+   * Send a specific key (e.g. navigation or character) without triggering key event listeners.
+   * @param {string} key 
+   * @returns {boolean}
+   */
+  sendKey(key) {
+    const mapped = KeyMap[key];
+    if (mapped) {
+      return this._send(mapped);
     }
-    switch (key) {
-      case 'Backspace':
-      case 'ArrowLeft':
-        return this._checkLeftDB();
-      case 'Delete':
-      case 'ArrowRight':
-        return this._checkCurDB();
+    if (typeof key === 'string' && key.length === 1) {
+      return this._send(key);
     }
     return false;
+  }
+
+  _fireKeyEvent(key, mapped, event) {
+    const detail = { key, mapped, term: this, event };
+    const customEvent = typeof CustomEvent !== 'undefined'
+      ? new CustomEvent('term:key', { detail })
+      : { type: 'term:key', detail };
+    this.dispatchEvent(customEvent);
+    if (typeof this._onKey === 'function') {
+      this._onKey(detail);
+    } else if (this._onKey && typeof this._onKey.dispatchEvent === 'function') {
+      this._onKey.dispatchEvent(customEvent);
+    }
   }
 
   onKeyDown(e) {
@@ -94,14 +108,14 @@ export class TermKeyboard {
 
       let mapped = KeyMap[e.key];
       if (mapped) {
-        if (this._checkDB(e.key)) {
-          return this._send(mapped + mapped);
-        } else {
-          return this._send(mapped);
-        }
+        const sent = this._send(mapped);
+        this._fireKeyEvent(e.key, mapped, e);
+        return sent;
       } else if (e.key.length == 1) {
         if (!e.isComposing && e.key !== 'Process' && e.keyCode !== 229) {
-          return this._send(e.key);
+          const sent = this._send(e.key);
+          this._fireKeyEvent(e.key, e.key, e);
+          return sent;
         }
         return false;
       }
@@ -110,7 +124,9 @@ export class TermKeyboard {
       let key = e.key.length == 1 ? e.key.toLowerCase() : e.key;
       let mappedCode = CtrlShiftMap[key];
       if (mappedCode !== undefined) {
-        return this._sendCharCode(mappedCode);
+        const sent = this._sendCharCode(mappedCode);
+        this._fireKeyEvent(e.key, String.fromCharCode(mappedCode), e);
+        return sent;
       }
     } else if (!e.ctrlKey && e.altKey && !e.shiftKey) {
       // Remapped keys, which conflict browser shortcuts.
@@ -119,18 +135,17 @@ export class TermKeyboard {
         case 'r':
         case 't':
         case 'w':
-        case 'a':
+        case 'a': {
           // Ctrl+key
-          return this._sendCharCode(e.key.toUpperCase().charCodeAt(0) - 64);
+          const code = e.key.toUpperCase().charCodeAt(0) - 64;
+          const sent = this._sendCharCode(code);
+          this._fireKeyEvent(e.key, String.fromCharCode(code), e);
+          return sent;
+        }
       }
     }
     return false;
   }
 
-  /**
-   * @deprecated Handled in onKeyDown
-   */
-  onKeyPress(e) {
-    return false;
-  }
+
 }

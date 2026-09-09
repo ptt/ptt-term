@@ -62,13 +62,76 @@ export class BaseSite {
   }
 
   /**
+   * Attach this site to a terminal, buffer, or keyboard target to listen for terminal events.
+   * @param {EventTarget} term 
+   */
+  attach(term) {
+    this.detach();
+    this._attachedTerm = term;
+    if (term) {
+      this._keyListener = (e) => this.onKey(e);
+      term.addEventListener('term:key', this._keyListener);
+    }
+  }
+
+  /**
+   * Detach this site from the terminal.
+   */
+  detach() {
+    if (this._attachedTerm && this._keyListener) {
+      this._attachedTerm.removeEventListener('term:key', this._keyListener);
+    }
+    this._attachedTerm = null;
+    this._keyListener = null;
+  }
+
+  /**
+   * Handle 'term:key' event.
+   * If crossing DBCS character, requests term to send another key.
+   * @param {CustomEvent|object} e
+   */
+  onKey(e) {
+    const detail = e.detail || e;
+    const { key, term, buf, view } = detail;
+    if (!key) return;
+
+    const targetTerm = this._attachedTerm?.sendKey
+      ? this._attachedTerm
+      : (term || view || buf);
+    if (!targetTerm?.sendKey) return;
+
+    const effectiveBuf = buf || targetTerm.buf || view?.buf || (this._attachedTerm?.lines ? this._attachedTerm : null);
+    const effectiveView = view ||
+      (targetTerm.checkLeftDBCS ? targetTerm : null) ||
+      (this._attachedTerm?.checkLeftDBCS ? this._attachedTerm : null);
+
+    const isLeftDB = () => {
+      const fn = effectiveView?.checkLeftDBCS ||
+                 effectiveBuf?.checkLeftDBCS ||
+                 this._attachedTerm?.checkLeftDBCS;
+      return typeof fn === 'function' ? fn.call(effectiveView || effectiveBuf || this._attachedTerm) : false;
+    };
+
+    const isCurDB = () => {
+      const fn = effectiveView?.checkCurrentDBCS ||
+                 effectiveBuf?.checkCurrentDBCS ||
+                 this._attachedTerm?.checkCurrentDBCS;
+      return typeof fn === 'function' ? fn.call(effectiveView || effectiveBuf || this._attachedTerm) : false;
+    };
+
+    if (this.checkDBCSCursor(key, isLeftDB, isCurDB)) {
+      targetTerm.sendKey(key);
+    }
+  }
+
+  /**
    * Check if keyboard navigation should send double keystrokes for DBCS character.
    * @param {string} key
    * @param {function(): boolean} isLeftDB
    * @param {function(): boolean} isCurDB
    * @returns {boolean}
    */
-  checkDBCursor(key, isLeftDB, isCurDB) {
+  checkDBCSCursor(key, isLeftDB, isCurDB) {
     switch (key) {
       case 'Backspace':
       case 'ArrowLeft':

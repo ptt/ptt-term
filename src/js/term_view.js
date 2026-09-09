@@ -1,5 +1,6 @@
 // Terminal View
 
+import { Event } from './event.js';
 import { TermKeyboard } from './term_keyboard';
 import { termColors, termInvColors } from './term_buf';
 import { renderRowHtml, renderScreen } from './term_ui';
@@ -13,9 +14,10 @@ import icon128 from 'Icon/icon_128.png';
 const ENTER_CHAR = '\r';
 const DEFINE_INPUT_BUFFER_SIZE = 12;
 
-export class TermView {
+export class TermView extends Event {
   constructor() {
-  //new pref - start
+    super();
+    //new pref - start
   this.termWidth = 0;
   this.termHeight = 0;
   this.dbcsDetect = true;
@@ -119,10 +121,16 @@ export class TermView {
   this.setFontFace('MingLiu,monospace');
 
   this._keyboard = new TermKeyboard(
-    () => this.checkLeftDB(),
-    () => this.checkCurDB(),
     (data) => this._send(data),
-    () => (this.app?.site || this.buf?.site));
+    (detail) => {
+      const termDetail = { ...detail, term: this, view: this, buf: this.buf };
+      const customEvent = typeof CustomEvent !== 'undefined'
+        ? new CustomEvent('term:key', { detail: termDetail })
+        : { type: 'term:key', detail: termDetail };
+      this.dispatchEvent(customEvent);
+      this.buf?.dispatchEvent?.(customEvent);
+    }
+  );
 
   this.input.addEventListener('compositionstart', (e) => {
     this.onCompositionStart(e);
@@ -237,6 +245,10 @@ export class TermView {
 
   _send(data) {
     this.app?.stream?.send(data);
+  }
+
+  sendKey(key) {
+    return this._keyboard ? this._keyboard.sendKey(key) : false;
   }
 
   _convSend(data) {
@@ -577,26 +589,14 @@ export class TermView {
     return [realX, realY];
   }
 
-  checkLeftDB() {
-    if (this.dbcsDetect && this.buf.cur_x>1) {
-      const lines = this.buf.lines;
-      const line = lines[this.buf.cur_y];
-      const ch = line[this.buf.cur_x-2];
-      if (ch.isDBCSLead)
-        return true;
-    }
-    return false;
+  checkLeftDBCS() {
+    if (!this.dbcsDetect || !this.buf) return false;
+    return this.buf.checkLeftDBCS();
   }
 
-  checkCurDB() {
-    if (this.dbcsDetect) {// && this.buf.cur_x<this.buf.cols-2){
-      const lines = this.buf.lines;
-      const line = lines[this.buf.cur_y];
-      const ch = line[this.buf.cur_x];
-      if (ch.isDBCSLead)
-        return true;
-    }
-    return false;
+  checkCurrentDBCS() {
+    if (!this.dbcsDetect || !this.buf) return false;
+    return this.buf.checkCurrentDBCS();
   }
 
   // Cursor

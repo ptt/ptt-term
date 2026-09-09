@@ -71,7 +71,7 @@ export class PttSite extends BaseSite {
    * PTT does not send double keystrokes for DBCS cursor movement.
    * @returns {boolean}
    */
-  checkDBCursor(key, isLeftDB, isCurDB) {
+  checkDBCSCursor(key, isLeftDB, isCurDB) {
     return false;
   }
 
