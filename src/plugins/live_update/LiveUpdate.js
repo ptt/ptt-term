@@ -160,12 +160,12 @@ export class LiveUpdate {
     const intervalMs = (this.intervalSec || 1) * 1000;
     this.timer = setInterval(() => {
       const pageState = this.buf ? this.buf.pageState : this.app?.buf?.pageState;
-      if (pageState === 3) {
-        if (typeof this.app?.send === 'function') {
-          this.app.send('r');
-        } else if (typeof this.app?.conn?.send === 'function') {
-          this.app.conn.send('r');
-        }
+      if (pageState === 3 || pageState === 2) {
+        const site = this.app?.site || this.buf?.site;
+        const cmd = site?.getRefreshLiveThreadCommand
+          ? site.getRefreshLiveThreadCommand(this.buf || this.app?.buf)
+          : 'r';
+        this.app?.send(cmd);
       }
     }, intervalMs);
     this.renderUI();

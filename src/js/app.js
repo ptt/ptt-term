@@ -83,7 +83,6 @@ export class App {
 
   this.appFocused = true;
 
-  this.endTurnsOnLiveUpdate = false;
   this.copyOnSelect = false;
 
   window.addEventListener('click', (e) => {
@@ -153,8 +152,6 @@ export class App {
   this.dblclickTimer=null;
   this.mbTimer=null;
   this.timerEverySec=null;
-  this.pushthreadAutoUpdateCount = 0;
-  this.maxPushthreadAutoUpdateCount = -1;
   this.prefValues = null;
   this.onWindowResize();
   this.setupOverlay();
@@ -502,7 +499,6 @@ export class App {
     this.timerEverySec = setTimer(true, () => {
       this.antiIdle();
       this.view.onBlink();
-      this.incrementCountToUpdatePushthread();
     }, 1000);
   }
 
@@ -644,15 +640,6 @@ export class App {
       return !this.view.getSelectionColRow();
     }
     return typeof window !== 'undefined' && window.getSelection ? window.getSelection().isCollapsed : true;
-  }
-
-  onToggleLiveHelperModalState() {
-    this.liveUpdate?.toggle();
-    this.liveUpdate?.showModal();
-  }
-
-  onDisableLiveHelperModalState() {
-    this.liveUpdate?.stop();
   }
 
   switchToEasyReadingMode(doSwitch) {
@@ -809,23 +796,6 @@ export class App {
     }
   }
 
-  incrementCountToUpdatePushthread(interval) {
-  if (this.maxPushthreadAutoUpdateCount == -1) {
-    this.pushthreadAutoUpdateCount = 0;
-    return;
-  }
-
-  if (++this.pushthreadAutoUpdateCount >= this.maxPushthreadAutoUpdateCount) {
-    this.pushthreadAutoUpdateCount = 0;
-    if ((this.buf.pageState == 3 || this.buf.pageState == 2) && (this.stream || this.conn)) {
-      this.site.refreshLiveThread(this.stream || this.conn, this.buf);
-    }
-  }
-  }
-  setAutoPushthreadUpdate(seconds) {
-  this.maxPushthreadAutoUpdateCount = seconds;
-  }
-
   onWindowResize() {
   this.view.innerBounds = this.getWindowInnerBounds();
 
@@ -973,8 +943,7 @@ export class App {
     if (!this.conn || !this.conn.isConnected)
       return;
 
-    // disable auto update pushthread if any command is issued;
-    this.onDisableLiveHelperModalState();
+    this.liveUpdate?.stop?.();
 
     this.dispatchMouseClick(e);
   }
@@ -1142,7 +1111,6 @@ export class App {
       }
       break;
     case 'endTurnsOnLiveUpdate':
-      this.endTurnsOnLiveUpdate = !!value;
       if (this.liveUpdate) {
         this.liveUpdate.setEndTurnsOn(!!value);
       }

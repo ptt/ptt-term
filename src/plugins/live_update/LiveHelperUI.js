@@ -1,5 +1,9 @@
 import { i18n } from '../../js/i18n.js';
 
+if (typeof document !== 'undefined' && (typeof process === 'undefined' || !process.versions?.node)) {
+  import('./LiveHelperModal.css');
+}
+
 export class LiveHelperUI {
   constructor(plugin) {
     this.plugin = plugin;
