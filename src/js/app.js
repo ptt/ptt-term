@@ -8,7 +8,6 @@ import { TelnetConnection, TelnetFilter } from './telnet';
 import { Stream } from './stream';
 import { Websocket } from './websocket';
 import { BUILTIN_PLUGINS } from '../plugins/index.js';
-import { ConnectionLog } from './conn_log';
 import { TouchController } from './touch_controller';
 import { i18n } from './i18n';
 import { unescapeStr } from './string_util';
@@ -49,7 +48,6 @@ export class App {
   this.plugins = [];
   this.inputInterceptors = [];
   this.initPlugins(BUILTIN_PLUGINS);
-  this.connLog = this.getPlugin('conn_log') || new ConnectionLog(this);
   this._lastEasyReadingWheelTime = 0;
   this._lastEasyReadingHideTime = 0;
   this.suppressWheelUntil = 0;
@@ -450,7 +448,9 @@ export class App {
 
   _setupWebsocketConn(url) {
     const wsConn = new Websocket(url);
-    this.connLog.attachSocket(wsConn);
+    for (const plugin of this.plugins) {
+      plugin.onAttachSocket?.(wsConn);
+    }
     this._attachConn(wsConn);
   }
 
@@ -1212,7 +1212,6 @@ export class App {
 
   isDialogOrExcludedTarget(e) {
     if (!e || !e.target) return false;
-    if (this.connLog && this.connLog.contains(e.target)) return true;
     if (typeof e.target.closest === 'function') {
       if (
         e.target.closest('dialog') ||
@@ -1404,8 +1403,6 @@ export class App {
 
   mouse_scroll(e) {
     if (this.modalShown || this.isDialogOrExcludedTarget(e)) 
-      return;
-    if (this.connLog && this.connLog.contains(e.target))
       return;
 
     const interceptorHandled = this.dispatchWheel(e);

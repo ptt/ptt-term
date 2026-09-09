@@ -1,6 +1,10 @@
 import { readValuesWithDefault, updatePref } from "../../js/pref.js";
 import { _ } from "../../js/i18n.js";
 
+if (typeof document !== 'undefined' && (typeof process === 'undefined' || !process.versions?.node)) {
+  import('./ConnectionLog.css');
+}
+
 export function bytesToHex(bytes) {
   if (!bytes || bytes.length === 0) return "";
   const hex = [];
@@ -240,6 +244,17 @@ export class ConnectionLog {
   contains(target) {
     if (!this.overlay || !target) return false;
     return this.overlay === target || this.overlay.contains(target);
+  }
+
+  onAttachSocket(socket) {
+    this.attachSocket(socket);
+  }
+
+  getSelectedText() {
+    if (this.hasSelection()) {
+      return window.getSelection().toString();
+    }
+    return null;
   }
 
   hasSelection() {

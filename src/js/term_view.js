@@ -883,11 +883,6 @@ export class TermView extends Event {
   }
 
   getSelectedText() {
-    if (this.app?.connLog?.hasSelection?.()) {
-      if (!window.getSelection().isCollapsed) {
-        return window.getSelection().toString();
-      }
-    }
     const interceptorText = this.app?.getInterceptorSelectedText?.();
     if (interceptorText !== null && interceptorText !== undefined) {
       return interceptorText;
