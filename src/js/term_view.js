@@ -73,6 +73,8 @@ export class TermView extends Event {
   this.fontSizePx = 24;
   this.enablePicPreview = true;
   this.picPreviewWhitelistOnly = true;
+  this.hyperlinkPreviewHook = null;
+  this.renderHyperlinkPreview = null;
   this.scaleX = 1;
   this.scaleY = 1;
 
@@ -285,6 +287,24 @@ export class TermView extends Event {
     this.dispatchEvent(new CustomEvent('term:render-frame', { detail }));
   }
 
+  handleHyperlinkHover(event, href) {
+    const detail = { event, href };
+    this.app?.dispatchEvent?.(new CustomEvent('term:hyperlink-hover', { detail }));
+    this.dispatchEvent(new CustomEvent('term:hyperlink-hover', { detail }));
+  }
+
+  handleHyperlinkLeave(event) {
+    const detail = { event };
+    this.app?.dispatchEvent?.(new CustomEvent('term:hyperlink-leave', { detail }));
+    this.dispatchEvent(new CustomEvent('term:hyperlink-leave', { detail }));
+  }
+
+  handleHyperlinkMove(event) {
+    const detail = { event };
+    this.app?.dispatchEvent?.(new CustomEvent('term:hyperlink-move', { detail }));
+    this.dispatchEvent(new CustomEvent('term:hyperlink-move', { detail }));
+  }
+
   update() {
     this.redraw(false);
   }
@@ -344,6 +364,13 @@ export class TermView extends Event {
           smoothAnsiArt: this.smoothAnsiArt,
           changedRows: changedRows,
           picPreviewWhitelistOnly: this.picPreviewWhitelistOnly !== false,
+          hyperlinkPreviewHook:
+            this.hyperlinkPreviewHook ||
+            this.app?.getPlugin?.("media_previewer")?.getHyperlinkPreviewHook?.(),
+          renderHyperlinkPreview: this.renderHyperlinkPreview,
+          onHyperlinkHover: (e, href) => this.handleHyperlinkHover(e, href),
+          onHyperlinkLeave: (e) => this.handleHyperlinkLeave(e),
+          onHyperlinkMove: (e) => this.handleHyperlinkMove(e),
         }
       );
       if (screenInst) {

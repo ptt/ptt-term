@@ -66,26 +66,52 @@ export class DOMScreen extends React.Component {
       this.props.lines !== prevProps.lines &&
       this.state.currentImagePreview
     ) {
-      this.setState(resetImagePreviewState());
+      const resetState =
+        this.props.hyperlinkPreviewHook?.resetPreviewState ||
+        this.props.resetHyperlinkPreviewState ||
+        resetImagePreviewState;
+      this.setState(resetState());
     }
   }
 
-  handleMouseMove = ({ clientX, clientY }) => {
-    const nextPos = updateImagePreviewMove(this.state, clientX, clientY);
+  handleMouseMove = (e) => {
+    const clientX = e?.clientX;
+    const clientY = e?.clientY;
+    this.props.onHyperlinkMove?.(e, { screen: this });
+    this.props.hyperlinkPreviewHook?.onMove?.(e, { screen: this });
+
+    const updateMove =
+      this.props.hyperlinkPreviewHook?.updateMove || updateImagePreviewMove;
+    const nextPos = updateMove(this.state, clientX, clientY);
     if (nextPos) {
       this.setState(nextPos);
     }
   };
 
   handleHyperLinkMouseOver = (e) => {
+    const href = e && e.currentTarget ? e.currentTarget.href : undefined;
+    const hookHandled = this.props.hyperlinkPreviewHook?.onHover?.(e, href, {
+      screen: this,
+    });
+    const propHandled =
+      this.props.onHyperlinkHover?.(e, href, { screen: this }) ??
+      this.props.onHyperlinkOver?.(e, href, { screen: this });
+
+    if (hookHandled === false || propHandled === false) {
+      return;
+    }
+
     if (this.props.enableLinkHoverPreview) {
-      const href = e && e.currentTarget ? e.currentTarget.href : undefined;
       if (href) {
         if (this.state.currentImagePreview && this.state.previewHref === href) {
           return;
         }
         const whitelistOnly = this.props.picPreviewWhitelistOnly !== false;
-        const request = createImagePreviewRequest(href, whitelistOnly);
+        const createRequest =
+          this.props.hyperlinkPreviewHook?.createPreviewRequest ||
+          this.props.createHyperlinkPreviewRequest ||
+          createImagePreviewRequest;
+        const request = createRequest(href, whitelistOnly);
         if (request) {
           this.setState({
             currentImagePreview: request,
@@ -107,8 +133,53 @@ export class DOMScreen extends React.Component {
     ) {
       return;
     }
-    this.setState(resetImagePreviewState());
+
+    const hookHandled = this.props.hyperlinkPreviewHook?.onLeave?.(e, {
+      screen: this,
+    });
+    const propHandled =
+      this.props.onHyperlinkLeave?.(e, { screen: this }) ??
+      this.props.onHyperlinkOut?.(e, { screen: this });
+
+    if (hookHandled === false || propHandled === false) {
+      return;
+    }
+
+    const resetState =
+      this.props.hyperlinkPreviewHook?.resetPreviewState ||
+      this.props.resetHyperlinkPreviewState ||
+      resetImagePreviewState;
+    this.setState(resetState());
   };
+
+  renderHyperlinkPreview() {
+    const previewState = {
+      request: this.state.currentImagePreview,
+      href: this.state.previewHref,
+      left: this.state.left,
+      top: this.state.top,
+    };
+    if (typeof this.props.renderHyperlinkPreview === "function") {
+      return this.props.renderHyperlinkPreview(previewState);
+    }
+    if (typeof this.props.hyperlinkPreviewHook?.renderPreview === "function") {
+      return this.props.hyperlinkPreviewHook.renderPreview(previewState);
+    }
+    if (
+      this.props.renderHyperlinkPreview === false ||
+      this.props.hyperlinkPreviewHook?.renderPreview === false
+    ) {
+      return null;
+    }
+    return (
+      <ImagePreviewer.HoverPreview
+        request={this.state.currentImagePreview}
+        href={this.state.previewHref}
+        left={this.state.left}
+        top={this.state.top}
+      />
+    );
+  }
 
   render() {
     return (
@@ -126,12 +197,7 @@ export class DOMScreen extends React.Component {
               onHyperLinkMouseOut={this.handleHyperLinkMouseOut}
             />
           ))}
-        <ImagePreviewer.HoverPreview
-          request={this.state.currentImagePreview}
-          href={this.state.previewHref}
-          left={this.state.left}
-          top={this.state.top}
-        />
+        {this.renderHyperlinkPreview()}
       </div>
     );
   }

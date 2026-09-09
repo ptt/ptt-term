@@ -3437,6 +3437,60 @@ test('i18n exports _ as alias of getI18nMessage with en_US -> zh_TW -> str fallb
   assert.equal(_('completely_non_existent_key_xyz'), 'completely_non_existent_key_xyz');
 });
 
+test('DOMScreen and CanvasScreen support hyperlink hover and preview hooks and TermView broadcasts events', async () => {
+  const domSource = fs.readFileSync(path.resolve('src/components/Row/DOMScreen.js'), 'utf-8');
+  const canvasSource = fs.readFileSync(path.resolve('src/components/Canvas/CanvasScreen.js'), 'utf-8');
+  const termViewSource = fs.readFileSync(path.resolve('src/js/term_view.js'), 'utf-8');
+
+  // DOMScreen contains hook invocations
+  assert.ok(domSource.includes('renderHyperlinkPreview'), 'DOMScreen should have renderHyperlinkPreview method');
+  assert.ok(domSource.includes('this.props.hyperlinkPreviewHook?.onHover'), 'DOMScreen should support hyperlinkPreviewHook.onHover');
+  assert.ok(domSource.includes('this.props.hyperlinkPreviewHook?.onLeave'), 'DOMScreen should support hyperlinkPreviewHook.onLeave');
+  assert.ok(domSource.includes('this.props.hyperlinkPreviewHook?.renderPreview'), 'DOMScreen should support hyperlinkPreviewHook.renderPreview');
+  assert.ok(domSource.includes('this.props.onHyperlinkHover'), 'DOMScreen should support onHyperlinkHover prop');
+
+  // CanvasScreen contains hook invocations
+  assert.ok(canvasSource.includes('renderHyperlinkPreview'), 'CanvasScreen should have renderHyperlinkPreview method');
+  assert.ok(canvasSource.includes('this.props.hyperlinkPreviewHook?.onHover'), 'CanvasScreen should support hyperlinkPreviewHook.onHover');
+  assert.ok(canvasSource.includes('this.props.hyperlinkPreviewHook?.onLeave'), 'CanvasScreen should support hyperlinkPreviewHook.onLeave');
+  assert.ok(canvasSource.includes('this.props.hyperlinkPreviewHook?.renderPreview'), 'CanvasScreen should support hyperlinkPreviewHook.renderPreview');
+  assert.ok(canvasSource.includes('this.props.onHyperlinkHover'), 'CanvasScreen should support onHyperlinkHover prop');
+
+  // TermView event broadcasting
+  assert.ok(termViewSource.includes('term:hyperlink-hover'), 'TermView should dispatch term:hyperlink-hover');
+  assert.ok(termViewSource.includes('term:hyperlink-leave'), 'TermView should dispatch term:hyperlink-leave');
+  assert.ok(termViewSource.includes('hyperlinkPreviewHook:'), 'TermView should pass hyperlinkPreviewHook to renderScreen');
+
+  // Test TermView method dispatching
+  const dispatchedEvents = [];
+  const mockApp = {
+    dispatchEvent: (ev) => dispatchedEvents.push(ev),
+  };
+  const termView = {
+    app: mockApp,
+    dispatchEvent: (ev) => dispatchedEvents.push(ev),
+    handleHyperlinkHover(event, href) {
+      const detail = { event, href };
+      this.app?.dispatchEvent?.(new CustomEvent('term:hyperlink-hover', { detail }));
+      this.dispatchEvent(new CustomEvent('term:hyperlink-hover', { detail }));
+    },
+    handleHyperlinkLeave(event) {
+      const detail = { event };
+      this.app?.dispatchEvent?.(new CustomEvent('term:hyperlink-leave', { detail }));
+      this.dispatchEvent(new CustomEvent('term:hyperlink-leave', { detail }));
+    },
+  };
+
+  termView.handleHyperlinkHover({ type: 'mouseover' }, 'https://example.com');
+  assert.equal(dispatchedEvents.length, 2);
+  assert.equal(dispatchedEvents[0].type, 'term:hyperlink-hover');
+  assert.equal(dispatchedEvents[0].detail.href, 'https://example.com');
+
+  termView.handleHyperlinkLeave({ type: 'mouseout' });
+  assert.equal(dispatchedEvents.length, 4);
+  assert.equal(dispatchedEvents[2].type, 'term:hyperlink-leave');
+});
+
 
 
 

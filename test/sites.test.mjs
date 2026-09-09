@@ -1974,6 +1974,28 @@ test('src/plugins exports TouchDebugHUD and provides plugin metadata and lifecyc
   hudPlugin.destroy();
 });
 
+test('MediaPreviewer exposes getHyperlinkPreviewHook for screen integration', async () => {
+  const { MediaPreviewer } = await import('../src/plugins/media_previewer/index.js');
+  const previewer = new MediaPreviewer();
+  previewer.enabled = true;
+  previewer.whitelistOnly = true;
+
+  const hook = previewer.getHyperlinkPreviewHook();
+  assert.ok(hook && typeof hook.createPreviewRequest === 'function');
+
+  // Whitelisted domain returns resolved URL
+  const valid = hook.createPreviewRequest('https://imgur.com/abc1234');
+  assert.equal(valid, 'https://i.imgur.com/abc1234.jpg');
+
+  // Non-whitelisted domain returns null when whitelistOnly is true
+  const untrusted = hook.createPreviewRequest('https://untrusted.org/pic.png');
+  assert.equal(untrusted, null);
+
+  // When disabled, returns null
+  previewer.enabled = false;
+  assert.equal(hook.createPreviewRequest('https://imgur.com/abc1234'), null);
+});
+
 
 
 

@@ -141,6 +141,15 @@ export class MediaPreviewer {
     return isTrustedImageDomain(hostname);
   }
 
+  getHyperlinkPreviewHook() {
+    return {
+      createPreviewRequest: (href, whitelistOnly = this.whitelistOnly) => {
+        if (!this.enabled) return null;
+        return this.resolveImageUrl(href, whitelistOnly);
+      },
+    };
+  }
+
   destroy() {
     if (this.app) {
       this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
