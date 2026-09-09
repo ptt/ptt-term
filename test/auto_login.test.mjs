@@ -109,7 +109,7 @@ test('AutoLogin handleLogin sends ID and password with CR and short typeahead in
     setInputAreaFocus() {},
   };
 
-  const plugin = new AutoLogin(mockApp);
+  const plugin = new AutoLogin(mockApp, { submitCooldownMs: 150 });
   plugin.showsModal = true;
 
   plugin.handleLogin({ username: 'testuser', password: 'secretpassword' });
@@ -146,9 +146,20 @@ test('LoginModal structure adheres to browser password manager conventions', () 
   assert.ok(modalSource.includes('type="password"'), 'Password input must be type="password"');
   assert.ok(modalSource.includes('type="submit"'), 'Must have type="submit" button');
   assert.ok(modalSource.includes('autoCapitalize="none"'), 'Must disable autoCapitalize on mobile touch keyboard');
+  assert.ok(modalSource.includes('enterKeyHint="next"'), 'Username input must specify enterKeyHint="next"');
+  assert.ok(modalSource.includes('enterKeyHint="go"'), 'Password input must specify enterKeyHint="go"');
+
+  // iOS Safari hidden target iframe and history state for password capture
+  assert.ok(modalSource.includes('target="ptt_auth_target_frame"'), 'Form must target hidden iframe');
+  assert.ok(modalSource.includes('ptt_auth_target_frame'), 'Must define hidden iframe for WebKit password capture');
+  assert.ok(modalSource.includes('window.history?.replaceState'), 'Must trigger history transition for WebKit');
 
   // iOS Safari font-size 16px to prevent zoom
   assert.ok(modalCss.includes('font-size: 16px'), 'Input must have 16px font size to prevent iOS auto-zoom');
+
+  // Mobile layout: top-pinning and scrollability
+  assert.ok(modalCss.includes('@media (max-width: 768px)'), 'Must define mobile responsive media query');
+  assert.ok(modalCss.includes('overflow-y: auto'), 'Must be scrollable when keyboard opens');
 
   // SPA Credential Management API
   assert.ok(modalSource.includes('PasswordCredential'), 'Must leverage PasswordCredential API for SPAs');

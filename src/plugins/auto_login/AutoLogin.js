@@ -52,6 +52,7 @@ export class AutoLogin {
     this.view = options.view || null;
     this.buf = options.buf || null;
     this.enabled = options.enabled ?? true;
+    this.submitCooldownMs = options.submitCooldownMs ?? 1200;
     this.showsModal = false;
     this.loginPromptDetected = false;
   }
@@ -230,10 +231,12 @@ export class AutoLogin {
       app.send?.(`${pw}\r`);
     }, 80);
 
-    // Keep dialog open for 150ms so browser password manager intercepts the form submit event
+    // Keep dialog open so browser password manager (especially iOS Safari WebKit)
+    // has ample time to process the form submission and display the credential save prompt
+    const cooldownMs = this.submitCooldownMs ?? 1200;
     setTimeout(() => {
       this.hide();
-    }, 150);
+    }, cooldownMs);
   };
 
   renderOverlay({ app } = {}) {

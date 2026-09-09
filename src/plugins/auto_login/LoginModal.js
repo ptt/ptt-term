@@ -97,13 +97,29 @@ export class LoginModal extends React.Component {
   };
 
   handleSubmit = (e) => {
-    e?.preventDefault?.();
     const { username, password } = this.state;
     const trimmedId = (username || this.usernameInputRef.current?.value || "").trim();
     const effectivePassword = password || this.passwordInputRef.current?.value || "";
-    if (!trimmedId) return;
+    if (!trimmedId) {
+      e?.preventDefault?.();
+      return;
+    }
+
+    // Do not call e.preventDefault() so WebKit/Safari detects an uncancelled native form submission
+    // directed into the hidden target iframe, allowing iCloud Keychain to trigger the save password prompt.
 
     this.setState({ submitted: true });
+
+    // Soft navigation state transition for WebKit password manager heuristics
+    if (typeof window !== "undefined" && window.history?.replaceState) {
+      try {
+        window.history.replaceState(
+          window.history.state,
+          document.title,
+          window.location.href
+        );
+      } catch (err) {}
+    }
 
     // Explicitly request browser credential store (Credential Management API for SPAs)
     if (
@@ -154,11 +170,19 @@ export class LoginModal extends React.Component {
         onClose={this.handleClose}
         className="LoginModal native-modal"
       >
+        <iframe
+          name="ptt_auth_target_frame"
+          id="ptt_auth_target_frame"
+          style={{ display: "none", width: 0, height: 0, border: 0 }}
+          tabIndex={-1}
+          aria-hidden="true"
+        />
         <form
           ref={this.formRef}
           className="LoginModal__Form"
           method="post"
           action="#"
+          target="ptt_auth_target_frame"
           onSubmit={this.handleSubmit}
           autoComplete="on"
         >
@@ -210,10 +234,17 @@ export class LoginModal extends React.Component {
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
+                enterKeyHint="next"
                 placeholder={_("login_modal_username_placeholder")}
                 value={username}
                 onInput={this.handleUsernameChange}
                 onChange={this.handleUsernameChange}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    this.passwordInputRef.current?.focus();
+                  }
+                }}
                 onClick={() => {
                   if (!this.state.username) this.attemptAutoRetrieve(true);
                 }}
@@ -233,6 +264,7 @@ export class LoginModal extends React.Component {
                 type="password"
                 className="form-control LoginModal__Input"
                 autoComplete="current-password"
+                enterKeyHint="go"
                 placeholder={_("login_modal_password_placeholder")}
                 value={password}
                 onInput={this.handlePasswordChange}
