@@ -106,6 +106,8 @@ test('setLocale dynamically switches locale and updates active translations', ()
   assert.equal(getLocalePreference(), 'zh_tw');
   assert.equal(_('options_uiLocale'), '介面語言');
   assert.equal(_('options_mouse'), '滑鼠');
+  assert.equal(_('options_appearance'), '外觀');
+  assert.equal(_('options_plugin_options'), '選項');
 
   // 2. Explicitly switch to en_us
   setLocale('en_us');
@@ -113,6 +115,8 @@ test('setLocale dynamically switches locale and updates active translations', ()
   assert.equal(getLocalePreference(), 'en_us');
   assert.equal(_('options_uiLocale'), 'UI Language');
   assert.equal(_('options_mouse'), 'Mouse');
+  assert.equal(_('options_appearance'), 'Appearance');
+  assert.equal(_('options_plugin_options'), 'Options...');
 
   // 3. Switch to auto reverts to negotiated language
   setLocale('auto');

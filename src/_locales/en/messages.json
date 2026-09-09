@@ -57,6 +57,9 @@
   "options_collapse": {
     "message": "Collapse options"
   },
+  "options_plugin_options": {
+    "message": "Options..."
+  },
   "options_about": {
     "message": "About"
   },

@@ -1233,11 +1233,10 @@ export class PrefModal extends React.Component {
                                 aria-expanded={isExpanded}
                                 title={
                                   isExpanded
-                                    ? _("options_collapse") || "收起選項"
-                                    : _("options_expand") || "展開選項"
+                                    ? _("options_collapse") : _("options_expand")
                                 }
                               >
-                                Options...
+                                {_("options_plugin_options")}
                               </button>
                             )}
                           </div>
@@ -1335,7 +1334,7 @@ export class PrefModal extends React.Component {
                                     onChange={this.handleNumberInputChange}
                                   />
                                   <span className="PrefModal__MacSubUnit">
-                                    {_("options_lineWrap_unit") || "字元"}
+                                    {_("options_lineWrap_unit")}
                                   </span>
                                 </div>
                               </div>

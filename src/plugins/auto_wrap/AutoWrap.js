@@ -32,7 +32,7 @@ export class AutoWrap {
         React.createElement(
           "span",
           { className: "PrefModal__MacSubUnit" },
-          _("options_lineWrap_unit") || "字元"
+          _("options_lineWrap_unit")
         )
       )
     );
@@ -46,7 +46,7 @@ export class AutoWrap {
     return {
       id: "auto_wrap",
       name: "auto_wrap",
-      title: _("plugin_auto_wrap_title") || "自動換行",
+      title: _("plugin_auto_wrap_title"),
       description: _("plugin_auto_wrap_desc"),
       prefKey: "enableAutoWrap",
       icon: "wrap_text",
@@ -83,7 +83,7 @@ export class AutoWrap {
   }
 
   get title() {
-    return _("plugin_auto_wrap_title") || "自動換行";
+    return _("plugin_auto_wrap_title");
   }
 
   get description() {

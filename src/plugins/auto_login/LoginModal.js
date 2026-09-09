@@ -178,7 +178,7 @@ export class LoginModal extends React.Component {
                 <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
               </svg>
               <h3 className="LoginModal__Title">
-                {_("login_modal_title") || "BBS 帳號登入"}
+                {_("login_modal_title")}
               </h3>
             </div>
             <button
@@ -193,13 +193,12 @@ export class LoginModal extends React.Component {
 
           <div className="LoginModal__Body">
             <p className="LoginModal__Hint">
-              {_("login_modal_desc") ||
-                "利用瀏覽器自動填入或記憶密碼，系統不會儲存您的帳號與密碼。"}
+              {_("login_modal_desc")}
             </p>
 
             <div className="form-group LoginModal__Field">
               <label htmlFor="ptt-login-username">
-                {_("login_modal_username") || "帳號 (Username)"}
+                {_("login_modal_username")}
               </label>
               <input
                 ref={this.usernameInputRef}
@@ -211,9 +210,7 @@ export class LoginModal extends React.Component {
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
-                placeholder={
-                  _("login_modal_username_placeholder") || "請輸入帳號"
-                }
+                placeholder={_("login_modal_username_placeholder")}
                 value={username}
                 onInput={this.handleUsernameChange}
                 onChange={this.handleUsernameChange}
@@ -227,7 +224,7 @@ export class LoginModal extends React.Component {
 
             <div className="form-group LoginModal__Field">
               <label htmlFor="ptt-login-password">
-                {_("login_modal_password") || "密碼 (Password)"}
+                {_("login_modal_password")}
               </label>
               <input
                 ref={this.passwordInputRef}
@@ -236,9 +233,7 @@ export class LoginModal extends React.Component {
                 type="password"
                 className="form-control LoginModal__Input"
                 autoComplete="current-password"
-                placeholder={
-                  _("login_modal_password_placeholder") || "請輸入密碼"
-                }
+                placeholder={_("login_modal_password_placeholder")}
                 value={password}
                 onInput={this.handlePasswordChange}
                 onChange={this.handlePasswordChange}
@@ -258,7 +253,7 @@ export class LoginModal extends React.Component {
               onClick={this.handleClose}
               disabled={submitted}
             >
-              {_("login_modal_cancel") || "取消"}
+              {_("login_modal_cancel")}
             </button>
             <button
               ref={this.submitBtnRef}
@@ -267,8 +262,8 @@ export class LoginModal extends React.Component {
               disabled={submitted || !(username || this.usernameInputRef.current?.value || "").trim()}
             >
               {submitted
-                ? _("login_modal_logging_in") || "登入中..."
-                : _("login_modal_submit") || "登入"}
+                ? _("login_modal_logging_in")
+                : _("login_modal_submit")}
             </button>
           </div>
         </form>

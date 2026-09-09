@@ -43,7 +43,7 @@ export class AutoLogin {
     return {
       id: "auto_login",
       name: "auto_login",
-      title: _("plugin_auto_login_title") || "帳號登入 (BBS Login)",
+      title: _("plugin_auto_login_title"),
       description: _("plugin_auto_login_desc"),
       prefKey: "enableAutoLogin",
       icon: "key",
@@ -77,7 +77,7 @@ export class AutoLogin {
   }
 
   get title() {
-    return _("plugin_auto_login_title") || "帳號登入 (BBS Login)";
+    return _("plugin_auto_login_title");
   }
 
   get description() {
@@ -106,7 +106,7 @@ export class AutoLogin {
       {
         id: "auto_login",
         order: 5,
-        label: () => _("cmenu_auto_login") || "帳號登入 ...",
+        label: () => _("cmenu_auto_login"),
         visible: (app, { normalEnabled } = {}) =>
           Boolean(normalEnabled !== false && this.enabled),
         onClick: () => {

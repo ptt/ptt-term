@@ -217,7 +217,7 @@ ImagePreviewer.OnHover = ({ left, top, value, error, href }) => {
         }}
       >
         <span style={{ fontSize: "14px" }}>⚠️</span>
-        <span>{_("imagePreview_failed") || "無法載入圖片預覽"}</span>
+        <span>{_("imagePreview_failed")}</span>
         {hostname && (
           <span style={{ opacity: 0.6, fontSize: "11px" }}>({hostname})</span>
         )}
@@ -287,7 +287,7 @@ ImagePreviewer.OnHover = ({ left, top, value, error, href }) => {
         }}
       >
         <LoadingSpinner style={{ width: 14, height: 14, flexShrink: 0 }} />
-        <span>{_("imagePreview_loading") || "載入圖片中..."}</span>
+        <span>{_("imagePreview_loading")}</span>
         {hostname && (
           <span style={{ opacity: 0.6, fontSize: "11px" }}>({hostname})</span>
         )}

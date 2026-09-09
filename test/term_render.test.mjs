@@ -1775,8 +1775,8 @@ test('PrefModal redesign includes Extensions/Plugins tab with Mac-style toggle l
     'PrefModal must render PrefModal__MacOptionsBtn options button'
   );
   assert.ok(
-    prefModalSource.includes('Options...'),
-    'PrefModal must display Options... label on options button'
+    prefModalSource.includes('options_plugin_options'),
+    'PrefModal must display options label on options button'
   );
   assert.ok(
     prefModalSource.includes('PrefModal__MacListItemActions'),
