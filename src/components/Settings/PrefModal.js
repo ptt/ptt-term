@@ -399,15 +399,20 @@ const MOUSE_WHEEL_OPTIONS = [
 ];
 
 const TabLegend = ({ title, subtitle, onCloseClick }) => (
-  <legend className="TabLegend">
+  <div className="TabLegend">
     <span className="TabLegend__Text">
       <span>{title}</span>
       {subtitle && <small>- {subtitle}</small>}
     </span>
-    <button type="button" className="close" onClick={onCloseClick}>
+    <button
+      type="button"
+      className="close"
+      onClick={onCloseClick}
+      aria-label="Close"
+    >
       &times;
     </button>
-  </legend>
+  </div>
 );
 
 export function renderOptionDesc(rawText) {

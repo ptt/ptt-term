@@ -2,7 +2,7 @@ dialog.PrefModal {
   width: 640px;
   max-width: min(640px, calc(100vw - 16px));
   height: 620px;
-  max-height: min(620px, calc(100vh - 24px));
+  max-height: min(620px, calc(100dvh - 24px), calc(100vh - 24px));
   border-radius: 12px;
   overflow: hidden;
   padding: 0;
@@ -180,28 +180,43 @@ dialog.PrefModal .NativeDialog__content {
 
 .PrefModal__Grid__Col--right legend .close,
 .TabLegend .close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   float: none;
   margin-left: auto;
   align-self: center;
-  font-size: 24px;
-  font-weight: 400;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  font-size: 22px;
+  font-weight: 300;
   line-height: 1;
-  color: #86868b;
-  opacity: 0.8;
-  background: transparent;
+  color: #6e6e73;
+  opacity: 0.9;
+  background: rgba(0, 0, 0, 0.06);
   border: none;
   cursor: pointer;
-  padding: 0 4px;
-  margin-top: -4px;
-  border-radius: 4px;
+  padding: 0;
+  margin-top: -2px;
+  border-radius: 50%;
   transition: all 0.15s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .PrefModal__Grid__Col--right legend .close:hover,
 .TabLegend .close:hover {
   color: #1d1d1f;
   opacity: 1;
-  background-color: rgba(0, 0, 0, 0.06);
+  background-color: rgba(0, 0, 0, 0.12);
+}
+
+.PrefModal__Grid__Col--right legend .close:active,
+.TabLegend .close:active {
+  transform: scale(0.92);
 }
 
 .PrefModal__TabBody {
@@ -778,8 +793,8 @@ dialog.PrefModal .NativeDialog__content {
   dialog.PrefModal {
     width: calc(100vw - 16px);
     max-width: calc(100vw - 16px);
-    height: calc(100vh - 24px);
-    max-height: calc(100vh - 24px);
+    height: calc(100dvh - 24px);
+    max-height: calc(100dvh - 24px);
   }
 
   .PrefModal__Grid__Col--left {
@@ -890,5 +905,64 @@ dialog.PrefModal .NativeDialog__content {
   .PrefModal__MacListItemSub {
     padding-left: 0;
     padding-right: 0;
+  }
+}
+
+@media (max-height: 540px), (orientation: landscape) and (max-height: 600px) {
+  dialog.PrefModal {
+    width: min(720px, calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+    max-width: min(720px, calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+    height: calc(100dvh - 16px);
+    max-height: calc(100dvh - 16px);
+    top: 8px;
+    bottom: 8px;
+    margin: auto;
+  }
+
+  .PrefModal__Grid__Col--left {
+    padding: 8px 6px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .PrefModal__Grid__Col--left h3 {
+    font-size: 13px;
+    margin: 4px 4px 6px;
+  }
+
+  .PrefModal__Grid__Col--left .nav > li > a {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+
+  .PrefModal__Grid__Col--left__Reset {
+    margin-top: 6px;
+    margin-bottom: 6px;
+    padding: 4px 2px;
+    font-size: 11px;
+  }
+
+  .PrefModal__Grid__Col--right {
+    padding: 8px 14px 0 14px;
+  }
+
+  .PrefModal__Grid__Col--right legend,
+  .TabLegend {
+    font-size: 16px;
+    padding-bottom: 4px;
+    margin-bottom: 8px;
+  }
+
+  .PrefModal__Grid__Col--right legend .close,
+  .TabLegend .close {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    font-size: 20px;
+  }
+
+  .PrefModal__TabBody {
+    padding-bottom: 12px;
   }
 }

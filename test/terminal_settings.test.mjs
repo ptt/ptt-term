@@ -557,5 +557,37 @@ test('PrefModal and FontManager constrain widths with min-width: 0 and prevent s
   );
 });
 
+test('PrefModal supports landscape and short viewport mode with visible close button and dvh constraints', () => {
+  const prefModalCss = fs.readFileSync(PREF_MODAL_CSS_PATH, 'utf-8');
+  const prefModalSrc = fs.readFileSync(PREF_MODAL_JS_PATH, 'utf-8');
+
+  // TabLegend is rendered as a div (not native legend) for reliable WebKit flex alignment
+  assert.ok(
+    prefModalSrc.includes('<div className="TabLegend">'),
+    'TabLegend must render as div for cross-browser flex layout'
+  );
+
+  // PrefModal.css includes landscape / short-screen media query
+  assert.ok(
+    prefModalCss.includes('orientation: landscape') &&
+      prefModalCss.includes('max-height: 600px'),
+    'PrefModal.css must include orientation: landscape and max-height query'
+  );
+
+  // Uses dynamic viewport height (100dvh)
+  assert.ok(
+    prefModalCss.includes('100dvh'),
+    'PrefModal.css must use 100dvh to prevent off-screen clipping on mobile Safari'
+  );
+
+  // Close button has circular touch target and distinct styling
+  assert.ok(
+    prefModalCss.includes('.TabLegend .close') &&
+      prefModalCss.includes('border-radius: 50%'),
+    'TabLegend close button must have circular touch target'
+  );
+});
+
+
 
 
