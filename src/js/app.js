@@ -1178,6 +1178,16 @@ export class App {
     case 'captureConnectionLog':
       this.connLog.setEnabled(!!value);
       break;
+    case 'supportMouseReporting':
+      if (this.buf?.locator) {
+        this.buf.locator.enabled = !!value;
+      }
+      if (this.mouseBrowsing) {
+        this.mouseBrowsing.setSupportMouseReporting?.(value);
+      }
+      break;
+
+
     default:
       break;
     }
@@ -1245,6 +1255,14 @@ export class App {
         if (doMouseCommand) {
           this.onMouse_click(e);
           this.setDblclickTimer();
+          e.preventDefault();
+          this.setInputAreaFocus();
+        }
+      } else if (this.buf?.locator?.isActive?.()) {
+        const pos = this.clientToPos(e.clientX, e.clientY);
+        const report = this.buf.locator.handleMouseClick(e, pos);
+        if (report) {
+          this.send(report);
           e.preventDefault();
           this.setInputAreaFocus();
         }

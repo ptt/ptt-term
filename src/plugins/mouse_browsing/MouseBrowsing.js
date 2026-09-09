@@ -51,6 +51,7 @@ export class MouseBrowsing {
     this.buf = options.buf || null;
     const prefs = readValuesWithDefault();
     this.enabled = options.enabled ?? (prefs.useMouseBrowsing ?? false);
+    this.supportMouseReporting = options.supportMouseReporting ?? (prefs.supportMouseReporting ?? true);
   }
 
   get id() {
@@ -86,6 +87,7 @@ export class MouseBrowsing {
       prefKey: this.prefKey,
       enabled: this.enabled,
       icon: this.icon,
+      supportMouseReporting: this.supportMouseReporting,
     };
   }
 
@@ -95,8 +97,23 @@ export class MouseBrowsing {
     if (buf) this.buf = buf;
     if (this.buf) {
       this.buf.useMouseBrowsing = this.enabled;
+      if (this.buf.locator) {
+        this.buf.locator.enabled = this.supportMouseReporting;
+      }
     }
   }
+
+  setSupportMouseReporting(enabled) {
+    this.supportMouseReporting = !!enabled;
+    const buf = this.buf || this.app?.buf;
+    if (buf?.locator) {
+      buf.locator.enabled = this.supportMouseReporting;
+    }
+    updatePref("supportMouseReporting", this.supportMouseReporting);
+  }
+
+
+
 
   destroy() {
     if (this.buf) {
@@ -173,6 +190,23 @@ export class MouseBrowsing {
       typeof trow === "number" && Number.isFinite(trow) ? Math.floor(trow) : 0;
     buf.tempMouseCol = tcol;
     buf.tempMouseRow = trow;
+
+    // If mouse reporting is active, suppress heuristic icon switches
+    const locator = buf.locator;
+    if (locator?.isActive?.()) {
+      buf.clearHighlight();
+      const termWin = this.app?.termWin || buf.termWin;
+      if (termWin && termWin.style) {
+        termWin.style.cursor = "default";
+      }
+      if (locator.requiresMotionReports?.()) {
+        const report = locator.handleMouseMove(null, { col: tcol, row: trow });
+        if (report && this.app?.send) {
+          this.app.send(report);
+        }
+      }
+      return;
+    }
 
     if (buf.nowHighlight !== trow || doRefresh) {
       buf.clearHighlight();
@@ -278,6 +312,20 @@ export class MouseBrowsing {
       return false;
     }
 
+    const locator = buf.locator;
+    if (locator?.isActive?.()) {
+      const cX = e?.clientX ?? 0;
+      const cY = e?.clientY ?? 0;
+      const pos = app.clientToPos
+        ? app.clientToPos(cX, cY)
+        : { col: buf.tempMouseCol || 0, row: buf.tempMouseRow || 0 };
+      const report = locator.handleMouseClick(e, pos);
+      if (report) {
+        app.send(report);
+        return true;
+      }
+    }
+
     const cX = e.clientX;
     const cY = e.clientY;
 
@@ -366,6 +414,24 @@ export class MouseBrowsing {
         break;
     }
 
+    return false;
+  }
+
+  handleWheel(e) {
+    if (!this.enabled) return false;
+    const buf = this.buf || this.app?.buf;
+    const locator = buf?.locator;
+    if (locator?.isActive?.()) {
+      const pos = this.app?.clientToPos
+        ? this.app.clientToPos(e?.clientX ?? 0, e?.clientY ?? 0)
+        : { col: buf.tempMouseCol || 0, row: buf.tempMouseRow || 0 };
+      const report = locator.handleWheel(e, pos);
+      if (report && this.app?.send) {
+        this.app.send(report);
+        e?.preventDefault?.();
+        return true;
+      }
+    }
     return false;
   }
 }

@@ -8,6 +8,7 @@ export const DEFAULT_PREFS = {
   liveUpdateInterval: 1,
   showLiveUpdateToolbar: true,
   copyOnSelect: false,
+  supportMouseReporting: true,
   enableAntiIdle: false,
   antiIdleTime: 0,
   lineWrap: 78,

@@ -475,6 +475,18 @@ export class PrefModal extends React.Component {
                     {i18n("options_copyOnSelect")}
                   </label>
                 </div>
+                <div className="checkbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="supportMouseReporting"
+                      checked={values.supportMouseReporting ?? true}
+                      onChange={this.handleCheckboxChange}
+                    />
+                    {i18n("options_supportMouseReporting")}
+                  </label>
+                </div>
+
                 <div className="form-group" id="enableBell">
                   <label className="control-label">
                     {i18n("options_enableBell")}
@@ -891,6 +903,7 @@ export class PrefModal extends React.Component {
                                     <span>{i18n("options_mouseBrowsingHighlight")}</span>
                                   </label>
                                 </div>
+
                                 <div className="PrefModal__Grid__Col--right__MouseBrowsingHighlightColor">
                                   {i18n("options_highlightColor")}
                                   <select

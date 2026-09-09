@@ -166,13 +166,20 @@ export class AnsiParser {
         }
         break;
       case AnsiParser.STATE_CSI:
-        if ( (ch >= '`' && ch <= 'z') || (ch >= '@' && ch <='Z') ) {
+        if (b >= 0x40 && b <= 0x7e) {
           if (ch !== 'm') {
             this.flushPendingLead();
           }
           // if(ch != 'm')
           //    dump('CSI: ' + this.esc + ch + '\n');
-          const rawParams = this.esc.split(';');
+          let intermediate = '';
+          let paramStr = this.esc;
+          const quoteIdx = paramStr.indexOf("'");
+          if (quoteIdx !== -1) {
+            intermediate = "'";
+            paramStr = paramStr.slice(0, quoteIdx) + paramStr.slice(quoteIdx + 1);
+          }
+          const rawParams = paramStr.split(';');
           let firstChar = '';
           if (rawParams[0]) {
             if (rawParams[0].charAt(0)<'0' || rawParams[0].charAt(0)>'9') {
@@ -180,7 +187,7 @@ export class AnsiParser {
               rawParams[0] = rawParams[0].slice(1);
             }
           }
-          if (firstChar && ch != 'h' && ch != 'l') { // unknown CSI
+          if (firstChar && ch != 'h' && ch != 'l' && intermediate !== "'") { // unknown CSI
             this.flushPendingLead();
             //dump('unknown CSI: ' + this.esc + ch + '\n');
             this.state = AnsiParser.STATE_TEXT;
@@ -218,6 +225,7 @@ export class AnsiParser {
 
           switch (ch) {
           case 'm':
+
             term.assignParamsToAttrs(params);
             break;
           case '@':
@@ -258,12 +266,22 @@ export class AnsiParser {
               if (params.includes(2026)) {
                 term.beginSyncUpdate();
               }
+              for (const p of params) {
+                if ([9, 1000, 1001, 1002, 1003, 1005, 1006, 1015].includes(p)) {
+                  term.handleDECSET?.(p);
+                }
+              }
             }
             break;
           case 'l':
             if (firstChar === '?') {
               if (params.includes(2026)) {
                 term.endSyncUpdate();
+              }
+              for (const p of params) {
+                if ([9, 1000, 1001, 1002, 1003, 1005, 1006, 1015].includes(p)) {
+                  term.handleDECRST?.(p);
+                }
               }
             }
             break;

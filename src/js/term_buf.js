@@ -6,6 +6,7 @@ import { isForceWidthCode } from './symbol_table';
 import { u2bTable } from '../conv/uao';
 import { getSite } from './sites';
 import { playTerminalBell } from './bell.js';
+import { Locator } from './locator.js';
 
 export const termColors = [
   // dark
@@ -248,6 +249,7 @@ export class TermBuf extends Event {
     this.mouseCursor = 0;
     this.highlightCursor = true;
     this.useMouseBrowsing = true;
+    this.locator = new Locator(this);
     //this.scrollingTop=0;
     //this.scrollingBottom=23;
     this.attr = new TermChar(' ');
@@ -1082,6 +1084,14 @@ export class TermBuf extends Event {
     if (this.changed || this.posChanged) {
       this.queueUpdate();
     }
+  }
+
+  handleDECSET(mode) {
+    this.locator?.handleDECSET(mode);
+  }
+
+  handleDECRST(mode) {
+    this.locator?.handleDECRST(mode);
   }
 
   queueUpdate(directupdate) {

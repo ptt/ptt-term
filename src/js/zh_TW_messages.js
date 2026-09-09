@@ -280,6 +280,11 @@ export const zh_TW = {
   options_mouseBrowsingHighlight: {
     message: "啟用滑鼠瀏覽的底色效果",
   },
+  options_supportMouseReporting: {
+    message: "支援滑鼠定位協議",
+  },
+
+
   options_highlightColor: {
     message: "底色",
   },

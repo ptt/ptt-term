@@ -281,6 +281,11 @@ export const en_US = {
   options_mouseBrowsingHighlight: {
     message: "Mouse browsing highlight effect",
   },
+  options_supportMouseReporting: {
+    message: "Support Mouse Reporting",
+  },
+
+
   options_highlightColor: {
     message: "Color",
   },
