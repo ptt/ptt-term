@@ -1577,18 +1577,23 @@ test('src/plugins exports LiveUpdate and provides timer and keyboard lifecycle',
   plugin.handleKeyDown(mockEvent('Alt', { altKey: true }));
   assert.equal(plugin.active, true);
 
-  // Plugin UI visibility and toolbar controls
+  // Plugin UI visibility, toolbar controls, and renderOverlay
+  assert.equal(typeof plugin.renderOverlay, 'function');
+  assert.ok(plugin.renderOverlay() !== null, 'renderOverlay must return element when showsModal is true');
   plugin.setShowToolbar(false);
   assert.equal(plugin.showToolbar, false);
   assert.equal(plugin.showsModal, false);
+  assert.equal(plugin.renderOverlay(), null, 'renderOverlay must return null when showsModal is false');
   plugin.setShowToolbar(true);
   assert.equal(plugin.showToolbar, true);
   assert.equal(plugin.showsModal, true);
+  assert.ok(plugin.renderOverlay() !== null);
 
   plugin.setEnabled(false);
   assert.equal(plugin.enabled, false);
   assert.equal(plugin.active, false);
   assert.equal(plugin.showsModal, false);
+  assert.equal(plugin.renderOverlay(), null, 'renderOverlay must return null when enabled is false');
 
   // Clean up
   plugin.destroy();

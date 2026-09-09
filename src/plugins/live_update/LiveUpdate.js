@@ -1,7 +1,37 @@
 import React from "preact/compat";
 import { readValuesWithDefault, updatePref } from '../../js/pref.js';
 import { _ } from '../../js/i18n.js';
-import { LiveHelperUI } from './LiveHelperUI.js';
+
+let _LiveHelperModal = null;
+
+class LiveUpdateOverlay extends (React?.Component || class {}) {
+  constructor(props) {
+    super(props);
+    this.state = { Component: _LiveHelperModal };
+  }
+
+  componentDidMount() {
+    if (
+      !this.state.Component &&
+      typeof window !== "undefined" &&
+      typeof document !== "undefined" &&
+      !process?.versions?.node
+    ) {
+      import("./LiveHelperModal.js")
+        .then((mod) => {
+          _LiveHelperModal = mod.default || mod.LiveHelperModal;
+          this.setState({ Component: _LiveHelperModal });
+        })
+        .catch(() => {});
+    }
+  }
+
+  render() {
+    const Component = this.state.Component;
+    if (!Component) return null;
+    return React.createElement(Component, this.props);
+  }
+}
 
 export class LiveUpdate {
   static id = 'live_update';
@@ -228,13 +258,8 @@ export class LiveUpdate {
         ? Boolean(prefs.showLiveUpdateToolbar)
         : true;
 
-    if (typeof document !== 'undefined') {
-      this.ui = new LiveHelperUI(this);
-      if (this.enabled && this.showToolbar) {
-        this.showsModal = true;
-        this.renderUI();
-      }
-    }
+    this.showsModal = Boolean(this.enabled && this.showToolbar);
+    this.renderUI();
   }
 
   destroy() {
@@ -248,16 +273,22 @@ export class LiveUpdate {
       this.app.removeEventListener?.('term:click', this._onClickBound);
       this.app.unregisterContextMenuItem?.('live_update');
     }
-    if (this.ui) {
-      this.ui.destroy();
-      this.ui = null;
-    }
   }
 
   renderUI() {
-    if (this.ui) {
-      this.ui.update();
-    }
+    this.app?.dispatchEvent?.(new CustomEvent('term:overlay:update'));
+  }
+
+  renderOverlay({ app } = {}) {
+    if (!this.enabled || !this.showsModal) return null;
+    return React.createElement(LiveUpdateOverlay, {
+      show: this.showsModal,
+      active: this.active,
+      intervalSec: this.intervalSec,
+      onToggle: () => this.toggle(),
+      onIntervalChange: (sec) => this.setIntervalSec(sec, true),
+      onClose: () => this.hideModal(true),
+    });
   }
 
   setEnabled(enabled) {
