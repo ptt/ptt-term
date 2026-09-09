@@ -932,8 +932,10 @@ export class EasyReading {
     if (!this.enabled || !this.started)
       return;
     let stop = false;
-    // XXX Should not use term buffer to track mouse cursor.
-    switch (this._termBuf.mouseCursor) {
+    const mouseBrowsing = this._core?.getPlugin?.("mouse_browsing");
+    const mouseCursor =
+      mouseBrowsing?.mouseCursor ?? this._termBuf?.mouseCursor ?? 0;
+    switch (mouseCursor) {
       case 0:
       case 1: // Arrow Left
         this.stopEasyReading();

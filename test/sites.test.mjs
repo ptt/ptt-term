@@ -1718,6 +1718,33 @@ test('src/plugins exports MouseBrowsing and handles mouse click navigation', asy
   // Navigate row and enter
   mb.navigateRowAndEnter(8);
   assert.equal(sent[3], '\x1b[A\x1b[A\r');
+
+  // Decoupled cursor and highlight helpers
+  const highlightedRows = [];
+  const mockView = {
+    setHighlightedRow: (r) => highlightedRows.push(r),
+    clearHighlight: () => highlightedRows.push(-1),
+  };
+  mb.view = mockView;
+
+  mb.setMouseCursor(5);
+  assert.equal(mb.mouseCursor, 5);
+  assert.equal(mockApp.buf.mouseCursor, 5);
+
+  mb.setHighlight(7);
+  assert.equal(mb.nowHighlight, 7);
+  assert.equal(mockApp.buf.nowHighlight, 7);
+  assert.equal(highlightedRows[highlightedRows.length - 1], 7);
+
+  mb.clearHighlight();
+  assert.equal(mb.nowHighlight, -1);
+  assert.equal(highlightedRows[highlightedRows.length - 1], -1);
+
+  // Click when cursor is 6 uses nowHighlight
+  mb.setMouseCursor(6);
+  mb.nowHighlight = 4;
+  mb.handleMouseClick({ clientX: 100, clientY: 100 });
+  assert.equal(sent[sent.length - 1], '\x1b[A\x1b[A\x1b[A\x1b[A\x1b[A\x1b[A\r');
 });
 
 test('src/plugins exports InputHelper and manages modal lifecycle', async () => {

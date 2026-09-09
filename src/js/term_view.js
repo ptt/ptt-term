@@ -408,6 +408,10 @@ export class TermView extends Event {
     }
   }
 
+  clearHighlight() {
+    this.setHighlightedRow(-1);
+  }
+
   updateHighlightColor() {
     if (this.termWin && this.termWin.style) {
       this.termWin.style.setProperty('--highlightBG', termColors[this.highlightBG]);

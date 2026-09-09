@@ -228,6 +228,7 @@ export class MouseBrowsing {
     this.tempMouseCol = 0;
     this.tempMouseRow = 0;
     this.mouseCursor = 0;
+    this.nowHighlight = -1;
   }
 
   get id() {
@@ -330,6 +331,38 @@ export class MouseBrowsing {
     updatePref("supportMouseReporting", this.supportMouseReporting);
   }
 
+  setMouseCursor(cursor) {
+    this.mouseCursor = cursor;
+    const buf = this.buf || this.app?.buf;
+    if (buf) {
+      buf.mouseCursor = cursor;
+    }
+  }
+
+  setHighlight(row) {
+    this.nowHighlight = row;
+    const buf = this.buf || this.app?.buf;
+    if (buf) {
+      buf.nowHighlight = row;
+    }
+    const view = this.view || this.app?.view;
+    if (view?.setHighlightedRow) {
+      view.setHighlightedRow(row);
+    }
+  }
+
+  clearHighlight() {
+    this.nowHighlight = -1;
+    const buf = this.buf || this.app?.buf;
+    if (buf?.clearHighlight) {
+      buf.clearHighlight();
+    }
+    const view = this.view || this.app?.view;
+    if (view?.clearHighlight) {
+      view.clearHighlight();
+    }
+  }
+
   destroy() {
     if (this.app) {
       this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
@@ -339,8 +372,8 @@ export class MouseBrowsing {
     }
     if (this.buf) {
       this.buf.useMouseBrowsing = false;
-      this.buf.clearHighlight();
     }
+    this.clearHighlight();
   }
 
   setEnabled(val) {
@@ -351,9 +384,8 @@ export class MouseBrowsing {
       if (!this.enabled) {
         const termWin = this.app?.termWin || buf.termWin;
         if (termWin && termWin.style) termWin.style.cursor = "auto";
-        buf.clearHighlight();
-        buf.mouseCursor = 0;
-        buf.nowHighlight = -1;
+        this.clearHighlight();
+        this.setMouseCursor(0);
         buf.tempMouseCol = 0;
         buf.tempMouseRow = 0;
       } else {
@@ -374,8 +406,9 @@ export class MouseBrowsing {
   }
 
   navigateRowAndEnter(targetRow) {
-    if (!this.buf || !this.app) return;
-    const diff = this.buf.cur_y - targetRow;
+    const buf = this.buf || this.app?.buf;
+    if (!buf || !this.app) return;
+    const diff = buf.cur_y - targetRow;
     const sendstr =
       (diff > 0 ? "\x1b[A".repeat(diff) : "\x1b[B".repeat(-diff)) + "\r";
     this.app.send(sendstr);
@@ -385,18 +418,18 @@ export class MouseBrowsing {
     const buf = this.buf || this.app?.buf;
     if (!buf) return;
     if (tcol <= 6) {
-      buf.clearHighlight();
-      buf.mouseCursor = 1;
+      this.clearHighlight();
+      this.setMouseCursor(1);
     } else if (tcol >= cols - 16) {
-      buf.clearHighlight();
-      if (trow > (lastRowNum + 1) / 2) buf.mouseCursor = 3;
-      else buf.mouseCursor = 2;
+      this.clearHighlight();
+      if (trow > (lastRowNum + 1) / 2) this.setMouseCursor(3);
+      else this.setMouseCursor(2);
     } else {
       if (!buf.isLineEmpty(trow)) {
-        buf.mouseCursor = 6;
-        buf.nowHighlight = trow;
+        this.setMouseCursor(6);
+        this.setHighlight(trow);
       } else {
-        buf.mouseCursor = 11;
+        this.setMouseCursor(11);
       }
     }
   }
@@ -419,7 +452,7 @@ export class MouseBrowsing {
     // If mouse reporting is active, suppress heuristic icon switches
     const locator = buf.locator;
     if (locator?.isActive?.()) {
-      buf.clearHighlight();
+      this.clearHighlight();
       const termWin = this.app?.termWin || buf.termWin;
       if (termWin && termWin.style) {
         termWin.style.cursor = "default";
@@ -433,8 +466,8 @@ export class MouseBrowsing {
       return;
     }
 
-    if (buf.nowHighlight !== trow || doRefresh) {
-      buf.clearHighlight();
+    if ((this.nowHighlight !== trow && buf.nowHighlight !== trow) || doRefresh) {
+      this.clearHighlight();
     }
 
     const site = this.app?.site || buf.site;
@@ -445,18 +478,18 @@ export class MouseBrowsing {
 
     switch (buf.pageState) {
       case 0: // NORMAL
-        buf.mouseCursor = 0;
+        this.setMouseCursor(0);
         break;
 
       case 4: // LIST
         if (trow > 1 && trow < lastRowNum - 1) {
           this._calcListRowMouseCursor(trow, tcol, lastRowNum, cols);
         } else if (trow == 1 || trow == 2) {
-          buf.mouseCursor = 2;
+          this.setMouseCursor(2);
         } else if (trow === 0) {
-          buf.mouseCursor = 4;
+          this.setMouseCursor(4);
         } else {
-          buf.mouseCursor = 5;
+          this.setMouseCursor(5);
         }
         break;
 
@@ -464,52 +497,52 @@ export class MouseBrowsing {
         if (trow > 2 && trow < lastRowNum) {
           this._calcListRowMouseCursor(trow, tcol, lastRowNum, cols);
         } else if (trow == 1 || trow == 2) {
-          if (tcol < 2) buf.mouseCursor = 8;
-          else if (tcol > cols - 5) buf.mouseCursor = 9;
-          else buf.mouseCursor = 2;
+          if (tcol < 2) this.setMouseCursor(8);
+          else if (tcol > cols - 5) this.setMouseCursor(9);
+          else this.setMouseCursor(2);
         } else if (trow === 0) {
-          if (tcol < 2) buf.mouseCursor = 10;
-          else if (tcol > cols - 5) buf.mouseCursor = 9;
-          else buf.mouseCursor = 4;
+          if (tcol < 2) this.setMouseCursor(10);
+          else if (tcol > cols - 5) this.setMouseCursor(9);
+          else this.setMouseCursor(4);
         } else {
-          if (tcol < 2) buf.mouseCursor = 12;
-          else if (tcol > cols - 5) buf.mouseCursor = 13;
-          else buf.mouseCursor = 5;
+          if (tcol < 2) this.setMouseCursor(12);
+          else if (tcol > cols - 5) this.setMouseCursor(13);
+          else this.setMouseCursor(5);
         }
         break;
 
       case 3: // READING
         if (trow == lastRowNum) {
-          if (tcol < 2) buf.mouseCursor = 12;
-          else if (tcol > cols - 5) buf.mouseCursor = 14;
-          else buf.mouseCursor = 5;
+          if (tcol < 2) this.setMouseCursor(12);
+          else if (tcol > cols - 5) this.setMouseCursor(14);
+          else this.setMouseCursor(5);
         } else if (trow === 0 || trow == 1 || trow == 2) {
-          if (tcol < 2) buf.mouseCursor = trow === 0 ? 10 : 8;
-          else if (tcol > cols - 5) buf.mouseCursor = 9;
-          else if (tcol < 7) buf.mouseCursor = 1;
-          else buf.mouseCursor = 2;
-        } else if (tcol < 7) buf.mouseCursor = 1;
-        else if (trow < (lastRowNum + 1) / 2) buf.mouseCursor = 2;
-        else buf.mouseCursor = 3;
+          if (tcol < 2) this.setMouseCursor(trow === 0 ? 10 : 8);
+          else if (tcol > cols - 5) this.setMouseCursor(9);
+          else if (tcol < 7) this.setMouseCursor(1);
+          else this.setMouseCursor(2);
+        } else if (tcol < 7) this.setMouseCursor(1);
+        else if (trow < (lastRowNum + 1) / 2) this.setMouseCursor(2);
+        else this.setMouseCursor(3);
         break;
 
       case 1: // MENU
         if (trow > 0 && trow < lastRowNum) {
-          if (tcol > 7) buf.mouseCursor = 7;
-          else buf.mouseCursor = 1;
+          if (tcol > 7) this.setMouseCursor(7);
+          else this.setMouseCursor(1);
         } else {
-          buf.mouseCursor = 0;
+          this.setMouseCursor(0);
         }
         break;
 
       default:
-        buf.mouseCursor = 0;
+        this.setMouseCursor(0);
         break;
     }
 
     const termWin = this.app?.termWin || buf.termWin;
     if (termWin && termWin.style) {
-      termWin.style.cursor = MOUSE_CURSOR_MAP[buf.mouseCursor] || "auto";
+      termWin.style.cursor = MOUSE_CURSOR_MAP[this.mouseCursor] || "auto";
     }
   }
 
@@ -517,7 +550,7 @@ export class MouseBrowsing {
     const buf = this.buf || this.app?.buf;
     const termWin = this.app?.termWin || buf?.termWin;
     if (termWin && termWin.style) termWin.style.cursor = "auto";
-    if (buf) buf.mouseCursor = 11;
+    this.setMouseCursor(11);
   }
 
   resetMousePos() {
@@ -552,8 +585,12 @@ export class MouseBrowsing {
 
     const cX = e.clientX;
     const cY = e.clientY;
+    const currentCursor =
+      buf?.mouseCursor !== undefined && buf.mouseCursor !== 0
+        ? buf.mouseCursor
+        : this.mouseCursor;
 
-    switch (buf.mouseCursor) {
+    switch (currentCursor) {
       case 1:
         app.send("\x1b[D"); // Arrow Left
         return true;
@@ -569,12 +606,15 @@ export class MouseBrowsing {
       case 5:
         app.send("\x1b[4~"); // End
         return true;
-      case 6:
-        if (buf.nowHighlight !== -1) {
-          this.navigateRowAndEnter(buf.nowHighlight);
+      case 6: {
+        const highlightRow =
+          this.nowHighlight !== -1 ? this.nowHighlight : buf.nowHighlight;
+        if (highlightRow !== -1) {
+          this.navigateRowAndEnter(highlightRow);
           return true;
         }
         break;
+      }
       case 7: {
         const pos = app.clientToPos ? app.clientToPos(cX, cY) : null;
         if (pos) {
