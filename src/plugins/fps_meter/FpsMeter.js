@@ -5,6 +5,7 @@ export class FpsMeter {
   static id = "fps_meter";
   static name = "fps_meter";
   static prefKey = "showFps";
+  static group = "debug";
 
   static getMetadata() {
     return {
@@ -14,6 +15,7 @@ export class FpsMeter {
       description: _("plugin_fps_meter_desc"),
       prefKey: "showFps",
       icon: "speed",
+      group: "debug",
     };
   }
 
@@ -73,6 +75,10 @@ export class FpsMeter {
     return "showFps";
   }
 
+  get group() {
+    return "debug";
+  }
+
   get title() {
     return _("plugin_fps_meter_title");
   }
@@ -94,6 +100,7 @@ export class FpsMeter {
       prefKey: this.prefKey,
       enabled: this.enabled,
       icon: this.icon,
+      group: this.group,
     };
   }
 

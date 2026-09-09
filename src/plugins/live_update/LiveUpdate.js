@@ -37,6 +37,7 @@ export class LiveUpdate {
   static id = 'live_update';
   static name = 'live_update';
   static prefKey = 'enableLiveUpdate';
+  static group = 'bbs';
 
   static renderOptions({ values = {}, handleCheckboxChange, handleNumberInputChange }) {
     return React.createElement(
@@ -121,6 +122,7 @@ export class LiveUpdate {
       description: _('plugin_live_update_desc'),
       prefKey: 'enableLiveUpdate',
       icon: 'sync',
+      group: 'bbs',
       renderOptions: LiveUpdate.renderOptions,
     };
   }
@@ -151,6 +153,10 @@ export class LiveUpdate {
     return 'enableLiveUpdate';
   }
 
+  get group() {
+    return 'bbs';
+  }
+
   get title() {
     return _('plugin_live_update_title');
   }
@@ -172,6 +178,7 @@ export class LiveUpdate {
       prefKey: this.prefKey,
       enabled: this.enabled,
       icon: this.icon,
+      group: this.group,
       renderOptions: LiveUpdate.renderOptions,
     };
   }

@@ -19,6 +19,7 @@ export class ConnectionLog {
   static id = "conn_log";
   static name = "conn_log";
   static prefKey = "captureConnectionLog";
+  static group = "debug";
 
   static getMetadata() {
     return {
@@ -28,6 +29,7 @@ export class ConnectionLog {
       description: _("plugin_conn_log_desc"),
       prefKey: "captureConnectionLog",
       icon: "terminal",
+      group: "debug",
     };
   }
 
@@ -57,6 +59,10 @@ export class ConnectionLog {
     return "captureConnectionLog";
   }
 
+  get group() {
+    return "debug";
+  }
+
   get title() {
     return _("plugin_conn_log_title");
   }
@@ -78,6 +84,7 @@ export class ConnectionLog {
       prefKey: this.prefKey,
       enabled: this.enabled,
       icon: this.icon,
+      group: this.group,
     };
   }
 

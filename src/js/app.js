@@ -314,7 +314,11 @@ export class App extends Event {
           prefKey: p.prefKey,
           enabled: p.enabled,
           icon: p.icon || 'extension',
+          group: p.group || p.constructor?.group,
         };
+      }
+      if (!meta.group) {
+        meta.group = p.group || p.constructor?.group;
       }
       if ((p.renderOptions || p.constructor?.renderOptions) && !meta.renderOptions) {
         meta.renderOptions = (p.renderOptions || p.constructor?.renderOptions).bind(p);

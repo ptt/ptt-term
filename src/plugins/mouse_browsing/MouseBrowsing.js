@@ -200,6 +200,11 @@ export class MouseBrowsing {
     return MouseBrowsing.renderOptions(props);
   }
 
+  static id = "mouse_browsing";
+  static name = "mouse_browsing";
+  static prefKey = "useMouseBrowsing";
+  static group = "bbs";
+
   static getMetadata() {
     return {
       id: "mouse_browsing",
@@ -208,6 +213,7 @@ export class MouseBrowsing {
       description: _("plugin_mouse_browsing_desc"),
       prefKey: "useMouseBrowsing",
       icon: "mouse",
+      group: "bbs",
       renderOptions: MouseBrowsing.renderOptions,
     };
   }
@@ -236,6 +242,10 @@ export class MouseBrowsing {
     return "useMouseBrowsing";
   }
 
+  get group() {
+    return "bbs";
+  }
+
   get title() {
     return _("cmenu_mouseBrowsing");
   }
@@ -257,6 +267,7 @@ export class MouseBrowsing {
       prefKey: this.prefKey,
       enabled: this.enabled,
       icon: this.icon,
+      group: this.group,
       supportMouseReporting: this.supportMouseReporting,
       renderOptions: MouseBrowsing.renderOptions,
     };

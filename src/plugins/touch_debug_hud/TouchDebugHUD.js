@@ -7,6 +7,7 @@ export class TouchDebugHUDPlugin {
   static id = "touch_debug_hud";
   static name = "touch_debug_hud";
   static prefKey = "enableTouchDebugHUD";
+  static group = "debug";
 
   static getMetadata() {
     return {
@@ -16,6 +17,7 @@ export class TouchDebugHUDPlugin {
       description: _("plugin_touch_debug_hud_desc"),
       prefKey: "enableTouchDebugHUD",
       icon: "debug",
+      group: "debug",
     };
   }
 
@@ -49,6 +51,10 @@ export class TouchDebugHUDPlugin {
     return "enableTouchDebugHUD";
   }
 
+  get group() {
+    return "debug";
+  }
+
   get title() {
     return _("plugin_touch_debug_hud_title");
   }
@@ -70,6 +76,7 @@ export class TouchDebugHUDPlugin {
       prefKey: this.prefKey,
       enabled: this.enabled,
       icon: this.icon,
+      group: this.group,
     };
   }
 

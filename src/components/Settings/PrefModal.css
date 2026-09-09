@@ -1,0 +1,798 @@
+dialog.PrefModal {
+  width: 640px;
+  max-width: min(640px, calc(100vw - 16px));
+  height: 620px;
+  max-height: min(620px, calc(100vh - 24px));
+  border-radius: 12px;
+  overflow: hidden;
+  padding: 0;
+  user-select: none;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.28),
+    0 6px 20px rgba(0, 0, 0, 0.1),
+    0 0 1px rgba(0, 0, 0, 0.25);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "PingFang TC", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+dialog.PrefModal .NativeDialog__content {
+  height: 100%;
+}
+
+.PrefModal__Grid {
+  height: 100%;
+  display: flex;
+  color: #1d1d1f;
+}
+
+.PrefModal__Grid__Col--left {
+  height: 100%;
+  width: 22%;
+  max-width: 140px;
+  min-width: 80px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 10px;
+  background-color: #f2f2f7;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.PrefModal__Grid__Col--left h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1d1d1f;
+  margin: 2px 8px 12px;
+  letter-spacing: -0.01em;
+}
+
+.PrefModal__Grid__Col--left .nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.PrefModal__Grid__Col--left .nav > li > a {
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1d1d1f;
+  border-radius: 6px;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background-color 0.12s ease;
+}
+
+.PrefModal__Grid__Col--left .nav > li > a:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #1d1d1f;
+}
+
+.PrefModal__Grid__Col--left .nav > li.active > a,
+.PrefModal__Grid__Col--left .nav > li.active > a:hover,
+.PrefModal__Grid__Col--left .nav > li.active > a:focus {
+  background-color: #007aff;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 122, 255, 0.25);
+}
+
+.PrefModal__Grid__Col--left__Reset {
+  margin-top: auto;
+  margin-bottom: 12px;
+  margin-left: 2px;
+  margin-right: 2px;
+  width: calc(100% - 4px);
+  padding: 5px 4px;
+  font-size: 11.5px;
+  font-weight: 500;
+  text-align: center;
+  color: #1d1d1f;
+  background-color: #ffffff;
+  border: 1px solid #d2d2d7;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.PrefModal__Grid__Col--left__Reset:hover {
+  background-color: #f5f5f7;
+  border-color: #c7c7cc;
+}
+
+.PrefModal__Grid__Col--left__Reset:active {
+  background-color: #e5e5ea;
+}
+
+.PrefModal__Grid__Col--right {
+  flex-grow: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 24px 24px;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.PrefModal__Grid__Col--right fieldset,
+.PrefModal__Grid__Col--right__Fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.PrefModal__Grid__Col--right__Fieldset > :not(legend) {
+  padding-left: 12px;
+}
+
+.PrefModal__Grid__Col--right__Fieldset > .PrefModal__MacList {
+  padding-left: 0;
+}
+
+.PrefModal__Grid__Col--right legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: inherit;
+  color: #1d1d1f;
+  border: 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+}
+
+.TabLegend__Text {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4em;
+}
+
+.PrefModal__Grid__Col--right legend small {
+  font-size: 12px;
+  font-weight: 400;
+  color: #86868b;
+}
+
+.PrefModal__Grid__Col--right legend .close {
+  float: none;
+  margin-left: auto;
+  align-self: center;
+}
+
+.PrefModal__Grid__Col--right__Fieldset input[type="text"],
+.PrefModal__Grid__Col--right__Fieldset input[type="number"],
+.PrefModal__Grid__Col--right__Fieldset input[type="password"],
+.PrefModal__Grid__Col--right__Fieldset select {
+  width: 250px;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-top: 5px;
+}
+
+.PrefModal__Grid__Col--right__Fieldset .control-label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+.PrefModal__Grid__Col--right__Fieldset .form-group {
+  margin-bottom: 16px;
+}
+
+.PrefModal__Grid__Col--right__MouseBrowsingHighlightColor {
+  margin-left: 30px;
+}
+
+.PrefModal__Grid__Col--right__MouseBrowsingHighlightColor > select {
+  margin: 5px 0 10px;
+  width: 80px;
+  appearance: none;
+}
+
+.PrefModal__Grid__Col--right__SubCheckbox {
+  margin-left: 20px;
+}
+
+.PrefModal__About p,
+.PrefModal__About li {
+  line-height: 1.5;
+  color: #3a3a3c;
+  font-size: 13px;
+}
+
+.PrefModal__About li {
+  margin-bottom: 0.2em;
+}
+
+.PrefModal__About a {
+  color: #007aff;
+  text-decoration: none;
+}
+
+.PrefModal__About a:hover {
+  text-decoration: underline;
+}
+
+.PrefModal__TabSubtitle {
+  font-size: 13px;
+  color: #6e6e73;
+  margin: -10px 0 14px;
+  line-height: 1.4;
+}
+
+/* Mac-style Plugins Grouped List */
+.PrefModal__MacList {
+  background: #ffffff;
+  border: 1px solid #d2d2d7;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  margin-top: 8px;
+  margin-bottom: 20px;
+  padding: 0 !important;
+  box-sizing: border-box;
+}
+
+/* Mac-style Category Header Band */
+.PrefModal__MacListBand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 14px 7px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid #e5e5ea;
+  box-sizing: border-box;
+  user-select: none;
+  cursor: default;
+}
+
+.PrefModal__MacListBandHeader {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.PrefModal__MacListBandIcon {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.PrefModal__MacListBandTitle {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.PrefModal__MacListBandCount {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 10px;
+  line-height: 1.4;
+  min-width: 16px;
+  text-align: center;
+}
+
+/* Category Band Color Variations */
+.PrefModal__MacListBand--ui {
+  background: linear-gradient(90deg, #edf4ff 0%, #f4f8ff 100%);
+  border-left: 4px solid #007aff;
+  border-bottom-color: #dbe7f6;
+  color: #0051a8;
+}
+
+.PrefModal__MacListBand--ui .PrefModal__MacListBandCount {
+  background: rgba(0, 122, 255, 0.12);
+  color: #0051a8;
+}
+
+.PrefModal__MacListBand--bbs {
+  background: linear-gradient(90deg, #edfbf2 0%, #f5fdf7 100%);
+  border-left: 4px solid #34c759;
+  border-bottom-color: #d6f2de;
+  color: #1b7a37;
+}
+
+.PrefModal__MacListBand--bbs .PrefModal__MacListBandCount {
+  background: rgba(52, 199, 89, 0.15);
+  color: #1b7a37;
+}
+
+.PrefModal__MacListBand--debug {
+  background: linear-gradient(90deg, #f7f1fd 0%, #fbf6ff 100%);
+  border-left: 4px solid #af52de;
+  border-bottom-color: #ebdefa;
+  color: #782ca6;
+}
+
+.PrefModal__MacListBand--debug .PrefModal__MacListBandCount {
+  background: rgba(175, 82, 222, 0.14);
+  color: #782ca6;
+}
+
+.PrefModal__MacListBand--other {
+  background: linear-gradient(90deg, #f2f2f7 0%, #f8f8fa 100%);
+  border-left: 4px solid #8e8e93;
+  border-bottom-color: #e5e5ea;
+  color: #636366;
+}
+
+.PrefModal__MacListBand--other .PrefModal__MacListBandCount {
+  background: rgba(142, 142, 147, 0.15);
+  color: #636366;
+}
+
+.PrefModal__MacListItem {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e5e5ea;
+  transition: background-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.PrefModal__MacListItem:last-child {
+  border-bottom: none;
+}
+
+.PrefModal__MacListItem:hover {
+  background-color: #f5f5f7;
+}
+
+.PrefModal__MacListItem--expanded {
+  background-color: #fafafe;
+}
+
+.PrefModal__MacListItemHeader {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.PrefModal__MacListItem--hasOptions .PrefModal__MacListItemHeader {
+  cursor: pointer;
+  user-select: none;
+}
+
+.PrefModal__MacListItemHeader:focus {
+  outline: none;
+}
+
+.PrefModal__MacListItemHeader:focus-visible {
+  outline: 2px solid #007aff;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.PrefModal__MacListItemActions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex-shrink: 0;
+  min-width: 46px;
+}
+
+.PrefModal__MacOptionsBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 17px;
+  padding: 0 5px;
+  font-size: 9.5px;
+  font-weight: 500;
+  font-family: inherit;
+  letter-spacing: -0.01em;
+  color: #48484a;
+  background-color: #f2f2f7;
+  border: 1px solid #d1d1d6;
+  border-radius: 4px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s ease;
+  user-select: none;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.PrefModal__MacListItemHeader:hover .PrefModal__MacOptionsBtn {
+  border-color: #b0b0b8;
+  color: #1d1d1f;
+  background-color: #e5e5ea;
+}
+
+.PrefModal__MacOptionsBtn:hover {
+  background-color: #dcdce2 !important;
+  border-color: #9999a0 !important;
+  color: #000000 !important;
+}
+
+.PrefModal__MacOptionsBtn:focus-visible {
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.4);
+}
+
+.PrefModal__MacOptionsBtn--expanded {
+  background-color: #007aff !important;
+  border-color: #007aff !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(0, 122, 255, 0.25);
+}
+
+.PrefModal__MacOptionsBtn--expanded:hover {
+  background-color: #0069d9 !important;
+  border-color: #0062cc !important;
+  color: #ffffff !important;
+}
+
+.PrefModal__MacListItemIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #007aff 0%, #0051a8 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 5px rgba(0, 122, 255, 0.25);
+}
+
+.PrefModal__MacListItem--ui .PrefModal__MacListItemIcon {
+  background: linear-gradient(135deg, #007aff 0%, #0051a8 100%);
+  box-shadow: 0 2px 5px rgba(0, 122, 255, 0.25);
+}
+
+.PrefModal__MacListItem--bbs .PrefModal__MacListItemIcon {
+  background: linear-gradient(135deg, #34c759 0%, #248a3d 100%);
+  box-shadow: 0 2px 5px rgba(52, 199, 89, 0.25);
+}
+
+.PrefModal__MacListItem--debug .PrefModal__MacListItemIcon {
+  background: linear-gradient(135deg, #af52de 0%, #7d33a3 100%);
+  box-shadow: 0 2px 5px rgba(175, 82, 222, 0.25);
+}
+
+.PrefModal__MacListItemContent {
+  margin-left: 14px;
+  flex-grow: 1;
+  min-width: 0;
+  padding-right: 14px;
+}
+
+.PrefModal__MacListItemTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1d1d1f;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.3;
+}
+
+.PrefModal__MacBadge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #e8e8ed;
+  color: #6e6e73;
+  letter-spacing: 0.02em;
+}
+
+.PrefModal__MacListItemDesc {
+  font-size: 12px;
+  color: #6e6e73;
+  margin-top: 3px;
+  line-height: 1.45;
+}
+
+.PrefModal__MacListItemSub {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e5ea;
+  padding-left: 52px;
+  padding-right: 14px;
+  animation: prefModalFadeSlideDown 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes prefModalFadeSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.PrefModal__MacSubCheckbox {
+  margin: 6px 0 !important;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.PrefModal__MacSubCheckbox label {
+  font-size: 13px;
+  color: #1d1d1f;
+  font-weight: normal;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  white-space: normal;
+  line-height: 1.45;
+}
+
+.PrefModal__MacSubCheckbox label input[type="checkbox"] {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.PrefModal__MacSubCheckbox label span {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.PrefModal__MacSubOptionRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  font-size: 13px;
+  color: #1d1d1f;
+  flex-wrap: wrap;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.PrefModal__MacSubLabel {
+  font-size: 13px;
+  color: #1d1d1f;
+  font-weight: normal;
+}
+
+.PrefModal__MacSubInlineInput {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.PrefModal__MacSubInlineInput input {
+  width: 70px !important;
+  height: 28px !important;
+  padding: 2px 8px !important;
+  font-size: 13px !important;
+  text-align: center;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+.PrefModal__MacSubUnit {
+  color: #6e6e73;
+  font-size: 13px;
+}
+
+.PrefModal__MacListItemSub .form-group {
+  margin-bottom: 12px;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.PrefModal__MacListItemSub .form-group select {
+  width: 100%;
+  max-width: 280px;
+  box-sizing: border-box;
+}
+
+/* Mac-style iOS/macOS Toggle Switch */
+.PrefModal__MacSwitch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.PrefModal__MacSwitch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.PrefModal__MacSwitchSlider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #e5e5ea;
+  border-radius: 24px;
+  transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+.PrefModal__MacSwitchSlider::before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.PrefModal__MacSwitch input:checked + .PrefModal__MacSwitchSlider {
+  background-color: #34c759;
+}
+
+.PrefModal__MacSwitch input:focus + .PrefModal__MacSwitchSlider {
+  box-shadow: 0 0 0 2px rgba(52, 199, 89, 0.3);
+}
+
+.PrefModal__MacSwitch input:checked + .PrefModal__MacSwitchSlider::before {
+  transform: translateX(20px);
+}
+
+.PrefModal__ColorSchemePreview {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 2px;
+  margin-top: 6px;
+  height: 26px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: #000000;
+}
+
+.PrefModal__ColorSchemePreview span {
+  display: block;
+  height: 100%;
+}
+
+@media (max-width: 640px) {
+  dialog.PrefModal {
+    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
+    height: calc(100vh - 24px);
+    max-height: calc(100vh - 24px);
+  }
+
+  .PrefModal__Grid__Col--left {
+    padding: 0 6px;
+  }
+
+  .PrefModal__Grid__Col--left h3 {
+    font-size: 15px;
+    margin: 10px 0 6px;
+    text-align: center;
+  }
+
+  .PrefModal__Grid__Col--left .nav > li > a {
+    padding: 8px 4px;
+    font-size: 13px;
+    text-align: center;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.25;
+  }
+
+  .PrefModal__Grid__Col--left__Reset {
+    margin-top: auto;
+    margin-bottom: 12px;
+    padding: 6px 2px;
+    font-size: 12px;
+    width: 100%;
+    white-space: nowrap;
+  }
+
+  .PrefModal__Grid__Col--right {
+    padding: 12px 10px;
+  }
+
+  .PrefModal__Grid__Col--right legend {
+    font-size: 17px;
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+  }
+
+  .PrefModal__Grid__Col--right__Fieldset > :not(legend) {
+    padding-left: 6px;
+  }
+
+  .PrefModal__Grid__Col--right__Fieldset input[type="text"],
+  .PrefModal__Grid__Col--right__Fieldset input[type="number"],
+  .PrefModal__Grid__Col--right__Fieldset input[type="password"],
+  .PrefModal__Grid__Col--right__Fieldset select {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .PrefModal__Grid__Col--right__MouseBrowsingHighlightColor {
+    margin-left: 10px;
+  }
+
+  .PrefModal__Grid__Col--right__SubCheckbox {
+    margin-left: 10px;
+  }
+
+  .PrefModal__TabSubtitle {
+    font-size: 12px;
+    margin: -6px 0 10px;
+  }
+
+  .PrefModal__MacListItem {
+    padding: 10px 10px;
+  }
+
+  .PrefModal__MacListItemIcon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .PrefModal__MacListItemContent {
+    margin-left: 10px;
+    padding-right: 8px;
+  }
+
+  .PrefModal__MacListItemTitle {
+    font-size: 13px;
+  }
+
+  .PrefModal__MacListItemDesc {
+    font-size: 11px;
+  }
+
+  .PrefModal__MacSwitch {
+    width: 38px;
+    height: 22px;
+  }
+
+  .PrefModal__MacSwitchSlider::before {
+    height: 18px;
+    width: 18px;
+  }
+
+  .PrefModal__MacSwitch input:checked + .PrefModal__MacSwitchSlider::before {
+    transform: translateX(16px);
+  }
+
+  .PrefModal__MacListItemSub {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}

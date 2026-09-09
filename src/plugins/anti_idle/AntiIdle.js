@@ -6,6 +6,7 @@ export class AntiIdle {
   static id = "anti_idle";
   static name = "anti_idle";
   static prefKey = "enableAntiIdle";
+  static group = "bbs";
 
   static renderOptions({ values = {}, handleNumberInputChange }) {
     return React.createElement(
@@ -48,6 +49,7 @@ export class AntiIdle {
       description: _("plugin_anti_idle_desc"),
       prefKey: "enableAntiIdle",
       icon: "timer",
+      group: "bbs",
       renderOptions: AntiIdle.renderOptions,
     };
   }
@@ -73,6 +75,10 @@ export class AntiIdle {
     return "enableAntiIdle";
   }
 
+  get group() {
+    return "bbs";
+  }
+
   get title() {
     return _("plugin_anti_idle_title");
   }
@@ -94,6 +100,7 @@ export class AntiIdle {
       prefKey: this.prefKey,
       enabled: this.enabled,
       icon: this.icon,
+      group: this.group,
       renderOptions: AntiIdle.renderOptions,
     };
   }

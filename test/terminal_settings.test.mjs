@@ -6,6 +6,14 @@ import { COLOR_SCHEMES, applyColorScheme } from '../src/js/color_schemes.js';
 import { termColors } from '../src/js/color_schemes.js';
 import { DEFAULT_PREFS, readValuesWithDefault, parseOptionText } from '../src/js/pref.js';
 import { TermKeyboard } from '../src/js/term_keyboard.js';
+import { getAvailablePlugins, groupPlugins, PLUGIN_GROUPS } from '../src/plugins/index.js';
+
+const PREF_MODAL_JS_PATH = fs.existsSync(path.resolve('src/components/Settings/PrefModal.js'))
+  ? path.resolve('src/components/Settings/PrefModal.js')
+  : path.resolve('src/components/ContextMenu/PrefModal.js');
+const PREF_MODAL_CSS_PATH = fs.existsSync(path.resolve('src/components/Settings/PrefModal.css'))
+  ? path.resolve('src/components/Settings/PrefModal.css')
+  : path.resolve('src/components/ContextMenu/PrefModal.css');
 
 test('COLOR_SCHEMES defines all standard terminal color palettes with 16 colors each', () => {
   const expectedSchemes = [
@@ -117,7 +125,7 @@ test('TermKeyboard maps Backspace and Delete keys dynamically based on settings'
 
 test('PrefModal source code includes Mouse tab, colorScheme, visualBell, lineHeight, and key mappings', () => {
   const prefModalSrc = fs.readFileSync(
-    path.resolve('src/components/ContextMenu/PrefModal.js'),
+    PREF_MODAL_JS_PATH,
     'utf-8'
   );
 
@@ -169,7 +177,7 @@ test('PrefModal source code includes Mouse tab, colorScheme, visualBell, lineHei
     'Appearance tab must render colorScheme preview bar'
   );
   const prefModalCss = fs.readFileSync(
-    path.resolve('src/components/ContextMenu/PrefModal.css'),
+    PREF_MODAL_CSS_PATH,
     'utf-8'
   );
   assert.ok(
@@ -246,6 +254,9 @@ test('i18n files define all required translations for new settings', () => {
     'options_keyControlH',
     'options_keyControlQuestion',
     'options_keyEscapeSequence',
+    'plugin_group_ui',
+    'plugin_group_bbs',
+    'plugin_group_debug',
   ];
 
   for (const key of requiredKeys) {
@@ -313,7 +324,7 @@ test('parseOptionText extracts option label and description from parentheses', (
 
 test('PrefModal source renders option descriptions beneath comboboxes and places supportMouseReporting note below checkbox', () => {
   const prefModalSrc = fs.readFileSync(
-    path.resolve('src/components/ContextMenu/PrefModal.js'),
+    PREF_MODAL_JS_PATH,
     'utf-8'
   );
 
@@ -335,4 +346,70 @@ test('PrefModal source renders option descriptions beneath comboboxes and places
     'PrefModal must use parseOptionText to strip parentheses from combo options'
   );
 });
+
+test('Extension list supports groups with colored Bands for categories (User Interface, Taiwan BBS, Debug & Development)', () => {
+  const plugins = getAvailablePlugins();
+  const groups = groupPlugins(plugins);
+
+  assert.equal(groups.length, 3, 'Must have 3 groups');
+
+  // Group 1: User Interface (image pre-reviewer, input helper)
+  const uiGroup = groups.find((g) => g.id === 'ui');
+  assert.ok(uiGroup, 'User Interface group must exist');
+  assert.equal(uiGroup.title, 'User Interface');
+  assert.equal(uiGroup.titleKey, 'plugin_group_ui');
+  const uiPluginIds = uiGroup.plugins.map((p) => p.id);
+  assert.deepEqual(uiPluginIds, ['media_previewer', 'input_helper']);
+
+  // Group 2: Taiwan BBS (easy reading, anti-idle, mouse browsing, live article helper)
+  const bbsGroup = groups.find((g) => g.id === 'bbs');
+  assert.ok(bbsGroup, 'Taiwan BBS group must exist');
+  assert.equal(bbsGroup.title, 'Taiwan BBS');
+  assert.equal(bbsGroup.titleKey, 'plugin_group_bbs');
+  const bbsPluginIds = bbsGroup.plugins.map((p) => p.id);
+  assert.deepEqual(bbsPluginIds, ['easy_reading', 'anti_idle', 'mouse_browsing', 'live_update']);
+
+  // Group 3: Debug & Development (fps meter, debug hud, packet logger)
+  const debugGroup = groups.find((g) => g.id === 'debug');
+  assert.ok(debugGroup, 'Debug & Development group must exist');
+  assert.equal(debugGroup.title, 'Debug & Development');
+  assert.equal(debugGroup.titleKey, 'plugin_group_debug');
+  const debugPluginIds = debugGroup.plugins.map((p) => p.id);
+  assert.deepEqual(debugPluginIds, ['fps_meter', 'touch_debug_hud', 'conn_log']);
+
+  // Verify all 9 plugins have their group attribute defined
+  for (const p of plugins) {
+    assert.ok(p.group, `Plugin ${p.id} must define a group`);
+  }
+});
+
+test('PrefModal and PrefModal.css implement category bands with distinct colors and cohesive item accents', () => {
+  const prefModalSrc = fs.readFileSync(
+    PREF_MODAL_JS_PATH,
+    'utf-8'
+  );
+  const prefModalCss = fs.readFileSync(
+    PREF_MODAL_CSS_PATH,
+    'utf-8'
+  );
+
+  // Band HTML and rendering
+  assert.ok(prefModalSrc.includes('PrefModal__MacListBand'), 'PrefModal must render MacListBand');
+  assert.ok(prefModalSrc.includes('groupPlugins(plugins)'), 'PrefModal must group plugins via groupPlugins');
+  assert.ok(prefModalSrc.includes('PrefModal__MacListBandTitle'), 'PrefModal must render Band title');
+  assert.ok(prefModalSrc.includes('PrefModal__MacListBandCount'), 'PrefModal must render item count badge');
+  assert.ok(prefModalSrc.includes('renderGroupIcon'), 'PrefModal must render group icon');
+
+  // CSS for bands and color variations
+  assert.ok(prefModalCss.includes('.PrefModal__MacListBand'), 'PrefModal.css must style .PrefModal__MacListBand');
+  assert.ok(prefModalCss.includes('.PrefModal__MacListBand--ui'), 'PrefModal.css must define UI band color variation');
+  assert.ok(prefModalCss.includes('.PrefModal__MacListBand--bbs'), 'PrefModal.css must define BBS band color variation');
+  assert.ok(prefModalCss.includes('.PrefModal__MacListBand--debug'), 'PrefModal.css must define Debug band color variation');
+
+  // Item category accents
+  assert.ok(prefModalCss.includes('.PrefModal__MacListItem--ui'), 'PrefModal.css must define UI item accent');
+  assert.ok(prefModalCss.includes('.PrefModal__MacListItem--bbs'), 'PrefModal.css must define BBS item accent');
+  assert.ok(prefModalCss.includes('.PrefModal__MacListItem--debug'), 'PrefModal.css must define Debug item accent');
+});
+
 

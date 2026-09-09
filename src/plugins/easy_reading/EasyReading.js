@@ -8,6 +8,7 @@ export class EasyReading {
   static id = 'easy_reading';
   static name = 'easy_reading';
   static prefKey = 'enableEasyReading';
+  static group = 'bbs';
 
   static getMetadata() {
     return {
@@ -17,6 +18,7 @@ export class EasyReading {
       description: _('plugin_easy_reading_desc'),
       prefKey: 'enableEasyReading',
       icon: 'book',
+      group: 'bbs',
     };
   }
 
@@ -30,6 +32,10 @@ export class EasyReading {
 
   get prefKey() {
     return 'enableEasyReading';
+  }
+
+  get group() {
+    return 'bbs';
   }
 
   get title() {
@@ -53,6 +59,7 @@ export class EasyReading {
       prefKey: this.prefKey,
       enabled: this.enabled,
       icon: this.icon,
+      group: this.group,
     };
   }
 

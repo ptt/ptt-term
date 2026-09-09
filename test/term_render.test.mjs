@@ -24,6 +24,12 @@ const termViewSource = fs.readFileSync(
   'utf-8'
 );
 const appSource = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+const prefModalJsPath = fs.existsSync(path.resolve('src/components/Settings/PrefModal.js'))
+  ? path.resolve('src/components/Settings/PrefModal.js')
+  : path.resolve('src/components/ContextMenu/PrefModal.js');
+const prefModalCssPath = fs.existsSync(path.resolve('src/components/Settings/PrefModal.css'))
+  ? path.resolve('src/components/Settings/PrefModal.css')
+  : path.resolve('src/components/ContextMenu/PrefModal.css');
 
 function createHarness() {
   const harness = {
@@ -1610,7 +1616,7 @@ test('App isMobileDevice and TouchKeyboard label toggle handle mobile system key
 
 test('PrefModal locks termSizeMode to fixed-font-size and disables select on touch interface', () => {
   const prefModalSource = fs.readFileSync(
-    path.resolve('src/components/ContextMenu/PrefModal.js'),
+    prefModalJsPath,
     'utf-8'
   );
   const contextMenuSource = fs.readFileSync(
@@ -1658,7 +1664,7 @@ test('PrefModal locks termSizeMode to fixed-font-size and disables select on tou
 
   // PrefModal.css sidebar scales proportionally when screen width is narrower than dialog
   const prefModalCss = fs.readFileSync(
-    path.resolve('src/components/ContextMenu/PrefModal.css'),
+    prefModalCssPath,
     'utf-8'
   );
   assert.ok(prefModalCss.includes('width: 22%'), 'sidebar width should be proportional (22%)');
@@ -1668,11 +1674,11 @@ test('PrefModal locks termSizeMode to fixed-font-size and disables select on tou
 
 test('PrefModal redesign includes Extensions/Plugins tab with Mac-style toggle list', () => {
   const prefModalSource = fs.readFileSync(
-    path.resolve('src/components/ContextMenu/PrefModal.js'),
+    prefModalJsPath,
     'utf-8'
   );
   const prefModalCss = fs.readFileSync(
-    path.resolve('src/components/ContextMenu/PrefModal.css'),
+    prefModalCssPath,
     'utf-8'
   );
 
@@ -1806,7 +1812,7 @@ test('PrefModal redesign includes Extensions/Plugins tab with Mac-style toggle l
 
 test('PrefModal streamlines extensions UI and consolidates options', () => {
   const prefModalSource = fs.readFileSync(
-    path.resolve('src/components/ContextMenu/PrefModal.js'),
+    prefModalJsPath,
     'utf-8'
   );
 
@@ -1857,11 +1863,11 @@ test('PrefModal streamlines extensions UI and consolidates options', () => {
 
 test('PrefModal extension options container and checkboxes are constrained to prevent horizontal overflow', () => {
   const prefModalCss = fs.readFileSync(
-    path.resolve('src/components/ContextMenu/PrefModal.css'),
+    prefModalCssPath,
     'utf-8'
   );
   const prefModalSource = fs.readFileSync(
-    path.resolve('src/components/ContextMenu/PrefModal.js'),
+    prefModalJsPath,
     'utf-8'
   );
 

@@ -40,6 +40,11 @@ export class MediaPreviewer {
     return MediaPreviewer.renderOptions(props);
   }
 
+  static id = "media_previewer";
+  static name = "media_previewer";
+  static prefKey = "enablePicPreview";
+  static group = "ui";
+
   static getMetadata() {
     return {
       id: "media_previewer",
@@ -48,6 +53,7 @@ export class MediaPreviewer {
       description: _("plugin_media_previewer_desc"),
       prefKey: "enablePicPreview",
       icon: "image",
+      group: "ui",
       renderOptions: MediaPreviewer.renderOptions,
     };
   }
@@ -72,6 +78,10 @@ export class MediaPreviewer {
     return "enablePicPreview";
   }
 
+  get group() {
+    return "ui";
+  }
+
   get title() {
     return _("plugin_media_previewer_title");
   }
@@ -93,6 +103,7 @@ export class MediaPreviewer {
       prefKey: this.prefKey,
       enabled: this.enabled,
       icon: this.icon,
+      group: this.group,
       renderOptions: MediaPreviewer.renderOptions,
     };
   }

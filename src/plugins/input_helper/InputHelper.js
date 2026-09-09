@@ -37,6 +37,7 @@ export class InputHelper {
   static id = "input_helper";
   static name = "input_helper";
   static prefKey = "enableInputHelper";
+  static group = "ui";
 
   static getMetadata() {
     return {
@@ -46,6 +47,7 @@ export class InputHelper {
       description: _("plugin_input_helper_desc"),
       prefKey: "enableInputHelper",
       icon: "palette",
+      group: "ui",
     };
   }
 
@@ -69,6 +71,10 @@ export class InputHelper {
     return "enableInputHelper";
   }
 
+  get group() {
+    return "ui";
+  }
+
   get title() {
     return _("cmenu_showInputHelper");
   }
@@ -90,6 +96,7 @@ export class InputHelper {
       prefKey: this.prefKey,
       enabled: this.enabled,
       icon: this.icon,
+      group: this.group,
     };
   }
 

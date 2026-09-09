@@ -1614,7 +1614,9 @@ test('ContextMenu and DropdownMenu decouple LiveHelper and remove right-click it
     'utf-8'
   );
   const prefModalSource = fs.readFileSync(
-    path.resolve('src/components/ContextMenu/PrefModal.js'),
+    fs.existsSync(path.resolve('src/components/Settings/PrefModal.js'))
+      ? path.resolve('src/components/Settings/PrefModal.js')
+      : path.resolve('src/components/ContextMenu/PrefModal.js'),
     'utf-8'
   );
 
