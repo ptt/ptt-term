@@ -459,4 +459,81 @@ test('PrefModal category bands can be clicked to collapse and expand extension g
   );
 });
 
+test('PrefModal pins tab legend header with close button and provides independently scrollable tab body', () => {
+  const prefModalSrc = fs.readFileSync(PREF_MODAL_JS_PATH, 'utf-8');
+  const prefModalCss = fs.readFileSync(PREF_MODAL_CSS_PATH, 'utf-8');
+
+  // 1. Structure: TabLegend has className TabLegend and wraps tab header
+  assert.ok(
+    prefModalSrc.includes('className="TabLegend"'),
+    'TabLegend must have TabLegend class'
+  );
+
+  // 2. All tabs render TabLegend followed by PrefModal__TabBody
+  const tabBodyMatches = prefModalSrc.match(/className="PrefModal__TabBody"/g);
+  assert.ok(
+    tabBodyMatches && tabBodyMatches.length >= 7,
+    'All settings tabs must wrap scrollable content inside PrefModal__TabBody'
+  );
+
+  // 3. CSS: Right column has overflow: hidden and flex column layout to keep header fixed
+  assert.ok(
+    prefModalCss.includes('.PrefModal__Grid__Col--right {') &&
+      prefModalCss.includes('overflow: hidden;') &&
+      prefModalCss.includes('flex-direction: column;'),
+    'PrefModal__Grid__Col--right must be flex column with overflow hidden'
+  );
+
+  // 4. CSS: TabLegend header is pinned with flex-shrink: 0 and separator line
+  assert.ok(
+    prefModalCss.includes('flex-shrink: 0;') &&
+      prefModalCss.includes('border-bottom: 1px solid'),
+    'TabLegend header must be pinned with flex-shrink: 0 and separator line'
+  );
+
+  // 5. CSS: PrefModal__TabBody has overflow-y: auto and flex-grow: 1 so only content scrolls
+  assert.ok(
+    prefModalCss.includes('.PrefModal__TabBody {') &&
+      prefModalCss.includes('overflow-y: auto;') &&
+      prefModalCss.includes('flex-grow: 1;'),
+    'PrefModal__TabBody must have flex-grow: 1 and overflow-y: auto'
+  );
+});
+
+test('PrefModal and FontManager constrain widths with min-width: 0 and prevent subtitle scroll clipping', () => {
+  const prefModalCss = fs.readFileSync(PREF_MODAL_CSS_PATH, 'utf-8');
+  const fontManagerCss = fs.readFileSync(
+    path.resolve('src/components/Settings/FontManager.css'),
+    'utf-8'
+  );
+
+  // 1. fieldset and PrefModal__TabBody must have min-width: 0 to prevent browser default min-content expansion
+  assert.ok(
+    prefModalCss.includes('.PrefModal__Grid__Col--right fieldset') &&
+      prefModalCss.includes('min-width: 0;'),
+    'fieldset must have min-width: 0 to prevent browser min-content horizontal expansion'
+  );
+  assert.ok(
+    prefModalCss.includes('.PrefModal__TabBody {') &&
+      prefModalCss.includes('min-width: 0;'),
+    'PrefModal__TabBody must have min-width: 0'
+  );
+
+  // 2. TabSubtitle must have non-negative margin-top so it is not clipped at top of scroll container
+  assert.ok(
+    prefModalCss.includes('.PrefModal__TabSubtitle {') &&
+      prefModalCss.includes('margin: 0 0 14px;'),
+    'PrefModal__TabSubtitle must not use negative margin-top to avoid being clipped on scroll to top'
+  );
+
+  // 3. FontManager enforces boundary constraints
+  assert.ok(
+    fontManagerCss.includes('.FontManager {') &&
+      fontManagerCss.includes('min-width: 0;') &&
+      fontManagerCss.includes('max-width: 100%;'),
+    'FontManager must specify min-width: 0 and max-width: 100%'
+  );
+});
+
+
 

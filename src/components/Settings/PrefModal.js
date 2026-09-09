@@ -340,7 +340,7 @@ const MOUSE_WHEEL_OPTIONS = [
 ];
 
 const TabLegend = ({ title, subtitle, onCloseClick }) => (
-  <legend>
+  <legend className="TabLegend">
     <span className="TabLegend__Text">
       <span>{title}</span>
       {subtitle && <small>- {subtitle}</small>}
@@ -638,80 +638,82 @@ export class PrefModal extends React.Component {
                   title={i18n("options_general")}
                   onCloseClick={this.handleCloseClick}
                 />
-                <div className="checkbox">
-                  <label>
-                    <input
-                      type="checkbox"
-                      name="warnBeforeClose"
-                      checked={values.warnBeforeClose ?? true}
-                      onChange={this.handleCheckboxChange}
-                    />
-                    {i18n("options_warnBeforeClose")}
-                  </label>
-                </div>
+                <div className="PrefModal__TabBody">
+                  <div className="checkbox">
+                    <label>
+                      <input
+                        type="checkbox"
+                        name="warnBeforeClose"
+                        checked={values.warnBeforeClose ?? true}
+                        onChange={this.handleCheckboxChange}
+                      />
+                      {i18n("options_warnBeforeClose")}
+                    </label>
+                  </div>
 
-                <div className="form-group" id="enableBell">
-                  <label className="control-label">
-                    {i18n("options_enableBell")}
-                  </label>
-                  <select
-                    className="form-control"
-                    name="enableBell"
-                    value={
-                      values.enableBell === false || values.enableBell === "off"
-                        ? "off"
-                        : values.enableBell === "background"
-                          ? "background"
-                          : "always"
-                    }
-                    onChange={this.handleTextInputChange}
-                  >
-                    <option key="options_bellAlways" value="always">
-                      {parseOptionText(i18n("options_bellAlways")).label}
-                    </option>
-                    <option key="options_bellBackground" value="background">
-                      {parseOptionText(i18n("options_bellBackground")).label}
-                    </option>
-                    <option key="options_bellOff" value="off">
-                      {parseOptionText(i18n("options_bellOff")).label}
-                    </option>
-                  </select>
-                  {renderOptionDesc(
-                    {
-                      always: i18n("options_bellAlways"),
-                      background: i18n("options_bellBackground"),
-                      off: i18n("options_bellOff"),
-                    }[
-                      values.enableBell === false || values.enableBell === "off"
-                        ? "off"
-                        : values.enableBell === "background"
-                          ? "background"
-                          : "always"
-                    ]
-                  )}
-                </div>
-                <div className="checkbox">
-                  <label>
+                  <div className="form-group" id="enableBell">
+                    <label className="control-label">
+                      {i18n("options_enableBell")}
+                    </label>
+                    <select
+                      className="form-control"
+                      name="enableBell"
+                      value={
+                        values.enableBell === false || values.enableBell === "off"
+                          ? "off"
+                          : values.enableBell === "background"
+                            ? "background"
+                            : "always"
+                      }
+                      onChange={this.handleTextInputChange}
+                    >
+                      <option key="options_bellAlways" value="always">
+                        {parseOptionText(i18n("options_bellAlways")).label}
+                      </option>
+                      <option key="options_bellBackground" value="background">
+                        {parseOptionText(i18n("options_bellBackground")).label}
+                      </option>
+                      <option key="options_bellOff" value="off">
+                        {parseOptionText(i18n("options_bellOff")).label}
+                      </option>
+                    </select>
+                    {renderOptionDesc(
+                      {
+                        always: i18n("options_bellAlways"),
+                        background: i18n("options_bellBackground"),
+                        off: i18n("options_bellOff"),
+                      }[
+                        values.enableBell === false || values.enableBell === "off"
+                          ? "off"
+                          : values.enableBell === "background"
+                            ? "background"
+                            : "always"
+                      ]
+                    )}
+                  </div>
+                  <div className="checkbox">
+                    <label>
+                      <input
+                        type="checkbox"
+                        name="enableVisualBell"
+                        checked={values.enableVisualBell}
+                        onChange={this.handleCheckboxChange}
+                      />
+                      {i18n("options_enableVisualBell")}
+                    </label>
+                  </div>
+                  <div className="form-group" id="lineWrap">
+                    <label className="control-label">
+                      {i18n("options_lineWrap")}
+                    </label>
                     <input
-                      type="checkbox"
-                      name="enableVisualBell"
-                      checked={values.enableVisualBell}
-                      onChange={this.handleCheckboxChange}
+                      className="form-control"
+                      name="lineWrap"
+                      type="number"
+                      value={values.lineWrap}
+                      onChange={this.handleNumberInputChange}
                     />
-                    {i18n("options_enableVisualBell")}
-                  </label>
-                </div>
-                <div className="form-group" id="lineWrap">
-                  <label className="control-label">
-                    {i18n("options_lineWrap")}
-                  </label>
-                  <input
-                    className="form-control"
-                    name="lineWrap"
-                    type="number"
-                    value={values.lineWrap}
-                    onChange={this.handleNumberInputChange}
-                  />
+                  </div>
                 </div>
               </fieldset>
             )}
@@ -721,7 +723,8 @@ export class PrefModal extends React.Component {
                   title={i18n("options_appearance")}
                   onCloseClick={this.handleCloseClick}
                 />
-                <div className="form-group" id="colorScheme">
+                <div className="PrefModal__TabBody">
+                  <div className="form-group" id="colorScheme">
                   <label className="control-label">
                     {i18n("options_colorScheme")}
                   </label>
@@ -931,6 +934,7 @@ export class PrefModal extends React.Component {
                     />
                   </div>
                 )}
+                </div>
               </fieldset>
             )}
             {navActiveKey === "font" && (
@@ -939,18 +943,20 @@ export class PrefModal extends React.Component {
                   title={i18n("options_fontFace")}
                   onCloseClick={this.handleCloseClick}
                 />
-                <div className="form-group" id="fontFace">
-                  <label className="control-label">
-                    {i18n("options_fontFaceAndPriority")}
-                  </label>
-                  <FontManager
-                    value={values.fontFace}
-                    onChange={(newFontFace) => {
-                      this.handleTextInputChange({
-                        target: { name: "fontFace", value: newFontFace },
-                      });
-                    }}
-                  />
+                <div className="PrefModal__TabBody">
+                  <div className="form-group" id="fontFace">
+                    <label className="control-label">
+                      {i18n("options_fontFaceAndPriority")}
+                    </label>
+                    <FontManager
+                      value={values.fontFace}
+                      onChange={(newFontFace) => {
+                        this.handleTextInputChange({
+                          target: { name: "fontFace", value: newFontFace },
+                        });
+                      }}
+                    />
+                  </div>
                 </div>
               </fieldset>
             )}
@@ -960,7 +966,8 @@ export class PrefModal extends React.Component {
                   title={i18n("options_mouse")}
                   onCloseClick={this.handleCloseClick}
                 />
-                <div className="form-group" id="rightClickAction">
+                <div className="PrefModal__TabBody">
+                  <div className="form-group" id="rightClickAction">
                   <label className="control-label">
                     {i18n("options_rightClickAction")}
                   </label>
@@ -1029,6 +1036,7 @@ export class PrefModal extends React.Component {
                 >
                   {i18n("options_supportMouseReporting_desc")}
                 </span>
+                </div>
               </fieldset>
             )}
             {navActiveKey === "plugins" && (
@@ -1037,7 +1045,8 @@ export class PrefModal extends React.Component {
                   title={i18n("options_plugins")}
                   onCloseClick={this.handleCloseClick}
                 />
-                <p className="PrefModal__TabSubtitle">
+                <div className="PrefModal__TabBody">
+                  <p className="PrefModal__TabSubtitle">
                   {i18n("options_plugins_desc")}
                 </p>
                 <div className="PrefModal__MacList">
@@ -1362,6 +1371,7 @@ export class PrefModal extends React.Component {
                     );
                   })}
                 </div>
+                </div>
               </fieldset>
             )}
             {navActiveKey === "advanced" && (
@@ -1370,7 +1380,8 @@ export class PrefModal extends React.Component {
                   title={i18n("options_advanced")}
                   onCloseClick={this.handleCloseClick}
                 />
-                <div className="form-group" id="backspaceKey">
+                <div className="PrefModal__TabBody">
+                  <div className="form-group" id="backspaceKey">
                   <label className="control-label">
                     {i18n("options_backspaceKey")}
                   </label>
@@ -1444,42 +1455,45 @@ export class PrefModal extends React.Component {
                     {i18n("options_smoothAnsiArt")}
                   </label>
                 </div>
+                </div>
               </fieldset>
             )}
             {navActiveKey === "about" && (
               <div className="PrefModal__About">
-                <div>
-                  <TabLegend
-                    title={i18n("appName")}
-                    subtitle={i18n("about_appName_subtitle")}
-                    onCloseClick={this.handleCloseClick}
-                  />
-                  <p>{replaceI18n("about_description", this.replacements)}</p>
-                </div>
-                <div>
-                  <legend>
-                    {i18n("about_version_title")} - {APP.NAME} v
-                    {APP.VERSION}
-                    {process.env.DEVELOPER_MODE
-                      ? ` (${i18n("alert_developerModeHeader")})`
-                      : ""}
-                  </legend>
-                  <ul>
-                    {replaceI18n(
-                      "about_version_content",
-                      this.replacements,
-                    ).map((text, index) => (
-                      <li key={index}>{text}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <legend>{i18n("about_new_title")}</legend>
-                  <ul>
-                    {i18n("about_new_content").map((text, index) => (
-                      <li key={index}>{text}</li>
-                    ))}
-                  </ul>
+                <TabLegend
+                  title={i18n("appName")}
+                  subtitle={i18n("about_appName_subtitle")}
+                  onCloseClick={this.handleCloseClick}
+                />
+                <div className="PrefModal__TabBody">
+                  <div>
+                    <p>{replaceI18n("about_description", this.replacements)}</p>
+                  </div>
+                  <div>
+                    <legend>
+                      {i18n("about_version_title")} - {APP.NAME} v
+                      {APP.VERSION}
+                      {process.env.DEVELOPER_MODE
+                        ? ` (${i18n("alert_developerModeHeader")})`
+                        : ""}
+                    </legend>
+                    <ul>
+                      {replaceI18n(
+                        "about_version_content",
+                        this.replacements,
+                      ).map((text, index) => (
+                        <li key={index}>{text}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <legend>{i18n("about_new_title")}</legend>
+                    <ul>
+                      {i18n("about_new_content").map((text, index) => (
+                        <li key={index}>{text}</li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               </div>
             )}

@@ -111,22 +111,34 @@ dialog.PrefModal .NativeDialog__content {
 .PrefModal__Grid__Col--right {
   flex-grow: 1;
   min-width: 0;
-  overflow-y: auto;
-  padding: 24px 24px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 24px 24px 0 24px;
   background: #ffffff;
   box-sizing: border-box;
 }
 
 .PrefModal__Grid__Col--right fieldset,
-.PrefModal__Grid__Col--right__Fieldset {
+.PrefModal__Grid__Col--right__Fieldset,
+.PrefModal__About {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
   border: 0;
   margin: 0;
   padding: 0;
-  min-width: 0;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
-.PrefModal__Grid__Col--right__Fieldset > :not(legend) {
+.PrefModal__Grid__Col--right__Fieldset > :not(legend):not(.PrefModal__TabBody) {
   padding-left: 12px;
 }
 
@@ -134,14 +146,16 @@ dialog.PrefModal .NativeDialog__content {
   padding-left: 0;
 }
 
-.PrefModal__Grid__Col--right legend {
+.PrefModal__Grid__Col--right legend,
+.TabLegend {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
   padding: 0;
   padding-bottom: 10px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   font-size: 19px;
   font-weight: 600;
   line-height: inherit;
@@ -157,16 +171,61 @@ dialog.PrefModal .NativeDialog__content {
   gap: 0.4em;
 }
 
-.PrefModal__Grid__Col--right legend small {
+.PrefModal__Grid__Col--right legend small,
+.TabLegend small {
   font-size: 12px;
   font-weight: 400;
   color: #86868b;
 }
 
-.PrefModal__Grid__Col--right legend .close {
+.PrefModal__Grid__Col--right legend .close,
+.TabLegend .close {
   float: none;
   margin-left: auto;
   align-self: center;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1;
+  color: #86868b;
+  opacity: 0.8;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0 4px;
+  margin-top: -4px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.PrefModal__Grid__Col--right legend .close:hover,
+.TabLegend .close:hover {
+  color: #1d1d1f;
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+.PrefModal__TabBody {
+  flex-grow: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 24px;
+  padding-right: 4px;
+  box-sizing: border-box;
+}
+
+.PrefModal__TabBody > :not(.PrefModal__MacList) {
+  padding-left: 12px;
+}
+
+.PrefModal__TabBody legend {
+  font-size: 15px;
+  margin: 16px 0 8px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .PrefModal__Grid__Col--right__Fieldset input[type="text"],
@@ -228,7 +287,7 @@ dialog.PrefModal .NativeDialog__content {
 .PrefModal__TabSubtitle {
   font-size: 13px;
   color: #6e6e73;
-  margin: -10px 0 14px;
+  margin: 0 0 14px;
   line-height: 1.4;
 }
 
@@ -752,17 +811,23 @@ dialog.PrefModal .NativeDialog__content {
   }
 
   .PrefModal__Grid__Col--right {
-    padding: 12px 10px;
+    padding: 12px 10px 0 10px;
   }
 
-  .PrefModal__Grid__Col--right legend {
+  .PrefModal__Grid__Col--right legend,
+  .TabLegend {
     font-size: 17px;
     padding-bottom: 6px;
     margin-bottom: 12px;
   }
 
-  .PrefModal__Grid__Col--right__Fieldset > :not(legend) {
+  .PrefModal__Grid__Col--right__Fieldset > :not(legend):not(.PrefModal__TabBody),
+  .PrefModal__TabBody > :not(.PrefModal__MacList) {
     padding-left: 6px;
+  }
+
+  .PrefModal__TabBody {
+    padding-bottom: 12px;
   }
 
   .PrefModal__Grid__Col--right__Fieldset input[type="text"],
@@ -783,7 +848,7 @@ dialog.PrefModal .NativeDialog__content {
 
   .PrefModal__TabSubtitle {
     font-size: 12px;
-    margin: -6px 0 10px;
+    margin: 0 0 10px;
   }
 
   .PrefModal__MacListItem {

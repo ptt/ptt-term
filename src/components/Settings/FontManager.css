@@ -2,6 +2,9 @@
   margin-top: 6px;
   margin-bottom: 12px;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang TC", sans-serif;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .FontManager__Toolbar {
@@ -11,6 +14,9 @@
   margin-bottom: 8px;
   flex-wrap: wrap;
   gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .FontManager__Toolbar__Title {
@@ -39,6 +45,8 @@
   gap: 6px;
   box-sizing: border-box;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .FontManager__Empty {
@@ -63,6 +71,8 @@
   gap: 8px;
   box-sizing: border-box;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .FontManager__Item:hover {
@@ -165,6 +175,9 @@
   gap: 6px;
   align-items: center;
   margin-bottom: 6px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .PrefModal__Grid__Col--right__Fieldset .FontManager__AddBox select,
@@ -183,6 +196,7 @@
   width: auto !important;
   flex-grow: 1;
   min-width: 150px;
+  max-width: 100%;
   padding-left: 10px !important;
   padding-right: 28px !important;
   border-radius: 6px !important;
