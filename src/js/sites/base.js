@@ -304,10 +304,16 @@ export class BaseSite {
    * @param {number} actualRowIndex
    * @returns {object} { beginIndex, atLastPage, numRows }
    */
-  getPagingSlice(termBuf, statusResult, actualRowIndex) {
+  getPagingSlice(termBuf, statusResult, actualRowIndex, pageLines = termBuf?.pageLines || []) {
+    let lastRowNum = this.getLastRowNum(termBuf);
+    let beginIndex = 0;
+    let atLastPage = false;
+    if (pageLines && pageLines.length > 0) {
+      beginIndex = this.findContentOverlap(termBuf, lastRowNum, pageLines);
+    }
     return {
-      beginIndex: 0,
-      atLastPage: false,
+      beginIndex,
+      atLastPage,
     };
   }
 

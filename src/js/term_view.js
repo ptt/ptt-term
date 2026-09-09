@@ -58,15 +58,8 @@ export class TermView extends Event {
   this.cursorX = 0;
   this.cursorY = 0;
 
-  // TODO Move this into easy_reading.js
-  this._useEasyReadingMode = false;
-  this._easyReadingKeyDownKeyCode = 0;
-  this._easyReadingKeyDownIsComposing = false;
-
   this.curRow = 0;
   this.curCol = 0;
-
-  this.actualRowIndex = 0;
 
   this.lineWrap = 78;
 
@@ -263,9 +256,6 @@ export class TermView extends Event {
     this.fontFace = fontFace;
     this.input.style.setProperty('font-family', this.fontFace, 'important');
     this.app?.dispatchFontUpdate?.({ fontFace: this.fontFace });
-    if (this.easyReadingOverlay) {
-      this.easyReadingOverlay.style.setProperty('--font-face', this.fontFace);
-    }
   }
 
   setShowFps(show) {
@@ -348,17 +338,11 @@ export class TermView extends Event {
       if (this.app?.dispatchScreenUpdate?.(changedLineHtmlStrs)) {
         // Handled by plugin
       } else if (this.app?.easyReading) {
-        this.app.easyReading.updatePage(changedLineHtmlStrs);
-      } else if (this.useEasyReadingMode) {
-        if (this.buf.startedEasyReading && this.buf.easyReadingShowReplyText) {
-          this.updateEasyReadingReplyRow(changedLineHtmlStrs[changedLineHtmlStrs.length-1]);
-        } else if (this.buf.startedEasyReading && this.buf.easyReadingShowPushInitText) {
-          this.updateEasyReadingPushInitRow(changedLineHtmlStrs[changedLineHtmlStrs.length-1]);
-        } else {
-          this.populateEasyReadingPage();
+        if (this.app.easyReading.enabled) {
+          this.app.easyReading.updatePage(changedLineHtmlStrs);
+        } else if (this.app.easyReading.isActive?.()) {
+          this.app.easyReading.hide();
         }
-      } else if (this.isEasyReadingActive()) {
-        this.hideEasyReading();
       }
 
       if (this.buf.prevPageState !== this.buf.pageState && (this.panX > 0 || this.panY > 0)) {
@@ -480,10 +464,6 @@ export class TermView extends Event {
     this.mainDisplay.style.fontSize = fontSize;
     this.mainDisplay.style.lineHeight = fontSize;
     this.app?.dispatchFontUpdate?.({ fontSize });
-    if (this.easyReadingOverlay) {
-      this.easyReadingOverlay.style.fontSize = fontSize;
-      this.easyReadingOverlay.style.lineHeight = fontSize;
-    }
     this.cursor.style.fontSize = fontSize;
     this.cursor.style.lineHeight = fontSize;
     this.applyCursorStyle();
@@ -992,129 +972,6 @@ export class TermView extends Event {
   }
 
 
-  get useEasyReadingMode() {
-    return this.app?.easyReading ? this.app.easyReading.enabled : (this._easyReading ? this._easyReading.enabled : this._useEasyReadingMode);
-  }
-  set useEasyReadingMode(val) {
-    if (this.app?.easyReading) {
-      this.app.easyReading.enabled = val;
-    } else if (this._easyReading) {
-      this._easyReading.enabled = val;
-    }
-    this._useEasyReadingMode = val;
-  }
-
-  get easyReadingKeyDownKeyCode() {
-    return this.app?.easyReading?._keyDownKeyCode ?? this._easyReadingKeyDownKeyCode ?? 0;
-  }
-  set easyReadingKeyDownKeyCode(val) {
-    if (this.app?.easyReading) this.app.easyReading._keyDownKeyCode = val;
-    this._easyReadingKeyDownKeyCode = val;
-  }
-
-  get easyReadingKeyDownIsComposing() {
-    return this.app?.easyReading?._keyDownIsComposing ?? this._easyReadingKeyDownIsComposing ?? false;
-  }
-  set easyReadingKeyDownIsComposing(val) {
-    if (this.app?.easyReading) this.app.easyReading._keyDownIsComposing = val;
-    this._easyReadingKeyDownIsComposing = val;
-  }
-
-  get easyReadingOverlay() {
-    return this.app?.easyReading?.overlay || this._easyReadingOverlay || null;
-  }
-  set easyReadingOverlay(val) {
-    this._easyReadingOverlay = val;
-  }
-
-  get easyReadingContent() {
-    return this.app?.easyReading?.content || this._easyReadingContent || null;
-  }
-  set easyReadingContent(val) {
-    this._easyReadingContent = val;
-  }
-
-  get easyReadingFooter() {
-    return this.app?.easyReading?.footer || this._easyReadingFooter || null;
-  }
-  set easyReadingFooter(val) {
-    this._easyReadingFooter = val;
-  }
-
-  get lastRowDiv() {
-    return this.app?.easyReading?.lastRowDiv || this._lastRowDiv || null;
-  }
-  set lastRowDiv(val) {
-    this._lastRowDiv = val;
-  }
-
-  get replyRowDiv() {
-    return this.app?.easyReading?.replyRowDiv || this._replyRowDiv || null;
-  }
-  set replyRowDiv(val) {
-    this._replyRowDiv = val;
-  }
-
-  get actualRowIndex() {
-    return this.app?.easyReading?.actualRowIndex ?? this._actualRowIndex ?? 0;
-  }
-  set actualRowIndex(val) {
-    if (this.app?.easyReading) {
-      this.app.easyReading.actualRowIndex = val;
-    }
-    this._actualRowIndex = val;
-  }
-
-  isEasyReadingActive() {
-    if (this.app?.easyReading) {
-      return this.app.easyReading.isActive();
-    }
-    return !!(this.easyReadingOverlay && this.easyReadingOverlay.style.display !== 'none');
-  }
-
-  showEasyReading() {
-    if (this.app?.easyReading) {
-      this.app.easyReading.show();
-      return;
-    }
-    if (this.easyReadingOverlay) {
-      this.easyReadingOverlay.style.display = 'block';
-    }
-    if (this.app) {
-      this.app.lastEasyReadingWheelTime = 0;
-      this.app.lastEasyReadingHideTime = 0;
-    }
-  }
-
-  populateEasyReadingPage() {
-    if (this.app?.easyReading) {
-      this.app.easyReading.populatePage();
-    }
-  }
-
-  updateEasyReadingProgress() {
-    if (this.app?.easyReading) {
-      this.app.easyReading.updateProgress();
-    }
-  }
-
-  clearRows() {
-    if (this.app?.easyReading) {
-      this.app.easyReading.clearRows();
-      return;
-    }
-    if (this.easyReadingContent) {
-      this.easyReadingContent.innerHTML = '';
-    }
-  }
-
-  appendRows(lines, showsLinkPreview) {
-    if (this.app?.easyReading) {
-      this.app.easyReading.appendRows(lines, showsLinkPreview);
-      return;
-    }
-  }
-
   renderRow(line, row, chh, showsLinkPreview, el) {
     return renderRowHtml(line, row, chh, showsLinkPreview, el);
   }
@@ -1127,48 +984,18 @@ export class TermView extends Event {
     return renderRowHtml(row, 0, this.chh, false, el);
   }
 
-  hideEasyReading() {
+  get useEasyReadingMode() {
+    return this.app?.easyReading?.enabled ?? this._easyReading?.enabled ?? false;
+  }
+  set useEasyReadingMode(val) {
     if (this.app?.easyReading) {
-      this.app.easyReading.hide();
-      return;
-    }
-    if (this.easyReadingOverlay) {
-      this.easyReadingOverlay.style.display = 'none';
-    }
-    if (this.app) {
-      this.app.lastEasyReadingHideTime = Date.now();
-      this.app.suppressInertialWheel?.();
-    }
-    this.clearRows();
-    if (this.lastRowDiv) {
-      this.lastRowDiv.style.backgroundColor = '';
-      this.lastRowDiv.style.display = 'none';
-    }
-    if (this.replyRowDiv) {
-      this.replyRowDiv.style.display = 'none';
-    }
-    if (this.buf) {
-      this.buf.pageLines = [];
+      this.app.easyReading.enabled = Boolean(val);
+    } else if (this._easyReading) {
+      this._easyReading.enabled = Boolean(val);
     }
   }
 
-  updateEasyReadingReplyRow(row) {
-    if (this.app?.easyReading) {
-      this.app.easyReading.updateReplyRow(row);
-      return;
-    }
-  }
-
-  updateEasyReadingPushInitRow(row) {
-    if (this.app?.easyReading) {
-      this.app.easyReading.updatePushInitRow(row);
-      return;
-    }
-  }
-
-  setSingleChild(par, child) {
-    while (par.childNodes.length > 0)
-      par.removeChild(par.lastChild);
-    par.appendChild(child);
+  isEasyReadingActive() {
+    return this.app?.easyReading?.isActive?.() ?? this._easyReading?.isActive?.() ?? false;
   }
 }

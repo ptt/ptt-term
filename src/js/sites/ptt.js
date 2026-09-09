@@ -156,9 +156,8 @@ export class PttSite extends BaseSite {
     conn.sendNop();
   }
 
-  getPagingSlice(termBuf, statusResult, actualRowIndex) {
+  getPagingSlice(termBuf, statusResult, actualRowIndex, pageLines = termBuf?.pageLines || []) {
     let lastRowNum = this.getLastRowNum(termBuf);
-    let pageLines = termBuf.pageLines || [];
     let beginIndex = this.findContentOverlap(termBuf, lastRowNum, pageLines);
     return {
       beginIndex,

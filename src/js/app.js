@@ -652,18 +652,13 @@ export class App {
     if (doSwitch) {
       this.liveUpdate?.stop();
       this.liveUpdate?.hideModal();
-      // clear the deep cloned copy of lines
-      this.buf.pageLines = [];
+      this.easyReading?.clearRows?.();
       if (this.buf.pageState == 3 && (this.stream || this.conn)) {
         const cmd = this.site.getReenterArticleCommand(this.buf);
         this.send(cmd);
       }
     } else {
-      if (this.easyReading) {
-        this.easyReading.hide();
-      } else {
-        this.view.hideEasyReading();
-      }
+      this.easyReading?.hide();
     }
     // request the full screen
     if (this.stream || this.conn)
@@ -699,7 +694,7 @@ export class App {
   const selection = this.lastSelection;
   let pageLines = null;
   if (this.hasActiveInputInterceptor() && this.buf.pageState == 3) {
-    pageLines = this.easyReading?.pageLines || this.buf.pageLines;
+    pageLines = this.easyReading?.pageLines || null;
   }
 
   let ansiText = '';
@@ -1163,7 +1158,6 @@ export class App {
       setTerminalBellEnabled(value);
       break;
     case 'enableEasyReading':
-      this.view.useEasyReadingMode = !!value;
       if (this.easyReading) {
         this.easyReading.enabled = !!value;
       }

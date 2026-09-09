@@ -68,9 +68,8 @@ export class Maple3Site extends BaseSite {
     conn.send('\x00');
   }
 
-  getPagingSlice(termBuf, statusResult, actualRowIndex) {
+  getPagingSlice(termBuf, statusResult, actualRowIndex, pageLines = termBuf?.pageLines || []) {
     let lastRowNum = this.getLastRowNum(termBuf);
-    let pageLines = termBuf.pageLines || [];
     let isEnd = this.isArticleEnd(termBuf.getRowText(lastRowNum, 0, termBuf.cols), termBuf, statusResult);
     let beginIndex = 0;
 

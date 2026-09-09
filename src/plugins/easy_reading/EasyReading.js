@@ -187,36 +187,7 @@ export class EasyReading {
     this._initialized = false;
   }
 
-  get _enabled() {
-    return this.enabled;
-  }
-  set _enabled(val) {
-    this.enabled = val;
-    if (this._view && 'useEasyReadingMode' in this._view && typeof this._view.useEasyReadingMode === 'boolean') {
-      this._view.useEasyReadingMode = val;
-    }
-  }
 
-  get startedEasyReading() {
-    return this.started;
-  }
-  set startedEasyReading(val) {
-    this.started = val;
-  }
-
-  get easyReadingShowReplyText() {
-    return this.showReplyText;
-  }
-  set easyReadingShowReplyText(val) {
-    this.showReplyText = val;
-  }
-
-  get easyReadingShowPushInitText() {
-    return this.showPushInitText;
-  }
-  set easyReadingShowPushInitText(val) {
-    this.showPushInitText = val;
-  }
 
   isStarted() {
     return this.started;
@@ -323,9 +294,7 @@ export class EasyReading {
     return !!(this.overlay && this.overlay.style.display !== 'none');
   }
 
-  isEasyReadingActive() {
-    return this.isActive();
-  }
+
 
   show() {
     if (this.overlay) {
@@ -362,20 +331,16 @@ export class EasyReading {
     }
     this.pageLines = [];
     this.pageWrappedLines = [];
-    if (this._termBuf) {
-      this._termBuf.pageLines = [];
-      this._termBuf.pageWrappedLines = [];
-    }
   }
 
-  hideEasyReading() {
-    this.hide();
-  }
+
 
   clearRows() {
     if (this.content) {
       this.content.innerHTML = '';
     }
+    this.pageLines = [];
+    this.pageWrappedLines = [];
   }
 
   setRowRenderer(fn) {
@@ -491,7 +456,7 @@ export class EasyReading {
           this._lastEasyReadingPageIndex = result.pageIndex;
         }
 
-        const paging = site.getPagingSlice(this._termBuf, result, this.actualRowIndex);
+        const paging = site.getPagingSlice(this._termBuf, result, this.actualRowIndex, this.pageLines);
         let beginIndex = paging.beginIndex;
         const atLastPage = paging.atLastPage;
 

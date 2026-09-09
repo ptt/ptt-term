@@ -1135,18 +1135,15 @@ test('EasyReading decouples state tracking and removes TermBuf property injectio
 
   easyReading.started = true;
   assert.equal(easyReading.isStarted(), true);
-  assert.equal(easyReading.startedEasyReading, true);
 
   easyReading.showReplyText = true;
   assert.equal(easyReading.isPromptActive(), true);
   assert.equal(easyReading.isReplyActive(), true);
-  assert.equal(easyReading.easyReadingShowReplyText, true);
 
   easyReading.showReplyText = false;
   easyReading.showPushInitText = true;
   assert.equal(easyReading.isPromptActive(), true);
   assert.equal(easyReading.isPushInitActive(), true);
-  assert.equal(easyReading.easyReadingShowPushInitText, true);
 
   // TermBuf was not monkey-patched with non-configurable Object.defineProperty
   const desc = Object.getOwnPropertyDescriptor(mockTermBuf, 'startedEasyReading');
