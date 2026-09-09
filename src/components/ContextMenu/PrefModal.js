@@ -37,6 +37,22 @@ const renderPluginIcon = (icon) => {
           <line x1="9" y1="11" x2="13" y2="11" />
         </svg>
       );
+    case "speed":
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M12 14l4-4" />
+          <path d="M3.34 19a10 10 0 1 1 17.32 0" />
+        </svg>
+      );
     case "timer":
       return (
         <svg
@@ -999,17 +1015,6 @@ export class PrefModal extends React.Component {
                       onChange={this.handleCheckboxChange}
                     />
                     {i18n("options_smoothAnsiArt")}
-                  </label>
-                </div>
-                <div className="checkbox">
-                  <label>
-                    <input
-                      type="checkbox"
-                      name="showFps"
-                      checked={values.showFps}
-                      onChange={this.handleCheckboxChange}
-                    />
-                    {i18n("options_showFps")}
                   </label>
                 </div>
               </fieldset>

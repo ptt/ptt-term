@@ -275,6 +275,16 @@ export class App {
     }
   }
 
+  get fpsMeter() {
+    return this.getPlugin('fps_meter') || this.getPlugin('FpsMeter') || this.view?.fpsMeter || null;
+  }
+
+  set fpsMeter(val) {
+    if (val && !this.plugins.includes(val)) {
+      this.registerPlugin(val);
+    }
+  }
+
   getPluginList() {
     return this.plugins.map((p) => {
       if (p.getMetadata) {
@@ -1168,6 +1178,7 @@ export class App {
       break;
     case 'showFps':
       this.view.setShowFps(!!value);
+      this.fpsMeter?.setEnabled?.(!!value);
       break;
     case 'smoothAnsi':
     case 'smoothAnsiArt':

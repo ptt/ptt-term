@@ -1850,6 +1850,40 @@ test('src/plugins exports ConnectionLog and formats hex data', async () => {
   assert.equal(mockApp.connLog, cl);
 });
 
+test('src/plugins exports FpsMeter and provides plugin metadata and lifecycle', async () => {
+  const pluginsModule = await import('../src/plugins/index.js');
+  const fpsModule = await import('../src/plugins/fps_meter/index.js');
+
+  assert.equal(pluginsModule.FpsMeter, fpsModule.FpsMeter);
+  assert.equal(pluginsModule.FpsMeterPlugin, fpsModule.FpsMeterPlugin);
+  assert.equal(fpsModule.default, fpsModule.FpsMeter);
+
+  const staticMeta = fpsModule.FpsMeter.getMetadata();
+  assert.equal(staticMeta.id, 'fps_meter');
+  assert.equal(staticMeta.name, 'fps_meter');
+  assert.equal(staticMeta.prefKey, 'showFps');
+  assert.equal(staticMeta.icon, 'speed');
+  assert.ok(staticMeta.title && staticMeta.title.length > 0);
+  assert.ok(staticMeta.description && staticMeta.description.length > 0);
+
+  const available = pluginsModule.getAvailablePlugins();
+  assert.ok(available.some((p) => p.id === 'fps_meter'));
+
+  const mockApp = {
+    onPrefChange: () => {},
+  };
+  const meter = new fpsModule.FpsMeter(mockApp);
+  assert.equal(meter.id, 'fps_meter');
+  assert.equal(meter.prefKey, 'showFps');
+  assert.equal(meter.icon, 'speed');
+  assert.equal(mockApp.fpsMeter, meter);
+
+  const meta = meter.getMetadata();
+  assert.equal(meta.id, 'fps_meter');
+  assert.equal(meta.prefKey, 'showFps');
+});
+
+
 
 
 

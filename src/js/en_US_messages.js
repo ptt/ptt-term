@@ -118,6 +118,12 @@ export const en_US = {
   plugin_conn_log_desc: {
     message: "Captures and displays raw WebSocket / Telnet hexadecimal packet streams in real time.",
   },
+  plugin_fps_meter_title: {
+    message: "FPS Meter",
+  },
+  plugin_fps_meter_desc: {
+    message: "Monitor terminal render framerate (FPS) and render duration in real time, with Canvas/DOM and Smooth ANSI toggles.",
+  },
   plugin_builtin: {
     message: "Built-in",
   },

@@ -118,6 +118,12 @@ export const zh_TW = {
   plugin_conn_log_desc: {
     message: "即時擷取與檢視底層傳輸的原始 WebSocket / Telnet 十六進位封包資料流。",
   },
+  plugin_fps_meter_title: {
+    message: "畫面更新率 (FPS)",
+  },
+  plugin_fps_meter_desc: {
+    message: "即時監控並在角落顯示終端機影格更新率 (FPS) 與渲染耗時，支援切換 Canvas/DOM 與平滑字型。",
+  },
   plugin_builtin: {
     message: "內建",
   },

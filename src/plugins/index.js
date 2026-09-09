@@ -25,6 +25,10 @@ import {
   ConnectionLog,
   ConnectionLogPlugin,
 } from './conn_log/index.js';
+import {
+  FpsMeter,
+  FpsMeterPlugin,
+} from './fps_meter/index.js';
 
 export {
   EasyReading,
@@ -40,6 +44,8 @@ export {
   MediaPreviewerPlugin,
   ConnectionLog,
   ConnectionLogPlugin,
+  FpsMeter,
+  FpsMeterPlugin,
 };
 
 export const BUILTIN_PLUGINS = [
@@ -50,6 +56,7 @@ export const BUILTIN_PLUGINS = [
   AntiIdle,
   MediaPreviewer,
   ConnectionLog,
+  FpsMeter,
 ];
 
 export function getAvailablePlugins(app) {

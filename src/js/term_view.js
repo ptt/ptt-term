@@ -7,8 +7,6 @@ import { renderRowHtml, renderScreen } from './term_ui';
 import { i18n } from './i18n';
 import { setTimer } from './util';
 import { wrapText, u2b } from './string_util';
-import { FpsMeter } from './fps_meter';
-import { updatePref } from './pref.js';
 
 const ENTER_CHAR = '\r';
 const DEFINE_INPUT_BUFFER_SIZE = 12;
@@ -32,20 +30,7 @@ export class TermView extends Event {
   this.useCanvasEngine = true;
   this.showFps = false;
   this.smoothAnsiArt = true;
-  this.fpsMeter = new FpsMeter({
-    isCanvas: this.useCanvasEngine,
-    smoothAnsiArt: this.smoothAnsiArt,
-    onToggleCanvas: (isCanvas) => {
-      this.useCanvasEngine = isCanvas;
-      updatePref('useCanvasEngine', isCanvas);
-      this.redraw(true);
-    },
-    onToggleSmoothAnsi: (enabled) => {
-      this.smoothAnsiArt = enabled;
-      updatePref('smoothAnsiArt', enabled);
-      this.redraw(true);
-    }
-  });
+  this._fpsMeter = null;
   //new pref - end
 
   this.viewMargin = 0;
@@ -258,16 +243,24 @@ export class TermView extends Event {
     this.app?.dispatchFontUpdate?.({ fontFace: this.fontFace });
   }
 
+  get fpsMeter() {
+    return this.app?.getPlugin?.('fps_meter') || this.app?.fpsMeter || this._fpsMeter;
+  }
+
+  set fpsMeter(val) {
+    this._fpsMeter = val;
+  }
+
   setShowFps(show) {
     this.showFps = !!show;
-    this.fpsMeter.setIsCanvas(this.useCanvasEngine);
-    this.fpsMeter.setSmoothAnsiArt(this.smoothAnsiArt);
-    this.fpsMeter.setEnabled(this.showFps);
+    this.fpsMeter?.setIsCanvas?.(this.useCanvasEngine);
+    this.fpsMeter?.setSmoothAnsiArt?.(this.smoothAnsiArt);
+    this.fpsMeter?.setEnabled?.(this.showFps);
   }
 
   setUseCanvasEngine(enabled) {
     this.useCanvasEngine = !!enabled;
-    this.fpsMeter.setIsCanvas(this.useCanvasEngine);
+    this.fpsMeter?.setIsCanvas?.(this.useCanvasEngine);
     this.redraw(true);
   }
 
@@ -293,7 +286,7 @@ export class TermView extends Event {
       lineChangeds[row] = false;
     }
     if (changedLineHtmlStrs.length > 0) {
-      const t0 = (this.showFps && this.fpsMeter.enabled && typeof performance !== 'undefined')
+      const t0 = (this.showFps && this.fpsMeter?.enabled && typeof performance !== 'undefined')
         ? performance.now()
         : 0;
       const screenInst = renderScreen(
@@ -332,7 +325,7 @@ export class TermView extends Event {
       }
       this.setHighlightedRow(this.buf.nowHighlight);
       if (t0 > 0 && !this.useCanvasEngine) {
-        this.fpsMeter.recordFrame(performance.now() - t0, false);
+        this.fpsMeter?.recordFrame?.(performance.now() - t0, false);
       }
 
       if (this.app?.dispatchScreenUpdate?.(changedLineHtmlStrs)) {
