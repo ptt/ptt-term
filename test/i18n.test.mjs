@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { i18n, setupI18n, getLang } from '../src/js/i18n.js';
-import { en_US } from '../src/js/en_US_messages.js';
-import { zh_TW } from '../src/js/zh_TW_messages.js';
+import en_US from '../src/_locales/en/messages.json' with { type: 'json' };
+import zh_TW from '../src/_locales/zh_TW/messages.json' with { type: 'json' };
 
 function setMockNavigator(navObj) {
   const originalDesc = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
@@ -63,6 +63,12 @@ test('setupI18n and i18n resolve translations for current locale', () => {
 
   // Missing key
   assert.equal(i18n('nonexistent_key_xyz'), undefined);
+});
+
+test('en_US and zh_TW have identical translation keys', () => {
+  const enKeys = Object.keys(en_US).sort();
+  const zhKeys = Object.keys(zh_TW).sort();
+  assert.deepEqual(enKeys, zhKeys, 'en_US and zh_TW keys must match exactly');
 });
 
 test('i18n message dictionaries maintain 100% key parity between en_US and zh_TW', () => {

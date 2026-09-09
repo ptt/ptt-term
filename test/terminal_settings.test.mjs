@@ -221,8 +221,8 @@ test('CSS contains visual bell animation on screenContainer and row line height 
 });
 
 test('i18n files define all required translations for new settings', () => {
-  const zhTW = fs.readFileSync(path.resolve('src/js/zh_TW_messages.js'), 'utf-8');
-  const enUS = fs.readFileSync(path.resolve('src/js/en_US_messages.js'), 'utf-8');
+  const zhTW = fs.readFileSync(path.resolve('src/_locales/zh_TW/messages.json'), 'utf-8');
+  const enUS = fs.readFileSync(path.resolve('src/_locales/en/messages.json'), 'utf-8');
 
   const requiredKeys = [
     'options_warnBeforeClose',
