@@ -13,7 +13,7 @@ import { i18n } from './i18n';
 import { unescapeStr } from './string_util';
 import { setTimer, parseConnectUrl } from './util';
 import { setTerminalBellEnabled, setWindowFocused } from './bell.js';
-import { readValuesWithDefault, writeValues } from './pref.js';
+import { readValuesWithDefault, writeValues, updatePref } from './pref.js';
 import { applyColorScheme } from './color_schemes.js';
 import AppOverlay from '../components/AppOverlay';
 import { getSite } from './sites';
@@ -849,12 +849,16 @@ export class App extends Event {
   }
 
   switchMouseBrowsing() {
-    const mb = this.getPlugin('mouse_browsing');
-    if (mb?.switchMouseBrowsing) {
-      this.useMouseBrowsing = mb.switchMouseBrowsing();
-      return this.useMouseBrowsing;
-    }
     this.useMouseBrowsing = !this.useMouseBrowsing;
+    if (this.buf) {
+      this.buf.useMouseBrowsing = this.useMouseBrowsing;
+    }
+    updatePref('useMouseBrowsing', this.useMouseBrowsing);
+    this.dispatchEvent(
+      new CustomEvent('term:pref-change', {
+        detail: { key: 'useMouseBrowsing', value: this.useMouseBrowsing },
+      })
+    );
     return this.useMouseBrowsing;
   }
 

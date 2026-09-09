@@ -441,7 +441,7 @@ export class ContextMenu extends React.Component {
     if (this.state.open) {
       const { app } = this.props;
       app.contextMenuShown = false;
-      if (!app.view.isEasyReadingActive()) {
+      if (!app.hasActiveInputInterceptor?.()) {
         app.setInputAreaFocus();
       }
       this.setState(initialState);
@@ -455,10 +455,10 @@ export class ContextMenu extends React.Component {
       return;
     }
     const { app } = this.props;
-    menuHandlerByEventKey[eventKey](app, this.state);
+    menuHandlerByEventKey[eventKey]?.(app, this.state);
     event?.stopPropagation?.();
     app.contextMenuShown = false;
-    if (!app.view.isEasyReadingActive()) {
+    if (!app.hasActiveInputInterceptor?.()) {
       app.setInputAreaFocus();
     }
     this.setState(initialState);

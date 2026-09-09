@@ -3320,5 +3320,44 @@ test('ContextMenu allows plugins to register menu items and unregister dynamical
   assert.equal(appMock.getContextMenuItems().length, 0);
 });
 
+test('App and ContextMenu decouple mouse browsing and easy reading through events and input interceptors', () => {
+  const appSource = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+  const contextMenuSource = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/index.js'),
+    'utf-8'
+  );
+  const termViewSource = fs.readFileSync(
+    path.resolve('src/js/term_view.js'),
+    'utf-8'
+  );
+
+  // App switchMouseBrowsing no longer queries getPlugin('mouse_browsing')
+  assert.ok(
+    !appSource.includes("this.getPlugin('mouse_browsing')"),
+    'App switchMouseBrowsing must not call this.getPlugin("mouse_browsing")'
+  );
+  assert.ok(
+    appSource.includes("term:pref-change"),
+    'App switchMouseBrowsing must dispatch term:pref-change'
+  );
+
+  // ContextMenu checks hasActiveInputInterceptor
+  assert.ok(
+    contextMenuSource.includes('app.hasActiveInputInterceptor?.()'),
+    'ContextMenu must use app.hasActiveInputInterceptor'
+  );
+  assert.ok(
+    !contextMenuSource.includes('app.view.isEasyReadingActive'),
+    'ContextMenu must not depend on app.view.isEasyReadingActive'
+  );
+
+  // TermView delegates to hasActiveInputInterceptor
+  assert.ok(
+    termViewSource.includes('this.app?.hasActiveInputInterceptor'),
+    'TermView isEasyReadingActive must delegate to app.hasActiveInputInterceptor'
+  );
+});
+
+
 
 

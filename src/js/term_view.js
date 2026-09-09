@@ -1009,6 +1009,9 @@ export class TermView extends Event {
   }
 
   isEasyReadingActive() {
+    if (this.app?.hasActiveInputInterceptor) {
+      return this.app.hasActiveInputInterceptor();
+    }
     return (this.app?.getPlugin?.('easy_reading') || this._easyReading)?.isActive?.() ?? false;
   }
 }
