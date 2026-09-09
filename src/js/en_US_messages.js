@@ -149,6 +149,12 @@ export const en_US = {
     message: "Failed to load image preview",
   },
   },
+  options_warnBeforeClose: {
+    message: "Confirm before closing or reloading when connected",
+  },
+  options_trimTrailingSpaces: {
+    message: "Trim trailing whitespace on copy",
+  },
   options_enableBell: {
     message: "Terminal bell (BEL)",
   },
@@ -208,6 +214,30 @@ export const en_US = {
   },
   options_appearance: {
     message: "Appearance",
+  },
+  options_colorScheme: {
+    message: "Color Scheme",
+  },
+  options_colorScheme_default: {
+    message: "Classic Default",
+  },
+  options_colorScheme_solarizedDark: {
+    message: "Solarized Dark",
+  },
+  options_colorScheme_nord: {
+    message: "Nord",
+  },
+  options_colorScheme_monokai: {
+    message: "Monokai",
+  },
+  options_colorScheme_dracula: {
+    message: "Dracula",
+  },
+  options_colorScheme_retroAmber: {
+    message: "Amber CRT",
+  },
+  options_colorScheme_retroGreen: {
+    message: "Green CRT",
   },
   options_cursorStyle: {
     message: "Caret style",
@@ -284,6 +314,15 @@ export const en_US = {
   options_mouse: {
     message: "Mouse",
   },
+  options_rightClickAction: {
+    message: "Right-click Action",
+  },
+  options_rightClickAction_menu: {
+    message: "Show context menu (Default)",
+  },
+  options_rightClickAction_paste: {
+    message: "Paste from clipboard directly (Shift + Right-click opens menu)",
+  },
   options_mouseBrowsing: {
     message: "Mouse browsing",
   },
@@ -295,6 +334,9 @@ export const en_US = {
   },
   options_supportMouseReporting: {
     message: "Support Mouse Reporting",
+  },
+  options_supportMouseReporting_desc: {
+    message: "The terminal only transmits mouse events. Server-side software support is required; many sites may not respond.",
   },
 
 

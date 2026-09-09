@@ -13,6 +13,7 @@ import {
   parseCaretStyle,
   serializeCaretStyle,
 } from "../../js/pref";
+import { COLOR_SCHEMES } from "../../js/color_schemes.js";
 import { getAvailablePlugins } from "../../plugins/index.js";
 
 export { getDefaultPrefs, readValuesWithDefault, writeValues };
@@ -468,6 +469,11 @@ export class PrefModal extends React.Component {
                   {i18n("options_fontFace")}
                 </a>
               </li>
+              <li className={navActiveKey === "mouse" ? "active" : ""}>
+                <a href="#" onClick={this.handleNavSelect("mouse")}>
+                  {i18n("options_mouse")}
+                </a>
+              </li>
               <li className={navActiveKey === "plugins" ? "active" : ""}>
                 <a href="#" onClick={this.handleNavSelect("plugins")}>
                   {i18n("options_plugins")}
@@ -507,22 +513,11 @@ export class PrefModal extends React.Component {
                   <label>
                     <input
                       type="checkbox"
-                      name="copyOnSelect"
-                      checked={values.copyOnSelect}
+                      name="warnBeforeClose"
+                      checked={values.warnBeforeClose ?? true}
                       onChange={this.handleCheckboxChange}
                     />
-                    {i18n("options_copyOnSelect")}
-                  </label>
-                </div>
-                <div className="checkbox">
-                  <label>
-                    <input
-                      type="checkbox"
-                      name="supportMouseReporting"
-                      checked={values.supportMouseReporting ?? true}
-                      onChange={this.handleCheckboxChange}
-                    />
-                    {i18n("options_supportMouseReporting")}
+                    {i18n("options_warnBeforeClose")}
                   </label>
                 </div>
 
@@ -573,6 +568,28 @@ export class PrefModal extends React.Component {
                   title={i18n("options_appearance")}
                   onCloseClick={this.handleCloseClick}
                 />
+                <div className="form-group" id="colorScheme">
+                  <label className="control-label">
+                    {i18n("options_colorScheme")}
+                  </label>
+                  <select
+                    className="form-control"
+                    name="colorScheme"
+                    value={values.colorScheme || "default"}
+                    onChange={this.handleTextInputChange}
+                  >
+                    {Object.keys(COLOR_SCHEMES).map((key) => (
+                      <option key={key} value={key}>
+                        {i18n(COLOR_SCHEMES[key].titleI18n)}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="PrefModal__ColorSchemePreview">
+                    {(COLOR_SCHEMES[values.colorScheme || "default"] || COLOR_SCHEMES["default"]).colors.map((c, i) => (
+                      <span key={i} style={{ backgroundColor: c }} />
+                    ))}
+                  </div>
+                </div>
                 <div className="form-group" id="cursorStyle">
                   <label className="control-label">
                     {i18n("options_cursorStyle")}
@@ -743,6 +760,78 @@ export class PrefModal extends React.Component {
                     }}
                   />
                 </div>
+              </fieldset>
+            )}
+            {navActiveKey === "mouse" && (
+              <fieldset className="PrefModal__Grid__Col--right__Fieldset">
+                <TabLegend
+                  title={i18n("options_mouse")}
+                  onCloseClick={this.handleCloseClick}
+                />
+                <div className="form-group" id="rightClickAction">
+                  <label className="control-label">
+                    {i18n("options_rightClickAction")}
+                  </label>
+                  <select
+                    className="form-control"
+                    name="rightClickAction"
+                    value={values.rightClickAction || "menu"}
+                    onChange={this.handleTextInputChange}
+                  >
+                    <option value="menu">
+                      {i18n("options_rightClickAction_menu")}
+                    </option>
+                    <option value="paste">
+                      {i18n("options_rightClickAction_paste")}
+                    </option>
+                  </select>
+                </div>
+                <div className="checkbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="copyOnSelect"
+                      checked={values.copyOnSelect}
+                      onChange={this.handleCheckboxChange}
+                    />
+                    {i18n("options_copyOnSelect")}
+                  </label>
+                </div>
+                <div className="checkbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="trimTrailingSpaces"
+                      checked={values.trimTrailingSpaces ?? true}
+                      onChange={this.handleCheckboxChange}
+                    />
+                    {i18n("options_trimTrailingSpaces")}
+                  </label>
+                </div>
+                <div className="checkbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="supportMouseReporting"
+                      checked={values.supportMouseReporting ?? true}
+                      onChange={this.handleCheckboxChange}
+                    />
+                    {i18n("options_supportMouseReporting")}
+                  </label>
+                </div>
+                <span
+                  className="help-block"
+                  style={{
+                    fontSize: "12px",
+                    opacity: 0.7,
+                    marginTop: "-4px",
+                    marginLeft: "24px",
+                    marginBottom: "10px",
+                    display: "block",
+                  }}
+                >
+                  {i18n("options_supportMouseReporting_desc")}
+                </span>
               </fieldset>
             )}
             {navActiveKey === "plugins" && (

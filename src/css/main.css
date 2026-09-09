@@ -256,7 +256,7 @@ body {
   height: 100%;
   color: white;
   /* background-color: #101010; */
-  background-color: black;
+  background-color: var(--term-color-0, black);
   margin: 0px;
   padding: 0px;
   overflow: hidden;

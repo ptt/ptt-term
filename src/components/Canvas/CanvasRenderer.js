@@ -575,13 +575,13 @@ export class CanvasRenderer {
       }
       ctx.clip();
 
-      ctx.fillStyle = "#000000";
+      ctx.fillStyle = termColors[0] || "#000000";
       for (let i = 0; i < targetRows.length; ++i) {
         const r = targetRows[i];
         ctx.fillRect(0, r * chh, width, chh);
       }
     } else {
-      ctx.fillStyle = "#000000";
+      ctx.fillStyle = termColors[0] || "#000000";
       ctx.fillRect(0, 0, width, height);
     }
 

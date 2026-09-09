@@ -148,6 +148,12 @@ export const zh_TW = {
     message: "無法載入圖片預覽",
   },
   },
+  options_warnBeforeClose: {
+    message: "連線中關閉或重新整理視窗前確認 (防呆提醒)",
+  },
+  options_trimTrailingSpaces: {
+    message: "複製時自動修剪行尾空白",
+  },
   options_enableBell: {
     message: "終端機提示音 (Bell)",
   },
@@ -207,6 +213,30 @@ export const zh_TW = {
   },
   options_appearance: {
     message: "介面",
+  },
+  options_colorScheme: {
+    message: "配色主題",
+  },
+  options_colorScheme_default: {
+    message: "經典黑底 (Classic Default)",
+  },
+  options_colorScheme_solarizedDark: {
+    message: "Solarized Dark",
+  },
+  options_colorScheme_nord: {
+    message: "Nord",
+  },
+  options_colorScheme_monokai: {
+    message: "Monokai",
+  },
+  options_colorScheme_dracula: {
+    message: "Dracula",
+  },
+  options_colorScheme_retroAmber: {
+    message: "懷舊琥珀 (Amber CRT)",
+  },
+  options_colorScheme_retroGreen: {
+    message: "復古綠 (Green CRT)",
   },
   options_cursorStyle: {
     message: "文字游標 (Caret) 樣式",
@@ -283,6 +313,15 @@ export const zh_TW = {
   options_mouse: {
     message: "滑鼠",
   },
+  options_rightClickAction: {
+    message: "滑鼠右鍵動作",
+  },
+  options_rightClickAction_menu: {
+    message: "顯示右鍵選單 (預設)",
+  },
+  options_rightClickAction_paste: {
+    message: "直接貼上剪貼簿內容 (Shift + 右鍵開啟選單)",
+  },
   options_mouseBrowsing: {
     message: "滑鼠瀏覽",
   },
@@ -294,6 +333,9 @@ export const zh_TW = {
   },
   options_supportMouseReporting: {
     message: "支援滑鼠定位協議",
+  },
+  options_supportMouseReporting_desc: {
+    message: "終端機只能送出滑鼠資訊，此功能仍需要伺服器端軟體支援，多數站台可能無反應。",
   },
 
 

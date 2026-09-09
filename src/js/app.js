@@ -14,6 +14,7 @@ import { unescapeStr } from './string_util';
 import { setTimer, parseConnectUrl } from './util';
 import { setTerminalBellEnabled, setWindowFocused } from './bell.js';
 import { readValuesWithDefault, writeValues } from './pref.js';
+import { applyColorScheme } from './color_schemes.js';
 import AppOverlay from '../components/AppOverlay';
 import { getSite } from './sites';
 import { Event } from './event';
@@ -77,6 +78,10 @@ export class App extends Event {
   this.appFocused = true;
 
   this.copyOnSelect = false;
+  this.warnBeforeClose = true;
+  this.colorScheme = 'default';
+  this.trimTrailingSpaces = true;
+  this.rightClickAction = 'menu';
 
   window.addEventListener('click', (e) => {
     this.mouse_click(e);
@@ -136,7 +141,8 @@ export class App extends Event {
   };
 
   window.addEventListener('beforeunload', (e) => {
-    if (this.conn && this.conn.isConnected && this.buf.pageState != 0) {
+    if (this.warnBeforeClose && this.conn && this.conn.isConnected) {
+      e.preventDefault();
       e.returnValue = 'You are currently connected. Are you sure?';
       return e.returnValue;
     }
@@ -566,10 +572,17 @@ export class App extends Event {
 
   async doCopy(str) {
     if (typeof str !== 'string') return;
-    if (str.indexOf('\x1b') < 0) {
+    if (this.trimTrailingSpaces !== false) {
+      if (str.indexOf('\x1b') < 0) {
+        str = str
+          .split(/\r\n|\r|\n/)
+          .map((line) => line.replace(/[ \t]+$/, ''))
+          .join('\r')
+          .replace(/[ \t\r]+$/, '');
+      }
+    } else if (str.indexOf('\x1b') < 0) {
       str = str.replace(/\r\n/g, '\r');
       str = str.replace(/\n/g, '\r');
-      str = str.replace(/ +\r/g, '\r');
     }
     if (navigator.clipboard && navigator.clipboard.writeText) {
       try {
@@ -975,6 +988,23 @@ export class App extends Event {
       break;
     case 'copyOnSelect':
       this.copyOnSelect = value;
+      break;
+    case 'trimTrailingSpaces':
+      this.trimTrailingSpaces = !!value;
+      break;
+    case 'rightClickAction':
+      this.rightClickAction = value;
+      break;
+    case 'warnBeforeClose':
+      this.warnBeforeClose = !!value;
+      break;
+    case 'colorScheme':
+      this.colorScheme = value;
+      applyColorScheme(value);
+      if (this.view) {
+        this.view.updateHighlightColor();
+        this.view.redraw(true);
+      }
       break;
     case 'enablePicPreview':
       // TODO: move this to ImagePreview.

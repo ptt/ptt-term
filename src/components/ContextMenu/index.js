@@ -334,6 +334,11 @@ export class ContextMenu extends React.Component {
     ) {
       return;
     }
+    const { app } = this.props;
+    if (app && app.rightClickAction === "paste" && !event.shiftKey) {
+      app.doPaste();
+      return;
+    }
     this.showMenuAt(event.pageX, event.pageY, event.target);
   };
 

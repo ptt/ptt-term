@@ -2,12 +2,15 @@ export const DEFAULT_PREFS = {
   enablePicPreview: true,
   picPreviewWhitelistOnly: true,
   enableBell: "always",
+  warnBeforeClose: true,
   enableEasyReading: false,
   enableLiveUpdate: false,
   endTurnsOnLiveUpdate: true,
   liveUpdateInterval: 1,
   showLiveUpdateToolbar: true,
   copyOnSelect: false,
+  trimTrailingSpaces: true,
+  rightClickAction: "menu",
   supportMouseReporting: true,
   enableAntiIdle: false,
   antiIdleTime: 0,
@@ -30,6 +33,7 @@ export const DEFAULT_PREFS = {
   mouseWheelFunction3: 3,
 
   // displays
+  colorScheme: 'default',
   cursorStyle: 'blink',
   fontFitWindowWidth: false,
   fontFace: "MingLiu,SymMingLiu,'Noto Sans Mono CJK TC','PingFang TC',monospace",

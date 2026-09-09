@@ -560,6 +560,24 @@ dialog.PrefModal .NativeDialog__content {
   transform: translateX(20px);
 }
 
+.PrefModal__ColorSchemePreview {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 2px;
+  margin-top: 6px;
+  height: 26px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: #000000;
+}
+
+.PrefModal__ColorSchemePreview span {
+  display: block;
+  height: 100%;
+}
+
 @media (max-width: 640px) {
   dialog.PrefModal {
     width: calc(100vw - 16px);

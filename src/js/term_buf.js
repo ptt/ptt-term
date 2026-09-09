@@ -8,47 +8,7 @@ import { getSite } from './sites';
 import { playTerminalBell } from './bell.js';
 import { Locator } from './locator.js';
 
-export const termColors = [
-  // dark
-  '#000000', // black
-  '#800000', // red
-  '#008000', // green
-  '#808000', // yellow
-  '#000080', // blue
-  '#800080', // magenta
-  '#008080', // cyan
-  '#c0c0c0', // light gray
-  // bright
-  '#808080', // gray
-  '#ff0000', // red
-  '#00ff00', // green
-  '#ffff00', // yellow
-  '#0000ff', // blue
-  '#ff00ff', // magenta
-  '#00ffff', // cyan
-  '#ffffff'  // white
-];
-
-export const termInvColors = [
-  // dark
-  '#FFFFFF', // black
-  '#7FFFFF', // red
-  '#FF7FFF', // green
-  '#7F7FFF', // yellow
-  '#FFFF7F', // blue
-  '#7FFF7F', // magenta
-  '#FF7F7F', // cyan
-  '#3F3F3F', // light gray
-  // bright
-  '#7F7F7F', // gray
-  '#00FFFF', // red
-  '#FF00FF', // green
-  '#0000FF', // yellow
-  '#FFFF00', // blue
-  '#00FF00', // magenta
-  '#FF0000', // cyan
-  '#000000'  // white
-];
+export { termColors, termInvColors } from './color_schemes.js';
 
 export class TermChar {
   static defaultFg = 7;
