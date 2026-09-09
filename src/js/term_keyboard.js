@@ -110,8 +110,9 @@ export class TermKeyboard extends Event {
   }
 
   _onKeyDown(e) {
+    if (!e) return false;
     // Windows/Command key.
-    if (e.getModifierState('Meta')) {
+    if (e.metaKey) {
       return false;
     }
 
@@ -121,12 +122,12 @@ export class TermKeyboard extends Event {
         return false;
       }
 
-      let mapped = this.getMappedKey(e.key);
+      let mapped = e.key ? this.getMappedKey(e.key) : null;
       if (mapped) {
         const sent = this._send(mapped);
         this._fireKeyEvent(e.key, mapped, e);
         return sent;
-      } else if (e.key.length == 1) {
+      } else if (e.key && e.key.length == 1) {
         if (!e.isComposing && e.key !== 'Process' && e.keyCode !== 229) {
           const sent = this._send(e.key);
           this._fireKeyEvent(e.key, e.key, e);
@@ -135,6 +136,7 @@ export class TermKeyboard extends Event {
         return false;
       }
     } else if (e.ctrlKey && !e.altKey && !e.shiftKey) {
+      if (!e.key) return false;
       // Use lowercase no even capslock's on.
       let key = e.key.length == 1 ? e.key.toLowerCase() : e.key;
       let mappedCode = CtrlShiftMap[key];
@@ -144,6 +146,7 @@ export class TermKeyboard extends Event {
         return sent;
       }
     } else if (!e.ctrlKey && e.altKey && !e.shiftKey) {
+      if (!e.key) return false;
       // Remapped keys, which conflict browser shortcuts.
       // Use lowercase no even capslock's on.
       switch (e.key.toLowerCase()) {

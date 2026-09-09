@@ -2072,7 +2072,6 @@ test('ContextMenu handles letter keypad mode with continuous typing, Shift toggl
       ctrlKey: false,
       altKey: false,
       shiftKey: Boolean(isShiftActive),
-      getModifierState: (mod) => (mod === 'Shift' ? isShiftActive : false),
       preventDefault: () => {}
     };
     mockApp.view.onKeyDown(fakeEvent);

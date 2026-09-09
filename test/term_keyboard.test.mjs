@@ -22,8 +22,8 @@ function mockKeyEvent(overrides = {}) {
     ctrlKey: false,
     altKey: false,
     shiftKey: false,
+    metaKey: false,
     isComposing: false,
-    getModifierState: (mod) => false,
     preventDefault: () => { prevented = true; },
     get isDefaultPrevented() { return prevented; },
     ...overrides,
@@ -257,7 +257,7 @@ test('TermKeyboard bypasses Meta modifier and Shift-Insert', () => {
   // Meta key (Cmd / Win)
   const metaEvent = mockKeyEvent({
     key: 'c',
-    getModifierState: (mod) => mod === 'Meta',
+    metaKey: true,
   });
   kb.onKeyDown(metaEvent);
   assert.equal(sent.length, 0);
@@ -272,3 +272,36 @@ test('TermKeyboard bypasses Meta modifier and Shift-Insert', () => {
   assert.equal(sent.length, 0);
   assert.equal(pasteEvent.isDefaultPrevented, false);
 });
+
+test('TermKeyboard safely handles events without getModifierState or missing properties', () => {
+  const { kb, sent } = createKeyboard();
+
+  // Bare event without getModifierState or modifiers
+  const bareEvent = {
+    key: 'x',
+    preventDefault() {},
+  };
+  assert.doesNotThrow(() => {
+    kb.onKeyDown(bareEvent);
+  });
+  assert.deepEqual(sent, ['x']);
+
+  // Bare event with metaKey: true and no getModifierState
+  const bareMetaEvent = {
+    key: 'c',
+    metaKey: true,
+    preventDefault() {},
+  };
+  sent.length = 0;
+  assert.doesNotThrow(() => {
+    kb.onKeyDown(bareMetaEvent);
+  });
+  assert.equal(sent.length, 0, 'Meta key without getModifierState should be bypassed');
+
+  // Null/undefined event does not throw
+  assert.doesNotThrow(() => {
+    kb.onKeyDown(null);
+    kb.onKeyDown(undefined);
+  });
+});
+

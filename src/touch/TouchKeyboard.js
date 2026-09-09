@@ -534,7 +534,6 @@ export class TouchKeyboard extends React.Component {
       ctrlKey: false,
       altKey: false,
       shiftKey: false,
-      getModifierState: () => false,
       preventDefault: () => {},
     };
 
@@ -881,7 +880,6 @@ export class TouchKeyboard extends React.Component {
       ctrlKey: false,
       altKey: false,
       shiftKey: Boolean(isShiftActive),
-      getModifierState: (mod) => (mod === "Shift" ? isShiftActive : false),
       preventDefault: () => {},
     };
 
@@ -975,8 +973,6 @@ export class TouchKeyboard extends React.Component {
       ctrlKey: false,
       altKey: false,
       shiftKey: Boolean(isShiftActive),
-      getModifierState: (mod) =>
-        mod === "Shift" ? Boolean(isShiftActive) : false,
       preventDefault: () => {},
     };
 
