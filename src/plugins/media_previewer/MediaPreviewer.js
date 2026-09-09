@@ -69,7 +69,18 @@ export class MediaPreviewer {
   }
 
   init({ app, view, buf } = {}) {
-    if (app) this.app = app;
+    if (app) {
+      this.app = app;
+      this._onPrefChangeBound = (e) => {
+        const { key, value } = e.detail || {};
+        if (key === "enablePicPreview") {
+          this.enabled = Boolean(value);
+        } else if (key === "picPreviewWhitelistOnly") {
+          this.whitelistOnly = Boolean(value);
+        }
+      };
+      this.app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
+    }
     if (view) this.view = view;
     if (buf) this.buf = buf;
     this.syncFromPrefs();
@@ -90,5 +101,9 @@ export class MediaPreviewer {
     return isTrustedImageDomain(hostname);
   }
 
-  destroy() {}
+  destroy() {
+    if (this.app) {
+      this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
+    }
+  }
 }

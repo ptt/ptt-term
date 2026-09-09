@@ -338,6 +338,7 @@ export class PrefModal extends React.Component {
 
   pluginHasOptions = (plugin) => {
     return (
+      Boolean(plugin.renderOptions) ||
       plugin.id === "live_update" ||
       plugin.id === "anti_idle" ||
       plugin.id === "media_previewer" ||
@@ -845,7 +846,15 @@ export class PrefModal extends React.Component {
                         </div>
                         {hasOptions && isExpanded && (
                           <div className="PrefModal__MacListItemSub">
-                            {plugin.id === "live_update" && (
+                            {plugin.renderOptions ? (
+                              plugin.renderOptions({
+                                values,
+                                handleCheckboxChange: this.handleCheckboxChange,
+                                handleNumberInputChange: this.handleNumberInputChange,
+                                handleSelectChange: this.handleSelectChange,
+                              })
+                            ) : null}
+                            {!plugin.renderOptions && plugin.id === "live_update" && (
                               <>
                                 <div className="checkbox PrefModal__MacSubCheckbox">
                                   <label>
@@ -893,7 +902,7 @@ export class PrefModal extends React.Component {
                                 </div>
                               </>
                             )}
-                            {plugin.id === "anti_idle" && (
+                            {!plugin.renderOptions && plugin.id === "anti_idle" && (
                               <div className="PrefModal__MacSubOptionRow">
                                 <span className="PrefModal__MacSubLabel">
                                   {i18n("options_antiIdleTime")}
@@ -913,7 +922,7 @@ export class PrefModal extends React.Component {
                                 </div>
                               </div>
                             )}
-                            {plugin.id === "media_previewer" && (
+                            {!plugin.renderOptions && plugin.id === "media_previewer" && (
                               <div className="checkbox PrefModal__MacSubCheckbox">
                                 <label>
                                   <input
@@ -928,7 +937,7 @@ export class PrefModal extends React.Component {
                                 </label>
                               </div>
                             )}
-                            {plugin.id === "mouse_browsing" && (
+                            {!plugin.renderOptions && plugin.id === "mouse_browsing" && (
                               <>
                                 <div className="checkbox PrefModal__MacSubCheckbox">
                                   <label>

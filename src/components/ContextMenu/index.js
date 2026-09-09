@@ -449,7 +449,7 @@ export class ContextMenu extends React.Component {
 
   handleInputHelperReset = () => {
     const resetCmd = this.props.app.site.getEditorColorResetCommand();
-    this.props.app.conn.send(resetCmd);
+    this.props.app.send(resetCmd);
   };
 
   handleInputHelperCmdSend = (cmd) => {
@@ -471,15 +471,15 @@ export class ContextMenu extends React.Component {
       } else if (x < sel.end.col) {
         selCmd += "\x1b[C".repeat(sel.end.col - x);
       }
-      app.conn.send(cmd + resetCmd + selCmd);
+      app.send(cmd + resetCmd + selCmd);
     } else {
-      app.conn.send(cmd);
+      app.send(cmd);
     }
   };
 
   handleInputHelperConvSend = (str) => {
     const { app } = this.props;
-    app.conn.convSend(str);
+    app.send(str);
   };
 
   handlePrefSave = (values) => {
@@ -536,7 +536,7 @@ export class ContextMenu extends React.Component {
             normalEnabled={normalEnabled}
             selEnabled={selEnabled}
             mouseBrowsingEnabled={
-              app && app.buf ? app.buf.useMouseBrowsing : false
+              Boolean(app?.getPlugin?.("mouse_browsing")?.enabled ?? (app && app.buf ? app.buf.useMouseBrowsing : false))
             }
             inputHelperEnabled={inputHelperEnabled}
             liveHelperEnabled={liveHelperEnabled}
