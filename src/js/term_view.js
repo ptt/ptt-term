@@ -80,6 +80,10 @@ export class TermView extends Event {
     getSelectedText() { return ''; },
     getSelectionColRow() { return null; },
     selectAll() {},
+    startSelection() {},
+    updateSelection() {},
+    endSelection() { return ''; },
+    clearSelection() {},
   };
 
   this.selection = null;
@@ -162,9 +166,14 @@ export class TermView extends Event {
     if (this.isComposition && !e.ctrlKey && !e.altKey)
       return false;
 
-    // Don't process meta keys, like Mac's command key.
-    if (e.metaKey)
+    // Allow meta keys on macOS for shortcuts like Cmd+A, Cmd+C, Cmd+V
+    if (e.metaKey) {
+      const k = e.key ? e.key.toLowerCase() : '';
+      if (k === 'a' || k === 'c' || k === 'v') {
+        return true;
+      }
       return false;
+    }
 
     return true;
   };
@@ -416,11 +425,13 @@ export class TermView extends Event {
 
     // TODO: Move this. Make a key event mapper.
     let stop = false;
-    if (e.ctrlKey && !e.altKey && !e.shiftKey) {
+    const isModifierOnly = (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey;
+    const isShiftModifier = (e.ctrlKey || e.metaKey) && !e.altKey && e.shiftKey;
+    if (isModifierOnly) {
       switch (e.key.toLowerCase()) {
         case 'c': {
           const selectedText = this.getSelectedText();
-          if (selectedText) { //^C , do copy
+          if (selectedText) { //^C / Cmd+C , do copy
             this.app.doCopy(selectedText);
             stop = true;
           }
@@ -430,10 +441,16 @@ export class TermView extends Event {
           this.app.doSelectAll();
           stop = true;
           break;
+        case 'v':
+          if (e.metaKey) {
+            this.app.doPaste();
+            stop = true;
+          }
+          break;
       }
-    } else if (e.ctrlKey && !e.altKey && e.shiftKey) {
+    } else if (isShiftModifier) {
       switch (e.key.toLowerCase()) {
-        case 'V':
+        case 'v':
           this.app.doPaste();
           stop = true;
           break;
@@ -963,6 +980,9 @@ export class TermView extends Event {
       return;
     }
     if (this.useCanvasEngine) {
+      if (!this.componentScreen?.implRef && this.buf) {
+        this.redraw(true);
+      }
       if (this.componentScreen) {
         this.componentScreen.selectAll();
       }

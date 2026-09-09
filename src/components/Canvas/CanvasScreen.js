@@ -170,15 +170,24 @@ export class CanvasScreen extends React.Component {
   selectAll = () => {
     const cols = this.getCols();
     const rows = this.getRows();
+    this.isMouseDown = false;
+    this.dragStarted = true;
+    this.startPos = { col: 0, row: 0 };
+    const selStart = { col: 0, row: 0 };
+    const selEnd = { col: cols - 1, row: rows - 1 };
+    this.state.selStart = selStart;
+    this.state.selEnd = selEnd;
     this.setState(
       {
-        selStart: { col: 0, row: 0 },
-        selEnd: { col: cols - 1, row: rows - 1 },
+        selStart,
+        selEnd,
       },
       () => {
+        this.draw();
         this.props.setInputAreaFocus();
       }
     );
+    this.draw();
   };
 
   startSelection = (coords) => {

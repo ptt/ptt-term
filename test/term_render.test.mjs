@@ -2968,3 +2968,134 @@ test('InputHelperModal renders close button on right and aligns send combo butto
   );
 });
 
+test('CanvasScreen and TermView handle Select All, lastSelection, and Mac/PC hotkeys', () => {
+  const canvasSource = fs.readFileSync(path.resolve('src/components/Canvas/CanvasScreen.js'), 'utf-8');
+  const termViewSource = fs.readFileSync(path.resolve('src/js/term_view.js'), 'utf-8');
+  const appSource = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+  const dropdownSource = fs.readFileSync(path.resolve('src/components/ContextMenu/DropdownMenu.js'), 'utf-8');
+
+  // 1. CanvasScreen.selectAll sets dragStarted, coordinates, synchronous state, and triggers draw
+  assert.ok(
+    canvasSource.includes('this.dragStarted = true;'),
+    'CanvasScreen.selectAll must set dragStarted to true'
+  );
+  assert.ok(
+    canvasSource.includes('this.isMouseDown = false;'),
+    'CanvasScreen.selectAll must set isMouseDown to false'
+  );
+  assert.ok(
+    canvasSource.includes('this.state.selStart = selStart;') &&
+    canvasSource.includes('this.state.selEnd = selEnd;'),
+    'CanvasScreen.selectAll must update state.selStart and state.selEnd synchronously'
+  );
+  assert.ok(
+    canvasSource.includes('this.draw();'),
+    'CanvasScreen.selectAll must call this.draw() immediately to paint highlight'
+  );
+
+  // Simulate CanvasScreen selectAll logic
+  let drawCalled = 0;
+  let focusCalled = 0;
+  const mockCanvasScreen = {
+    cols: 80,
+    rows: 24,
+    getCols() { return this.cols; },
+    getRows() { return this.rows; },
+    isMouseDown: true,
+    dragStarted: false,
+    startPos: null,
+    state: { selStart: null, selEnd: null },
+    props: {
+      setInputAreaFocus() { focusCalled++; }
+    },
+    draw() { drawCalled++; },
+    setState(newState, callback) {
+      Object.assign(this.state, newState);
+      if (callback) callback();
+    },
+    getSelectionColRow() {
+      if (!this.dragStarted || !this.state.selStart || !this.state.selEnd) return null;
+      return { start: this.state.selStart, end: this.state.selEnd };
+    }
+  };
+  const selectAllFn = new Function(
+    canvasSource.match(/selectAll = \(\) => \{([\s\S]*?\n  )\};/)[1]
+  ).bind(mockCanvasScreen);
+
+  selectAllFn();
+  assert.equal(mockCanvasScreen.isMouseDown, false);
+  assert.equal(mockCanvasScreen.dragStarted, true);
+  assert.deepEqual(mockCanvasScreen.startPos, { col: 0, row: 0 });
+  assert.deepEqual(mockCanvasScreen.state.selStart, { col: 0, row: 0 });
+  assert.deepEqual(mockCanvasScreen.state.selEnd, { col: 79, row: 23 });
+  assert.ok(drawCalled >= 1, 'draw() must be called');
+  assert.equal(focusCalled, 1, 'setInputAreaFocus() must be called');
+  assert.deepEqual(mockCanvasScreen.getSelectionColRow(), {
+    start: { col: 0, row: 0 },
+    end: { col: 79, row: 23 }
+  });
+
+  // 2. App.doSelectAll updates lastSelection from view
+  assert.ok(
+    appSource.includes('this.lastSelection = this.view.getSelectionColRow();'),
+    'App.doSelectAll must update this.lastSelection from view.getSelectionColRow()'
+  );
+  let viewSelectAllCalled = 0;
+  const mockApp = {
+    lastSelection: null,
+    view: {
+      selectAll() {
+        viewSelectAllCalled++;
+      },
+      getSelectionColRow() {
+        return { start: { col: 0, row: 0 }, end: { col: 79, row: 23 } };
+      }
+    },
+    doSelectAll() {
+      this.view.selectAll();
+      this.lastSelection = this.view.getSelectionColRow();
+    }
+  };
+  mockApp.doSelectAll();
+  assert.equal(viewSelectAllCalled, 1);
+  assert.deepEqual(mockApp.lastSelection, {
+    start: { col: 0, row: 0 },
+    end: { col: 79, row: 23 }
+  });
+
+  // 3. TermView allows Mac metaKey for Cmd+A, Cmd+C, Cmd+V and mounts CanvasScreen if needed
+  assert.ok(
+    termViewSource.includes('e.metaKey') &&
+    termViewSource.includes("k === 'a' || k === 'c' || k === 'v'"),
+    'TermView keyEventFilter must allow metaKey for A, C, and V'
+  );
+  assert.ok(
+    termViewSource.includes('(e.ctrlKey || e.metaKey)') ||
+    termViewSource.includes('isModifierOnly'),
+    'TermView keyboard handler must accept both Ctrl and Meta (Cmd) keys'
+  );
+  assert.ok(
+    termViewSource.includes('this.redraw(true);') &&
+    termViewSource.includes('this.componentScreen.selectAll()'),
+    'TermView.selectAll must ensure canvas engine screen is redrawn/mounted if needed'
+  );
+
+  // 4. DropdownMenu displays platform-appropriate hotkeys
+  assert.ok(
+    dropdownSource.includes('isMac ? "⌘A" : "Ctrl+A"') ||
+    dropdownSource.includes("isMac ? '⌘A' : 'Ctrl+A'"),
+    'DropdownMenu must show ⌘A on Mac and Ctrl+A on other platforms'
+  );
+  assert.ok(
+    dropdownSource.includes('isMac ? "⌘C" : "Ctrl+C"') ||
+    dropdownSource.includes("isMac ? '⌘C' : 'Ctrl+C'"),
+    'DropdownMenu must show ⌘C on Mac and Ctrl+C on other platforms'
+  );
+  assert.ok(
+    dropdownSource.includes('isMac ? "⌘V" : "Shift+Insert"') ||
+    dropdownSource.includes("isMac ? '⌘V' : 'Shift+Insert'"),
+    'DropdownMenu must show ⌘V on Mac and Shift+Insert on other platforms'
+  );
+});
+
+

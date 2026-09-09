@@ -30,6 +30,11 @@ const normalizeSelectedText = (selectedText) => {
   return selectedText;
 };
 
+const isMac = typeof navigator !== "undefined" && (
+  /Mac|iPod|iPhone|iPad/i.test(navigator.platform || "") ||
+  /Macintosh|Mac OS X/i.test(navigator.userAgent || "")
+);
+
 const MenuItem = ({
   eventKey,
   onSelect,
@@ -149,7 +154,9 @@ export const DropdownMenu = ({
         <React.Fragment>
           <MenuItem eventKey="copy" onSelect={onMenuSelect}>
             {i18n("cmenu_copy")}
-            <span className="DropdownMenu__Item__HotKey">Ctrl+C</span>
+            <span className="DropdownMenu__Item__HotKey">
+              {isMac ? "⌘C" : "Ctrl+C"}
+            </span>
           </MenuItem>
           <MenuItem eventKey="copyAnsi" onSelect={onMenuSelect}>
             {i18n("cmenu_copyAnsi")}
@@ -159,7 +166,9 @@ export const DropdownMenu = ({
       {normalEnabled && (
         <MenuItem eventKey="paste" onSelect={onMenuSelect}>
           {i18n("cmenu_paste")}
-          <span className="DropdownMenu__Item__HotKey">Shift+Insert</span>
+          <span className="DropdownMenu__Item__HotKey">
+            {isMac ? "⌘V" : "Shift+Insert"}
+          </span>
         </MenuItem>
       )}
       {selEnabled && (
@@ -183,7 +192,9 @@ export const DropdownMenu = ({
         <React.Fragment>
           <MenuItem eventKey="selectAll" onSelect={onMenuSelect}>
             {i18n("cmenu_selectAll")}
-            <span className="DropdownMenu__Item__HotKey">Ctrl+A</span>
+            <span className="DropdownMenu__Item__HotKey">
+              {isMac ? "⌘A" : "Ctrl+A"}
+            </span>
           </MenuItem>
           <MenuItem
             eventKey="mouseBrowsing"

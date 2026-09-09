@@ -787,7 +787,8 @@ export class App {
   }
 
   doSelectAll() {
-  this.view.selectAll();
+    this.view.selectAll();
+    this.lastSelection = this.view.getSelectionColRow();
   }
 
   doSearchGoogle(searchTerm) {
