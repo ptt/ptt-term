@@ -502,19 +502,6 @@ export class PrefModal extends React.Component {
                     </option>
                   </select>
                 </div>
-                <div className="form-group" id="antiIdleTime">
-                  <label className="control-label">
-                    {i18n("options_antiIdleTime")}
-                  </label>
-                  <input
-                    className="form-control"
-                    name="antiIdleTime"
-                    type="number"
-                    title={i18n("tooltip_antiIdleTime")}
-                    value={values.antiIdleTime}
-                    onChange={this.handleNumberInputChange}
-                  />
-                </div>
                 <div className="form-group" id="lineWrap">
                   <label className="control-label">
                     {i18n("options_lineWrap")}

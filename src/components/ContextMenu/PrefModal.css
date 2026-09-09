@@ -191,10 +191,6 @@ dialog.PrefModal .NativeDialog__content {
   margin-bottom: 16px;
 }
 
-#antiIdleTime {
-  margin-top: calc(10px + 0.5em);
-}
-
 .PrefModal__Grid__Col--right__MouseBrowsingHighlightColor {
   margin-left: 30px;
 }

@@ -57,11 +57,6 @@ export class App {
   this.lastWheelEventTime = 0;
   this.lastWheelCmdTime = 0;
 
-  //new pref - start
-  this.antiIdleTime = 0;
-  this.idleTime = 0;
-  //new pref - end
-
   this.inputArea = document.getElementById('t');
   this.termWin = document.getElementById('TermWindow');
 
@@ -265,6 +260,16 @@ export class App {
 
   set connLog(val) {
     this._connLog = val;
+    if (val && !this.plugins.includes(val)) {
+      this.registerPlugin(val);
+    }
+  }
+
+  get antiIdle() {
+    return this.getPlugin('anti_idle') || this.getPlugin('AntiIdle') || null;
+  }
+
+  set antiIdle(val) {
     if (val && !this.plugins.includes(val)) {
       this.registerPlugin(val);
     }
@@ -494,10 +499,9 @@ export class App {
     this.connectState = 1;
     this.updateTabIcon('connect');
     this.view.buf.setTitle({conn: this.connectedUrl.hostname});
-    this.idleTime = 0;
-    this.plugins?.get?.('anti_idle')?.resetIdle?.();
+    this.antiIdle?.resetIdle?.();
     this.timerEverySec = setTimer(true, () => {
-      this.antiIdle();
+      this.antiIdle?.tick?.(1000);
       this.view.onBlink();
     }, 1000);
   }
@@ -522,8 +526,7 @@ export class App {
     this.cancelMbTimer();
 
     this.connectState = 2;
-    this.idleTime = 0;
-    this.plugins?.get?.('anti_idle')?.resetIdle?.();
+    this.antiIdle?.resetIdle?.();
 
     this.showAlert('connection', {
       onDismiss: () => {
@@ -534,8 +537,7 @@ export class App {
   }
 
   send(data) {
-    this.idleTime = 0;
-    this.plugins?.get?.('anti_idle')?.resetIdle?.();
+    this.antiIdle?.resetIdle?.();
     if (this.stream) {
       this.stream.send(data);
     } else if (this.conn) {
@@ -548,8 +550,7 @@ export class App {
   }
 
   sendData(str) {
-    this.idleTime = 0;
-    this.plugins?.get?.('anti_idle')?.resetIdle?.();
+    this.antiIdle?.resetIdle?.();
     if (this.connectState == 1) {
       if (this.stream) {
         this.stream.send(str);
@@ -850,23 +851,6 @@ export class App {
     return this.useMouseBrowsing;
   }
 
-  antiIdle() {
-    const plugin = this.plugins?.get?.('anti_idle');
-    if (plugin && typeof plugin.tick === 'function') {
-      plugin.tick(1000);
-      return;
-    }
-    if (this.antiIdleTime && this.idleTime > this.antiIdleTime) {
-      if (this.connectState == 1) {
-        this.site?.sendAntiIdle?.(this.stream || this.conn);
-        this.idleTime = 0;
-      }
-    } else {
-      if (this.connectState == 1)
-        this.idleTime += 1000;
-    }
-  }
-
   updateTabIcon(aStatus) {
   let icon = iconLogo;
   switch (aStatus) {
@@ -1146,12 +1130,11 @@ export class App {
       }
       break;
     case 'antiIdleTime':
-      this.antiIdleTime = value * 1000;
-      this.plugins?.get?.('anti_idle')?.setInterval?.(value);
+      this.antiIdle?.setInterval?.(value);
       break;
     case 'enableAntiIdle':
-      if (this.plugins?.get?.('anti_idle')) {
-        this.plugins.get('anti_idle').enabled = Boolean(value);
+      if (this.antiIdle) {
+        this.antiIdle.enabled = Boolean(value);
       }
       break;
     case 'dbcsDetect':
