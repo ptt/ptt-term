@@ -124,6 +124,12 @@ export const zh_TW = {
   plugin_fps_meter_desc: {
     message: "即時監控並在角落顯示終端機影格更新率 (FPS) 與渲染耗時，支援切換 Canvas/DOM 與平滑字型。",
   },
+  plugin_touch_debug_hud_title: {
+    message: "觸控與鍵盤診斷面板",
+  },
+  plugin_touch_debug_hud_desc: {
+    message: "在螢幕上顯示行動裝置觸控、虛擬鍵盤、視區尺寸與事件即時診斷 HUD，並可一鍵複製診斷報告。",
+  },
   plugin_builtin: {
     message: "內建",
   },

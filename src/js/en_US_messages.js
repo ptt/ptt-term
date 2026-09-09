@@ -124,6 +124,12 @@ export const en_US = {
   plugin_fps_meter_desc: {
     message: "Monitor terminal render framerate (FPS) and render duration in real time, with Canvas/DOM and Smooth ANSI toggles.",
   },
+  plugin_touch_debug_hud_title: {
+    message: "Touch & Keyboard Debug HUD",
+  },
+  plugin_touch_debug_hud_desc: {
+    message: "On-screen diagnostic HUD tracking mobile touch events, virtual keyboard state, viewport metrics, and one-click diagnostic report copying.",
+  },
   plugin_builtin: {
     message: "Built-in",
   },

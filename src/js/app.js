@@ -285,6 +285,21 @@ export class App {
     }
   }
 
+  get touchDebugHUD() {
+    return (
+      this.getPlugin('touch_debug_hud') ||
+      this.getPlugin('TouchDebugHUD') ||
+      this.getPlugin('TouchDebugHUDPlugin') ||
+      null
+    );
+  }
+
+  set touchDebugHUD(val) {
+    if (val && !this.plugins.includes(val)) {
+      this.registerPlugin(val);
+    }
+  }
+
   getPluginList() {
     return this.plugins.map((p) => {
       if (p.getMetadata) {
@@ -1179,6 +1194,9 @@ export class App {
     case 'showFps':
       this.view.setShowFps(!!value);
       this.fpsMeter?.setEnabled?.(!!value);
+      break;
+    case 'enableTouchDebugHUD':
+      this.touchDebugHUD?.setEnabled?.(!!value);
       break;
     case 'smoothAnsi':
     case 'smoothAnsiArt':

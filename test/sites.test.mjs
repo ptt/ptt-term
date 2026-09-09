@@ -1883,6 +1883,42 @@ test('src/plugins exports FpsMeter and provides plugin metadata and lifecycle', 
   assert.equal(meta.prefKey, 'showFps');
 });
 
+test('src/plugins exports TouchDebugHUD and provides plugin metadata and lifecycle', async () => {
+  const pluginsModule = await import('../src/plugins/index.js');
+  const hudModule = await import('../src/plugins/touch_debug_hud/index.js');
+
+  assert.equal(pluginsModule.TouchDebugHUD, hudModule.TouchDebugHUD);
+  assert.equal(pluginsModule.TouchDebugHUDPlugin, hudModule.TouchDebugHUDPlugin);
+  assert.equal(hudModule.default, hudModule.TouchDebugHUDPlugin);
+
+  const staticMeta = hudModule.TouchDebugHUDPlugin.getMetadata();
+  assert.equal(staticMeta.id, 'touch_debug_hud');
+  assert.equal(staticMeta.name, 'touch_debug_hud');
+  assert.equal(staticMeta.prefKey, 'enableTouchDebugHUD');
+  assert.equal(staticMeta.icon, 'debug');
+  assert.ok(staticMeta.title && staticMeta.title.length > 0);
+  assert.ok(staticMeta.description && staticMeta.description.length > 0);
+
+  const available = pluginsModule.getAvailablePlugins();
+  assert.ok(available.some((p) => p.id === 'touch_debug_hud'));
+
+  const mockApp = {
+    onPrefChange: () => {},
+  };
+  const hudPlugin = new hudModule.TouchDebugHUDPlugin(mockApp);
+  hudPlugin.init({ app: mockApp });
+  assert.equal(mockApp.touchDebugHUD, hudPlugin);
+  assert.equal(hudPlugin.id, 'touch_debug_hud');
+  assert.equal(hudPlugin.prefKey, 'enableTouchDebugHUD');
+  assert.equal(hudPlugin.icon, 'debug');
+
+  assert.equal(hudPlugin.isActive(), false);
+  hudPlugin.setEnabled(true);
+  assert.equal(hudPlugin.enabled, true);
+  hudPlugin.setEnabled(false);
+  assert.equal(hudPlugin.enabled, false);
+  hudPlugin.destroy();
+});
 
 
 

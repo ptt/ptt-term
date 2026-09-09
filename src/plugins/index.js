@@ -29,6 +29,10 @@ import {
   FpsMeter,
   FpsMeterPlugin,
 } from './fps_meter/index.js';
+import {
+  TouchDebugHUD,
+  TouchDebugHUDPlugin,
+} from './touch_debug_hud/index.js';
 
 export {
   EasyReading,
@@ -46,6 +50,8 @@ export {
   ConnectionLogPlugin,
   FpsMeter,
   FpsMeterPlugin,
+  TouchDebugHUD,
+  TouchDebugHUDPlugin,
 };
 
 export const BUILTIN_PLUGINS = [
@@ -57,6 +63,7 @@ export const BUILTIN_PLUGINS = [
   MediaPreviewer,
   ConnectionLog,
   FpsMeter,
+  TouchDebugHUDPlugin,
 ];
 
 export function getAvailablePlugins(app) {

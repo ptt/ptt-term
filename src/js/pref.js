@@ -17,6 +17,7 @@ export const DEFAULT_PREFS = {
   smoothAnsiArt: true,
   captureConnectionLog: false,
   enableInputHelper: true,
+  enableTouchDebugHUD: false,
 
   // mouse browsing
   useMouseBrowsing: false,

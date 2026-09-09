@@ -53,6 +53,28 @@ const renderPluginIcon = (icon) => {
           <path d="M3.34 19a10 10 0 1 1 17.32 0" />
         </svg>
       );
+    case "debug":
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M12 2v4" />
+          <path d="m4.93 4.93 2.83 2.83" />
+          <path d="M2 12h4" />
+          <path d="m4.93 19.07 2.83-2.83" />
+          <rect x="8" y="6" width="8" height="14" rx="4" />
+          <path d="M16 12h6" />
+          <path d="m19.07 4.93-2.83 2.83" />
+          <path d="m19.07 19.07-2.83-2.83" />
+        </svg>
+      );
     case "timer":
       return (
         <svg
