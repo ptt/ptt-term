@@ -7,6 +7,12 @@ import {
   computeToolbarLayout,
   TouchController
 } from '../src/js/touch_controller.js';
+import {
+  AntiIdle,
+  MediaPreviewer,
+  LiveUpdate,
+  MouseBrowsing,
+} from '../src/plugins/index.js';
 
 // Extract queueUpdate and notify directly from term_buf.js to test their exact implementation
 const termBufSource = fs.readFileSync(
@@ -3356,6 +3362,74 @@ test('App and ContextMenu decouple mouse browsing and easy reading through event
     termViewSource.includes('this.app?.hasActiveInputInterceptor'),
     'TermView isEasyReadingActive must delegate to app.hasActiveInputInterceptor'
   );
+});
+
+test('Plugins implement renderOptions and decouple easy_reading from core and ContextMenu', () => {
+  const contextMenuSource = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/index.js'),
+    'utf-8'
+  );
+  const termViewSource = fs.readFileSync(
+    path.resolve('src/js/term_view.js'),
+    'utf-8'
+  );
+
+  // 1. ContextMenu does not access app.view.useEasyReadingMode
+  assert.ok(
+    !contextMenuSource.includes('app.view.useEasyReadingMode'),
+    'ContextMenu must not reference app.view.useEasyReadingMode'
+  );
+
+  // 2. TermView does not call getPlugin('easy_reading')
+  assert.ok(
+    !termViewSource.includes("getPlugin?.('easy_reading')"),
+    'TermView must not call getPlugin("easy_reading")'
+  );
+
+  // 3. Plugins provide renderOptions
+  assert.equal(typeof AntiIdle.renderOptions, 'function');
+  assert.equal(typeof MediaPreviewer.renderOptions, 'function');
+  assert.equal(typeof LiveUpdate.renderOptions, 'function');
+  assert.equal(typeof MouseBrowsing.renderOptions, 'function');
+
+  // 4. renderOptions produce valid elements
+  const antiIdleEl = AntiIdle.renderOptions({
+    values: { antiIdleTime: 45 },
+    handleNumberInputChange: () => {},
+  });
+  assert.ok(antiIdleEl && typeof antiIdleEl === 'object');
+
+  const mediaPreviewerEl = MediaPreviewer.renderOptions({
+    values: { picPreviewWhitelistOnly: true },
+    handleCheckboxChange: () => {},
+  });
+  assert.ok(mediaPreviewerEl && typeof mediaPreviewerEl === 'object');
+
+  const liveUpdateEl = LiveUpdate.renderOptions({
+    values: { liveUpdateInterval: 2 },
+    handleCheckboxChange: () => {},
+    handleNumberInputChange: () => {},
+  });
+  assert.ok(liveUpdateEl && typeof liveUpdateEl === 'object');
+
+  const mouseBrowsingEl = MouseBrowsing.renderOptions({
+    values: { mouseBrowsingHighlightColor: 3 },
+    handleCheckboxChange: () => {},
+    handleNumberInputChange: () => {},
+  });
+  assert.ok(mouseBrowsingEl && typeof mouseBrowsingEl === 'object');
+});
+
+test('i18n exports _ as alias of getI18nMessage with en_US -> zh_TW -> str fallback chain', async () => {
+  const { _, getI18nMessage } = await import('../src/js/i18n.js');
+  assert.equal(_, getI18nMessage, '_ must be an alias of getI18nMessage');
+
+  // Existing key found in en_US or zh_TW
+  assert.equal(_('plugin_easy_reading_title'), 'Easy Reading');
+  assert.equal(_('options_antiIdleTime'), 'Anti-idle interval (sec)');
+
+  // Key missing in both en_US and zh_TW falls back to key string
+  assert.equal(_('completely_non_existent_key_xyz'), 'completely_non_existent_key_xyz');
 });
 
 

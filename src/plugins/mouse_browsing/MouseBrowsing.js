@@ -1,4 +1,5 @@
-import { readValuesWithDefault, updatePref } from "../../js/pref.js";
+import React from "preact/compat";
+import { readValuesWithDefault, updatePref, parseOptionText } from "../../js/pref.js";
 import { _ } from "../../js/i18n.js";
 const cursorBack = new URL("../../cursor/back.png", import.meta.url).href;
 const cursorPageup = new URL("../../cursor/pageup.png", import.meta.url).href;
@@ -29,10 +30,175 @@ export const MOUSE_CURSOR_MAP = [
   `url(${cursorLast}) 0 0,auto`, // 14
 ];
 
+const MOUSE_LEFT_OPTIONS = [
+  "options_none",
+  "options_enterKey",
+  "options_rightKey",
+];
+
+const MOUSE_MIDDLE_OPTIONS = [
+  "options_none",
+  "options_enterKey",
+  "options_leftKey",
+  "options_doPaste",
+];
+
+const MOUSE_WHEEL_OPTIONS = [
+  "options_none",
+  "options_upDown",
+  "options_pageUpDown",
+  "options_threadLastNext",
+];
+
+function renderOptionDesc(rawText) {
+  const { desc } = parseOptionText(rawText);
+  if (!desc) return null;
+  return React.createElement(
+    "span",
+    {
+      className: "help-block",
+      style: {
+        fontSize: "12px",
+        opacity: 0.7,
+        marginTop: "4px",
+        display: "block",
+      },
+    },
+    desc
+  );
+}
+
+function renderSelectOptionGroup({
+  controlId,
+  label,
+  name,
+  value,
+  options,
+  onChange,
+}) {
+  const currentKey = options[value];
+  const currentText = currentKey ? _(currentKey) : "";
+  return React.createElement(
+    "div",
+    { className: "form-group", id: controlId },
+    React.createElement("label", { className: "control-label" }, label),
+    React.createElement(
+      "select",
+      {
+        className: "form-control",
+        name,
+        value,
+        onChange,
+      },
+      options.map((key, index) =>
+        React.createElement(
+          "option",
+          { key, value: index },
+          parseOptionText(_(key)).label
+        )
+      )
+    ),
+    renderOptionDesc(currentText)
+  );
+}
+
 export class MouseBrowsing {
   static id = "mouse_browsing";
   static name = "mouse_browsing";
   static prefKey = "useMouseBrowsing";
+
+  static renderOptions({ values = {}, handleCheckboxChange, handleNumberInputChange }) {
+    return React.createElement(
+      React.Fragment,
+      null,
+      React.createElement(
+        "div",
+        { className: "checkbox PrefModal__MacSubCheckbox" },
+        React.createElement(
+          "label",
+          null,
+          React.createElement("input", {
+            type: "checkbox",
+            name: "mouseBrowsingHighlight",
+            checked: values.mouseBrowsingHighlight,
+            onChange: handleCheckboxChange,
+          }),
+          React.createElement(
+            "span",
+            null,
+            _("options_mouseBrowsingHighlight")
+          )
+        )
+      ),
+      React.createElement(
+        "div",
+        { className: "PrefModal__Grid__Col--right__MouseBrowsingHighlightColor" },
+        _("options_highlightColor"),
+        React.createElement(
+          "select",
+          {
+            className: `form-control b${values.mouseBrowsingHighlightColor}`,
+            name: "mouseBrowsingHighlightColor",
+            value: values.mouseBrowsingHighlightColor,
+            onChange: handleNumberInputChange,
+          },
+          Array(16)
+            .fill(0)
+            .map((_, i) =>
+              React.createElement("option", {
+                key: i,
+                value: i,
+                className: `b${i}`,
+              })
+            )
+        )
+      ),
+      renderSelectOptionGroup({
+        controlId: "mouseLeftFunction",
+        label: _("options_mouseLeftFunction"),
+        name: "mouseLeftFunction",
+        value: values.mouseLeftFunction,
+        options: MOUSE_LEFT_OPTIONS,
+        onChange: handleNumberInputChange,
+      }),
+      renderSelectOptionGroup({
+        controlId: "mouseMiddleFunction",
+        label: _("options_mouseMiddleFunction"),
+        name: "mouseMiddleFunction",
+        value: values.mouseMiddleFunction,
+        options: MOUSE_MIDDLE_OPTIONS,
+        onChange: handleNumberInputChange,
+      }),
+      renderSelectOptionGroup({
+        controlId: "mouseWheelFunction1",
+        label: _("options_mouseWheelFunction1"),
+        name: "mouseWheelFunction1",
+        value: values.mouseWheelFunction1,
+        options: MOUSE_WHEEL_OPTIONS,
+        onChange: handleNumberInputChange,
+      }),
+      renderSelectOptionGroup({
+        controlId: "mouseWheelFunction2",
+        label: _("options_mouseWheelFunction2"),
+        name: "mouseWheelFunction2",
+        value: values.mouseWheelFunction2,
+        options: MOUSE_WHEEL_OPTIONS,
+        onChange: handleNumberInputChange,
+      }),
+      renderSelectOptionGroup({
+        controlId: "mouseWheelFunction3",
+        label: _("options_mouseWheelFunction3"),
+        name: "mouseWheelFunction3",
+        value: values.mouseWheelFunction3,
+        options: MOUSE_WHEEL_OPTIONS,
+        onChange: handleNumberInputChange,
+      })
+    );
+  }
+
+  renderOptions(props) {
+    return MouseBrowsing.renderOptions(props);
+  }
 
   static getMetadata() {
     return {
@@ -42,6 +208,7 @@ export class MouseBrowsing {
       description: _("plugin_mouse_browsing_desc"),
       prefKey: "useMouseBrowsing",
       icon: "mouse",
+      renderOptions: MouseBrowsing.renderOptions,
     };
   }
 
@@ -91,6 +258,7 @@ export class MouseBrowsing {
       enabled: this.enabled,
       icon: this.icon,
       supportMouseReporting: this.supportMouseReporting,
+      renderOptions: MouseBrowsing.renderOptions,
     };
   }
 

@@ -1,3 +1,4 @@
+import React from "preact/compat";
 import { readValuesWithDefault, updatePref } from "../../js/pref.js";
 import { _ } from "../../js/i18n.js";
 
@@ -5,6 +6,39 @@ export class AntiIdle {
   static id = "anti_idle";
   static name = "anti_idle";
   static prefKey = "enableAntiIdle";
+
+  static renderOptions({ values = {}, handleNumberInputChange }) {
+    return React.createElement(
+      "div",
+      { className: "PrefModal__MacSubOptionRow" },
+      React.createElement(
+        "span",
+        { className: "PrefModal__MacSubLabel" },
+        _("options_antiIdleTime")
+      ),
+      React.createElement(
+        "div",
+        { className: "PrefModal__MacSubInlineInput" },
+        React.createElement("input", {
+          className: "form-control",
+          type: "number",
+          name: "antiIdleTime",
+          min: "1",
+          value: values.antiIdleTime || 60,
+          onChange: handleNumberInputChange,
+        }),
+        React.createElement(
+          "span",
+          { className: "PrefModal__MacSubUnit" },
+          _("options_liveUpdateIntervalSec")
+        )
+      )
+    );
+  }
+
+  renderOptions(props) {
+    return AntiIdle.renderOptions(props);
+  }
 
   static getMetadata() {
     return {
@@ -14,6 +48,7 @@ export class AntiIdle {
       description: _("plugin_anti_idle_desc"),
       prefKey: "enableAntiIdle",
       icon: "timer",
+      renderOptions: AntiIdle.renderOptions,
     };
   }
 
@@ -59,6 +94,7 @@ export class AntiIdle {
       prefKey: this.prefKey,
       enabled: this.enabled,
       icon: this.icon,
+      renderOptions: AntiIdle.renderOptions,
     };
   }
 

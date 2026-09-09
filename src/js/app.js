@@ -302,18 +302,24 @@ export class App extends Event {
 
   getPluginList() {
     return this.plugins.map((p) => {
+      let meta;
       if (p.getMetadata) {
-        return p.getMetadata();
+        meta = p.getMetadata();
+      } else {
+        meta = {
+          id: p.id || p.name || p.constructor?.name,
+          name: p.name || p.constructor?.name,
+          title: p.title || p.name,
+          description: p.description || '',
+          prefKey: p.prefKey,
+          enabled: p.enabled,
+          icon: p.icon || 'extension',
+        };
       }
-      return {
-        id: p.id || p.name || p.constructor?.name,
-        name: p.name || p.constructor?.name,
-        title: p.title || p.name,
-        description: p.description || '',
-        prefKey: p.prefKey,
-        enabled: p.enabled,
-        icon: p.icon || 'extension',
-      };
+      if ((p.renderOptions || p.constructor?.renderOptions) && !meta.renderOptions) {
+        meta.renderOptions = (p.renderOptions || p.constructor?.renderOptions).bind(p);
+      }
+      return meta;
     });
   }
 

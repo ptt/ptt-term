@@ -999,12 +999,11 @@ export class TermView extends Event {
   }
 
   get useEasyReadingMode() {
-    return this.app?.getPlugin?.('easy_reading')?.enabled ?? this._easyReading?.enabled ?? false;
+    return this.app?.prefValues?.enableEasyReading ?? this._easyReading?.enabled ?? false;
   }
   set useEasyReadingMode(val) {
-    const plugin = this.app?.getPlugin?.('easy_reading') || this._easyReading;
-    if (plugin) {
-      plugin.enabled = Boolean(val);
+    if (this._easyReading) {
+      this._easyReading.enabled = Boolean(val);
     }
   }
 
@@ -1012,6 +1011,6 @@ export class TermView extends Event {
     if (this.app?.hasActiveInputInterceptor) {
       return this.app.hasActiveInputInterceptor();
     }
-    return (this.app?.getPlugin?.('easy_reading') || this._easyReading)?.isActive?.() ?? false;
+    return this._easyReading?.isActive?.() ?? false;
   }
 }

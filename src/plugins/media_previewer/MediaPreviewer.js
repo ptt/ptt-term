@@ -1,3 +1,4 @@
+import React from "preact/compat";
 import { readValuesWithDefault, updatePref } from "../../js/pref.js";
 import { _ } from "../../js/i18n.js";
 import {
@@ -13,6 +14,32 @@ export class MediaPreviewer {
   static name = "media_previewer";
   static prefKey = "enablePicPreview";
 
+  static renderOptions({ values = {}, handleCheckboxChange }) {
+    return React.createElement(
+      "div",
+      { className: "checkbox PrefModal__MacSubCheckbox" },
+      React.createElement(
+        "label",
+        null,
+        React.createElement("input", {
+          type: "checkbox",
+          name: "picPreviewWhitelistOnly",
+          checked: Boolean(values.picPreviewWhitelistOnly !== false),
+          onChange: handleCheckboxChange,
+        }),
+        React.createElement(
+          "span",
+          null,
+          _("options_picPreviewWhitelistOnly")
+        )
+      )
+    );
+  }
+
+  renderOptions(props) {
+    return MediaPreviewer.renderOptions(props);
+  }
+
   static getMetadata() {
     return {
       id: "media_previewer",
@@ -21,6 +48,7 @@ export class MediaPreviewer {
       description: _("plugin_media_previewer_desc"),
       prefKey: "enablePicPreview",
       icon: "image",
+      renderOptions: MediaPreviewer.renderOptions,
     };
   }
 
@@ -65,6 +93,7 @@ export class MediaPreviewer {
       prefKey: this.prefKey,
       enabled: this.enabled,
       icon: this.icon,
+      renderOptions: MediaPreviewer.renderOptions,
     };
   }
 

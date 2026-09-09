@@ -1,3 +1,4 @@
+import React from "preact/compat";
 import { readValuesWithDefault, updatePref } from '../../js/pref.js';
 import { _ } from '../../js/i18n.js';
 import { LiveHelperUI } from './LiveHelperUI.js';
@@ -7,6 +8,81 @@ export class LiveUpdate {
   static name = 'live_update';
   static prefKey = 'enableLiveUpdate';
 
+  static renderOptions({ values = {}, handleCheckboxChange, handleNumberInputChange }) {
+    return React.createElement(
+      React.Fragment,
+      null,
+      React.createElement(
+        "div",
+        { className: "checkbox PrefModal__MacSubCheckbox" },
+        React.createElement(
+          "label",
+          null,
+          React.createElement("input", {
+            type: "checkbox",
+            name: "endTurnsOnLiveUpdate",
+            checked: Boolean(values.endTurnsOnLiveUpdate !== false),
+            onChange: handleCheckboxChange,
+          }),
+          React.createElement(
+            "span",
+            null,
+            _("options_endTurnsOnLiveUpdate")
+          )
+        )
+      ),
+      React.createElement(
+        "div",
+        { className: "checkbox PrefModal__MacSubCheckbox" },
+        React.createElement(
+          "label",
+          null,
+          React.createElement("input", {
+            type: "checkbox",
+            name: "showLiveUpdateToolbar",
+            checked: Boolean(values.showLiveUpdateToolbar !== false),
+            onChange: handleCheckboxChange,
+          }),
+          React.createElement(
+            "span",
+            null,
+            _("options_showLiveUpdateToolbar")
+          )
+        )
+      ),
+      React.createElement(
+        "div",
+        { className: "PrefModal__MacSubOptionRow" },
+        React.createElement(
+          "span",
+          { className: "PrefModal__MacSubLabel" },
+          _("options_liveUpdateInterval")
+        ),
+        React.createElement(
+          "div",
+          { className: "PrefModal__MacSubInlineInput" },
+          React.createElement("input", {
+            className: "form-control",
+            type: "number",
+            name: "liveUpdateInterval",
+            min: "1",
+            value: values.liveUpdateInterval || 1,
+            onChange: handleNumberInputChange,
+          }),
+          React.createElement(
+            "span",
+            { className: "PrefModal__MacSubUnit" },
+            _("options_liveUpdateIntervalSec")
+          )
+        )
+      )
+    );
+  }
+
+  renderOptions(props) {
+    return LiveUpdate.renderOptions(props);
+  }
+
   static getMetadata() {
     return {
       id: 'live_update',
@@ -15,6 +91,7 @@ export class LiveUpdate {
       description: _('plugin_live_update_desc'),
       prefKey: 'enableLiveUpdate',
       icon: 'sync',
+      renderOptions: LiveUpdate.renderOptions,
     };
   }
 
@@ -65,6 +142,7 @@ export class LiveUpdate {
       prefKey: this.prefKey,
       enabled: this.enabled,
       icon: this.icon,
+      renderOptions: LiveUpdate.renderOptions,
     };
   }
 

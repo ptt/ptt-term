@@ -29,7 +29,7 @@ const onPrefSaveImpl = (app, values) => {
   app.onValuesPrefChange(values);
   app.modalShown = false;
   app.setInputAreaFocus();
-  app.switchToEasyReadingMode(app.view.useEasyReadingMode);
+  app.switchToEasyReadingMode(values?.enableEasyReading ?? app.prefValues?.enableEasyReading);
 
   return {
     showsSettings: false,
@@ -526,7 +526,7 @@ export class ContextMenu extends React.Component {
     const { app } = this.props;
     app.onValuesPrefChange(values);
     app.view.redraw(true);
-    app.switchToEasyReadingMode(app.view.useEasyReadingMode);
+    app.switchToEasyReadingMode(values?.enableEasyReading ?? app.prefValues?.enableEasyReading);
   };
 
   render() {

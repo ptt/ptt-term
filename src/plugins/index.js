@@ -73,10 +73,14 @@ export function getAvailablePlugins(app) {
   }
   return BUILTIN_PLUGINS.map((PluginClass) => {
     if (PluginClass.getMetadata) {
-      return PluginClass.getMetadata();
+      const meta = PluginClass.getMetadata();
+      if (PluginClass.renderOptions && !meta.renderOptions) {
+        meta.renderOptions = PluginClass.renderOptions;
+      }
+      return meta;
     }
     const instance = new PluginClass();
-    return instance.getMetadata
+    const meta = instance.getMetadata
       ? instance.getMetadata()
       : {
           id: PluginClass.name,
@@ -86,5 +90,9 @@ export function getAvailablePlugins(app) {
           prefKey: PluginClass.prefKey,
           icon: 'extension',
         };
+    if ((PluginClass.renderOptions || instance.renderOptions) && !meta.renderOptions) {
+      meta.renderOptions = PluginClass.renderOptions || instance.renderOptions.bind(instance);
+    }
+    return meta;
   });
 }
