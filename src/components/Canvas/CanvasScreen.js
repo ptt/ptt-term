@@ -411,6 +411,7 @@ export class CanvasScreen extends React.Component {
       smoothAnsiArt: this.props.smoothAnsiArt,
       fontFace: this.props.fontFace,
       fpsMeter: this.props.fpsMeter,
+      onRenderFrame: this.props.onRenderFrame,
       selStart: this.state.selStart,
       selEnd: this.state.selEnd,
     });

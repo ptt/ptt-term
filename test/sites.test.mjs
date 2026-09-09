@@ -1888,6 +1888,51 @@ test('src/plugins exports FpsMeter and provides plugin metadata and lifecycle', 
   const meta = meter.getMetadata();
   assert.equal(meta.id, 'fps_meter');
   assert.equal(meta.prefKey, 'showFps');
+
+  // Core event broadcasts
+  const listeners = {};
+  const eventApp = {
+    addEventListener: (type, fn) => {
+      listeners[type] = listeners[type] || [];
+      listeners[type].push(fn);
+    },
+    removeEventListener: (type, fn) => {
+      if (listeners[type]) {
+        listeners[type] = listeners[type].filter((cb) => cb !== fn);
+      }
+    },
+    dispatchEvent: (ev) => {
+      if (listeners[ev.type]) {
+        listeners[ev.type].forEach((cb) => cb(ev));
+      }
+    },
+  };
+
+  const eventMeter = new fpsModule.FpsMeter(eventApp);
+  assert.equal(eventMeter.enabled, false);
+
+  // Broadcast showFps pref change
+  eventApp.dispatchEvent(new CustomEvent('term:pref-change', { detail: { key: 'showFps', value: true } }));
+  assert.equal(eventMeter.enabled, true);
+
+  // Broadcast engine and smooth pref changes
+  eventApp.dispatchEvent(new CustomEvent('term:pref-change', { detail: { key: 'useCanvasEngine', value: true } }));
+  assert.equal(eventMeter.isCanvas, true);
+  eventApp.dispatchEvent(new CustomEvent('term:pref-change', { detail: { key: 'smoothAnsiArt', value: false } }));
+  assert.equal(eventMeter.smoothAnsiArt, false);
+
+  // Broadcast term:render-frame
+  let recordFrameCalled = false;
+  const originalRecord = eventMeter.recordFrame.bind(eventMeter);
+  eventMeter.recordFrame = (duration, isCanvas) => {
+    recordFrameCalled = true;
+    originalRecord(duration, isCanvas);
+  };
+  eventApp.dispatchEvent(new CustomEvent('term:render-frame', { detail: { durationMs: 16.6, isCanvas: true } }));
+  assert.equal(recordFrameCalled, true);
+
+  eventMeter.destroy();
+  assert.equal(eventMeter.enabled, false);
 });
 
 test('src/plugins exports TouchDebugHUD and provides plugin metadata and lifecycle', async () => {

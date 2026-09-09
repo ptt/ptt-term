@@ -198,12 +198,10 @@ export class CanvasRenderer {
   }
 
   draw(canvas, options) {
-    const t0 =
-      options.fpsMeter &&
-      options.fpsMeter.enabled &&
-      typeof performance !== "undefined"
-        ? performance.now()
-        : 0;
+    const shouldMeasure =
+      (options.onRenderFrame || (options.fpsMeter && options.fpsMeter.enabled)) &&
+      typeof performance !== "undefined";
+    const t0 = shouldMeasure ? performance.now() : 0;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -284,7 +282,13 @@ export class CanvasRenderer {
     CanvasSelection.drawSelection(ctx, selStart, selEnd, cols, chw, chh);
 
     if (t0 > 0) {
-      options.fpsMeter.recordFrame(performance.now() - t0, true);
+      const durationMs = performance.now() - t0;
+      if (typeof options.onRenderFrame === "function") {
+        options.onRenderFrame({ durationMs, isCanvas: true });
+      }
+      if (options.fpsMeter && typeof options.fpsMeter.recordFrame === "function") {
+        options.fpsMeter.recordFrame(durationMs, true);
+      }
     }
   }
 

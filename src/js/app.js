@@ -1179,7 +1179,6 @@ export class App extends Event {
       break;
     case 'useCanvasEngine':
       this.view.useCanvasEngine = !!value;
-      this.view.fpsMeter?.setIsCanvas?.(this.view.useCanvasEngine);
       this.view.redraw(true);
       break;
     case 'showFps':
@@ -1188,7 +1187,6 @@ export class App extends Event {
     case 'smoothAnsi':
     case 'smoothAnsiArt':
       this.view.smoothAnsiArt = !!value;
-      this.view.fpsMeter?.setSmoothAnsiArt?.(this.view.smoothAnsiArt);
       this.view.redraw(true);
       break;
     case 'supportMouseReporting':

@@ -3,16 +3,17 @@ import zh_TW from '../_locales/zh_TW/messages.json' with { type: 'json' };
 
 const locale = {
   'en_us': en_US,
-  'zh_tw': zh_TW
+  'zh_tw': zh_TW,
 };
 
-let i18n_val = {};
+let i18n_val = {},
+  alt = en_US;
 
 export function i18n(str) {
-  if (i18n_val[str]) {
+  if (i18n_val && i18n_val[str]) {
     return i18n_val[str].message;
   } else {
-    console.log('missing i18n '+str);
+    console.log('missing i18n:', str);
   }
 }
 
@@ -20,11 +21,8 @@ export function getI18nMessage(str) {
   if (i18n_val && i18n_val[str]) {
     return i18n_val[str].message ?? i18n_val[str];
   }
-  if (en_US && en_US[str]) {
-    return en_US[str].message ?? en_US[str];
-  }
-  if (zh_TW && zh_TW[str]) {
-    return zh_TW[str].message ?? zh_TW[str];
+  if (alt && alt[str]) {
+    return alt[str].message ?? alt[str];
   }
   return str;
 }
@@ -32,11 +30,16 @@ export function getI18nMessage(str) {
 export const _ = getI18nMessage;
 
 export function setupI18n(callback) {
-  i18n_val = locale[getLang()];
+  i18n_val = locale[getLang()] || en_US;
+  alt = i18n_val === en_US ? zh_TW : en_US;
+  if (typeof callback === 'function') {
+    callback();
+  }
 }
 
 export function getLang() {
-  let langs = navigator.languages || [navigator.language || ''];
+  const nav = typeof navigator !== 'undefined' ? navigator : null;
+  const langs = nav?.languages || [nav?.language || ''];
   for (let lang of langs) {
     lang = lang.toLowerCase().replace('-', '_');
     if (lang in locale) {
@@ -45,3 +48,7 @@ export function getLang() {
   }
   return 'en_us';
 }
+
+setupI18n();
+
+

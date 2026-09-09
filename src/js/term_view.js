@@ -271,15 +271,18 @@ export class TermView extends Event {
 
   setShowFps(show) {
     this.showFps = !!show;
-    this.fpsMeter?.setIsCanvas?.(this.useCanvasEngine);
-    this.fpsMeter?.setSmoothAnsiArt?.(this.smoothAnsiArt);
-    this.fpsMeter?.setEnabled?.(this.showFps);
+    this.redraw(true);
   }
 
   setUseCanvasEngine(enabled) {
     this.useCanvasEngine = !!enabled;
-    this.fpsMeter?.setIsCanvas?.(this.useCanvasEngine);
     this.redraw(true);
+  }
+
+  handleRenderFrame(durationMs, isCanvas) {
+    const detail = { durationMs, isCanvas: isCanvas ?? this.useCanvasEngine };
+    this.app?.dispatchEvent?.(new CustomEvent('term:render-frame', { detail }));
+    this.dispatchEvent(new CustomEvent('term:render-frame', { detail }));
   }
 
   update() {
@@ -304,7 +307,7 @@ export class TermView extends Event {
       lineChangeds[row] = false;
     }
     if (changedLineHtmlStrs.length > 0) {
-      const t0 = (this.showFps && this.fpsMeter?.enabled && typeof performance !== 'undefined')
+      const t0 = (typeof performance !== 'undefined')
         ? performance.now()
         : 0;
       const currentFontSize = this.fontSizePx || (this.chw ? this.chw * 2 : this.chh);
@@ -335,6 +338,9 @@ export class TermView extends Event {
           doCopy: this.app.doCopy.bind(this.app),
           setInputAreaFocus: this.app.setInputAreaFocus.bind(this.app),
           fpsMeter: this.fpsMeter,
+          onRenderFrame: ({ durationMs, isCanvas }) => {
+            this.handleRenderFrame(durationMs, isCanvas);
+          },
           smoothAnsiArt: this.smoothAnsiArt,
           changedRows: changedRows,
           picPreviewWhitelistOnly: this.picPreviewWhitelistOnly !== false,
@@ -345,7 +351,7 @@ export class TermView extends Event {
       }
       this.setHighlightedRow(this.buf.nowHighlight);
       if (t0 > 0 && !this.useCanvasEngine) {
-        this.fpsMeter?.recordFrame?.(performance.now() - t0, false);
+        this.handleRenderFrame(performance.now() - t0, false);
       }
 
       this.app?.dispatchEvent?.(
