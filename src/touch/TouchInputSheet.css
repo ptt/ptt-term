@@ -183,6 +183,10 @@
   margin: 0;
 }
 
+.TouchInputSheet__OptionText--compact {
+  display: none;
+}
+
 .TouchInputSheet__Actions {
   display: flex;
   align-items: center;
@@ -240,21 +244,123 @@
   transform: none;
 }
 
-@media (orientation: landscape) and (max-height: 500px) {
+/* Compact single-row layout for landscape mobile and short screens */
+@media (orientation: landscape) and (max-height: 600px), (max-height: 480px) {
   .TouchInputSheet {
-    padding: 6px 12px 8px 12px;
-    border-radius: 14px 14px 0 0;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 6px;
+    height: auto;
+    max-height: 42px;
+    padding: 3px max(8px, env(safe-area-inset-right, 0px)) 3px max(8px, env(safe-area-inset-left, 0px));
+    border-radius: 12px 12px 0 0;
+    bottom: min(
+      calc(100vh - 42px),
+      calc(max(0px, env(safe-area-inset-bottom, 0px)) + var(--keyboard-offset, 0px))
+    );
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.7);
   }
+
   .TouchInputSheet__Header {
-    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    margin-bottom: 0;
+    gap: 5px;
+    flex-shrink: 0;
   }
-  .TouchInputSheet__Textarea {
-    min-height: 48px;
-    max-height: 80px;
-    padding: 6px 10px;
-    font-size: 15px;
+
+  .TouchInputSheet__Title {
+    display: none;
   }
+
+  .TouchInputSheet__HeaderRight {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .TouchInputSheet__IconBtn--close {
+    order: 1;
+  }
+
+  .TouchInputSheet__IconBtn--direct {
+    order: 2;
+  }
+
+  .TouchInputSheet__Counter {
+    order: 3;
+    font-size: 11px;
+    padding: 2px 6px;
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .TouchInputSheet__IconBtn {
+    width: 26px;
+    height: 26px;
+    border-radius: 13px;
+  }
+
   .TouchInputSheet__Body {
-    margin-bottom: 4px;
+    flex: 1 1 auto;
+    min-width: 80px;
+    width: auto;
+    margin-bottom: 0;
+  }
+
+  .TouchInputSheet__Textarea {
+    min-height: 32px;
+    height: 32px;
+    max-height: 32px;
+    padding: 3px 8px;
+    font-size: 14px;
+    line-height: 24px;
+    border-radius: 8px;
+    resize: none;
+    overflow-y: auto;
+  }
+
+  .TouchInputSheet__Footer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    margin: 0;
+  }
+
+  .TouchInputSheet__Options {
+    gap: 6px;
+  }
+
+  .TouchInputSheet__OptionText--full {
+    display: none;
+  }
+
+  .TouchInputSheet__OptionText--compact {
+    display: inline;
+    font-weight: 600;
+  }
+
+  .TouchInputSheet__Actions {
+    gap: 5px;
+  }
+
+  .TouchInputSheet__Btn {
+    padding: 3px 10px;
+    font-size: 13px;
+    height: 28px;
+    border-radius: 8px;
+    gap: 4px;
+  }
+
+  .TouchInputSheet__Btn--clear {
+    padding: 3px 8px;
+    font-size: 12px;
+  }
+
+  .TouchInputSheet__Btn--send {
+    padding: 3px 12px;
   }
 }

@@ -348,6 +348,7 @@ export class TouchInputSheet extends React.Component {
               }
               value={text}
               rows={3}
+              enterKeyHint="enter"
               onInput={this.handleTextInput}
               onKeyDown={this.handleKeyDown}
               onKeyUp={this.handleKeyUp}
@@ -361,18 +362,26 @@ export class TouchInputSheet extends React.Component {
               <label className="TouchInputSheet__OptionLabel">
                 <input
                   type="checkbox"
+                  tabIndex={-1}
                   checked={appendEnter}
                   onChange={this.handleAppendEnterChange}
                 />
-                <span>{_("touch_input_sheet_send_enter") || "送出換行 (↵)"}</span>
+                <span className="TouchInputSheet__OptionText--full">
+                  {_("touch_input_sheet_send_enter") || "送出換行 (↵)"}
+                </span>
+                <span className="TouchInputSheet__OptionText--compact">↵</span>
               </label>
               <label className="TouchInputSheet__OptionLabel">
                 <input
                   type="checkbox"
+                  tabIndex={-1}
                   checked={autoWrap}
                   onChange={this.handleAutoWrapChange}
                 />
-                <span>{_("touch_input_sheet_auto_wrap") || "自動折行"}</span>
+                <span className="TouchInputSheet__OptionText--full">
+                  {_("touch_input_sheet_auto_wrap") || "自動折行"}
+                </span>
+                <span className="TouchInputSheet__OptionText--compact">折行</span>
               </label>
             </div>
 

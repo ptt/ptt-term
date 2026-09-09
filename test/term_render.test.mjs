@@ -1594,6 +1594,7 @@ test('index.html contains inputmode="none" and does not have autofocus', () => {
   assert.ok(indexHtml.includes('virtualkeyboardpolicy="manual"'), 'index.html should specify virtualkeyboardpolicy="manual"');
   assert.ok(indexHtml.includes('left:0px; top:0px;'), 'input #t must be in viewport to allow mobile keyboard focus');
   assert.ok(indexHtml.includes('pointer-events:none;'), 'input #t must have pointer-events: none');
+  assert.ok(indexHtml.includes('tabindex="-1"'), 'input #t must specify tabindex="-1" to prevent iOS Safari form accessory toolbar');
 });
 
 test('App isMobileDevice and TouchKeyboard label toggle handle mobile system keyboard reliably', () => {
@@ -3519,6 +3520,9 @@ test('TouchInputSheet component source defines UI, title, counter and auto-wrap'
   assert.ok(touchInputSheetSource.includes('wrapText'));
   assert.ok(touchInputSheetSource.includes('appendEnter'));
   assert.ok(touchInputSheetSource.includes('autoWrap'));
+  assert.ok(touchInputSheetSource.includes('rows={3}'));
+  assert.ok(touchInputSheetSource.includes('tabIndex={-1}'));
+  assert.ok(touchInputSheetSource.includes('enterKeyHint="enter"'));
 });
 
 test('TouchKeyboard integrates TouchInputSheet and toggles edit area', () => {
@@ -3548,7 +3552,14 @@ test('TouchInputSheet stops key event propagation and registers input intercepto
   assert.ok(touchInputSheetSource.includes('registerInputInterceptor'));
 });
 
-
-
-
-
+test('TouchInputSheet styles support compact single-row landscape layout', () => {
+  const cssSource = fs.readFileSync(
+    path.resolve('src/touch/TouchInputSheet.css'),
+    'utf-8'
+  );
+  assert.ok(cssSource.includes('@media (orientation: landscape) and (max-height: 600px)'));
+  assert.ok(cssSource.includes('flex-direction: row'));
+  assert.ok(cssSource.includes('max-height: 42px'));
+  assert.ok(cssSource.includes('--keyboard-offset'));
+  assert.ok(cssSource.includes('TouchInputSheet__OptionText--compact'));
+});
