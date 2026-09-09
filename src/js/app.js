@@ -59,6 +59,7 @@ export class App extends Event {
   this.parser = this.ansiFilter;
   this.plugins = [];
   this.inputInterceptors = [];
+  this.overlays = [];
   this.initPlugins(BUILTIN_PLUGINS);
   this.suppressWheelUntil = 0;
   this.suppressWheelContinuous = false;
@@ -191,8 +192,39 @@ export class App extends Event {
     if (idx !== -1) {
       this.plugins.splice(idx, 1);
       this.unregisterInputInterceptor(plugin);
+      if (plugin.id) {
+        this.unregisterOverlay(plugin.id);
+      }
       plugin.destroy?.();
     }
+  }
+
+  registerOverlay(overlay) {
+    if (!overlay || !overlay.id) return;
+    const idx = this.overlays.findIndex((o) => o.id === overlay.id);
+    if (idx !== -1) {
+      this.overlays[idx] = overlay;
+    } else {
+      this.overlays.push(overlay);
+    }
+    this.dispatchEvent(
+      new CustomEvent('term:overlay:update', { detail: { overlay } })
+    );
+  }
+
+  unregisterOverlay(idOrOverlay) {
+    const id = typeof idOrOverlay === 'string' ? idOrOverlay : idOrOverlay?.id;
+    const idx = this.overlays.findIndex((o) => o.id === id);
+    if (idx !== -1) {
+      const [removed] = this.overlays.splice(idx, 1);
+      this.dispatchEvent(
+        new CustomEvent('term:overlay:update', { detail: { removed } })
+      );
+    }
+  }
+
+  getOverlays() {
+    return [...this.overlays];
   }
 
   initPlugins(pluginClasses = BUILTIN_PLUGINS) {

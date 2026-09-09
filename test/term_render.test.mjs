@@ -3185,4 +3185,64 @@ test('TermView eliminates redundant FpsMeter instantiation in constructor', () =
   );
 });
 
+test('PluginOverlay and App provide modular overlay registration for plugins', () => {
+  const pluginOverlaySource = fs.readFileSync(
+    path.resolve('src/components/PluginOverlay.js'),
+    'utf-8'
+  );
+  const appOverlaySource = fs.readFileSync(
+    path.resolve('src/components/AppOverlay.js'),
+    'utf-8'
+  );
+
+  assert.ok(
+    appOverlaySource.includes('<PluginOverlay'),
+    'AppOverlay must include PluginOverlay'
+  );
+  assert.ok(
+    pluginOverlaySource.includes('registeredOverlays') ||
+      pluginOverlaySource.includes('getOverlays'),
+    'PluginOverlay must query registered overlays'
+  );
+  assert.ok(
+    pluginOverlaySource.includes('renderOverlay'),
+    'PluginOverlay must support plugin.renderOverlay'
+  );
+  assert.ok(
+    appSource.includes('registerOverlay') &&
+      appSource.includes('unregisterOverlay') &&
+      appSource.includes('getOverlays'),
+    'App must provide overlay registration methods'
+  );
+
+  const testOverlay = {
+    id: 'test_overlay',
+    render: () => h('div', { id: 'test_overlay_content' }, 'Overlay Content'),
+  };
+
+  const registered = [];
+  const appMock = {
+    overlays: registered,
+    registerOverlay(overlay) {
+      const idx = this.overlays.findIndex((o) => o.id === overlay.id);
+      if (idx !== -1) this.overlays[idx] = overlay;
+      else this.overlays.push(overlay);
+    },
+    unregisterOverlay(id) {
+      const idx = this.overlays.findIndex((o) => o.id === id);
+      if (idx !== -1) this.overlays.splice(idx, 1);
+    },
+    getOverlays() {
+      return [...this.overlays];
+    },
+  };
+
+  appMock.registerOverlay(testOverlay);
+  assert.equal(appMock.getOverlays().length, 1);
+  assert.equal(appMock.getOverlays()[0].id, 'test_overlay');
+
+  appMock.unregisterOverlay('test_overlay');
+  assert.equal(appMock.getOverlays().length, 0);
+});
+
 
