@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Load site deployment configurations from .github/workflows/sites/*.yml."""
 
+import argparse
 import glob
 import json
 import os
@@ -73,6 +74,7 @@ def load_sites(sites_dir=None):
         data.setdefault('APP_DESCRIPTION', '')
         data.setdefault('BRANCH', 'gh-pages')
         data.setdefault('SITE_TYPE', 'auto')
+        data.setdefault('DEPLOY_BRANCH', '')
 
         # DYNAMIC_TITLE must be string 'true' or 'false'
         dynamic_title = data.get('DYNAMIC_TITLE', 'false')
@@ -97,32 +99,112 @@ def load_sites(sites_dir=None):
     return sites
 
 
-def main():
-    sites_dir = None
-    validate_only = False
+def filter_sites(sites, branch=None, target_site='auto'):
+    """Filter sites based on target_site and/or triggering branch."""
+    target_site = (target_site or 'auto').strip()
+    branch = (branch or '').strip()
 
-    for arg in sys.argv[1:]:
-        if arg in ('--validate', '--test'):
-            validate_only = True
-        elif not arg.startswith('-'):
-            sites_dir = arg
+    if target_site and target_site not in ('auto', 'all'):
+        matched = [s for s in sites if s['SITE_ID'] == target_site]
+        if not matched:
+            valid_ids = ', '.join(s['SITE_ID'] for s in sites)
+            raise ValueError(
+                f"Unknown site '{target_site}'. Available sites: {valid_ids}"
+            )
+        return matched
+
+    if target_site == 'all':
+        return list(sites)
+
+    # auto mode: filter by branch if branch is provided
+    if not branch:
+        return list(sites)
+
+    filtered = []
+    for s in sites:
+        site_branch = s.get('DEPLOY_BRANCH', '').strip()
+        # If site specifies DEPLOY_BRANCH, only match if branch equals DEPLOY_BRANCH.
+        # If site doesn't specify DEPLOY_BRANCH, match any branch.
+        if not site_branch or site_branch == branch:
+            filtered.append(s)
+    return filtered
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description='Load site deployment configurations from .github/workflows/sites/*.yml'
+    )
+    parser.add_argument(
+        'sites_dir_pos',
+        nargs='?',
+        default=None,
+        help='Optional path to sites directory',
+    )
+    parser.add_argument(
+        '--sites-dir',
+        dest='sites_dir_opt',
+        default=None,
+        help='Path to sites directory',
+    )
+    parser.add_argument(
+        '--validate',
+        '--test',
+        action='store_true',
+        help='Validate site configurations only',
+    )
+    parser.add_argument(
+        '--branch',
+        default='',
+        help='Triggering git branch (e.g. prod, beta)',
+    )
+    parser.add_argument(
+        '--site',
+        default='auto',
+        help='Site ID to deploy, or "auto" / "all"',
+    )
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+    sites_dir = args.sites_dir_opt or args.sites_dir_pos
 
     try:
-        sites = load_sites(sites_dir)
+        all_sites = load_sites(sites_dir)
+        filtered_sites = filter_sites(
+            all_sites,
+            branch=args.branch,
+            target_site=args.site,
+        )
     except Exception as e:
         print(f'Error loading sites: {e}', file=sys.stderr)
         sys.exit(1)
 
-    print(f'Loaded {len(sites)} site configuration(s):', file=sys.stderr)
-    for s in sites:
+    print(
+        f'Loaded {len(all_sites)} site configuration(s) from {sites_dir or "default"}:',
+        file=sys.stderr,
+    )
+    for s in all_sites:
         print(
-            f"  - {s['SITE_ID']}: CNAME={s['CNAME']} -> {s['TARGET_REPO']}",
+            f"  - {s['SITE_ID']}: CNAME={s['CNAME']} -> {s['TARGET_REPO']} (deploy_branch={s.get('DEPLOY_BRANCH') or '*'})",
             file=sys.stderr,
         )
 
-    if not validate_only:
-        matrix = {'site': sites}
-        print(f"matrix={json.dumps(matrix)}")
+    print(
+        f'Filtered to {len(filtered_sites)} site(s) (branch={args.branch!r}, site={args.site!r}):',
+        file=sys.stderr,
+    )
+    for s in filtered_sites:
+        print(
+            f"  * {s['SITE_ID']}: CNAME={s['CNAME']} -> {s['TARGET_REPO']}",
+            file=sys.stderr,
+        )
+
+    if not args.validate:
+        has_sites = 'true' if filtered_sites else 'false'
+        print(f'has_sites={has_sites}')
+        matrix = {'site': filtered_sites}
+        print(f'matrix={json.dumps(matrix)}')
 
 
 if __name__ == '__main__':

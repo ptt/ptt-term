@@ -3,7 +3,19 @@ on:
   push:
     branches:
       - prod
+      - beta
   workflow_dispatch:
+    inputs:
+      site:
+        description: 'Site to deploy (auto, all, or specific site ID like ptt, ptt2)'
+        required: false
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - all
+          - ptt
+          - ptt2
 
 permissions:
   contents: read
@@ -14,6 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+      has_sites: ${{ steps.set-matrix.outputs.has_sites }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -21,11 +34,14 @@ jobs:
         id: set-matrix
         run: |
           python3 -c "import yaml" 2>/dev/null || pip install pyyaml
-          python3 .github/workflows/load_sites.py >> "$GITHUB_OUTPUT"
+          python3 .github/workflows/load_sites.py \
+            --branch "${{ github.ref_name }}" \
+            --site "${{ inputs.site || 'auto' }}" >> "$GITHUB_OUTPUT"
 
   deploy:
     name: Deploy ${{ matrix.site.SITE_ID }} (${{ matrix.site.CNAME }})
     needs: load-sites
+    if: needs.load-sites.outputs.has_sites == 'true'
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.load-sites.outputs.matrix) }}

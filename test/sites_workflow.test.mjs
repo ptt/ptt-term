@@ -44,12 +44,14 @@ test('ptt.yml and ptt2.yml have correct values', () => {
   assert.equal(ptt.TARGET_REPO, 'ptt/term.ptt.cc');
   assert.equal(ptt.THEME, 'ptt.cc');
   assert.equal(ptt.SITE_TYPE, 'ptt');
+  assert.equal(ptt.DEPLOY_BRANCH, 'prod');
 
   const ptt2 = yaml.parse(fs.readFileSync(path.join(SITES_DIR, 'ptt2.yml'), 'utf-8'));
   assert.equal(ptt2.CNAME, 'term.ptt2.cc');
   assert.equal(ptt2.TARGET_REPO, 'ptt/term.ptt2.cc');
   assert.equal(ptt2.THEME, 'ptt2.cc');
   assert.equal(ptt2.SITE_TYPE, 'ptt');
+  assert.equal(ptt2.DEPLOY_BRANCH, 'beta');
 });
 
 test('load_sites.py outputs valid GitHub Actions matrix JSON', () => {
@@ -61,6 +63,10 @@ test('load_sites.py outputs valid GitHub Actions matrix JSON', () => {
       PYTHONIOENCODING: 'utf-8',
     },
   });
+
+  const hasSitesMatch = output.match(/^has_sites=(.+)$/m);
+  assert.ok(hasSitesMatch, 'output must contain has_sites=<bool>');
+  assert.equal(hasSitesMatch[1], 'true');
 
   const match = output.match(/^matrix=(.+)$/m);
   assert.ok(match, 'output must contain matrix=<json>');
@@ -74,10 +80,76 @@ test('load_sites.py outputs valid GitHub Actions matrix JSON', () => {
   assert.equal(pttEntry.CNAME, 'term.ptt.cc');
   assert.equal(pttEntry.BRANCH, 'gh-pages');
   assert.equal(pttEntry.DYNAMIC_TITLE, 'false');
+  assert.equal(pttEntry.DEPLOY_BRANCH, 'prod');
 
   const ptt2Entry = parsed.site.find((s) => s.SITE_ID === 'ptt2');
   assert.ok(ptt2Entry, 'ptt2 entry must exist in matrix');
   assert.equal(ptt2Entry.CNAME, 'term.ptt2.cc');
   assert.equal(ptt2Entry.BRANCH, 'gh-pages');
   assert.equal(ptt2Entry.DYNAMIC_TITLE, 'false');
+  assert.equal(ptt2Entry.DEPLOY_BRANCH, 'beta');
 });
+
+test('load_sites.py filters sites by --branch prod/beta and supports --site override', () => {
+  const runLoadSites = (args) => {
+    return execFileSync('python3', [LOAD_SITES_SCRIPT, ...args], {
+      encoding: 'utf-8',
+      cwd: PROJECT_ROOT,
+      env: {
+        ...process.env,
+        PYTHONIOENCODING: 'utf-8',
+      },
+    });
+  };
+
+  // 1. --branch prod should deploy only ptt
+  {
+    const out = runLoadSites(['--branch', 'prod']);
+    assert.match(out, /^has_sites=true$/m);
+    const matrix = JSON.parse(out.match(/^matrix=(.+)$/m)[1]);
+    assert.equal(matrix.site.length, 1);
+    assert.equal(matrix.site[0].SITE_ID, 'ptt');
+    assert.equal(matrix.site[0].CNAME, 'term.ptt.cc');
+  }
+
+  // 2. --branch beta should deploy only ptt2
+  {
+    const out = runLoadSites(['--branch', 'beta']);
+    assert.match(out, /^has_sites=true$/m);
+    const matrix = JSON.parse(out.match(/^matrix=(.+)$/m)[1]);
+    assert.equal(matrix.site.length, 1);
+    assert.equal(matrix.site[0].SITE_ID, 'ptt2');
+    assert.equal(matrix.site[0].CNAME, 'term.ptt2.cc');
+  }
+
+  // 3. --branch dev has no matching sites, returns empty matrix and has_sites=false
+  {
+    const out = runLoadSites(['--branch', 'dev']);
+    assert.match(out, /^has_sites=false$/m);
+    const matrix = JSON.parse(out.match(/^matrix=(.+)$/m)[1]);
+    assert.equal(matrix.site.length, 0);
+  }
+
+  // 4. --site all overrides branch filter and deploys all sites
+  {
+    const out = runLoadSites(['--branch', 'prod', '--site', 'all']);
+    assert.match(out, /^has_sites=true$/m);
+    const matrix = JSON.parse(out.match(/^matrix=(.+)$/m)[1]);
+    assert.equal(matrix.site.length, 2);
+  }
+
+  // 5. --site ptt2 overrides branch=prod
+  {
+    const out = runLoadSites(['--branch', 'prod', '--site', 'ptt2']);
+    assert.match(out, /^has_sites=true$/m);
+    const matrix = JSON.parse(out.match(/^matrix=(.+)$/m)[1]);
+    assert.equal(matrix.site.length, 1);
+    assert.equal(matrix.site[0].SITE_ID, 'ptt2');
+  }
+
+  // 6. Unknown site exits with error
+  assert.throws(() => {
+    runLoadSites(['--site', 'unknown_site']);
+  });
+});
+

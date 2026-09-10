@@ -21,6 +21,7 @@ SITE_TYPE: 'ptt'       # 'ptt', 'maple3', or 'auto' (default: 'auto')
 THEME: 'default'       # Theme name matching src/icon/<THEME> (default: 'default')
 DYNAMIC_TITLE: 'false' # 'true' or 'false' (default: 'false')
 BRANCH: 'gh-pages'     # Target branch in TARGET_REPO (default: 'gh-pages')
+# DEPLOY_BRANCH: 'prod' # Source branch in this repository triggering deployment (optional)
 # DEPLOY_TOKEN_SECRET: 'GH_PAT_MYSITE' # Secret name in repository secrets (optional)
 # enabled: true        # Set to false to temporarily skip building this site
 ```
@@ -41,5 +42,6 @@ BRANCH: 'gh-pages'     # Target branch in TARGET_REPO (default: 'gh-pages')
 | `THEME` | No | `default` | Theme folder name under `src/icon/` |
 | `DYNAMIC_TITLE` | No | `false` | Whether to update window title with current BBS screen |
 | `BRANCH` | No | `gh-pages` | Target branch in `TARGET_REPO` |
+| `DEPLOY_BRANCH` | No | `*` (any branch) | Source branch in this repository triggering deployment (`prod`, `beta`, etc.) |
 | `DEPLOY_TOKEN_SECRET`| No | `GH_PAT` / `GITHUB_TOKEN` | Repository secret name for deploy token |
 | `enabled` | No | `true` | Set to `false` to disable deploying this site |
