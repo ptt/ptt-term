@@ -21,9 +21,12 @@ export default defineConfig(({ mode, command }) => {
   const dynamicTitle = process.env.DYNAMIC_TITLE ?? 'true';
   const siteUrl = process.env.SITE_URL;
 
-  const resolveThemeIcon = (name) => {
+  const resolveThemeIcon = (name, fallbackName = null) => {
     const themePath = path.resolve(__dirname, `src/icon/${theme}/${name}`);
     if (fs.existsSync(themePath)) return themePath;
+    const defaultPath = path.resolve(__dirname, `src/icon/default/${name}`);
+    if (fs.existsSync(defaultPath)) return defaultPath;
+    if (fallbackName) return resolveThemeIcon(fallbackName);
     return path.resolve(__dirname, `src/icon/default/${name}`);
   };
   const buildManifest = () => ({
@@ -44,14 +47,16 @@ export default defineConfig(({ mode, command }) => {
         src: 'icon-192.png',
         sizes: '192x192',
         type: 'image/png',
+        purpose: 'any',
       },
       {
         src: 'icon-512.png',
         sizes: '512x512',
         type: 'image/png',
+        purpose: 'any',
       },
       {
-        src: 'icon-512.png',
+        src: 'icon-maskable-512.png',
         sizes: '512x512',
         type: 'image/png',
         purpose: 'maskable',
@@ -120,6 +125,16 @@ export default defineConfig(({ mode, command }) => {
               fs.createReadStream(resolveThemeIcon('icon_512.png')).pipe(res);
               return;
             }
+            if (url === '/icon-maskable-512.png') {
+              res.setHeader('Content-Type', 'image/png');
+              fs.createReadStream(resolveThemeIcon('icon_maskable_512.png', 'icon_512.png')).pipe(res);
+              return;
+            }
+            if (url === '/apple-touch-icon.png') {
+              res.setHeader('Content-Type', 'image/png');
+              fs.createReadStream(resolveThemeIcon('apple_touch_icon.png', 'icon_192.png')).pipe(res);
+              return;
+            }
             if (url === '/sw.js') {
               res.setHeader('Content-Type', 'application/javascript');
               fs.createReadStream(path.resolve(__dirname, 'src/sw.js')).pipe(res);
@@ -143,6 +158,16 @@ export default defineConfig(({ mode, command }) => {
             type: 'asset',
             fileName: 'icon-512.png',
             source: fs.readFileSync(resolveThemeIcon('icon_512.png')),
+          });
+          this.emitFile({
+            type: 'asset',
+            fileName: 'icon-maskable-512.png',
+            source: fs.readFileSync(resolveThemeIcon('icon_maskable_512.png', 'icon_512.png')),
+          });
+          this.emitFile({
+            type: 'asset',
+            fileName: 'apple-touch-icon.png',
+            source: fs.readFileSync(resolveThemeIcon('apple_touch_icon.png', 'icon_192.png')),
           });
           this.emitFile({
             type: 'asset',

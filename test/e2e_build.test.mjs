@@ -19,6 +19,8 @@ test('E2E Build: Vite production build succeeds and generates complete PWA distr
     'sw.js',
     'icon-192.png',
     'icon-512.png',
+    'icon-maskable-512.png',
+    'apple-touch-icon.png',
   ];
 
   for (const file of requiredFiles) {
@@ -39,14 +41,14 @@ test('E2E Build: Vite production build succeeds and generates complete PWA distr
   assert.ok(Array.isArray(manifestContent.icons));
   assert.ok(manifestContent.icons.some((icon) => icon.sizes === '192x192' && icon.src === 'icon-192.png'));
   assert.ok(manifestContent.icons.some((icon) => icon.sizes === '512x512' && icon.src === 'icon-512.png'));
-  assert.ok(manifestContent.icons.some((icon) => icon.purpose === 'maskable'));
+  assert.ok(manifestContent.icons.some((icon) => icon.purpose === 'maskable' && icon.src === 'icon-maskable-512.png'));
 
   // 3. Validate index.html includes critical DOM anchors and metadata
   const indexPath = path.join(DIST_DIR, 'index.html');
   const html = fs.readFileSync(indexPath, 'utf-8');
 
   assert.ok(html.includes('manifest.webmanifest'), 'HTML must link to Web App Manifest');
-  assert.ok(html.includes('icon-192.png'), 'HTML must link to apple-touch-icon');
+  assert.ok(html.includes('apple-touch-icon.png'), 'HTML must link to apple-touch-icon');
   assert.ok(html.includes('id="cmenuReact"'), 'Missing context menu root');
   assert.ok(html.includes('id="TermWindow"'), 'Missing TermWindow container');
   assert.ok(html.includes('id="t"'), 'Missing hidden input area');
