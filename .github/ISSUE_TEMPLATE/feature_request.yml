@@ -1,0 +1,43 @@
+name: 功能建議 (Feature Request)
+description: 提出對 ptt-term 的新功能構想或改進建議
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感謝您提出新功能或改進建議！請盡可能清楚描述您的需求與情境。
+
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: 功能描述 (Feature Description)
+      description: 請清楚描述您希望新增或改進的功能
+      placeholder: 我希望 ptt-term 能支援...
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem-use-case
+    attributes:
+      label: 解決的問題或使用情境 (Problem / Use Case)
+      description: 為什麼需要這個功能？目前的痛點是什麼？
+      placeholder: 目前在...情況下，遇到...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: 建議的實作方式或操作流程 (Proposed Solution)
+      description: （選填）如果您對此功能的呈現方式、操作流程或設計已有構想，請在此說明
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: 其他補充資訊 (Additional Context)
+      description: （選填）任何相關的截圖、參考網站、相關專案或既有功能對照
+    validations:
+      required: false

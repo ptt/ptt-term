@@ -1,0 +1,195 @@
+name: 問題回報 (Bug Report)
+description: 回報 ptt-term 的異常現象或程式錯誤
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感謝您協助回報問題！請盡可能提供詳細資訊，以利我們重現與排查問題。
+
+  - type: dropdown
+    id: site
+    attributes:
+      label: 連線站台 (Target Site)
+      description: 請問發生問題時連線的站台是？
+      options:
+        - term.ptt.cc (PTT)
+        - term.ptt2.cc (PTT2)
+        - 本機開發測試 (localhost / 自架)
+        - 其他（請在補充資訊說明）
+    validations:
+      required: true
+
+  - type: input
+    id: occurrence-date
+    attributes:
+      label: 發生日期 (Date of Occurrence)
+      description: 請填寫發生問題的日期（例如：2026-09-10）
+      placeholder: YYYY-MM-DD
+    validations:
+      required: true
+
+  - type: dropdown
+    id: client-type
+    attributes:
+      label: 執行環境 (PWA or Web)
+      description: 您是在一般瀏覽器分頁中使用，還是已安裝為 PWA？
+      options:
+        - Web（一般瀏覽器分頁內使用）
+        - PWA（已安裝成獨立 App 或桌面/手機「加入主畫面」）
+    validations:
+      required: true
+
+  - type: dropdown
+    id: client-mode
+    attributes:
+      label: 顯示模式 (Mobile or Desktop mode)
+      description: 當前使用的是電腦版模式還是行動版（觸控）模式？
+      options:
+        - Desktop mode（電腦版模式）
+        - Mobile mode（行動版模式 / 觸控介面）
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: 作業系統 (Operating System)
+      description: 請選擇您的作業系統
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Android
+        - iOS
+        - iPadOS
+        - ChromeOS
+        - 其他
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: 作業系統詳細版本 (OS Version)
+      description: 例如：Windows 11 23H2, macOS 14.5, iOS 17.5, Ubuntu 24.04
+      placeholder: 例如：Windows 11 23H2
+    validations:
+      required: false
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: 瀏覽器種類 (Browser)
+      description: 請選擇發生問題的瀏覽器
+      options:
+        - Google Chrome
+        - Microsoft Edge
+        - Apple Safari
+        - Mozilla Firefox
+        - Brave
+        - Kiwi Browser
+        - 系統內建 WebView
+        - 其他
+    validations:
+      required: true
+
+  - type: input
+    id: browser-version
+    attributes:
+      label: 瀏覽器詳細版本 (Browser Version)
+      description: 例如：Chrome 128.0.6613.119
+      placeholder: 例如：Chrome 128.0
+    validations:
+      required: false
+
+  - type: dropdown
+    id: canvas-engine
+    attributes:
+      label: 是否關閉預設的 Canvas 繪圖引擎 (Canvas Mode)
+      description: 在設定（⚙️）->「畫面」中，是否有關閉「使用 Canvas 繪圖引擎」？
+      options:
+        - 否，維持預設（開啟 Canvas 渲染，useCanvasEngine = ON）
+        - 是，已手動關閉（改用 DOM 元素渲染，useCanvasEngine = OFF）
+        - 不確定 / 未曾調整過此設定（預設為開啟）
+    validations:
+      required: true
+
+  - type: input
+    id: ptt-term-version
+    attributes:
+      label: ptt-term 版本號 (Version / Commit)
+      description: 可在右下角設定選單中的「關於」查看版本號，或自架的 git commit hash
+      placeholder: 例如：2.0.0
+    validations:
+      required: false
+
+  - type: input
+    id: ime-keyboard
+    attributes:
+      label: 輸入法或鍵盤 (IME / Keyboard)
+      description: 若問題與文字輸入、換行、游標跳動或快捷鍵有關，請說明使用的輸入法（例如：微軟注音、Gboard、同文輸入法、倉頡等）
+      placeholder: 例如：微軟新注音
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: extra-settings
+    attributes:
+      label: 相關特殊設定 (Relevant Settings)
+      description: 請勾選目前有開啟或調整的特殊選項（若有）
+      options:
+        - label: 開啟「平滑 ANSI 圖形 (smoothAnsiArt)」
+        - label: 使用自訂字型 (Custom Font)
+        - label: 啟用自訂色彩盤 / 高對比色
+        - label: 啟用螢幕輔助虛擬按鍵 (Virtual Keys)
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: 完整重現步驟 (Steps to Reproduce)
+      description: 請一步一步列出如何重現這個問題
+      placeholder: |
+        1. 連線進入 PTT 並登入
+        2. 前往 ... 看板或文章
+        3. 按下 ... 按鍵或點擊 ...
+        4. 發生異常
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-result
+    attributes:
+      label: 錯誤的結果 / 實際現象 (Actual Behavior)
+      description: 請描述實際看到了什麼錯誤現象或非預期行為
+      placeholder: 例如：畫面字元重疊跑版、按鍵無反應、黑畫面、文字被截斷...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-result
+    attributes:
+      label: 預期發生的正確行為 (Expected Behavior)
+      description: 您預期正常的運作行為應該是什麼？
+      placeholder: 例如：按 Enter 後應正常換行...
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 螢幕截圖或錄影 (Screenshots / Screen Recording)
+      description: 若有截圖或螢幕錄影，可直接複製圖片並貼在下方（Paste 或 Drag & Drop）
+      placeholder: 直接在此貼上圖片即可
+    validations:
+      required: false
+
+  - type: textarea
+    id: console-logs
+    attributes:
+      label: 瀏覽器主控台訊息 (Browser Console Logs)
+      description: 若在電腦版，請按 F12 開啟開發者工具，並複製 Console 分頁中顯示的紅色錯誤訊息 (Errors / Exceptions)
+      render: shell
+    validations:
+      required: false
