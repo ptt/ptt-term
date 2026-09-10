@@ -3,9 +3,10 @@
   position: fixed;
   bottom: calc(
     max(
-      calc(26px * var(--toolbar-scale, 1)),
-      env(safe-area-inset-bottom, 0px) + calc(26px * var(--toolbar-scale, 1))
-    ) + var(--keyboard-offset, 0px)
+        calc(26px * var(--toolbar-scale, 1)),
+        env(safe-area-inset-bottom, 0px) + calc(26px * var(--toolbar-scale, 1))
+      ) +
+      var(--keyboard-offset, 0px)
   );
   right: max(
     calc(26px * var(--toolbar-scale, 1)),
@@ -56,16 +57,46 @@
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  padding: 3px 6px 4px 6px;
-  border-radius: 14px;
-  gap: 2px;
+  padding: calc(4px * var(--toolbar-scale, 1))
+    calc(8px * var(--toolbar-scale, 1)) calc(6px * var(--toolbar-scale, 1))
+    calc(8px * var(--toolbar-scale, 1));
+  border-radius: calc(14px * var(--toolbar-scale, 1));
+  gap: calc(3px * var(--toolbar-scale, 1));
+  box-sizing: border-box;
+  width: auto;
+  height: auto;
 }
 
+.TouchFloatingToolbar--collapsed .TouchFloatingToolbar__Row,
+.TouchFloatingToolbar--collapsed .TouchFloatingToolbar__Row--collapsed,
 .TouchFloatingToolbar__Row--collapsed {
   display: inline-flex;
   flex-direction: row;
   align-items: center;
-  gap: 2px;
+  justify-content: center;
+  gap: calc(4px * var(--toolbar-scale, 1));
+  width: auto;
+  flex: 0 0 auto;
+  min-height: auto;
+  height: auto;
+}
+
+.TouchFloatingToolbar--collapsed .TouchFloatingToolbar__Btn {
+  min-width: calc(44px * var(--toolbar-scale, 1));
+  height: calc(44px * var(--toolbar-scale, 1));
+  border-radius: calc(10px * var(--toolbar-scale, 1));
+  padding: 0 calc(6px * var(--toolbar-scale, 1));
+  flex: 0 0 auto;
+}
+
+.TouchFloatingToolbar--collapsed .TouchFloatingToolbar__Btn svg {
+  width: calc(22px * var(--toolbar-scale, 1));
+  height: calc(22px * var(--toolbar-scale, 1));
+}
+
+.TouchFloatingToolbar--collapsed .TouchFloatingToolbar__Divider {
+  height: calc(22px * var(--toolbar-scale, 1));
+  margin: 0 calc(2px * var(--toolbar-scale, 1));
 }
 
 .TouchFloatingToolbar__Track {
@@ -224,9 +255,11 @@
   .TouchFloatingToolbar {
     bottom: calc(
       max(
-        calc(21px * var(--toolbar-scale, 1)),
-        env(safe-area-inset-bottom, 0px) + calc(21px * var(--toolbar-scale, 1))
-      ) + var(--keyboard-offset, 0px)
+          calc(21px * var(--toolbar-scale, 1)),
+          env(safe-area-inset-bottom, 0px) +
+            calc(21px * var(--toolbar-scale, 1))
+        ) +
+        var(--keyboard-offset, 0px)
     );
     right: max(
       calc(22px * var(--toolbar-scale, 1)),
@@ -238,8 +271,9 @@
     gap: calc(2px * var(--toolbar-scale, 1));
   }
   .TouchFloatingToolbar--collapsed {
-    padding: calc(2px * var(--toolbar-scale, 1))
-      calc(5px * var(--toolbar-scale, 1));
+    padding: calc(3px * var(--toolbar-scale, 1))
+      calc(6px * var(--toolbar-scale, 1)) calc(5px * var(--toolbar-scale, 1))
+      calc(6px * var(--toolbar-scale, 1));
     border-radius: calc(12px * var(--toolbar-scale, 1));
   }
   .TouchFloatingToolbar__DragHandle {
@@ -249,12 +283,17 @@
     width: calc(52px * var(--toolbar-scale, 1));
     height: calc(4px * var(--toolbar-scale, 1));
   }
-  .TouchFloatingToolbar__DragHandle--collapsed {
-    height: calc(12px * var(--toolbar-scale, 1));
+  .TouchFloatingToolbar__DragHandle--collapsed,
+  .TouchFloatingToolbar--collapsed .TouchFloatingToolbar__DragHandle {
+    height: calc(20px * var(--toolbar-scale, 1));
+    min-height: 18px;
   }
-  .TouchFloatingToolbar__DragHandle--collapsed .TouchFloatingToolbar__DragHandleBar {
-    width: calc(32px * var(--toolbar-scale, 1));
-    height: calc(3px * var(--toolbar-scale, 1));
+  .TouchFloatingToolbar__DragHandle--collapsed
+    .TouchFloatingToolbar__DragHandleBar {
+    width: calc(44px * var(--toolbar-scale, 1));
+    min-width: 36px;
+    height: calc(4px * var(--toolbar-scale, 1));
+    min-height: 3.5px;
   }
   .TouchFloatingToolbar__Btn {
     min-width: calc(40px * var(--toolbar-scale, 1));
@@ -321,14 +360,37 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.TouchFloatingToolbar__DragHandle--collapsed {
-  height: 14px;
+.TouchFloatingToolbar__DragHandle--collapsed,
+.TouchFloatingToolbar--collapsed .TouchFloatingToolbar__DragHandle {
+  width: 100%;
+  height: 24px;
+  min-height: 22px;
   margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  padding: 2px 0;
+  box-sizing: border-box;
 }
 
-.TouchFloatingToolbar__DragHandle--collapsed .TouchFloatingToolbar__DragHandleBar {
-  width: 38px;
-  height: 3.5px;
+.TouchFloatingToolbar__DragHandle--collapsed
+  .TouchFloatingToolbar__DragHandleBar {
+  width: 52px;
+  min-width: 44px;
+  height: 4.5px;
+  min-height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.45);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  transition:
+    background-color 0.15s ease,
+    width 0.15s ease,
+    height 0.15s ease;
 }
 
 .TouchFloatingToolbar__DragHandle:active,
@@ -354,10 +416,12 @@
   width: 80px;
 }
 
-.TouchFloatingToolbar__DragHandle--collapsed:hover .TouchFloatingToolbar__DragHandleBar,
-.TouchFloatingToolbar--collapsed.TouchFloatingToolbar--dragging .TouchFloatingToolbar__DragHandleBar {
-  background: rgba(255, 255, 255, 0.75);
-  width: 50px;
+.TouchFloatingToolbar__DragHandle--collapsed:hover
+  .TouchFloatingToolbar__DragHandleBar,
+.TouchFloatingToolbar--collapsed.TouchFloatingToolbar--dragging
+  .TouchFloatingToolbar__DragHandleBar {
+  background: rgba(255, 255, 255, 0.85);
+  width: 68px;
 }
 
 .TouchFloatingToolbar__DragGrip {
@@ -684,4 +748,153 @@
   .TouchFloatingToolbar__Track--qwert .TouchFloatingToolbar__Btn--ctrl-toggle {
     font-size: calc(17.5px * var(--toolbar-scale, 1));
   }
+  .TouchFloatingToolbar__ResizeHandle--l,
+  .TouchFloatingToolbar__ResizeHandle--r {
+    top: 16px;
+    bottom: 16px;
+  }
+  .TouchFloatingToolbar__ResizeHandle--l::after,
+  .TouchFloatingToolbar__ResizeHandle--r::after {
+    height: 20px;
+  }
+}
+
+/* 4-Corner Resize Handles */
+.TouchFloatingToolbar__ResizeHandle {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  z-index: 10;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.TouchFloatingToolbar__ResizeHandle::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  box-sizing: border-box;
+  opacity: 0.35;
+  transition:
+    opacity 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+  pointer-events: none;
+}
+
+.TouchFloatingToolbar:hover .TouchFloatingToolbar__ResizeHandle::after,
+.TouchFloatingToolbar__ResizeHandle:hover::after,
+.TouchFloatingToolbar--resizing .TouchFloatingToolbar__ResizeHandle::after {
+  opacity: 0.85;
+}
+
+.TouchFloatingToolbar__ResizeHandle--tl {
+  top: -2px;
+  left: -2px;
+  cursor: nwse-resize;
+}
+
+.TouchFloatingToolbar__ResizeHandle--tl::after {
+  top: 5px;
+  left: 5px;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-top-left-radius: 4px;
+}
+
+.TouchFloatingToolbar__ResizeHandle--tr {
+  top: -2px;
+  right: -2px;
+  cursor: nesw-resize;
+}
+
+.TouchFloatingToolbar__ResizeHandle--tr::after {
+  top: 5px;
+  right: 5px;
+  border-top: 2px solid #ffffff;
+  border-right: 2px solid #ffffff;
+  border-top-right-radius: 4px;
+}
+
+.TouchFloatingToolbar__ResizeHandle--bl {
+  bottom: -2px;
+  left: -2px;
+  cursor: nesw-resize;
+}
+
+.TouchFloatingToolbar__ResizeHandle--bl::after {
+  bottom: 5px;
+  left: 5px;
+  border-bottom: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-bottom-left-radius: 4px;
+}
+
+.TouchFloatingToolbar__ResizeHandle--br {
+  bottom: -2px;
+  right: -2px;
+  cursor: nwse-resize;
+}
+
+.TouchFloatingToolbar__ResizeHandle--br::after {
+  bottom: 5px;
+  right: 5px;
+  border-bottom: 2px solid #ffffff;
+  border-right: 2px solid #ffffff;
+  border-bottom-right-radius: 4px;
+}
+
+.TouchFloatingToolbar__ResizeHandle--l {
+  top: 24px;
+  bottom: 24px;
+  left: -6px;
+  width: 18px;
+  height: auto;
+  cursor: ew-resize;
+}
+
+.TouchFloatingToolbar__ResizeHandle--l::after {
+  top: 50%;
+  left: 6px;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 28px;
+  border: none;
+  border-radius: 2px;
+  background: #ffffff;
+}
+
+.TouchFloatingToolbar__ResizeHandle--r {
+  top: 24px;
+  bottom: 24px;
+  right: -6px;
+  width: 18px;
+  height: auto;
+  cursor: ew-resize;
+}
+
+.TouchFloatingToolbar__ResizeHandle--r::after {
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 28px;
+  border: none;
+  border-radius: 2px;
+  background: #ffffff;
+}
+
+.TouchFloatingToolbar--resizing {
+  transition: none !important;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.TouchFloatingToolbar--resizing * {
+  user-select: none;
+  -webkit-user-select: none;
 }

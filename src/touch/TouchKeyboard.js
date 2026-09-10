@@ -22,6 +22,49 @@ const SHIFT_NUMBER_MAP = {
 export const STORAGE_KEY_TOUCHUI_RIGHT = "term.touchui.right";
 export const STORAGE_KEY_TOUCHUI_BOTTOM = "term.touchui.bottom";
 export const STORAGE_KEY_TOUCHUI_SCALE = "term.touchui.scale";
+export const STORAGE_KEY_TOUCHUI_COLS = "term.touchui.cols";
+
+export function getLayoutDimensions(colsMode, isCompactLandscape = false) {
+  const baseBtnWidth = isCompactLandscape ? 44 : 52;
+  const baseBtnHeight = isCompactLandscape ? 42 : 52;
+  const btnGap = isCompactLandscape ? 3 : 4;
+  const padX = isCompactLandscape ? 10 : 14;
+  const padY = isCompactLandscape ? 8 : 12;
+
+  let cols = 4;
+  let rows = 5;
+  if (colsMode === 2) {
+    cols = 2;
+    rows = 9;
+  } else if (colsMode === 3) {
+    cols = 3;
+    rows = 7;
+  } else if (colsMode === 5) {
+    cols = 5;
+    rows = 4;
+  } else if (colsMode === 6) {
+    cols = 6;
+    rows = 3;
+  } else if (colsMode === 7) {
+    cols = 7;
+    rows = 2;
+  }
+
+  const baseWidth = cols * baseBtnWidth + (cols - 1) * btnGap + padX;
+  const baseHeight = rows * baseBtnHeight + (rows - 1) * btnGap + padY;
+
+  return {
+    cols,
+    rows,
+    baseBtnWidth,
+    baseBtnHeight,
+    btnGap,
+    padX,
+    padY,
+    baseWidth,
+    baseHeight,
+  };
+}
 
 export function readStorageFloat(key) {
   if (typeof window === "undefined" || !window.localStorage) return null;
@@ -64,7 +107,16 @@ export class TouchKeyboard extends React.Component {
     isStacked: true,
     stackedWidth: null,
     stackedHeight: null,
-    stackedCols: 4,
+    stackedColsMode: (() => {
+      const val = readStorageFloat(STORAGE_KEY_TOUCHUI_COLS);
+      if (val >= 2 && val <= 7) return Math.round(val);
+      return 4;
+    })(),
+    stackedCols: (() => {
+      const val = readStorageFloat(STORAGE_KEY_TOUCHUI_COLS);
+      if (val >= 2 && val <= 7) return Math.round(val);
+      return 4;
+    })(),
     drawableRight: null,
     layoutToolbarScale: 1.0,
     isDragging: false,
@@ -74,11 +126,17 @@ export class TouchKeyboard extends React.Component {
     toolbarCustomBottom: (() => {
       return readStorageFloat(STORAGE_KEY_TOUCHUI_BOTTOM);
     })(),
+    customScale: (() => {
+      const val = readStorageFloat(STORAGE_KEY_TOUCHUI_SCALE);
+      if (val !== null && val >= 0.5 && val <= 4.0) return val;
+      return null;
+    })(),
     toolbarScale: (() => {
       const val = readStorageFloat(STORAGE_KEY_TOUCHUI_SCALE);
-      if (val !== null && val >= 0.7 && val <= 1.5) return val;
+      if (val !== null && val >= 0.5 && val <= 4.0) return val;
       return 1.0;
     })(),
+    isResizing: false,
   };
   isInstanceActive = () => {
     return Boolean(
@@ -239,14 +297,53 @@ export class TouchKeyboard extends React.Component {
       return;
     }
     const layout = this.getToolbarLayout();
+
+    const viewportWidth =
+      typeof window !== "undefined"
+        ? window.visualViewport
+          ? window.visualViewport.width
+          : window.innerWidth
+        : 800;
+    const viewportHeight =
+      typeof window !== "undefined"
+        ? window.visualViewport
+          ? window.visualViewport.height
+          : window.innerHeight
+        : 600;
+    const isCompactLandscape =
+      (window.matchMedia &&
+        window.matchMedia("(orientation: landscape) and (max-height: 500px)")
+          .matches) ||
+      (viewportWidth > viewportHeight && viewportHeight <= 500);
+
+    const colsMode = this.state.stackedColsMode || 4;
+    const dims = getLayoutDimensions(colsMode, isCompactLandscape);
+    const baseWidth = dims.baseWidth;
+    const baseHeight = dims.baseHeight;
+
+    // Minimum scale: 0.5 (1/2 of base button size)
+    const minScale = 0.5;
+    // Maximum scale: cannot exceed screen height or width
+    const maxScaleW = Math.max(minScale, (viewportWidth - 12) / baseWidth);
+    const maxScaleH = Math.max(minScale, (viewportHeight - 12) / baseHeight);
+    const maxScale = Math.min(maxScaleW, maxScaleH);
+
+    const effectiveScale =
+      this.state.customScale != null
+        ? Math.max(minScale, Math.min(maxScale, this.state.customScale))
+        : Math.min(maxScale, layout.toolbarScale);
+
+    const stackedWidth = Math.round(baseWidth * effectiveScale);
+    const stackedHeight = Math.round(baseHeight * effectiveScale);
+
     let nextCustomRight = this.state.toolbarCustomRight;
     let nextCustomBottom = this.state.toolbarCustomBottom;
     if (nextCustomRight != null || nextCustomBottom != null) {
       const clamped = this.clampToolbarPosition(
         nextCustomRight,
         nextCustomBottom,
-        layout.stackedWidth,
-        layout.stackedHeight
+        stackedWidth,
+        stackedHeight
       );
       nextCustomRight = clamped.right;
       nextCustomBottom = clamped.bottom;
@@ -254,21 +351,21 @@ export class TouchKeyboard extends React.Component {
 
     if (
       layout.isStacked !== this.state.isStacked ||
-      layout.stackedWidth !== this.state.stackedWidth ||
-      layout.stackedHeight !== this.state.stackedHeight ||
-      layout.toolbarScale !== this.state.layoutToolbarScale ||
-      layout.maxCols !== this.state.stackedCols ||
+      stackedWidth !== this.state.stackedWidth ||
+      stackedHeight !== this.state.stackedHeight ||
+      effectiveScale !== this.state.layoutToolbarScale ||
+      colsMode !== this.state.stackedCols ||
       layout.drawableRight !== this.state.drawableRight ||
       nextCustomRight !== this.state.toolbarCustomRight ||
       nextCustomBottom !== this.state.toolbarCustomBottom
     ) {
       this.setState({
         isStacked: layout.isStacked,
-        stackedWidth: layout.stackedWidth,
-        stackedHeight: layout.stackedHeight,
-        stackedCols: layout.maxCols || 4,
+        stackedWidth,
+        stackedHeight,
+        stackedCols: colsMode,
         drawableRight: layout.drawableRight,
-        layoutToolbarScale: layout.toolbarScale,
+        layoutToolbarScale: effectiveScale,
         toolbarCustomRight: nextCustomRight,
         toolbarCustomBottom: nextCustomBottom,
       });
@@ -438,14 +535,28 @@ export class TouchKeyboard extends React.Component {
       };
       this.inputAreaBlurHandler = () => {
         if (!this.isInstanceActive()) return;
-        this.setState({ isSystemKeyboardOpen: false, isDirectInputMode: false });
+        this.setState({
+          isSystemKeyboardOpen: false,
+          isDirectInputMode: false,
+        });
         if (this.props.app.inputArea) {
           this.props.app.inputArea.setAttribute("inputmode", "none");
-          this.props.app.inputArea.setAttribute("virtualkeyboardpolicy", "manual");
+          this.props.app.inputArea.setAttribute(
+            "virtualkeyboardpolicy",
+            "manual"
+          );
         }
       };
-      this.props.app.inputArea.addEventListener("focus", this.inputAreaFocusHandler, false);
-      this.props.app.inputArea.addEventListener("blur", this.inputAreaBlurHandler, false);
+      this.props.app.inputArea.addEventListener(
+        "focus",
+        this.inputAreaFocusHandler,
+        false
+      );
+      this.props.app.inputArea.addEventListener(
+        "blur",
+        this.inputAreaBlurHandler,
+        false
+      );
     }
 
     if (typeof window !== "undefined") {
@@ -484,6 +595,12 @@ export class TouchKeyboard extends React.Component {
       window.removeEventListener("pointercancel", this.handleDragEnd);
       this.dragState = null;
     }
+    if (this.resizeState) {
+      window.removeEventListener("pointermove", this.handleResizeMove);
+      window.removeEventListener("pointerup", this.handleResizeEnd);
+      window.removeEventListener("pointercancel", this.handleResizeCancel);
+      this.resizeState = null;
+    }
     if (
       typeof window !== "undefined" &&
       window.visualViewport &&
@@ -516,10 +633,18 @@ export class TouchKeyboard extends React.Component {
     }
     if (this.props.app && this.props.app.inputArea) {
       if (this.inputAreaFocusHandler) {
-        this.props.app.inputArea.removeEventListener("focus", this.inputAreaFocusHandler, false);
+        this.props.app.inputArea.removeEventListener(
+          "focus",
+          this.inputAreaFocusHandler,
+          false
+        );
       }
       if (this.inputAreaBlurHandler) {
-        this.props.app.inputArea.removeEventListener("blur", this.inputAreaBlurHandler, false);
+        this.props.app.inputArea.removeEventListener(
+          "blur",
+          this.inputAreaBlurHandler,
+          false
+        );
       }
     }
   }
@@ -736,6 +861,358 @@ export class TouchKeyboard extends React.Component {
 
     this.dragState = null;
     this.setState({ isDragging: false, pressedKeyName: null });
+  };
+
+  handleResizeStart = (e, edgeOrCorner) => {
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    if (Date.now() < this.suppressInteractionUntil) return;
+    if (e.preventDefault) e.preventDefault();
+    if (e.stopPropagation) e.stopPropagation();
+
+    const toolbarEl = document.querySelector(".TouchFloatingToolbar");
+    if (!toolbarEl) return;
+
+    const rect = toolbarEl.getBoundingClientRect();
+    const viewportWidth =
+      typeof window !== "undefined"
+        ? window.visualViewport
+          ? window.visualViewport.width
+          : window.innerWidth
+        : 800;
+    const viewportHeight =
+      typeof window !== "undefined"
+        ? window.visualViewport
+          ? window.visualViewport.height
+          : window.innerHeight
+        : 600;
+
+    const currentRight = Math.max(0, viewportWidth - rect.right);
+    const currentBottom = Math.max(0, viewportHeight - rect.bottom);
+
+    const isCompactLandscape =
+      (window.matchMedia &&
+        window.matchMedia("(orientation: landscape) and (max-height: 500px)")
+          .matches) ||
+      (viewportWidth > viewportHeight && viewportHeight <= 500);
+
+    const currentCols = this.state.stackedColsMode || 4;
+    const currentDims = getLayoutDimensions(currentCols, isCompactLandscape);
+
+    const startScale =
+      this.state.customScale != null
+        ? this.state.customScale
+        : this.state.layoutToolbarScale || this.state.toolbarScale || 1.0;
+
+    this.resizeState = {
+      pointerId: e.pointerId,
+      handle: edgeOrCorner,
+      startX: e.clientX,
+      startY: e.clientY,
+      startRight: currentRight,
+      startBottom: currentBottom,
+      startWidth: rect.width,
+      startHeight: rect.height,
+      startScale,
+      startCols: currentCols,
+      baseWidth: currentDims.baseWidth,
+      baseHeight: currentDims.baseHeight,
+      hasMoved: false,
+    };
+
+    if (e.currentTarget && e.currentTarget.setPointerCapture) {
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch (err) {}
+    }
+
+    window.addEventListener("pointermove", this.handleResizeMove, {
+      passive: false,
+    });
+    window.addEventListener("pointerup", this.handleResizeEnd, {
+      passive: false,
+    });
+    window.addEventListener("pointercancel", this.handleResizeCancel, {
+      passive: false,
+    });
+  };
+
+  handleResizeMove = (e) => {
+    if (
+      !this.resizeState ||
+      (e.pointerId != null && e.pointerId !== this.resizeState.pointerId)
+    )
+      return;
+
+    const dx = e.clientX - this.resizeState.startX;
+    const dy = e.clientY - this.resizeState.startY;
+
+    if (!this.resizeState.hasMoved) {
+      if (Math.hypot(dx, dy) < 3) return;
+      this.resizeState.hasMoved = true;
+      this.setState({ isResizing: true });
+    }
+
+    if (e.preventDefault) e.preventDefault();
+    if (e.stopPropagation) e.stopPropagation();
+
+    const viewportWidth =
+      typeof window !== "undefined"
+        ? window.visualViewport
+          ? window.visualViewport.width
+          : window.innerWidth
+        : 800;
+    const viewportHeight =
+      typeof window !== "undefined"
+        ? window.visualViewport
+          ? window.visualViewport.height
+          : window.innerHeight
+        : 600;
+    const isCompactLandscape =
+      (window.matchMedia &&
+        window.matchMedia("(orientation: landscape) and (max-height: 500px)")
+          .matches) ||
+      (viewportWidth > viewportHeight && viewportHeight <= 500);
+
+    const {
+      handle,
+      startWidth,
+      startHeight,
+      startRight,
+      startBottom,
+      startScale,
+      startCols,
+    } = this.resizeState;
+
+    if (handle === "l" || handle === "r") {
+      // Horizontal edge resizing: switches between fixed column layouts (2, 3, 4, 5, 6, 7)
+      let deltaW = 0;
+      if (handle === "r") {
+        deltaW = dx;
+      } else {
+        deltaW = -dx;
+      }
+      const targetWidth = startWidth + deltaW;
+
+      const dims2 = getLayoutDimensions(2, isCompactLandscape);
+      const dims3 = getLayoutDimensions(3, isCompactLandscape);
+      const dims4 = getLayoutDimensions(4, isCompactLandscape);
+      const dims5 = getLayoutDimensions(5, isCompactLandscape);
+      const dims6 = getLayoutDimensions(6, isCompactLandscape);
+      const dims7 = getLayoutDimensions(7, isCompactLandscape);
+
+      const w2 = dims2.baseWidth * startScale;
+      const w3 = dims3.baseWidth * startScale;
+      const w4 = dims4.baseWidth * startScale;
+      const w5 = dims5.baseWidth * startScale;
+      const w6 = dims6.baseWidth * startScale;
+      const w7 = dims7.baseWidth * startScale;
+
+      const mid23 = (w2 + w3) / 2;
+      const mid34 = (w3 + w4) / 2;
+      const mid45 = (w4 + w5) / 2;
+      const mid56 = (w5 + w6) / 2;
+      const mid67 = (w6 + w7) / 2;
+
+      let candidateCols = 4;
+      if (targetWidth < mid23) {
+        candidateCols = 2;
+      } else if (targetWidth < mid34) {
+        candidateCols = 3;
+      } else if (targetWidth < mid45) {
+        candidateCols = 4;
+      } else if (targetWidth < mid56) {
+        candidateCols = 5;
+      } else if (targetWidth < mid67) {
+        candidateCols = 6;
+      } else {
+        candidateCols = 7;
+      }
+
+      const candidateDims = getLayoutDimensions(
+        candidateCols,
+        isCompactLandscape
+      );
+
+      const minScale = 0.5;
+      const maxScaleH = Math.max(
+        minScale,
+        (viewportHeight - 12) / candidateDims.baseHeight
+      );
+      const maxScaleW = Math.max(
+        minScale,
+        (viewportWidth - 12) / candidateDims.baseWidth
+      );
+      const maxScale = Math.min(maxScaleW, maxScaleH);
+      const nextScale = Math.max(minScale, Math.min(maxScale, startScale));
+
+      const nextStackedWidth = Math.round(candidateDims.baseWidth * nextScale);
+      const nextStackedHeight = Math.round(
+        candidateDims.baseHeight * nextScale
+      );
+
+      let nextRight = startRight;
+      if (handle === "r") {
+        nextRight = startRight - (nextStackedWidth - startWidth);
+      }
+
+      const clamped = this.clampToolbarPosition(
+        nextRight,
+        startBottom,
+        nextStackedWidth,
+        nextStackedHeight
+      );
+
+      this.setState({
+        stackedColsMode: candidateCols,
+        stackedCols: candidateCols,
+        customScale: nextScale,
+        toolbarScale: nextScale,
+        layoutToolbarScale: nextScale,
+        stackedWidth: nextStackedWidth,
+        stackedHeight: nextStackedHeight,
+        toolbarCustomRight: clamped.right,
+        toolbarCustomBottom: clamped.bottom,
+      });
+      return;
+    }
+
+    // Corner resizing: scales current layout uniformly
+    const dims = getLayoutDimensions(startCols, isCompactLandscape);
+    const baseWidth = dims.baseWidth;
+    const baseHeight = dims.baseHeight;
+
+    let deltaW = 0;
+    let deltaH = 0;
+
+    if (handle === "tl") {
+      deltaW = -dx;
+      deltaH = -dy;
+    } else if (handle === "tr") {
+      deltaW = dx;
+      deltaH = -dy;
+    } else if (handle === "bl") {
+      deltaW = -dx;
+      deltaH = dy;
+    } else if (handle === "br") {
+      deltaW = dx;
+      deltaH = dy;
+    }
+
+    const newTargetWidth = startWidth + deltaW;
+    const newTargetHeight = startHeight + deltaH;
+    const scaleFactorW = newTargetWidth / Math.max(1, startWidth);
+    const scaleFactorH = newTargetHeight / Math.max(1, startHeight);
+    const avgFactor = (scaleFactorW + scaleFactorH) / 2;
+    const candidateScale = startScale * avgFactor;
+
+    // Minimum scale: 0.5 (half of base button size)
+    const minScale = 0.5;
+    // Maximum scale: cannot exceed viewport width or height
+    const maxScaleW = Math.max(minScale, (viewportWidth - 12) / baseWidth);
+    const maxScaleH = Math.max(minScale, (viewportHeight - 12) / baseHeight);
+    const maxScale = Math.min(maxScaleW, maxScaleH);
+
+    const nextScale = Math.max(
+      minScale,
+      Math.min(maxScale, Math.round(candidateScale * 100) / 100)
+    );
+
+    const isCollapsed = this.state.isToolbarCollapsed;
+    let nextStackedWidth = null;
+    let nextStackedHeight = null;
+    let effectiveWidth = startWidth * (nextScale / startScale);
+    let effectiveHeight = startHeight * (nextScale / startScale);
+
+    if (!isCollapsed) {
+      nextStackedWidth = Math.round(baseWidth * nextScale);
+      nextStackedHeight = Math.round(baseHeight * nextScale);
+      effectiveWidth = nextStackedWidth;
+      effectiveHeight = nextStackedHeight;
+    }
+
+    let nextRight = startRight;
+    let nextBottom = startBottom;
+    const widthDiff = effectiveWidth - startWidth;
+    const heightDiff = effectiveHeight - startHeight;
+
+    if (handle === "tr") {
+      nextRight = startRight - widthDiff;
+    } else if (handle === "bl") {
+      nextBottom = startBottom - heightDiff;
+    } else if (handle === "br") {
+      nextRight = startRight - widthDiff;
+      nextBottom = startBottom - heightDiff;
+    }
+
+    const clamped = this.clampToolbarPosition(
+      nextRight,
+      nextBottom,
+      effectiveWidth,
+      effectiveHeight
+    );
+
+    this.setState({
+      customScale: nextScale,
+      toolbarScale: nextScale,
+      layoutToolbarScale: nextScale,
+      ...(nextStackedWidth
+        ? { stackedWidth: nextStackedWidth, stackedHeight: nextStackedHeight }
+        : {}),
+      toolbarCustomRight: clamped.right,
+      toolbarCustomBottom: clamped.bottom,
+    });
+  };
+
+  handleResizeEnd = (e) => {
+    if (
+      !this.resizeState ||
+      (e && e.pointerId != null && e.pointerId !== this.resizeState.pointerId)
+    )
+      return;
+
+    window.removeEventListener("pointermove", this.handleResizeMove);
+    window.removeEventListener("pointerup", this.handleResizeEnd);
+    window.removeEventListener("pointercancel", this.handleResizeCancel);
+
+    if (this.resizeState.hasMoved) {
+      this.suppressInteractionUntil = Date.now() + 250;
+      if (this.state.stackedColsMode != null) {
+        writeStorageItem(STORAGE_KEY_TOUCHUI_COLS, this.state.stackedColsMode);
+      }
+      if (this.state.customScale != null) {
+        writeStorageItem(STORAGE_KEY_TOUCHUI_SCALE, this.state.customScale);
+      }
+      if (this.state.toolbarCustomRight != null) {
+        writeStorageItem(
+          STORAGE_KEY_TOUCHUI_RIGHT,
+          Math.round(this.state.toolbarCustomRight)
+        );
+      }
+      if (this.state.toolbarCustomBottom != null) {
+        writeStorageItem(
+          STORAGE_KEY_TOUCHUI_BOTTOM,
+          Math.round(this.state.toolbarCustomBottom)
+        );
+      }
+    }
+
+    this.resizeState = null;
+    this.setState({ isResizing: false, pressedKeyName: null });
+  };
+
+  handleResizeCancel = (e) => {
+    if (
+      !this.resizeState ||
+      (e && e.pointerId != null && e.pointerId !== this.resizeState.pointerId)
+    )
+      return;
+
+    window.removeEventListener("pointermove", this.handleResizeMove);
+    window.removeEventListener("pointerup", this.handleResizeEnd);
+    window.removeEventListener("pointercancel", this.handleResizeCancel);
+
+    this.resizeState = null;
+    this.setState({ isResizing: false, pressedKeyName: null });
   };
 
   handleToggleToolbarCollapse = (event) => {
@@ -995,15 +1472,18 @@ export class TouchKeyboard extends React.Component {
       event.preventDefault();
       event.stopPropagation();
     }
-    const currentScale = this.state.toolbarScale || 1.0;
+    const currentScale =
+      this.state.customScale != null
+        ? this.state.customScale
+        : this.state.toolbarScale || 1.0;
     const nextScale = Math.max(
-      0.7,
-      Math.min(1.5, Math.round((currentScale + delta * 0.1) * 10) / 10)
+      0.5,
+      Math.min(3.5, Math.round((currentScale + delta * 0.1) * 10) / 10)
     );
     if (nextScale === currentScale) return;
 
     writeStorageItem(STORAGE_KEY_TOUCHUI_SCALE, nextScale);
-    this.setState({ toolbarScale: nextScale }, () => {
+    this.setState({ toolbarScale: nextScale, customScale: nextScale }, () => {
       this.updateToolbarLayout();
     });
   };
@@ -2197,6 +2677,238 @@ export class TouchKeyboard extends React.Component {
     </button>
   );
 
+  renderStandard4x5Pad = () => (
+    <div className="TouchFloatingToolbar__Track TouchFloatingToolbar__Track--stacked TouchFloatingToolbar__Track--cols-4">
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderFontZoomIn()}
+        {this.renderFontZoomOut()}
+        {this.renderTab()}
+        {this.renderMenuToggle()}
+      </div>
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderEscape()}
+        {this.renderHome()}
+        {this.renderArrowUp()}
+        {this.renderEnd()}
+      </div>
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderPageUp()}
+        {this.renderArrowLeft()}
+        {this.renderSpace()}
+        {this.renderArrowRight()}
+      </div>
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderPageDown()}
+        {this.renderBackspace()}
+        {this.renderArrowDown()}
+        {this.renderEnter()}
+      </div>
+      <div className="TouchFloatingToolbar__Row TouchFloatingToolbar__Row--dock">
+        <div className="TouchFloatingToolbar__DockGroup TouchFloatingToolbar__DockGroup--full">
+          {this.renderCtrl()}
+          {this.renderAlpha()}
+          {this.renderKeyboardToggle()}
+          {this.renderCollapseToggle(false)}
+        </div>
+      </div>
+    </div>
+  );
+
+  renderStandard3x7Pad = () => (
+    <div className="TouchFloatingToolbar__Track TouchFloatingToolbar__Track--stacked TouchFloatingToolbar__Track--cols-3">
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderFontZoomIn()}
+        {this.renderFontZoomOut()}
+        {this.renderMenuToggle()}
+      </div>
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderEscape()}
+        {this.renderPageUp()}
+        {this.renderPageDown()}
+      </div>
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderHome()}
+        {this.renderArrowUp()}
+        {this.renderEnd()}
+      </div>
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderArrowLeft()}
+        {this.renderSpace()}
+        {this.renderArrowRight()}
+      </div>
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderBackspace()}
+        {this.renderArrowDown()}
+        {this.renderEnter()}
+      </div>
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderAlpha()}
+        {this.renderTab()}
+      </div>
+      <div className="TouchFloatingToolbar__Row TouchFloatingToolbar__Row--dock">
+        <div className="TouchFloatingToolbar__DockGroup TouchFloatingToolbar__DockGroup--full">
+          {this.renderCtrl()}
+          {this.renderKeyboardToggle()}
+          {this.renderCollapseToggle(false)}
+        </div>
+      </div>
+    </div>
+  );
+
+  renderStandard2x8Pad = () => (
+    <div className="TouchFloatingToolbar__Track TouchFloatingToolbar__Track--stacked TouchFloatingToolbar__Track--cols-2">
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderTab()}
+        {this.renderMenuToggle()}
+      </div>
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderFontZoomIn()}
+        {this.renderFontZoomOut()}
+      </div>
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderPageUp()}
+        {this.renderPageDown()}
+      </div>
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderEscape()}
+        {this.renderBackspace()}
+      </div>
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderArrowUp()}
+        {this.renderSpace()}
+      </div>
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderArrowLeft()}
+        {this.renderArrowRight()}
+      </div>
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderArrowDown()}
+        {this.renderEnter()}
+      </div>
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderCtrl()}
+        {this.renderAlpha()}
+      </div>
+      <div className="TouchFloatingToolbar__Row TouchFloatingToolbar__Row--dock">
+        <div className="TouchFloatingToolbar__DockGroup TouchFloatingToolbar__DockGroup--full">
+          {this.renderKeyboardToggle()}
+          {this.renderCollapseToggle(false)}
+        </div>
+      </div>
+    </div>
+  );
+
+  renderStandard5x4Pad = () => (
+    <div className="TouchFloatingToolbar__Track TouchFloatingToolbar__Track--stacked TouchFloatingToolbar__Track--cols-5">
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderEscape()}
+        {this.renderTab()}
+        {this.renderHome()}
+        {this.renderArrowUp()}
+        {this.renderEnd()}
+      </div>
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderFontZoomIn()}
+        {this.renderFontZoomOut()}
+        {this.renderArrowLeft()}
+        {this.renderSpace()}
+        {this.renderArrowRight()}
+      </div>
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderPageUp()}
+        {this.renderPageDown()}
+        {this.renderBackspace()}
+        {this.renderArrowDown()}
+        {this.renderEnter()}
+      </div>
+      <div className="TouchFloatingToolbar__Row TouchFloatingToolbar__Row--dock">
+        <div className="TouchFloatingToolbar__DockGroup TouchFloatingToolbar__DockGroup--full">
+          {this.renderMenuToggle()}
+          {this.renderCtrl()}
+          {this.renderAlpha()}
+          {this.renderKeyboardToggle()}
+          {this.renderCollapseToggle(false)}
+        </div>
+      </div>
+    </div>
+  );
+
+  renderStandard6x3Pad = () => (
+    <div className="TouchFloatingToolbar__Track TouchFloatingToolbar__Track--stacked TouchFloatingToolbar__Track--cols-6">
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderEscape()}
+        {this.renderPageUp()}
+        {this.renderPageDown()}
+        {this.renderBackspace()}
+        {this.renderArrowUp()}
+        {this.renderEnter()}
+      </div>
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderHome()}
+        {this.renderEnd()}
+        {this.renderSpace()}
+        {this.renderArrowLeft()}
+        {this.renderArrowDown()}
+        {this.renderArrowRight()}
+      </div>
+      <div className="TouchFloatingToolbar__Row TouchFloatingToolbar__Row--dock">
+        <div className="TouchFloatingToolbar__DockGroup TouchFloatingToolbar__DockGroup--full">
+          {this.renderMenuToggle()}
+          {this.renderTab()}
+          {this.renderCtrl()}
+          {this.renderAlpha()}
+          {this.renderKeyboardToggle()}
+          {this.renderCollapseToggle(false)}
+        </div>
+      </div>
+    </div>
+  );
+
+  renderStandard7x2Pad = () => (
+    <div className="TouchFloatingToolbar__Track TouchFloatingToolbar__Track--stacked TouchFloatingToolbar__Track--cols-7">
+      <div className="TouchFloatingToolbar__Row">
+        {this.renderBackspace()}
+        {this.renderArrowUp()}
+        {this.renderArrowDown()}
+        {this.renderArrowLeft()}
+        {this.renderArrowRight()}
+        {this.renderSpace()}
+        {this.renderEnter()}
+      </div>
+      <div className="TouchFloatingToolbar__Row TouchFloatingToolbar__Row--dock">
+        <div className="TouchFloatingToolbar__DockGroup TouchFloatingToolbar__DockGroup--full">
+          {this.renderMenuToggle()}
+          {this.renderPageUp()}
+          {this.renderPageDown()}
+          {this.renderCtrl()}
+          {this.renderAlpha()}
+          {this.renderKeyboardToggle()}
+          {this.renderCollapseToggle(false)}
+        </div>
+      </div>
+    </div>
+  );
+
+  renderStandardPad = () => {
+    const cols = this.state.stackedColsMode || 4;
+    if (cols === 2) {
+      return this.renderStandard2x8Pad();
+    }
+    if (cols === 3) {
+      return this.renderStandard3x7Pad();
+    }
+    if (cols === 5) {
+      return this.renderStandard5x4Pad();
+    }
+    if (cols === 6) {
+      return this.renderStandard6x3Pad();
+    }
+    if (cols === 7) {
+      return this.renderStandard7x2Pad();
+    }
+    return this.renderStandard4x5Pad();
+  };
+
   render() {
     const {
       isToolbarCollapsed,
@@ -2233,11 +2945,23 @@ export class TouchKeyboard extends React.Component {
           ? window.visualViewport.height
           : window.innerHeight
         : 0;
+    const effectiveToolbarScale =
+      this.state.customScale != null
+        ? this.state.customScale
+        : isStackedMode && layoutToolbarScale
+          ? layoutToolbarScale
+          : toolbarScale || 1.0;
+
     const isExpandedKeypad = isCtrlMode || isAlphaMode;
     const activeStackedWidth =
       isStackedMode && stackedWidth
         ? isExpandedKeypad
-          ? Math.min(540, viewportWidth > 0 ? viewportWidth - 12 : 380)
+          ? this.state.customScale != null
+            ? Math.min(
+                Math.round(540 * effectiveToolbarScale),
+                viewportWidth > 0 ? viewportWidth - 12 : 380
+              )
+            : Math.min(540, viewportWidth > 0 ? viewportWidth - 12 : 380)
           : stackedWidth
         : null;
     const activeStackedHeight =
@@ -2253,10 +2977,6 @@ export class TouchKeyboard extends React.Component {
           .matches) ||
       (viewportWidth > viewportHeight && viewportHeight <= 500);
 
-    const effectiveToolbarScale =
-      isStackedMode && layoutToolbarScale
-        ? layoutToolbarScale
-        : toolbarScale || 1.0;
     const baseBtnWidth = isCompactLandscape ? 44 : 52;
     const baseBtnHeight = isCompactLandscape ? 42 : 52;
     const halfBtnX = Math.round((baseBtnWidth * effectiveToolbarScale) / 2);
@@ -2265,11 +2985,17 @@ export class TouchKeyboard extends React.Component {
     const baseRightOffset = halfBtnX;
     const initialRight =
       activeStackedWidth && viewportWidth > 0
-        ? Math.min(baseRightOffset, Math.max(4, viewportWidth - activeStackedWidth - 6))
+        ? Math.min(
+            baseRightOffset,
+            Math.max(4, viewportWidth - activeStackedWidth - 6)
+          )
         : baseRightOffset;
     const initialBottom =
       activeStackedHeight && viewportHeight > 0
-        ? Math.min(halfBtnY, Math.max(4, viewportHeight - activeStackedHeight - 6))
+        ? Math.min(
+            halfBtnY,
+            Math.max(4, viewportHeight - activeStackedHeight - 6)
+          )
         : halfBtnY;
 
     const effectiveRight =
@@ -2336,216 +3062,273 @@ export class TouchKeyboard extends React.Component {
             "TouchFloatingToolbar--collapsed": isToolbarCollapsed,
             "TouchFloatingToolbar--stacked": isStackedMode,
             "TouchFloatingToolbar--dragging": this.state.isDragging,
+            "TouchFloatingToolbar--resizing": this.state.isResizing,
             "TouchFloatingToolbar--hidden": this.state.isEditAreaOpen,
           })}
           style={{
             ...toolbarStyle,
             ...(this.state.isEditAreaOpen ? { display: "none" } : {}),
           }}
-        onTouchStart={(e) => e.stopPropagation()}
-        onPointerDown={(e) => {
-          e.stopPropagation();
-          if (
-            e.target === e.currentTarget ||
-            (e.target &&
-              e.target.classList &&
-              e.target.classList.contains("TouchFloatingToolbar__Track"))
-          ) {
-            this.handleDragStart(e);
-          }
-        }}
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        {isToolbarCollapsed ? (
-          <React.Fragment key="collapsed-toolbar">
-            <div
-              key="drag-handle"
-              className="TouchFloatingToolbar__DragHandle TouchFloatingToolbar__DragHandle--collapsed"
-              title="拖曳移動工具列 (Drag to Move)"
-              aria-label="Drag toolbar"
-              onPointerDown={this.handleDragStart}
-            >
-              <div className="TouchFloatingToolbar__DragHandleBar" />
-            </div>
-            <div className="TouchFloatingToolbar__Row TouchFloatingToolbar__Row--collapsed">
-              {this.renderKeyboardToggle()}
-              <span key="div-1" className="TouchFloatingToolbar__Divider" />
-              {this.renderMenuToggle()}
-              <span key="div-2" className="TouchFloatingToolbar__Divider" />
-              {this.renderCollapseToggle(true)}
-            </div>
-          </React.Fragment>
-        ) : (
-          <React.Fragment key="expanded-toolbar">
-            <div
-              key="drag-handle"
-              className="TouchFloatingToolbar__DragHandle"
-              title="拖曳移動盤面 (Drag to Move)"
-              aria-label="Drag pad"
-              onPointerDown={this.handleDragStart}
-            >
-              <div className="TouchFloatingToolbar__DragHandleBar" />
-            </div>
-            {isCtrlMode ? (
-              <div className="TouchFloatingToolbar__Track TouchFloatingToolbar__Track--stacked TouchFloatingToolbar__Track--ctrl TouchFloatingToolbar__Track--qwert">
-                <div className="TouchFloatingToolbar__Row">
-                  {this.renderCtrlLetter("Q")}
-                  {this.renderCtrlLetter("W")}
-                  {this.renderCtrlLetter("E")}
-                  {this.renderCtrlLetter("R")}
-                  {this.renderCtrlLetter("T")}
-                  {this.renderCtrlLetter("Y")}
-                  {this.renderCtrlLetter("U")}
-                  {this.renderCtrlLetter("I")}
-                  {this.renderCtrlLetter("O")}
-                  {this.renderCtrlLetter("P")}
-                </div>
-                <div className="TouchFloatingToolbar__Row">
-                  <span className="TouchFloatingToolbar__Spacer--half" />
-                  {this.renderCtrlLetter("A")}
-                  {this.renderCtrlLetter("S")}
-                  {this.renderCtrlLetter("D")}
-                  {this.renderCtrlLetter("F")}
-                  {this.renderCtrlLetter("G")}
-                  {this.renderCtrlLetter("H")}
-                  {this.renderCtrlLetter("J")}
-                  {this.renderCtrlLetter("K")}
-                  {this.renderCtrlLetter("L")}
-                  <span className="TouchFloatingToolbar__Spacer--half" />
-                </div>
-                <div className="TouchFloatingToolbar__Row">
-                  <span className="TouchFloatingToolbar__Spacer--shift" />
-                  {this.renderCtrlLetter("Z")}
-                  {this.renderCtrlLetter("X")}
-                  {this.renderCtrlLetter("C")}
-                  {this.renderCtrlLetter("V")}
-                  {this.renderCtrlLetter("B")}
-                  {this.renderCtrlLetter("N")}
-                  {this.renderCtrlLetter("M")}
-                  {this.renderQwertBackspace(true)}
-                </div>
-                <div className="TouchFloatingToolbar__Row TouchFloatingToolbar__Row--dock">
-                  <span className="TouchFloatingToolbar__Spacer TouchFloatingToolbar__Spacer--dock-fill" />
-                  <div className="TouchFloatingToolbar__DockGroup">
-                    {this.renderReturnToNormalPad()}
-                    {this.renderAlpha()}
-                    {this.renderKeyboardToggle()}
-                    {this.renderCollapseToggle(
-                      false,
-                      "TouchFloatingToolbar__Btn--qwert-collapse"
-                    )}
-                  </div>
-                </div>
+          onTouchStart={(e) => e.stopPropagation()}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            if (
+              e.target === e.currentTarget ||
+              (e.target &&
+                e.target.classList &&
+                e.target.classList.contains("TouchFloatingToolbar__Track"))
+            ) {
+              this.handleDragStart(e);
+            }
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div
+            key="resize-tl"
+            className="TouchFloatingToolbar__ResizeHandle TouchFloatingToolbar__ResizeHandle--tl"
+            title="縮放鍵盤 (Resize Keyboard)"
+            aria-label="Resize keyboard from top-left"
+            onPointerDown={(e) => this.handleResizeStart(e, "tl")}
+          />
+          <div
+            key="resize-tr"
+            className="TouchFloatingToolbar__ResizeHandle TouchFloatingToolbar__ResizeHandle--tr"
+            title="縮放鍵盤 (Resize Keyboard)"
+            aria-label="Resize keyboard from top-right"
+            onPointerDown={(e) => this.handleResizeStart(e, "tr")}
+          />
+          <div
+            key="resize-bl"
+            className="TouchFloatingToolbar__ResizeHandle TouchFloatingToolbar__ResizeHandle--bl"
+            title="縮放鍵盤 (Resize Keyboard)"
+            aria-label="Resize keyboard from bottom-left"
+            onPointerDown={(e) => this.handleResizeStart(e, "bl")}
+          />
+          <div
+            key="resize-br"
+            className="TouchFloatingToolbar__ResizeHandle TouchFloatingToolbar__ResizeHandle--br"
+            title="縮放鍵盤 (Resize Keyboard)"
+            aria-label="Resize keyboard from bottom-right"
+            onPointerDown={(e) => this.handleResizeStart(e, "br")}
+          />
+          {!isToolbarCollapsed && (
+            <React.Fragment key="edge-resize-handles">
+              <div
+                key="resize-l"
+                className="TouchFloatingToolbar__ResizeHandle TouchFloatingToolbar__ResizeHandle--l"
+                title="調整鍵盤寬度與排版 (Adjust Keyboard Width / Layout)"
+                aria-label="Adjust keyboard layout from left edge"
+                onPointerDown={(e) => this.handleResizeStart(e, "l")}
+              />
+              <div
+                key="resize-r"
+                className="TouchFloatingToolbar__ResizeHandle TouchFloatingToolbar__ResizeHandle--r"
+                title="調整鍵盤寬度與排版 (Adjust Keyboard Width / Layout)"
+                aria-label="Adjust keyboard layout from right edge"
+                onPointerDown={(e) => this.handleResizeStart(e, "r")}
+              />
+            </React.Fragment>
+          )}
+          {isToolbarCollapsed ? (
+            <React.Fragment key="collapsed-toolbar">
+              <div
+                key="drag-handle"
+                className="TouchFloatingToolbar__DragHandle TouchFloatingToolbar__DragHandle--collapsed"
+                title="拖曳移動工具列 (Drag to Move)"
+                aria-label="Drag toolbar"
+                onPointerDown={this.handleDragStart}
+              >
+                <div className="TouchFloatingToolbar__DragHandleBar" />
               </div>
-            ) : isAlphaMode ? (
-              <div className="TouchFloatingToolbar__Track TouchFloatingToolbar__Track--stacked TouchFloatingToolbar__Track--ctrl TouchFloatingToolbar__Track--alpha TouchFloatingToolbar__Track--qwert">
-                <div className="TouchFloatingToolbar__Row">
-                  {this.renderAlphaNumber("1")}
-                  {this.renderAlphaNumber("2")}
-                  {this.renderAlphaNumber("3")}
-                  {this.renderAlphaNumber("4")}
-                  {this.renderAlphaNumber("5")}
-                  {this.renderAlphaNumber("6")}
-                  {this.renderAlphaNumber("7")}
-                  {this.renderAlphaNumber("8")}
-                  {this.renderAlphaNumber("9")}
-                  {this.renderAlphaNumber("0")}
-                </div>
-                <div className="TouchFloatingToolbar__Row">
-                  {this.renderAlphaLetter("Q")}
-                  {this.renderAlphaLetter("W")}
-                  {this.renderAlphaLetter("E")}
-                  {this.renderAlphaLetter("R")}
-                  {this.renderAlphaLetter("T")}
-                  {this.renderAlphaLetter("Y")}
-                  {this.renderAlphaLetter("U")}
-                  {this.renderAlphaLetter("I")}
-                  {this.renderAlphaLetter("O")}
-                  {this.renderAlphaLetter("P")}
-                </div>
-                <div className="TouchFloatingToolbar__Row">
-                  <span className="TouchFloatingToolbar__Spacer--half" />
-                  {this.renderAlphaLetter("A")}
-                  {this.renderAlphaLetter("S")}
-                  {this.renderAlphaLetter("D")}
-                  {this.renderAlphaLetter("F")}
-                  {this.renderAlphaLetter("G")}
-                  {this.renderAlphaLetter("H")}
-                  {this.renderAlphaLetter("J")}
-                  {this.renderAlphaLetter("K")}
-                  {this.renderAlphaLetter("L")}
-                  <span className="TouchFloatingToolbar__Spacer--half" />
-                </div>
-                <div className="TouchFloatingToolbar__Row">
-                  {this.renderShift()}
-                  {this.renderAlphaLetter("Z")}
-                  {this.renderAlphaLetter("X")}
-                  {this.renderAlphaLetter("C")}
-                  {this.renderAlphaLetter("V")}
-                  {this.renderAlphaLetter("B")}
-                  {this.renderAlphaLetter("N")}
-                  {this.renderAlphaLetter("M")}
-                  {this.renderQwertBackspace(false)}
-                </div>
-                <div className="TouchFloatingToolbar__Row TouchFloatingToolbar__Row--dock">
-                  <div className="TouchFloatingToolbar__TypingGroup">
-                    {this.renderQwertEscape(false)}
-                    {this.renderQwertSpace(false)}
-                    {this.renderQwertEnter(false)}
-                  </div>
-                  <span className="TouchFloatingToolbar__Spacer TouchFloatingToolbar__Spacer--dock-gap" />
-                  <div className="TouchFloatingToolbar__DockGroup">
-                    {this.renderCtrl()}
-                    {this.renderReturnToNormalPad()}
-                    {this.renderKeyboardToggle()}
-                    {this.renderCollapseToggle(
-                      false,
-                      "TouchFloatingToolbar__Btn--qwert-collapse"
-                    )}
-                  </div>
-                </div>
+              <div className="TouchFloatingToolbar__Row TouchFloatingToolbar__Row--collapsed">
+                {this.renderKeyboardToggle()}
+                <span key="div-1" className="TouchFloatingToolbar__Divider" />
+                {this.renderMenuToggle()}
+                <span key="div-2" className="TouchFloatingToolbar__Divider" />
+                {this.renderCollapseToggle(true)}
               </div>
-            ) : (
-              <div className="TouchFloatingToolbar__Track TouchFloatingToolbar__Track--stacked">
-                <div className="TouchFloatingToolbar__Row">
-                  {this.renderFontZoomIn()}
-                  {this.renderFontZoomOut()}
-                  {this.renderTab()}
-                  {this.renderMenuToggle()}
-                </div>
-                <div className="TouchFloatingToolbar__Row">
-                  {this.renderEscape()}
-                  {this.renderHome()}
-                  {this.renderArrowUp()}
-                  {this.renderEnd()}
-                </div>
-                <div className="TouchFloatingToolbar__Row">
-                  {this.renderPageUp()}
-                  {this.renderArrowLeft()}
-                  {this.renderSpace()}
-                  {this.renderArrowRight()}
-                </div>
-                <div className="TouchFloatingToolbar__Row">
-                  {this.renderPageDown()}
-                  {this.renderBackspace()}
-                  {this.renderArrowDown()}
-                  {this.renderEnter()}
-                </div>
-                <div className="TouchFloatingToolbar__Row TouchFloatingToolbar__Row--dock">
-                  <div className="TouchFloatingToolbar__DockGroup TouchFloatingToolbar__DockGroup--full">
-                    {this.renderCtrl()}
-                    {this.renderAlpha()}
-                    {this.renderKeyboardToggle()}
-                    {this.renderCollapseToggle(false)}
+            </React.Fragment>
+          ) : (
+            <React.Fragment key="expanded-toolbar">
+              <div
+                key="drag-handle"
+                className="TouchFloatingToolbar__DragHandle"
+                title="拖曳移動盤面 (Drag to Move)"
+                aria-label="Drag pad"
+                onPointerDown={this.handleDragStart}
+              >
+                <div className="TouchFloatingToolbar__DragHandleBar" />
+              </div>
+              {isCtrlMode ? (
+                <div className="TouchFloatingToolbar__Track TouchFloatingToolbar__Track--stacked TouchFloatingToolbar__Track--ctrl TouchFloatingToolbar__Track--qwert">
+                  <div className="TouchFloatingToolbar__Row">
+                    {this.renderCtrlLetter("Q")}
+                    {this.renderCtrlLetter("W")}
+                    {this.renderCtrlLetter("E")}
+                    {this.renderCtrlLetter("R")}
+                    {this.renderCtrlLetter("T")}
+                    {this.renderCtrlLetter("Y")}
+                    {this.renderCtrlLetter("U")}
+                    {this.renderCtrlLetter("I")}
+                    {this.renderCtrlLetter("O")}
+                    {this.renderCtrlLetter("P")}
+                  </div>
+                  <div className="TouchFloatingToolbar__Row">
+                    <span className="TouchFloatingToolbar__Spacer--half" />
+                    {this.renderCtrlLetter("A")}
+                    {this.renderCtrlLetter("S")}
+                    {this.renderCtrlLetter("D")}
+                    {this.renderCtrlLetter("F")}
+                    {this.renderCtrlLetter("G")}
+                    {this.renderCtrlLetter("H")}
+                    {this.renderCtrlLetter("J")}
+                    {this.renderCtrlLetter("K")}
+                    {this.renderCtrlLetter("L")}
+                    <span className="TouchFloatingToolbar__Spacer--half" />
+                  </div>
+                  <div className="TouchFloatingToolbar__Row">
+                    <span className="TouchFloatingToolbar__Spacer--shift" />
+                    {this.renderCtrlLetter("Z")}
+                    {this.renderCtrlLetter("X")}
+                    {this.renderCtrlLetter("C")}
+                    {this.renderCtrlLetter("V")}
+                    {this.renderCtrlLetter("B")}
+                    {this.renderCtrlLetter("N")}
+                    {this.renderCtrlLetter("M")}
+                    {this.renderQwertBackspace(true)}
+                  </div>
+                  <div className="TouchFloatingToolbar__Row TouchFloatingToolbar__Row--dock">
+                    <span className="TouchFloatingToolbar__Spacer TouchFloatingToolbar__Spacer--dock-fill" />
+                    <div className="TouchFloatingToolbar__DockGroup">
+                      {this.renderReturnToNormalPad()}
+                      {this.renderAlpha()}
+                      {this.renderKeyboardToggle()}
+                      {this.renderCollapseToggle(
+                        false,
+                        "TouchFloatingToolbar__Btn--qwert-collapse"
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </React.Fragment>
-        )}
-      </div>
-    </React.Fragment>
-  );
+              ) : isAlphaMode ? (
+                <div className="TouchFloatingToolbar__Track TouchFloatingToolbar__Track--stacked TouchFloatingToolbar__Track--ctrl TouchFloatingToolbar__Track--alpha TouchFloatingToolbar__Track--qwert">
+                  <div className="TouchFloatingToolbar__Row">
+                    {this.renderAlphaNumber("1")}
+                    {this.renderAlphaNumber("2")}
+                    {this.renderAlphaNumber("3")}
+                    {this.renderAlphaNumber("4")}
+                    {this.renderAlphaNumber("5")}
+                    {this.renderAlphaNumber("6")}
+                    {this.renderAlphaNumber("7")}
+                    {this.renderAlphaNumber("8")}
+                    {this.renderAlphaNumber("9")}
+                    {this.renderAlphaNumber("0")}
+                  </div>
+                  <div className="TouchFloatingToolbar__Row">
+                    {this.renderAlphaLetter("Q")}
+                    {this.renderAlphaLetter("W")}
+                    {this.renderAlphaLetter("E")}
+                    {this.renderAlphaLetter("R")}
+                    {this.renderAlphaLetter("T")}
+                    {this.renderAlphaLetter("Y")}
+                    {this.renderAlphaLetter("U")}
+                    {this.renderAlphaLetter("I")}
+                    {this.renderAlphaLetter("O")}
+                    {this.renderAlphaLetter("P")}
+                  </div>
+                  <div className="TouchFloatingToolbar__Row">
+                    <span className="TouchFloatingToolbar__Spacer--half" />
+                    {this.renderAlphaLetter("A")}
+                    {this.renderAlphaLetter("S")}
+                    {this.renderAlphaLetter("D")}
+                    {this.renderAlphaLetter("F")}
+                    {this.renderAlphaLetter("G")}
+                    {this.renderAlphaLetter("H")}
+                    {this.renderAlphaLetter("J")}
+                    {this.renderAlphaLetter("K")}
+                    {this.renderAlphaLetter("L")}
+                    <span className="TouchFloatingToolbar__Spacer--half" />
+                  </div>
+                  <div className="TouchFloatingToolbar__Row">
+                    {this.renderShift()}
+                    {this.renderAlphaLetter("Z")}
+                    {this.renderAlphaLetter("X")}
+                    {this.renderAlphaLetter("C")}
+                    {this.renderAlphaLetter("V")}
+                    {this.renderAlphaLetter("B")}
+                    {this.renderAlphaLetter("N")}
+                    {this.renderAlphaLetter("M")}
+                    {this.renderQwertBackspace(false)}
+                  </div>
+                  <div className="TouchFloatingToolbar__Row TouchFloatingToolbar__Row--dock">
+                    <div className="TouchFloatingToolbar__TypingGroup">
+                      {this.renderQwertEscape(false)}
+                      {this.renderQwertSpace(false)}
+                      {this.renderQwertEnter(false)}
+                    </div>
+                    <span className="TouchFloatingToolbar__Spacer TouchFloatingToolbar__Spacer--dock-gap" />
+                    <div className="TouchFloatingToolbar__DockGroup">
+                      {this.renderCtrl()}
+                      {this.renderReturnToNormalPad()}
+                      {this.renderKeyboardToggle()}
+                      {this.renderCollapseToggle(
+                        false,
+                        "TouchFloatingToolbar__Btn--qwert-collapse"
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : this.state.stackedColsMode === 2 ? (
+                this.renderStandard2x8Pad()
+              ) : this.state.stackedColsMode === 3 ? (
+                this.renderStandard3x7Pad()
+              ) : this.state.stackedColsMode === 5 ? (
+                this.renderStandard5x4Pad()
+              ) : this.state.stackedColsMode === 6 ? (
+                this.renderStandard6x3Pad()
+              ) : this.state.stackedColsMode === 7 ? (
+                this.renderStandard7x2Pad()
+              ) : (
+                <div className="TouchFloatingToolbar__Track TouchFloatingToolbar__Track--stacked TouchFloatingToolbar__Track--cols-4">
+                  <div className="TouchFloatingToolbar__Row">
+                    {this.renderFontZoomIn()}
+                    {this.renderFontZoomOut()}
+                    {this.renderTab()}
+                    {this.renderMenuToggle()}
+                  </div>
+                  <div className="TouchFloatingToolbar__Row">
+                    {this.renderEscape()}
+                    {this.renderHome()}
+                    {this.renderArrowUp()}
+                    {this.renderEnd()}
+                  </div>
+                  <div className="TouchFloatingToolbar__Row">
+                    {this.renderPageUp()}
+                    {this.renderArrowLeft()}
+                    {this.renderSpace()}
+                    {this.renderArrowRight()}
+                  </div>
+                  <div className="TouchFloatingToolbar__Row">
+                    {this.renderPageDown()}
+                    {this.renderBackspace()}
+                    {this.renderArrowDown()}
+                    {this.renderEnter()}
+                  </div>
+                  <div className="TouchFloatingToolbar__Row TouchFloatingToolbar__Row--dock">
+                    <div className="TouchFloatingToolbar__DockGroup TouchFloatingToolbar__DockGroup--full">
+                      {this.renderCtrl()}
+                      {this.renderAlpha()}
+                      {this.renderKeyboardToggle()}
+                      {this.renderCollapseToggle(false)}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </React.Fragment>
+          )}
+        </div>
+      </React.Fragment>
+    );
   }
 }
 
