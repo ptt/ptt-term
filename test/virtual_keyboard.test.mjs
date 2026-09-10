@@ -130,12 +130,12 @@ test('VirtualKeyboard runtime default: desktop disabled, mobile enabled', () => 
 test('VirtualKeyboard lifecycle, preference sync, and renderOverlay', () => {
   let overlayUpdated = false;
   const mockApp = {
-    virtualKeyboard: null,
-    addEventListener(evt, fn) {
-      if (evt === 'term:pref-change') this._prefHandler = fn;
+    _prefHandler: null,
+    addEventListener(name, fn) {
+      if (name === 'term:pref-change') this._prefHandler = fn;
     },
-    removeEventListener(evt, fn) {
-      if (evt === 'term:pref-change') this._prefHandler = null;
+    removeEventListener(name, fn) {
+      if (name === 'term:pref-change') this._prefHandler = null;
     },
     dispatchEvent(event) {
       if (event.type === 'term:overlay:update') {
@@ -148,7 +148,7 @@ test('VirtualKeyboard lifecycle, preference sync, and renderOverlay', () => {
   assert.strictEqual(plugin.enabled, false);
 
   plugin.init({ app: mockApp });
-  assert.strictEqual(mockApp.virtualKeyboard, plugin);
+  assert.strictEqual(mockApp.virtualKeyboard, undefined);
   assert.strictEqual(plugin.enabled, false);
 
   // setEnabled
@@ -176,7 +176,7 @@ test('VirtualKeyboard lifecycle, preference sync, and renderOverlay', () => {
   // Destroy
   plugin.destroy();
   assert.strictEqual(plugin.enabled, false);
-  assert.strictEqual(mockApp.virtualKeyboard, null);
+  assert.strictEqual(mockApp.virtualKeyboard, undefined);
   assert.strictEqual(mockApp._prefHandler, null);
 });
 

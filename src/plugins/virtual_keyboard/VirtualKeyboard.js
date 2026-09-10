@@ -99,7 +99,6 @@ export class VirtualKeyboardPlugin {
   init({ app, view, buf } = {}) {
     if (app) {
       this.app = app;
-      app.virtualKeyboard = this;
       this._onPrefChangeBound = (e) => {
         if (
           e.detail?.key === "enableVirtualKeyboard" ||
@@ -157,9 +156,6 @@ export class VirtualKeyboardPlugin {
       if (this._onPrefChangeBound) {
         this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
         this._onPrefChangeBound = null;
-      }
-      if (this.app.virtualKeyboard === this) {
-        this.app.virtualKeyboard = null;
       }
     }
   }
