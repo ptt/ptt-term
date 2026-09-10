@@ -294,6 +294,18 @@
   "options_colorScheme_retroGreen": {
     "message": "復古綠 (Green CRT)"
   },
+  "options_colorScheme_custom": {
+    "message": "自訂顏色 (Custom)"
+  },
+  "options_colorScheme_customHint": {
+    "message": "點擊色塊可自訂各 ANSI 顏色"
+  },
+  "options_colorScheme_resetCustom": {
+    "message": "重設為預設顏色"
+  },
+  "options_colorScheme_customizeThis": {
+    "message": "以目前主題為基底自訂顏色"
+  },
   "options_cursorStyle": {
     "message": "文字游標 (Caret) 樣式"
   },

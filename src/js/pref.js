@@ -46,6 +46,10 @@ export const DEFAULT_PREFS = {
 
   // displays
   colorScheme: 'default',
+  customColors: [
+    '#000000', '#800000', '#008000', '#808000', '#000080', '#800080', '#008080', '#c0c0c0',
+    '#808080', '#ff0000', '#00ff00', '#ffff00', '#0000ff', '#ff00ff', '#00ffff', '#ffffff'
+  ],
   lineHeight: 1.0,
   cursorStyle: 'blink',
   fontFitWindowWidth: false,
@@ -95,6 +99,7 @@ export const getDefaultPrefs = () => ({
   enablePwaPrompt: getDefaultPwaPrompt(),
   enableVirtualKeyboard: getDefaultVirtualKeyboard(),
   termSize: { ...DEFAULT_PREFS.termSize },
+  customColors: [...DEFAULT_PREFS.customColors],
 });
 
 export const readValuesWithDefault = () => {
@@ -112,6 +117,9 @@ export const readValuesWithDefault = () => {
         ...(saved && saved.termSize),
       },
     };
+    if (saved && Array.isArray(saved.customColors) && saved.customColors.length === 16) {
+      prefs.customColors = [...saved.customColors];
+    }
     if (isStandaloneMode()) {
       prefs.enablePwaPrompt = false;
     }

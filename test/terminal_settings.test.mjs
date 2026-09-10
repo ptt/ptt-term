@@ -25,6 +25,7 @@ test('COLOR_SCHEMES defines all standard terminal color palettes with 16 colors 
     'dracula',
     'retro-amber',
     'retro-green',
+    'custom',
   ];
 
   for (const name of expectedSchemes) {
@@ -77,10 +78,48 @@ test('applyColorScheme updates termColors in-place and sets CSS variables', () =
   }
 });
 
+test('applyColorScheme supports custom scheme with customColors array', () => {
+  const originalDoc = globalThis.document;
+  try {
+    const cssVars = {};
+    const mockElement = {
+      style: {
+        setProperty: (k, v) => {
+          cssVars[k] = v;
+        },
+        backgroundColor: '',
+      },
+    };
+    globalThis.document = {
+      documentElement: mockElement,
+      body: mockElement,
+      getElementById: (id) => (id === 'TermWindow' ? mockElement : null),
+    };
+
+    const myCustomColors = [
+      '#111111', '#222222', '#333333', '#444444', '#555555', '#666666', '#777777', '#888888',
+      '#999999', '#aaaaaa', '#bbbbbb', '#cccccc', '#dddddd', '#eeeeee', '#f5f5f5', '#ffffff'
+    ];
+
+    applyColorScheme('custom', myCustomColors);
+    assert.equal(termColors[0], '#111111');
+    assert.equal(termColors[7], '#888888');
+    assert.equal(termColors[15], '#ffffff');
+    assert.equal(cssVars['--term-color-0'], '#111111');
+    assert.equal(cssVars['--term-color-7'], '#888888');
+    assert.equal(cssVars['--term-bg'], '#111111');
+  } finally {
+    globalThis.document = originalDoc;
+    applyColorScheme('default');
+  }
+});
+
 test('DEFAULT_PREFS includes new terminal settings with sensible defaults', () => {
   assert.equal(DEFAULT_PREFS.uiLocale, 'auto');
   assert.equal(DEFAULT_PREFS.warnBeforeClose, true);
   assert.equal(DEFAULT_PREFS.colorScheme, 'default');
+  assert.ok(Array.isArray(DEFAULT_PREFS.customColors));
+  assert.equal(DEFAULT_PREFS.customColors.length, 16);
   assert.equal(DEFAULT_PREFS.trimTrailingSpaces, true);
   assert.equal(DEFAULT_PREFS.rightClickAction, 'menu');
   assert.equal(DEFAULT_PREFS.enableVisualBell, false);

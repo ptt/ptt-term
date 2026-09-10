@@ -30,6 +30,42 @@ export {
   PLUGIN_GROUPS,
 };
 
+const ANSI_COLOR_NAMES = [
+  "0: Black (背景黑)",
+  "1: Red (暗紅)",
+  "2: Green (暗綠)",
+  "3: Yellow (暗黃)",
+  "4: Blue (暗藍)",
+  "5: Magenta (暗紫)",
+  "6: Cyan (暗青)",
+  "7: Light Gray (預設文字)",
+  "8: Dark Gray (暗灰)",
+  "9: Bright Red (亮紅)",
+  "10: Bright Green (亮綠)",
+  "11: Bright Yellow (亮黃)",
+  "12: Bright Blue (亮藍)",
+  "13: Bright Magenta (亮紫)",
+  "14: Bright Cyan (亮青)",
+  "15: Bright White (亮白)",
+];
+
+function ensureHexColor(color) {
+  if (!color || typeof color !== "string") return "#000000";
+  if (/^#[0-9a-fA-F]{6}$/.test(color)) return color;
+  if (/^#[0-9a-fA-F]{3}$/.test(color)) {
+    return (
+      "#" +
+      color[1] +
+      color[1] +
+      color[2] +
+      color[2] +
+      color[3] +
+      color[3]
+    );
+  }
+  return "#000000";
+}
+
 const renderPluginIcon = (icon) => {
   switch (icon) {
     case "book":
@@ -622,8 +658,57 @@ export class PrefModal extends React.Component {
       setLocale(value);
       this.props.app?.onPrefChange?.("uiLocale", value);
     }
+    if (name === "colorScheme" && value === "custom") {
+      const prevScheme = this.state.values.colorScheme || "default";
+      const baseColors = this.state.values.customColors ||
+        [...(COLOR_SCHEMES[prevScheme]?.colors || COLOR_SCHEMES["default"].colors)];
+      this.setState((prevState) => ({
+        values: {
+          ...prevState.values,
+          colorScheme: "custom",
+          customColors: baseColors,
+        },
+      }));
+      return;
+    }
     this.setState((prevState) => ({
       values: changeNestedValue(prevState.values, name, value),
+    }));
+  };
+
+  handleCustomColorChange = (index, newColor) => {
+    const activeColors = this.state.values.customColors ||
+      (COLOR_SCHEMES[this.state.values.colorScheme]?.colors || COLOR_SCHEMES["default"].colors);
+    const updated = [...activeColors];
+    updated[index] = newColor;
+    this.setState((prevState) => ({
+      values: {
+        ...prevState.values,
+        colorScheme: "custom",
+        customColors: updated,
+      },
+    }));
+  };
+
+  handleResetCustomColors = () => {
+    this.setState((prevState) => ({
+      values: {
+        ...prevState.values,
+        customColors: [...COLOR_SCHEMES["default"].colors],
+      },
+    }));
+  };
+
+  handleCustomizeCurrentScheme = (e) => {
+    e?.preventDefault?.();
+    const currentScheme = this.state.values.colorScheme || "default";
+    const colors = [...(COLOR_SCHEMES[currentScheme]?.colors || COLOR_SCHEMES["default"].colors)];
+    this.setState((prevState) => ({
+      values: {
+        ...prevState.values,
+        colorScheme: "custom",
+        customColors: colors,
+      },
     }));
   };
 
@@ -822,11 +907,62 @@ export class PrefModal extends React.Component {
                       ? _(COLOR_SCHEMES[values.colorScheme || "default"].titleI18n)
                       : ""
                   )}
-                  <div className="PrefModal__ColorSchemePreview">
-                    {(COLOR_SCHEMES[values.colorScheme || "default"] || COLOR_SCHEMES["default"]).colors.map((c, i) => (
-                      <span key={i} style={{ backgroundColor: c }} />
-                    ))}
-                  </div>
+                  {(() => {
+                    const isCustom = (values.colorScheme === "custom");
+                    const activeColors = isCustom
+                      ? (values.customColors || COLOR_SCHEMES["default"].colors)
+                      : ((COLOR_SCHEMES[values.colorScheme] || COLOR_SCHEMES["default"]).colors);
+                    return (
+                      <>
+                        <div className="PrefModal__ColorSchemePreview">
+                          {activeColors.map((c, i) =>
+                            isCustom ? (
+                              <label
+                                key={i}
+                                className="PrefModal__ColorSwatch PrefModal__ColorSwatch--editable"
+                                title={`${ANSI_COLOR_NAMES[i]}: ${c}`}
+                                style={{ backgroundColor: c }}
+                              >
+                                <input
+                                  type="color"
+                                  value={ensureHexColor(c)}
+                                  onChange={(e) => this.handleCustomColorChange(i, e.target.value)}
+                                  className="PrefModal__ColorInput"
+                                />
+                              </label>
+                            ) : (
+                              <span
+                                key={i}
+                                className="PrefModal__ColorSwatch"
+                                title={`${ANSI_COLOR_NAMES[i]}: ${c}`}
+                                style={{ backgroundColor: c }}
+                              />
+                            )
+                          )}
+                        </div>
+                        {isCustom ? (
+                          <div className="PrefModal__ColorSchemeHint">
+                            <small className="text-muted">{_("options_colorScheme_customHint")}</small>
+                            <button
+                              type="button"
+                              className="btn btn-default btn-xs PrefModal__ResetCustomBtn"
+                              onClick={this.handleResetCustomColors}
+                            >
+                              {_("options_colorScheme_resetCustom")}
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="PrefModal__ColorSchemeHint">
+                            <small className="text-muted">
+                              <a href="#" onClick={this.handleCustomizeCurrentScheme}>
+                                {_("options_colorScheme_customizeThis")}
+                              </a>
+                            </small>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
                 <div className="form-group" id="lineHeight">
                   <label className="control-label">

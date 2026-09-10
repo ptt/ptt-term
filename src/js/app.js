@@ -1182,10 +1182,19 @@ export class App extends Event {
       break;
     case 'colorScheme':
       this.colorScheme = value;
-      applyColorScheme(value);
+      applyColorScheme(value, this.prefValues?.customColors);
       if (this.view) {
         this.view.updateHighlightColor();
         this.view.redraw(true);
+      }
+      break;
+    case 'customColors':
+      if (this.colorScheme === 'custom') {
+        applyColorScheme('custom', value);
+        if (this.view) {
+          this.view.updateHighlightColor();
+          this.view.redraw(true);
+        }
       }
       break;
     case 'enablePicPreview':

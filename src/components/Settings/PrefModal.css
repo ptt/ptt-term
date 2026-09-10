@@ -777,16 +777,58 @@ dialog.PrefModal .NativeDialog__content {
   grid-template-rows: repeat(2, 1fr);
   gap: 2px;
   margin-top: 6px;
-  height: 26px;
+  height: 32px;
   border-radius: 4px;
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.15);
   background: #000000;
+  padding: 2px;
+  box-sizing: border-box;
 }
 
-.PrefModal__ColorSchemePreview span {
+.PrefModal__ColorSchemePreview span,
+.PrefModal__ColorSwatch {
   display: block;
   height: 100%;
+  position: relative;
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+
+.PrefModal__ColorSwatch--editable {
+  cursor: pointer;
+  transition: outline 0.15s ease, transform 0.1s ease;
+}
+
+.PrefModal__ColorSwatch--editable:hover {
+  outline: 2px solid #ffffff;
+  outline-offset: -1px;
+  z-index: 2;
+}
+
+.PrefModal__ColorInput {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.PrefModal__ColorSchemeHint {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.PrefModal__ResetCustomBtn {
+  margin-left: 8px;
 }
 
 @media (max-width: 640px) {

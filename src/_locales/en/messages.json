@@ -294,6 +294,18 @@
   "options_colorScheme_retroGreen": {
     "message": "Green CRT"
   },
+  "options_colorScheme_custom": {
+    "message": "Custom Colors"
+  },
+  "options_colorScheme_customHint": {
+    "message": "Click swatches above to pick custom ANSI colors"
+  },
+  "options_colorScheme_resetCustom": {
+    "message": "Reset to Default"
+  },
+  "options_colorScheme_customizeThis": {
+    "message": "Customize colors based on this theme"
+  },
   "options_cursorStyle": {
     "message": "Caret style"
   },

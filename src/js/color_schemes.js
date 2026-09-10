@@ -105,11 +105,24 @@ export const COLOR_SCHEMES = {
       '#103314', '#33ff44', '#40ff52', '#59ff6b', '#269930', '#30b33c', '#40ff52', '#8cff99'
     ]
   },
+  'custom': {
+    name: 'custom',
+    titleI18n: 'options_colorScheme_custom',
+    colors: [
+      '#000000', '#800000', '#008000', '#808000', '#000080', '#800080', '#008080', '#c0c0c0',
+      '#808080', '#ff0000', '#00ff00', '#ffff00', '#0000ff', '#ff00ff', '#00ffff', '#ffffff'
+    ]
+  },
 };
 
-export function applyColorScheme(schemeName) {
-  const scheme = COLOR_SCHEMES[schemeName] || COLOR_SCHEMES['default'];
-  const colors = scheme.colors;
+export function applyColorScheme(schemeName, customColors) {
+  let colors;
+  if (schemeName === 'custom' && Array.isArray(customColors) && customColors.length === 16) {
+    colors = customColors;
+  } else {
+    const scheme = COLOR_SCHEMES[schemeName] || COLOR_SCHEMES['default'];
+    colors = scheme.colors;
+  }
   for (let i = 0; i < 16; i++) {
     termColors[i] = colors[i];
   }
