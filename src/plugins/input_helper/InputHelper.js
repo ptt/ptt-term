@@ -165,37 +165,16 @@ export class InputHelper {
   handleReset = () => {
     const resetCmd = this.app?.site?.getEditorColorResetCommand?.();
     if (resetCmd) {
-      this.app?.send?.(resetCmd);
+      this.app?.send(resetCmd);
     }
   };
 
   handleCmdSend = (cmd) => {
-    const app = this.app;
-    if (!app) return;
-    const sel = app.view?.getSelectionColRow?.();
-    if (sel && app.buf?.pageState == 6) {
-      const resetCmd = app.site?.getEditorColorResetCommand?.() || "";
-      let y = app.buf.cur_y;
-      let selCmd = "\x1b[H";
-      if (y > sel.end.row) {
-        selCmd += "\x1b[A".repeat(y - sel.end.row);
-      } else if (y < sel.end.row) {
-        selCmd += "\x1b[B".repeat(sel.end.row - y);
-      }
-      let x = app.buf.cur_x;
-      if (x > sel.end.col) {
-        selCmd += "\x1b[D".repeat(x - sel.end.col);
-      } else if (x < sel.end.col) {
-        selCmd += "\x1b[C".repeat(sel.end.col - x);
-      }
-      app.send(cmd + resetCmd + selCmd);
-    } else {
-      app.send(cmd);
-    }
+    this.app?.send(cmd);
   };
 
   handleConvSend = (str) => {
-    this.app?.send?.(str);
+    this.app?.send(str);
   };
 
   renderOverlay({ app } = {}) {
