@@ -1041,18 +1041,15 @@ export class TermView extends Event {
   }
 
   get useEasyReadingMode() {
-    return this.app?.prefValues?.enableEasyReading ?? this._easyReading?.enabled ?? false;
+    return this.app?.prefValues?.enableEasyReading ?? false;
   }
   set useEasyReadingMode(val) {
-    if (this._easyReading) {
-      this._easyReading.enabled = Boolean(val);
+    if (this.app?.prefValues) {
+      this.app.prefValues.enableEasyReading = Boolean(val);
     }
   }
 
   isEasyReadingActive() {
-    if (this.app?.hasActiveInputInterceptor) {
-      return this.app.hasActiveInputInterceptor();
-    }
-    return this._easyReading?.isActive?.() ?? false;
+    return this.app?.hasActiveInputInterceptor() ?? false;
   }
 }

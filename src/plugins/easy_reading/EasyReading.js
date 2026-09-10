@@ -131,9 +131,6 @@ export class EasyReading {
     this._termBuf = targetBuf;
 
     if (targetCore) {
-      if (!targetCore.easyReading) {
-        targetCore.easyReading = this;
-      }
       targetCore.registerInputInterceptor?.(this);
       this._onPrefChangeBound = (e) => {
         if (e.detail?.key === 'enableEasyReading') {
@@ -163,7 +160,6 @@ export class EasyReading {
       targetCore.addEventListener?.('term:screen-update', this._onScreenUpdateBound);
     }
     if (targetBuf) {
-      targetBuf._easyReading = this;
       if (targetBuf.addEventListener && !this._bufListenersAttached) {
         targetBuf.addEventListener('change', this._onBufChanged);
         targetBuf.addEventListener('viewUpdate', this._onBufViewUpdated);
@@ -171,7 +167,6 @@ export class EasyReading {
       }
     }
     if (targetView) {
-      targetView._easyReading = this;
       if ('useEasyReadingMode' in targetView) {
         this.enabled = !!targetView.useEasyReadingMode;
       }
@@ -201,15 +196,6 @@ export class EasyReading {
       this._core.removeEventListener?.('term:easy-reading:switch', this._onEasyReadingSwitchBound);
       this._core.removeEventListener?.('term:screen-update', this._onScreenUpdateBound);
       this._core.unregisterInputInterceptor?.(this);
-      if (this._core.easyReading === this) {
-        this._core.easyReading = null;
-      }
-    }
-    if (this._view?._easyReading === this) {
-      this._view._easyReading = null;
-    }
-    if (this._termBuf?._easyReading === this) {
-      this._termBuf._easyReading = null;
     }
     if (this._overlay && this._overlay.parentNode) {
       this._overlay.parentNode.removeChild(this._overlay);

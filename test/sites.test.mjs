@@ -1394,9 +1394,9 @@ test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update
   assert.ok(mockApp.inputInterceptors.includes(plugin));
   assert.equal(mockApp.getPlugin('easy_reading'), plugin);
   assert.equal(plugin._initialized, true);
-  assert.equal(mockBuf._easyReading, plugin);
-  assert.equal(mockView._easyReading, plugin);
-  assert.equal(mockApp.easyReading, plugin);
+  assert.equal(mockBuf._easyReading, undefined);
+  assert.equal(mockView._easyReading, undefined);
+  assert.equal(mockApp.easyReading, undefined);
   assert.equal(listeners.get('change')?.length, 1);
   assert.equal(listeners.get('viewUpdate')?.length, 1);
 
@@ -1427,9 +1427,9 @@ test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update
   assert.equal(mockApp.plugins.includes(plugin), false);
   assert.equal(mockApp.inputInterceptors.includes(plugin), false);
   assert.equal(mockApp.getPlugin('easy_reading'), undefined);
-  assert.equal(mockApp.easyReading, null);
-  assert.equal(mockView._easyReading, null);
-  assert.equal(mockBuf._easyReading, null);
+  assert.equal(mockApp.easyReading, undefined);
+  assert.equal(mockView._easyReading, undefined);
+  assert.equal(mockBuf._easyReading, undefined);
   assert.equal(plugin._initialized, false);
   assert.equal(listeners.get('change')?.length, 0);
   assert.equal(listeners.get('viewUpdate')?.length, 0);

@@ -3388,10 +3388,14 @@ test('Plugins implement renderOptions and decouple easy_reading from core and Co
     'ContextMenu must not reference app.view.useEasyReadingMode'
   );
 
-  // 2. TermView does not call getPlugin('easy_reading')
+  // 2. TermView does not call getPlugin('easy_reading') or reference _easyReading
   assert.ok(
     !termViewSource.includes("getPlugin?.('easy_reading')"),
     'TermView must not call getPlugin("easy_reading")'
+  );
+  assert.ok(
+    !termViewSource.includes('_easyReading'),
+    'TermView must not reference _easyReading'
   );
 
   // 3. Plugins provide renderOptions
