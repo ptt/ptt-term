@@ -3350,6 +3350,10 @@ test('App and ContextMenu decouple mouse browsing and easy reading through event
     appSource.includes("term:pref-change"),
     'App switchMouseBrowsing must dispatch term:pref-change'
   );
+  assert.ok(
+    !appSource.includes("this.buf.useMouseBrowsing"),
+    'App must not reference this.buf.useMouseBrowsing'
+  );
 
   // ContextMenu checks hasActiveInputInterceptor
   assert.ok(

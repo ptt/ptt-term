@@ -608,13 +608,7 @@ export class ContextMenu extends React.Component {
     }
     pluginItems.sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
 
-    const mouseBrowsingEnabled = Boolean(
-      app && app.useMouseBrowsing !== undefined
-        ? app.useMouseBrowsing
-        : app && app.buf
-        ? app.buf.useMouseBrowsing
-        : false
-    );
+    const mouseBrowsingEnabled = Boolean(app?.useMouseBrowsing);
 
     return (
       <React.Fragment>

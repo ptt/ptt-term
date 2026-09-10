@@ -1695,6 +1695,8 @@ test('src/plugins exports MouseBrowsing and handles mouse click navigation', asy
     buf: { mouseCursor: 1, cur_y: 10 },
     site: { getThreadCommand: (cmd) => (cmd === 'prevThread' ? '[' : ']') },
     send: (data) => sent.push(data),
+    on: () => {},
+    off: () => {},
   };
 
   const mb = new mouseBrowsingModule.MouseBrowsing(mockApp, { enabled: true });

@@ -927,9 +927,6 @@ export class App extends Event {
 
   switchMouseBrowsing() {
     this.useMouseBrowsing = !this.useMouseBrowsing;
-    if (this.buf) {
-      this.buf.useMouseBrowsing = this.useMouseBrowsing;
-    }
     updatePref('useMouseBrowsing', this.useMouseBrowsing);
     this.dispatchEvent(
       new CustomEvent('term:pref-change', {
@@ -1396,7 +1393,7 @@ export class App extends Event {
     return;
   //0=left button, 1=middle button, 2=right button
   if (e.button === 0) {
-    if (this.buf.useMouseBrowsing) {
+    if (this.useMouseBrowsing) {
       if (this.dblclickTimer) { //skip
         e.preventDefault();
         e.stopPropagation();
@@ -1426,7 +1423,7 @@ export class App extends Event {
 
   if (e.button === 0) { //left button
     if (this.isSelectionCollapsed()) { //no anything be select
-      if (this.buf.useMouseBrowsing)
+      if (this.useMouseBrowsing)
         this.onMouse_move(e.clientX, e.clientY);
 
       this.setInputAreaFocus();
@@ -1463,7 +1460,7 @@ export class App extends Event {
   mouse_move(e) {
   if (this.modalShown || this.contextMenuShown || this.isDialogOrExcludedTarget(e))
     return;
-  if (this.buf.useMouseBrowsing) {
+  if (this.useMouseBrowsing) {
     if (this.isSelectionCollapsed()) {
       if(!this.mouseLeftButtonDown)
         this.onMouse_move(e.clientX, e.clientY);
@@ -1607,7 +1604,7 @@ export class App extends Event {
   if (this.mouseRightButtonDown) //prevent context menu popup
     this.preventContextMenuOnMouseUp = true;
   if (this.mouseLeftButtonDown) {
-    if (this.buf.useMouseBrowsing) {
+    if (this.useMouseBrowsing) {
       this.skipMouseClick = true;
     }
   }

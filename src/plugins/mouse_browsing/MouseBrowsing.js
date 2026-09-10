@@ -307,15 +307,14 @@ export class MouseBrowsing {
       this._onResetMouseCursorBound = () => {
         this.resetMouseCursor();
       };
-      app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
-      app.addEventListener?.("term:mouse-move", this._onMouseMoveBound);
-      app.addEventListener?.("term:reset-mouse-cursor", this._onResetMouseCursorBound);
+      app.on("term:pref-change", this._onPrefChangeBound);
+      app.on("term:mouse-move", this._onMouseMoveBound);
+      app.on("term:reset-mouse-cursor", this._onResetMouseCursorBound);
       app.registerContextMenuItem?.(this.getContextMenuItems()[0]);
     }
     if (view) this.view = view;
     if (buf) this.buf = buf;
     if (this.buf) {
-      this.buf.useMouseBrowsing = this.enabled;
       if (this.buf.locator) {
         this.buf.locator.enabled = this.supportMouseReporting;
       }
@@ -365,13 +364,10 @@ export class MouseBrowsing {
 
   destroy() {
     if (this.app) {
-      this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
-      this.app.removeEventListener?.("term:mouse-move", this._onMouseMoveBound);
-      this.app.removeEventListener?.("term:reset-mouse-cursor", this._onResetMouseCursorBound);
+      this.app.off("term:pref-change", this._onPrefChangeBound);
+      this.app.off("term:mouse-move", this._onMouseMoveBound);
+      this.app.off("term:reset-mouse-cursor", this._onResetMouseCursorBound);
       this.app.unregisterContextMenuItem?.("mouse_browsing");
-    }
-    if (this.buf) {
-      this.buf.useMouseBrowsing = false;
     }
     this.clearHighlight();
   }
@@ -380,7 +376,6 @@ export class MouseBrowsing {
     this.enabled = !!val;
     const buf = this.buf || this.app?.buf;
     if (buf) {
-      buf.useMouseBrowsing = this.enabled;
       if (!this.enabled) {
         const termWin = this.app?.termWin || buf.termWin;
         if (termWin && termWin.style) termWin.style.cursor = "auto";

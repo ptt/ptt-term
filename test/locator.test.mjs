@@ -175,6 +175,8 @@ test('MouseBrowsing delegates to SGR Locator reporting when host activates it', 
     buf,
     send: (data) => sent.push(data),
     clientToPos: () => ({ col: 15, row: 8 }),
+    on: () => {},
+    off: () => {},
   };
 
   const mb = new MouseBrowsing(mockApp, { enabled: true, supportMouseReporting: true });
@@ -198,6 +200,8 @@ test('MouseBrowsing handleWheel sends SGR wheel sequence when active', () => {
     buf,
     send: (data) => sent.push(data),
     clientToPos: () => ({ col: 20, row: 10 }),
+    on: () => {},
+    off: () => {},
   };
 
   const mb = new MouseBrowsing(mockApp, { enabled: true, supportMouseReporting: true });
@@ -212,7 +216,7 @@ test('MouseBrowsing handleWheel sends SGR wheel sequence when active', () => {
 
 test('MouseBrowsing setSupportMouseReporting toggles locator', () => {
   const buf = new MockTermBuf(80, 24);
-  const mockApp = { conn: { isConnected: true }, buf };
+  const mockApp = { conn: { isConnected: true }, buf, on: () => {}, off: () => {} };
   const mb = new MouseBrowsing(mockApp, { enabled: true, supportMouseReporting: true });
   mb.init({ app: mockApp, buf });
 
