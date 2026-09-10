@@ -273,6 +273,9 @@
   "options_colorScheme_default": {
     "message": "Classic Default"
   },
+  "options_colorScheme_monochrome": {
+    "message": "Monochrome (Grayscale)"
+  },
   "options_colorScheme_solarizedDark": {
     "message": "Solarized Dark"
   },

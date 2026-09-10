@@ -89,6 +89,14 @@ export const COLOR_SCHEMES = {
       '#592d00', '#ff8000', '#ff9933', '#ffb366', '#cc6600', '#e67300', '#ffaa33', '#ffc87a'
     ]
   },
+  'monochrome': {
+    name: 'monochrome',
+    titleI18n: 'options_colorScheme_monochrome',
+    colors: [
+      '#000000', '#444444', '#666666', '#888888', '#383838', '#555555', '#777777', '#b0b0b0',
+      '#555555', '#888888', '#cccccc', '#eeeeee', '#808080', '#aaaaaa', '#dddddd', '#ffffff'
+    ]
+  },
   'retro-green': {
     name: 'retro-green',
     titleI18n: 'options_colorScheme_retroGreen',

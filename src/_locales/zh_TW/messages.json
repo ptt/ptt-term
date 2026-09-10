@@ -273,17 +273,20 @@
   "options_colorScheme_default": {
     "message": "經典黑底 (Classic Default)"
   },
+  "options_colorScheme_monochrome": {
+    "message": "黑底灰階 (Monochrome)"
+  },
   "options_colorScheme_solarizedDark": {
-    "message": "Solarized Dark"
+    "message": "日光暗色 (Solarized Dark)"
   },
   "options_colorScheme_nord": {
-    "message": "Nord"
+    "message": "北歐極光 (Nord)"
   },
   "options_colorScheme_monokai": {
-    "message": "Monokai"
+    "message": "摩諾開 (Monokai)"
   },
   "options_colorScheme_dracula": {
-    "message": "Dracula"
+    "message": "德古拉 (Dracula)"
   },
   "options_colorScheme_retroAmber": {
     "message": "懷舊琥珀 (Amber CRT)"

@@ -18,6 +18,7 @@ const PREF_MODAL_CSS_PATH = fs.existsSync(path.resolve('src/components/Settings/
 test('COLOR_SCHEMES defines all standard terminal color palettes with 16 colors each', () => {
   const expectedSchemes = [
     'default',
+    'monochrome',
     'solarized-dark',
     'nord',
     'monokai',
