@@ -4,6 +4,7 @@ import {
   isStandalone,
   isInAppBrowser,
   isMac,
+  isIOSChrome,
 } from './PwaPrompt.js';
 
 export {
@@ -13,6 +14,7 @@ export {
   isStandalone,
   isInAppBrowser,
   isMac,
+  isIOSChrome,
 };
 
 export default PwaPromptPlugin;

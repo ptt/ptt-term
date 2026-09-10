@@ -62,6 +62,12 @@ export function isMac() {
   return /Mac/i.test(navigator.platform || '') && (navigator.maxTouchPoints || 0) <= 1;
 }
 
+export function isIOSChrome() {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  return /CriOS/i.test(ua);
+}
+
 let _PwaPromptModal = null;
 
 export class PwaPromptOverlay extends (React?.Component || class {}) {
@@ -302,6 +308,7 @@ export class PwaPromptPlugin {
       plugin: this,
       platform: getPlatform(),
       isMac: isMac(),
+      isIOSChrome: isIOSChrome(),
       inApp: isInAppBrowser(),
       hasNativePrompt: this.hasNativePrompt(),
       onInstallClick: () => this.promptNativeInstall(),

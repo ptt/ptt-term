@@ -6,6 +6,7 @@ export const PwaPromptModal = ({
   plugin,
   platform = 'desktop',
   isMac = false,
+  isIOSChrome = false,
   inApp = false,
   hasNativePrompt = false,
   onInstallClick,
@@ -100,28 +101,58 @@ export const PwaPromptModal = ({
               '加入主畫面可享受沉浸式全螢幕終端、全黑狀態列與完整的觸控體驗：'}
           </p>
           <ol className="PwaPrompt-steps">
-            <li>
-              點擊瀏覽器底部的 <strong>分享</strong> 按鈕
-              <svg
-                className="PwaPrompt-inline-icon"
-                viewBox="0 0 24 24"
-                width="16"
-                height="16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                <polyline points="16 6 12 2 8 6" />
-                <line x1="12" y1="2" x2="12" y2="15" />
-              </svg>
-            </li>
-            <li>
-              在選單中向上滑動並點選 <strong>「加入主畫面」</strong>
-              <span className="PwaPrompt-inline-icon">➕</span>
-            </li>
+            {isIOSChrome ? (
+              <>
+                <li>
+                  點擊網址列右側的 <strong>分享</strong> 按鈕
+                  <svg
+                    className="PwaPrompt-inline-icon"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                    <polyline points="16 6 12 2 8 6" />
+                    <line x1="12" y1="2" x2="12" y2="15" />
+                  </svg>
+                  （或選單「…」）
+                </li>
+                <li>
+                  點選 <strong>「檢視較多」</strong>，找到並點選 <strong>「加入主畫面」</strong>
+                  <span className="PwaPrompt-inline-icon">➕</span>
+                </li>
+              </>
+            ) : (
+              <>
+                <li>
+                  點擊瀏覽器底部的 <strong>分享</strong> 按鈕
+                  <svg
+                    className="PwaPrompt-inline-icon"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                    <polyline points="16 6 12 2 8 6" />
+                    <line x1="12" y1="2" x2="12" y2="15" />
+                  </svg>
+                </li>
+                <li>
+                  在選單中向上滑動並點選 <strong>「加入主畫面」</strong>
+                  <span className="PwaPrompt-inline-icon">➕</span>
+                </li>
+              </>
+            )}
             <li>
               點擊右上角 <strong>「新增」</strong> 即可完成！
             </li>
@@ -229,7 +260,7 @@ export const PwaPromptModal = ({
           <h4 className="PwaPrompt-title">{getTitle()}</h4>
         </div>
         {renderContent()}
-        {platform === 'ios' && !inApp && <div className="PwaPrompt-arrow-down" />}
+        {platform === 'ios' && !inApp && !isIOSChrome && <div className="PwaPrompt-arrow-down" />}
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ import {
   isStandalone,
   isInAppBrowser,
   isMac,
+  isIOSChrome,
 } from '../src/plugins/pwa_prompt/index.js';
 import {
   BUILTIN_PLUGINS,
@@ -33,6 +34,7 @@ test('PwaPrompt plugin exports, metadata, and registration', () => {
   assert.strictEqual(typeof isStandalone, 'function');
   assert.strictEqual(typeof isInAppBrowser, 'function');
   assert.strictEqual(typeof isMac, 'function');
+  assert.strictEqual(typeof isIOSChrome, 'function');
 
   // 2. Static properties
   assert.strictEqual(PwaPromptPlugin.id, 'pwa_prompt');
@@ -231,5 +233,45 @@ test('PwaPromptModal defines tap-outside / remind-later as soft dismiss and X / 
     modalSrc.includes("onClick={() => onClose?.()}\n            >\n              {_('pwa_prompt_btn_not_needed')"),
     'Not needed button must trigger onClose'
   );
+});
+
+test('isIOSChrome detects CriOS User-Agent and PwaPromptModal adapts for Chrome on iOS', () => {
+  const origUA = Object.getOwnPropertyDescriptor(globalThis.navigator, 'userAgent');
+  try {
+    // 1. Desktop / Default (no CriOS)
+    assert.strictEqual(isIOSChrome(), false);
+
+    // 2. iOS Safari (no CriOS)
+    Object.defineProperty(globalThis.navigator, 'userAgent', {
+      value:
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
+      configurable: true,
+    });
+    assert.strictEqual(isIOSChrome(), false);
+
+    // 3. iOS Chrome (CriOS)
+    Object.defineProperty(globalThis.navigator, 'userAgent', {
+      value:
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/124.0.6367.88 Mobile/15E148 Safari/604.1',
+      configurable: true,
+    });
+    assert.strictEqual(isIOSChrome(), true);
+
+    // 4. Modal source includes Chrome-specific steps: 網址列, 檢視較多, and hides downward arrow
+    const modalSrc = fs.readFileSync(
+      path.resolve('src/plugins/pwa_prompt/PwaPromptModal.js'),
+      'utf-8'
+    );
+    assert.ok(modalSrc.includes('isIOSChrome'), 'Modal should accept isIOSChrome prop');
+    assert.ok(modalSrc.includes('檢視較多'), 'Modal should mention 檢視較多 for Chrome');
+    assert.ok(
+      modalSrc.includes('!isIOSChrome && <div className="PwaPrompt-arrow-down" />'),
+      'Modal should hide downward arrow for Chrome on iOS'
+    );
+  } finally {
+    if (origUA) {
+      Object.defineProperty(globalThis.navigator, 'userAgent', origUA);
+    }
+  }
 });
 
