@@ -44,7 +44,6 @@ export class FpsMeter {
     this.textSpan = null;
     this.canvasBtn = null;
     this.smoothAnsiBtn = null;
-    this.touchDbgBtn = null;
     this.lastFrameTime = 0;
     this.lastRenderTime = 0;
     this.lastUiUpdateTime = 0;
@@ -56,8 +55,6 @@ export class FpsMeter {
       options.smoothAnsiArt !== undefined ? !!options.smoothAnsiArt : true;
     this.onToggleCanvas = options.onToggleCanvas || null;
     this.onToggleSmoothAnsi = options.onToggleSmoothAnsi || null;
-    this.onToggleTouchDebug = options.onToggleTouchDebug || null;
-    this.touchDebugChangeHandler = null;
 
     if (this.app) {
       this.init({ app: this.app, view: this.app.view, buf: this.app.buf });
@@ -128,19 +125,6 @@ export class FpsMeter {
         this.recordFrame(durationMs, isCanvas);
       };
       app.addEventListener?.("term:render-frame", this._onRenderFrameBound);
-      this._onTouchDebugChangedBound = (e) => {
-        if (e?.detail && typeof e.detail.enabled === "boolean") {
-          this.touchDebugActive = e.detail.enabled;
-          const now =
-            typeof performance !== "undefined" ? performance.now() : Date.now();
-          this.updateDisplay(now, false);
-        }
-      };
-      app.addEventListener?.("term:touch-debug-changed", this._onTouchDebugChangedBound);
-      if (typeof window !== "undefined") {
-        window.addEventListener?.("term:touch-debug-changed", this._onTouchDebugChangedBound);
-        window.addEventListener?.("touch-debug:changed", this._onTouchDebugChangedBound);
-      }
       if (!this.onToggleCanvas) {
         this.onToggleCanvas = (isCanvas) => {
           if (this.app?.onPrefChange) {
@@ -186,11 +170,6 @@ export class FpsMeter {
     if (this.app) {
       this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
       this.app.removeEventListener?.("term:render-frame", this._onRenderFrameBound);
-      this.app.removeEventListener?.("term:touch-debug-changed", this._onTouchDebugChangedBound);
-    }
-    if (typeof window !== "undefined") {
-      window.removeEventListener?.("term:touch-debug-changed", this._onTouchDebugChangedBound);
-      window.removeEventListener?.("touch-debug:changed", this._onTouchDebugChangedBound);
     }
     if (this.view) {
       this.view.removeEventListener?.("term:render-frame", this._onRenderFrameBound);
@@ -242,20 +221,6 @@ export class FpsMeter {
         e.stopPropagation();
       });
       this.element.appendChild(this.smoothAnsiBtn);
-
-      this.touchDbgBtn = document.createElement("span");
-      this.touchDbgBtn.className = "fps-touch-dbg nomouse_command";
-      this.touchDbgBtn.style.cursor = "pointer";
-      this.touchDbgBtn.style.pointerEvents = "auto";
-      this.touchDbgBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        this.toggleTouchDebug();
-      });
-      this.touchDbgBtn.addEventListener("mousedown", (e) => {
-        e.stopPropagation();
-      });
-      this.element.appendChild(this.touchDbgBtn);
     }
     return this.element;
   }
@@ -273,38 +238,10 @@ export class FpsMeter {
         true
       );
       this.startIdleChecker();
-      if (typeof window !== "undefined" && !this.touchDebugChangeHandler) {
-        this.touchDebugChangeHandler = () => {
-          const now =
-            typeof performance !== "undefined"
-              ? performance.now()
-              : Date.now();
-          this.updateDisplay(now, false);
-        };
-        window.addEventListener(
-          "term:touch-debug-changed",
-          this.touchDebugChangeHandler
-        );
-        window.addEventListener(
-          "touch-debug:changed",
-          this.touchDebugChangeHandler
-        );
-      }
     } else {
       el.style.display = "none";
       this.stopIdleChecker();
       this.reset();
-      if (typeof window !== "undefined" && this.touchDebugChangeHandler) {
-        window.removeEventListener(
-          "term:touch-debug-changed",
-          this.touchDebugChangeHandler
-        );
-        window.removeEventListener(
-          "touch-debug:changed",
-          this.touchDebugChangeHandler
-        );
-        this.touchDebugChangeHandler = null;
-      }
     }
   }
 
@@ -404,42 +341,12 @@ export class FpsMeter {
     const mainText = `FPS: ${fpsText} (${durationText} ms)`;
     const canvasText = `[${engine}]`;
     const ansiText = this.smoothAnsiArt ? "[SmoothANSI]" : "[OriginalANSI]";
-    const hud = this.app?.getPlugin?.("touch_debug_hud") || this.app?.touchDebugHUD;
-    const isTouchDbgOn =
-      typeof this.touchDebugActive === "boolean"
-        ? this.touchDebugActive
-        : hud
-        ? hud.isActive()
-        : typeof window !== "undefined" && window.isTouchDebugHUDActive
-        ? window.isTouchDebugHUDActive()
-        : false;
-    const touchDbgText = "[TouchDbg]";
-
-    if (
-      this.textSpan &&
-      this.canvasBtn &&
-      this.smoothAnsiBtn &&
-      this.touchDbgBtn
-    ) {
+    if (this.textSpan && this.canvasBtn && this.smoothAnsiBtn) {
       this.textSpan.textContent = mainText;
       this.canvasBtn.textContent = canvasText;
       this.smoothAnsiBtn.textContent = ansiText;
-      this.touchDbgBtn.textContent = touchDbgText;
-      if (isTouchDbgOn) {
-        if (this.touchDbgBtn.classList && this.touchDbgBtn.classList.add) {
-          this.touchDbgBtn.classList.add("active");
-        } else {
-          this.touchDbgBtn.className = "fps-touch-dbg nomouse_command active";
-        }
-      } else {
-        if (this.touchDbgBtn.classList && this.touchDbgBtn.classList.remove) {
-          this.touchDbgBtn.classList.remove("active");
-        } else {
-          this.touchDbgBtn.className = "fps-touch-dbg nomouse_command";
-        }
-      }
     } else {
-      this.element.textContent = `${mainText} ${canvasText}${ansiText}${touchDbgText}`;
+      this.element.textContent = `${mainText} ${canvasText}${ansiText}`;
     }
     this.lastUiUpdateTime = now;
   }
@@ -473,30 +380,6 @@ export class FpsMeter {
 
   setSmoothAnsiArt(enabled) {
     this.smoothAnsiArt = !!enabled;
-    const now =
-      typeof performance !== "undefined" ? performance.now() : Date.now();
-    this.updateDisplay(now, false);
-  }
-
-  toggleTouchDebug() {
-    if (this.onToggleTouchDebug) {
-      this.onToggleTouchDebug();
-    } else {
-      if (typeof this.touchDebugActive === "boolean") {
-        this.touchDebugActive = !this.touchDebugActive;
-      }
-      this.app?.dispatchEvent?.(new CustomEvent("term:toggle-touch-debug"));
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("term:toggle-touch-debug"));
-        if (window.toggleTouchDebugHUD) {
-          window.toggleTouchDebugHUD();
-        }
-      }
-      const hud = this.app?.getPlugin?.("touch_debug_hud") || this.app?.touchDebugHUD;
-      if (hud && typeof hud.toggle === "function") {
-        hud.toggle();
-      }
-    }
     const now =
       typeof performance !== "undefined" ? performance.now() : Date.now();
     this.updateDisplay(now, false);
