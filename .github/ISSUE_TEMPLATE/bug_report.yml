@@ -25,10 +25,10 @@ body:
     id: occurrence-date
     attributes:
       label: 發生日期 (Date of Occurrence)
-      description: 請填寫發生問題的日期（例如：2026-09-10）
-      placeholder: YYYY-MM-DD
+      description: 請填寫發生問題的日期（例如：2026-09-10；若為當天可直接留空，以 Issue 建立日期為準）
+      placeholder: 例如：2026-09-10（留空代表當天）
     validations:
-      required: true
+      required: false
 
   - type: dropdown
     id: client-type
@@ -117,11 +117,13 @@ body:
       required: true
 
   - type: input
-    id: ptt-term-version
+    id: build-info
     attributes:
-      label: ptt-term 版本號 (Version / Commit)
-      description: 可在右下角設定選單中的「關於」查看版本號，或自架的 git commit hash
-      placeholder: 例如：2.0.0
+      label: 建置資訊 (Build Info)
+      description: |
+        請提供軟體的完整 Build 資訊（包含 commit hash 與日期，一般版本號如 2.0.1 較無除錯參考價值）。
+        如何找到：在終端機任意處按滑鼠右鍵（或觸控長按 / 點擊工具列選單）選擇「設定」➜ 切換至「關於」分頁 ➜ 即可複製第二行的「Build: xxxxxxxx YYYY-MM-DD」。
+      placeholder: 例如：Build: 94cc98b8 2026-09-10
     validations:
       required: false
 

@@ -286,6 +286,77 @@ dialog.PrefModal .NativeDialog__content {
   font-size: 13px;
 }
 
+.PrefModal__About__Version {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1d1d1f;
+  margin: 6px 0 2px 0;
+  line-height: 1.4;
+}
+
+.PrefModal__About__Version small {
+  font-size: 12px;
+  font-weight: 400;
+  color: #86868b;
+  margin-left: 6px;
+}
+
+.PrefModal__About__Build {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+  color: #6e6e73;
+  margin: 0 0 10px 0;
+  line-height: 1.4;
+}
+
+.PrefModal__About__CommitLink {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.PrefModal__About a.PrefModal__About__BugReportBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mac-font-sans, -apple-system, BlinkMacSystemFont, "PingFang TC", sans-serif);
+  font-size: 11px;
+  font-weight: 500;
+  color: #ffffff !important;
+  background-color: #cf222e;
+  border: 1px solid #b62324;
+  box-shadow: 0 1px 2px rgba(207, 34, 46, 0.25);
+  text-decoration: none !important;
+  padding: 2px 9px;
+  border-radius: 5px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.PrefModal__About a.PrefModal__About__BugReportBtn:hover,
+.PrefModal__About a.PrefModal__About__BugReportBtn:focus {
+  color: #ffffff !important;
+  background-color: #b62324;
+  border-color: #a01d1e;
+  box-shadow: 0 1px 3px rgba(207, 34, 46, 0.35);
+  text-decoration: none !important;
+}
+
+.PrefModal__About a.PrefModal__About__BugReportBtn:active {
+  background-color: #8e1a1b;
+  border-color: #7a1617;
+  transform: scale(0.97);
+}
+
+.PrefModal__About__BugIcon {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  flex-shrink: 0;
+}
+
 .PrefModal__About li {
   margin-bottom: 0.2em;
 }
