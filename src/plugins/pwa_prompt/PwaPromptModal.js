@@ -2,6 +2,44 @@ import React, { useEffect } from 'preact/compat';
 import { _ } from '../../js/i18n.js';
 import './PwaPrompt.css';
 
+const ShareIcon = () => (
+  <svg
+    className="PwaPrompt-inline-icon"
+    viewBox="0 0 24 24"
+    width="16"
+    height="16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+    <polyline points="16 6 12 2 8 6" />
+    <line x1="12" y1="2" x2="12" y2="15" />
+  </svg>
+);
+
+const AddToHomeIcon = () => (
+  <svg
+    className="PwaPrompt-inline-icon"
+    viewBox="0 0 24 24"
+    width="16"
+    height="16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="3" y="3" width="18" height="18" rx="4" />
+    <line x1="12" y1="8" x2="12" y2="16" />
+    <line x1="8" y1="12" x2="16" y2="12" />
+  </svg>
+);
+
 export const PwaPromptModal = ({
   plugin,
   platform = 'desktop',
@@ -47,11 +85,11 @@ export const PwaPromptModal = ({
   const getTitle = () => {
     switch (platform) {
       case 'ios':
-        return _('pwa_prompt_title_ios') || '將 PTT Term 加入主畫面';
+        return _('pwa_prompt_title_ios');
       case 'android':
-        return _('pwa_prompt_title_android') || '安裝 PTT Term 應用程式';
+        return _('pwa_prompt_title_android');
       default:
-        return _('pwa_prompt_title_desktop') || '安裝 PTT Term 桌面版 App';
+        return _('pwa_prompt_title_desktop');
     }
   };
 
@@ -96,60 +134,30 @@ export const PwaPromptModal = ({
     if (platform === 'ios') {
       return (
         <div className="PwaPrompt-body">
-          <p>
-            {_('pwa_prompt_ios_desc') ||
-              '加入主畫面可享受沉浸式全螢幕終端、全黑狀態列與完整的觸控體驗：'}
-          </p>
+          <p>{_('pwa_prompt_ios_desc')}</p>
           <ol className="PwaPrompt-steps">
             {isIOSChrome ? (
               <>
                 <li>
-                  點擊網址列右側的 <strong>分享</strong> 按鈕
-                  <svg
-                    className="PwaPrompt-inline-icon"
-                    viewBox="0 0 24 24"
-                    width="16"
-                    height="16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                    <polyline points="16 6 12 2 8 6" />
-                    <line x1="12" y1="2" x2="12" y2="15" />
-                  </svg>
+                  點擊瀏覽器的 <strong>分享</strong> 按鈕
+                  <ShareIcon />
                   （或選單「…」）
                 </li>
                 <li>
                   點選 <strong>「檢視較多」</strong>，找到並點選 <strong>「加入主畫面」</strong>
-                  <span className="PwaPrompt-inline-icon">➕</span>
+                  <AddToHomeIcon />
                 </li>
               </>
             ) : (
               <>
                 <li>
-                  點擊瀏覽器底部的 <strong>分享</strong> 按鈕
-                  <svg
-                    className="PwaPrompt-inline-icon"
-                    viewBox="0 0 24 24"
-                    width="16"
-                    height="16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                    <polyline points="16 6 12 2 8 6" />
-                    <line x1="12" y1="2" x2="12" y2="15" />
-                  </svg>
+                  點擊瀏覽器的 <strong>分享</strong> 按鈕
+                  <ShareIcon />
+                  （或按「…」選單找分享）
                 </li>
                 <li>
                   在選單中向上滑動並點選 <strong>「加入主畫面」</strong>
-                  <span className="PwaPrompt-inline-icon">➕</span>
+                  <AddToHomeIcon />
                 </li>
               </>
             )}
@@ -165,10 +173,7 @@ export const PwaPromptModal = ({
     if (hasNativePrompt) {
       return (
         <div className="PwaPrompt-body">
-          <p>
-            {_('pwa_prompt_native_desc') ||
-              '安裝為 PWA 獨立應用程式，享有全螢幕瀏覽、獨立視窗與流暢不中斷的連線體驗。'}
-          </p>
+          <p>{_('pwa_prompt_native_desc')}</p>
           <div className="PwaPrompt-actions">
             <button
               type="button"
@@ -196,10 +201,7 @@ export const PwaPromptModal = ({
     if (platform === 'android') {
       return (
         <div className="PwaPrompt-body">
-          <p>
-            {_('pwa_prompt_android_desc') ||
-              '可將 PTT Term 加入主畫面，享有全螢幕獨立視窗體驗：'}
-          </p>
+          <p>{_('pwa_prompt_android_desc')}</p>
           <ol className="PwaPrompt-steps">
             <li>點擊瀏覽器右上角選單（⋮）</li>
             <li>
@@ -215,10 +217,7 @@ export const PwaPromptModal = ({
     // Desktop without active beforeinstallprompt
     return (
       <div className="PwaPrompt-body">
-        <p>
-          {_('pwa_prompt_desktop_desc') ||
-            '將 PTT Term 安裝為桌面應用程式，享受乾淨獨立視窗與專屬桌面捷徑：'}
-        </p>
+        <p>{_('pwa_prompt_desktop_desc')}</p>
         <ol className="PwaPrompt-steps">
           {isMac ? (
             <li>
@@ -230,7 +229,7 @@ export const PwaPromptModal = ({
             </li>
           )}
           <li>
-            或至瀏覽器右上角選單（⋮）選擇 <strong>「儲存並分享」➜「安裝 PTT Term」</strong>
+            或至瀏覽器右上角選單（⋮）選擇 <strong>「儲存並分享」➜「安裝應用程式」</strong>
           </li>
         </ol>
         {renderStandardActions()}

@@ -27,9 +27,11 @@ export function i18n(str) {
 export function getMessage(key, substitutions) {
   let ret = i18n_val?.[key]?.message;
   if (!ret || !substitutions) return ret ?? '';
-  [].concat(substitutions).forEach((arg, i) => {
-    ret = ret.replace(`$${i + 1}`, arg);
-  });
+  if (typeof ret === 'string') {
+    [].concat(substitutions).forEach((arg, i) => {
+      ret = ret.replaceAll ? ret.replaceAll(`$${i + 1}`, arg) : ret.split(`$${i + 1}`).join(arg);
+    });
+  }
   return ret;
 }
 

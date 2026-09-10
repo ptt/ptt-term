@@ -371,6 +371,33 @@ const renderGroupIcon = (groupId) => {
   }
 };
 
+const renderBugIcon = () => (
+  <svg
+    className="PrefModal__About__BugIcon"
+    viewBox="0 0 24 24"
+    width="12"
+    height="12"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="m8 2 1.88 1.88" />
+    <path d="M14.12 3.88 16 2" />
+    <path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1" />
+    <path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6" />
+    <path d="M12 20v-9" />
+    <path d="M6.53 9C4.6 8.8 3 7.1 3 5" />
+    <path d="M6 13H2" />
+    <path d="M3 21c0-2.1 1.7-3.9 3.8-4" />
+    <path d="M20.97 5c0 2.1-1.6 3.8-3.5 4" />
+    <path d="M22 13h-4" />
+    <path d="M17.2 17c2.1.1 3.8 1.9 3.8 4" />
+  </svg>
+);
+
 const replaceMsg = (msg, replacements) => {
   return msg.split(/#(\S+)#/gi).map((it, index) => {
     if (index % 2 === 1 && it in replacements) {
@@ -510,6 +537,19 @@ export class PrefModal extends React.Component {
   replacements = {
     link_github_iamchucky: link("Chuck Yang", "https://github.com/iamchucky"),
     link_github_robertabcd: link("robertabcd", "https://github.com/robertabcd"),
+    link_github_iid: link(
+      "Wei-Cheng Yeh (IID)",
+      "https://github.com/IepIweidieng",
+    ),
+    link_github_hungte: link(
+      "Hung-Te Lin (piaip)",
+      "https://github.com/hungte",
+    ),
+    link_github_ptt: link("PTT", "https://github.com/ptt"),
+    link_official_PttTerm: link(
+      "ptt/ptt-term",
+      "https://github.com/ptt/ptt-term",
+    ),
     link_robertabcd_PttChrome: link(
       "robertabcd/PttChrome",
       "https://github.com/robertabcd/PttChrome",
@@ -517,6 +557,10 @@ export class PrefModal extends React.Component {
     link_github_current_owner: link(
       APP.GITHUB_REPOSITORY_OWNER,
       "https://github.com/" + APP.GITHUB_REPOSITORY_OWNER,
+    ),
+    link_current_repo: link(
+      APP.GITHUB_REPOSITORY,
+      "https://github.com/" + APP.GITHUB_REPOSITORY,
     ),
     link_current_PttChrome: link(
       APP.GITHUB_REPOSITORY,
@@ -527,9 +571,98 @@ export class PrefModal extends React.Component {
       "https://github.com/iamchucky/PttChrome",
     ),
     link_GPL20: link(
-      "General Public License v2.0",
+      "GNU General Public License v2.0",
       "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html",
     ),
+  };
+
+  renderVersionList = () => {
+    const list = replaceI18n("about_version_content", this.replacements);
+    if (APP.GITHUB_REPOSITORY?.toLowerCase() !== "ptt/ptt-term") {
+      const upstreamItem = replaceI18n(
+        "about_version_upstream",
+        this.replacements,
+      );
+      return [list[0], upstreamItem, ...list.slice(1)];
+    }
+    return list;
+  };
+
+  getBugReportUrl = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const buildText = `Build: ${APP.COMMIT_HASH || ""} ${APP.BUILD_DATE || ""}`.trim();
+    const params = new URLSearchParams({
+      template: "bug_report.yml",
+      "occurrence-date": today,
+    });
+    if (buildText) {
+      params.set("build-info", buildText);
+    }
+
+    const envLines = [];
+    if (typeof window !== "undefined") {
+      const siteUrl = window.location.origin || window.location.href || "";
+      if (siteUrl) {
+        envLines.push(`Site: ${siteUrl}`);
+      }
+      const isPWA =
+        window.matchMedia?.("(display-mode: standalone)")?.matches ||
+        window.navigator?.standalone === true;
+      envLines.push(`Client: ${isPWA ? "PWA" : "Web"}`);
+
+      const isMobile = Boolean(
+        this.props.isTouch ||
+        this.props.app?.isMobileLayout?.() ||
+        this.props.app?.isMobileDevice?.()
+      );
+      envLines.push(`Mode: ${isMobile ? "Mobile (Touch)" : "Desktop"}`);
+
+      const useCanvas = this.state.values?.useCanvasEngine !== false;
+      envLines.push(`Canvas Engine: ${useCanvas ? "ON (Canvas)" : "OFF (DOM)"}`);
+
+      const dpr = window.devicePixelRatio || 1;
+      const screenInfo = window.screen
+        ? `${window.screen.width}x${window.screen.height}`
+        : "unknown";
+      envLines.push(
+        `Viewport: ${window.innerWidth}x${window.innerHeight} (Screen: ${screenInfo}, DPR: ${dpr})`
+      );
+    }
+
+    if (typeof navigator !== "undefined") {
+      if (navigator.userAgent) {
+        envLines.push(`User Agent: ${navigator.userAgent}`);
+      }
+      if (navigator.userAgentData?.platform) {
+        const brands = navigator.userAgentData.brands
+          ?.map((b) => `${b.brand} ${b.version}`)
+          .join(", ");
+        envLines.push(
+          `Platform: ${navigator.userAgentData.platform} (Mobile: ${Boolean(
+            navigator.userAgentData.mobile
+          )}, Brands: ${brands || "none"})`
+        );
+      }
+    }
+
+    if (this.state.values) {
+      const extra = [];
+      if (this.state.values.smoothAnsiArt) extra.push("smoothAnsiArt");
+      if (this.state.values.fontFamily) extra.push(`font=${this.state.values.fontFamily}`);
+      if (this.state.values.colorScheme && this.state.values.colorScheme !== "default") {
+        extra.push(`colorScheme=${this.state.values.colorScheme}`);
+      }
+      if (this.state.values.enableVirtualKeyboard) extra.push("virtualKeyboard");
+      if (extra.length > 0) {
+        envLines.push(`Settings: ${extra.join(", ")}`);
+      }
+    }
+
+    if (envLines.length > 0) {
+      params.set("env-info", envLines.join("\n"));
+    }
+
+    return `https://github.com/${APP.GITHUB_REPOSITORY}/issues/new?${params.toString()}`;
   };
 
   componentDidMount() {
@@ -1730,21 +1863,60 @@ export class PrefModal extends React.Component {
                     <p>{replaceI18n("about_description", this.replacements)}</p>
                   </div>
                   <div>
-                    <legend>
-                      {_("about_version_title")} - {APP.NAME} v
-                      {APP.VERSION}
-                      {process.env.DEVELOPER_MODE
-                        ? ` (${_("alert_developerModeHeader")})`
-                        : ""}
-                    </legend>
+                    <legend>{_("about_version_title")}</legend>
+                    <div className="PrefModal__About__Version">
+                      {APP.NAME} v{APP.VERSION}
+                      {process.env.DEVELOPER_MODE ? (
+                        <small>({_("alert_developerModeHeader")})</small>
+                      ) : (
+                        ""
+                      )}
+                    </div>
+                    <div className="PrefModal__About__Build">
+                      {APP.COMMIT_HASH || APP.BUILD_DATE ? (
+                        <span>
+                          Build:{" "}
+                          {APP.COMMIT_HASH ? (
+                            <a
+                              href={`https://github.com/${APP.GITHUB_REPOSITORY}/commit/${APP.COMMIT_HASH}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Commit Hash"
+                              className="PrefModal__About__CommitLink"
+                            >
+                              {APP.COMMIT_HASH}
+                            </a>
+                          ) : (
+                            ""
+                          )}
+                          {APP.COMMIT_HASH && APP.BUILD_DATE ? " " : ""}
+                          {APP.BUILD_DATE}
+                        </span>
+                      ) : (
+                        ""
+                      )}
+                      <a
+                        href={this.getBugReportUrl()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        role="button"
+                        className="btn btn-xs PrefModal__About__BugReportBtn"
+                      >
+                        {renderBugIcon()}
+                        <span>{_("about_bug_report")}</span>
+                      </a>
+                    </div>
                     <ul>
-                      {replaceI18n(
-                        "about_version_content",
-                        this.replacements,
-                      ).map((text, index) => (
+                      {this.renderVersionList().map((text, index) => (
                         <li key={index}>{text}</li>
                       ))}
                     </ul>
+                  </div>
+                  <div>
+                    <legend>{_("about_license_title")}</legend>
+                    <p>
+                      {replaceI18n("about_license_content", this.replacements)}
+                    </p>
                   </div>
                   <div>
                     <legend>{_("about_new_title")}</legend>

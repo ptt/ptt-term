@@ -25,6 +25,7 @@ import {
   isStandaloneMode,
   getDefaultPwaPrompt,
 } from '../src/js/pref.js';
+import { _, setupI18n } from '../src/js/i18n.js';
 
 test('PwaPrompt plugin exports, metadata, and registration', () => {
   // 1. Exports
@@ -275,3 +276,44 @@ test('isIOSChrome detects CriOS User-Agent and PwaPromptModal adapts for Chrome 
   }
 });
 
+test('PwaPrompt plugin and modal are generic and do not hardcode any app name', () => {
+  setupI18n('zh_tw');
+  const modalSrc = fs.readFileSync(
+    path.resolve('src/plugins/pwa_prompt/PwaPromptModal.js'),
+    'utf-8'
+  );
+  // Modal should not hardcode PTT Term or appName
+  assert.ok(!modalSrc.includes("appName"), 'Modal should not require appName');
+  assert.ok(!modalSrc.includes("PTT Term"), 'Modal should not hardcode PTT Term');
+
+  // Verify generic titles and descriptions in zh_TW
+  assert.strictEqual(_('pwa_prompt_title_ios'), '加入主畫面');
+  assert.strictEqual(_('pwa_prompt_title_android'), '安裝應用程式');
+  assert.strictEqual(_('pwa_prompt_title_desktop'), '安裝桌面版 App');
+  assert.strictEqual(
+    _('plugin_pwa_prompt_desc'),
+    '引導使用者安裝為 PWA 獨立應用程式 (支援 iOS / Android / 桌面版)'
+  );
+  assert.ok(!_('plugin_pwa_prompt_desc').includes('PTT Term'));
+  assert.ok(!_('pwa_prompt_ios_desc').includes('PTT Term'));
+  assert.ok(!_('pwa_prompt_android_desc').includes('PTT Term'));
+  assert.ok(!_('pwa_prompt_desktop_desc').includes('PTT Term'));
+
+  // Check PwaPrompt plugin metadata
+  const meta = PwaPromptPlugin.getMetadata();
+  assert.ok(!meta.description.includes('PTT Term'), 'Plugin description should not mention PTT Term');
+
+  // Verify generic titles and descriptions in en_US
+  setupI18n('en_us');
+  assert.strictEqual(_('pwa_prompt_title_ios'), 'Add to Home Screen');
+  assert.strictEqual(_('pwa_prompt_title_android'), 'Install App');
+  assert.strictEqual(_('pwa_prompt_title_desktop'), 'Install Desktop App');
+  assert.strictEqual(
+    _('plugin_pwa_prompt_desc'),
+    'Guides users to install as a PWA app (iOS / Android / Desktop)'
+  );
+  assert.ok(!_('plugin_pwa_prompt_desc').includes('PTT Term'));
+  assert.ok(!_('pwa_prompt_ios_desc').includes('PTT Term'));
+  assert.ok(!_('pwa_prompt_android_desc').includes('PTT Term'));
+  assert.ok(!_('pwa_prompt_desktop_desc').includes('PTT Term'));
+});

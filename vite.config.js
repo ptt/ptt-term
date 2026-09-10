@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import preact from '@preact/preset-vite';
 import path from 'path';
 import fs from 'fs';
+import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -20,6 +21,24 @@ export default defineConfig(({ mode, command }) => {
     'A web client for connecting to the ANSI based terminals via WebSockets.';
   const dynamicTitle = process.env.DYNAMIC_TITLE ?? 'true';
   const siteUrl = process.env.SITE_URL;
+
+  const getCommitHash = () => {
+    if (process.env.COMMIT_HASH) return process.env.COMMIT_HASH;
+    if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA.slice(0, 7);
+    try {
+      return execSync('git rev-parse --short HEAD', {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim();
+    } catch {
+      return '';
+    }
+  };
+
+  const getBuildDate = () => {
+    if (process.env.BUILD_DATE) return process.env.BUILD_DATE;
+    return new Date().toISOString().slice(0, 10);
+  };
 
   const resolveThemeIcon = (name, fallbackName = null) => {
     const themePath = path.resolve(__dirname, `src/icon/${theme}/${name}`);
@@ -190,6 +209,8 @@ export default defineConfig(({ mode, command }) => {
       'process.env.SITE_TYPE': JSON.stringify(process.env.SITE_TYPE || 'auto'),
       'APP.NAME': JSON.stringify(process.env.npm_package_name || pkg.name),
       'APP.VERSION': JSON.stringify(process.env.npm_package_version || pkg.version),
+      'APP.COMMIT_HASH': JSON.stringify(getCommitHash()),
+      'APP.BUILD_DATE': JSON.stringify(getBuildDate()),
       'APP.GITHUB_REPOSITORY_OWNER': JSON.stringify(process.env.GITHUB_REPOSITORY_OWNER || 'ptt'),
       'APP.GITHUB_REPOSITORY': JSON.stringify(process.env.GITHUB_REPOSITORY || 'ptt/ptt-term'),
     },

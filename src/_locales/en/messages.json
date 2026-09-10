@@ -427,29 +427,41 @@
     "message": "Controls thread previous / next"
   },
   "about_appName_subtitle": {
-    "message": "An open source terminal client"
+    "message": "WebSocket ANSI Terminal"
   },
   "about_description": {
-    "message": "Based on PttChrome, a Chrome extension created by #link_github_iamchucky# then modified by #link_github_robertabcd# to be an HTML5 webpage client that supports Websocket and works on most browsers. This version is forked and maintained by #link_github_current_owner#."
+    "message": "Derived from PttChrome, originally by #link_github_iamchucky#. Ported to HTML5 WebSocket by #link_github_robertabcd#. Dual color rendering, dynamic title, version info and CI deployment by #link_github_iid#. Modernization, Canvas rendering and touch interface by #link_github_hungte#. Latest official repository is #link_official_PttTerm# under #link_github_ptt# organization."
   },
   "about_version_title": {
-    "message": "Version"
+    "message": "Version & Source Code"
   },
   "about_version_content": {
     "message": [
-      "This version: #link_current_PttChrome#, #link_GPL20#.",
-      "Upstream version: #link_robertabcd_PttChrome#, #link_GPL20#.",
-      "Original version: webapp12 6/2/2015, #link_iamchucky_PttChrome#, #link_GPL20#."
+      "Current repository: #link_current_repo#",
+      "Previous fork: #link_robertabcd_PttChrome#",
+      "Original repository: #link_iamchucky_PttChrome# (webapp12 2015/06)"
     ]
+  },
+  "about_version_upstream": {
+    "message": "Forked from: #link_official_PttTerm#"
+  },
+  "about_license_title": {
+    "message": "License"
+  },
+  "about_license_content": {
+    "message": "#link_GPL20#"
+  },
+  "about_bug_report": {
+    "message": "Bug Report"
   },
   "about_new_title": {
     "message": "What's new"
   },
   "about_new_content": {
     "message": [
-      "Websocket connection.",
-      "Canvas rendering mode.",
-      "ASCII Art visualization."
+      "Dual Rendering Engines (Canvas / DOM)",
+      "Mobile Virtual Keyboard & Gestures",
+      "Account Login"
     ]
   },
   "alert_developerModeHeader": {
@@ -636,7 +648,7 @@
     "message": "PWA Install Guide"
   },
   "plugin_pwa_prompt_desc": {
-    "message": "Guides users to install PTT Term as a PWA app (iOS / Android / Desktop)"
+    "message": "Guides users to install as a PWA app (iOS / Android / Desktop)"
   },
   "plugin_virtual_keyboard_title": {
     "message": "Virtual Keyboard"
@@ -651,13 +663,13 @@
     "message": "💻 Install Desktop App (PWA)"
   },
   "pwa_prompt_title_ios": {
-    "message": "Add PTT Term to Home Screen"
+    "message": "Add to Home Screen"
   },
   "pwa_prompt_title_android": {
-    "message": "Install PTT Term App"
+    "message": "Install App"
   },
   "pwa_prompt_title_desktop": {
-    "message": "Install PTT Term Desktop App"
+    "message": "Install Desktop App"
   },
   "pwa_prompt_native_desc": {
     "message": "Install as a PWA app to enjoy fullscreen browsing, dedicated window, and seamless connection."
@@ -666,10 +678,10 @@
     "message": "Add to Home Screen for an immersive fullscreen terminal, black status bar, and complete touch experience:"
   },
   "pwa_prompt_android_desc": {
-    "message": "Add PTT Term to Home Screen for a fullscreen standalone app experience:"
+    "message": "Add to Home Screen for a fullscreen standalone app experience:"
   },
   "pwa_prompt_desktop_desc": {
-    "message": "Install PTT Term as a desktop app to enjoy a standalone window and shortcut:"
+    "message": "Install as a desktop app to enjoy a standalone window and shortcut:"
   },
   "pwa_prompt_btn_install": {
     "message": "Install"

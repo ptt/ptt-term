@@ -628,6 +628,99 @@ test('PrefModal supports landscape and short viewport mode with visible close bu
   );
 });
 
+test('PrefModal About tab renders Version & Source Code with distinct version line and repository links', () => {
+  const prefModalSrc = fs.readFileSync(PREF_MODAL_JS_PATH, 'utf-8');
+  const prefModalCss = fs.readFileSync(PREF_MODAL_CSS_PATH, 'utf-8');
+  const zhTW = JSON.parse(fs.readFileSync(path.resolve('src/_locales/zh_TW/messages.json'), 'utf-8'));
+  const enUS = JSON.parse(fs.readFileSync(path.resolve('src/_locales/en/messages.json'), 'utf-8'));
+
+  // 1. Version & Source Code legend does not contain app name/version
+  assert.ok(
+    prefModalSrc.includes('<legend>{_("about_version_title")}</legend>'),
+    'about_version_title must be in its own legend tag without app version'
+  );
+
+  // 2. App name and version are rendered on their own line with dedicated class
+  assert.ok(
+    prefModalSrc.includes('className="PrefModal__About__Version"'),
+    'App version must have dedicated PrefModal__About__Version class'
+  );
+  assert.ok(
+    prefModalSrc.includes('{APP.NAME} v{APP.VERSION}'),
+    'App version line must render {APP.NAME} v{APP.VERSION}'
+  );
+
+  // 3. CSS styles .PrefModal__About__Version with normal bold text
+  assert.ok(
+    prefModalCss.includes('.PrefModal__About__Version {') &&
+      prefModalCss.includes('font-size: 13px;') &&
+      prefModalCss.includes('font-weight: 600;'),
+    'PrefModal.css must style .PrefModal__About__Version with 13px bold text'
+  );
+
+  // 4. i18n strings for Plan A (Repositories)
+  assert.strictEqual(zhTW.about_version_title.message, '版本與原始碼');
+  assert.strictEqual(enUS.about_version_title.message, 'Version & Source Code');
+
+  assert.ok(zhTW.about_version_content.message[0].includes('目前專案庫：'));
+  assert.ok(zhTW.about_version_content.message[1].includes('前代專案庫：'));
+  assert.ok(zhTW.about_version_content.message[2].includes('創始專案庫：'));
+  assert.ok(zhTW.about_version_content.message[2].includes('(webapp12 2015/06)'));
+
+  assert.ok(enUS.about_version_content.message[0].includes('Current repository:'));
+  assert.ok(enUS.about_version_content.message[1].includes('Previous fork:'));
+  assert.ok(enUS.about_version_content.message[2].includes('Original repository:'));
+  assert.ok(enUS.about_version_content.message[2].includes('(webapp12 2015/06)'));
+
+  assert.ok(zhTW.about_version_content.message[0].includes('link_current_repo'));
+  assert.ok(enUS.about_version_content.message[0].includes('link_current_repo'));
+  assert.ok(zhTW.about_version_upstream.message.includes('分支來源：'));
+  assert.ok(enUS.about_version_upstream.message.includes('Forked from:'));
+  assert.ok(prefModalSrc.includes('renderVersionList'), 'PrefModal.js must define renderVersionList');
+  assert.ok(prefModalSrc.includes('link_current_repo'), 'PrefModal.js must define link_current_repo');
+
+  // 5. Commit hash and build date support
+  const viteConfigSrc = fs.readFileSync(path.resolve('vite.config.js'), 'utf-8');
+  assert.ok(viteConfigSrc.includes("'APP.COMMIT_HASH'"), 'vite.config.js must define APP.COMMIT_HASH');
+  assert.ok(viteConfigSrc.includes("'APP.BUILD_DATE'"), 'vite.config.js must define APP.BUILD_DATE');
+  assert.ok(prefModalSrc.includes('PrefModal__About__Build'), 'PrefModal.js must render commit hash and build date');
+
+  // 6. Bug report issue template uses Build Info instead of version
+  const bugReportTemplate = fs.readFileSync(
+    path.resolve('.github/ISSUE_TEMPLATE/bug_report.yml'),
+    'utf-8'
+  );
+  assert.ok(bugReportTemplate.includes('id: build-info'), 'bug_report.yml must ask for build-info');
+  assert.ok(
+    bugReportTemplate.includes('Build: xxxxxxxx YYYY-MM-DD'),
+    'bug_report.yml must instruct how to find build info'
+  );
+  assert.ok(
+    prefModalSrc.includes('bug_report.yml'),
+    'PrefModal About tab must link to bug report template'
+  );
+  assert.ok(
+    prefModalSrc.includes('occurrence-date') &&
+      prefModalSrc.includes('build-info') &&
+      prefModalSrc.includes('env-info'),
+    'PrefModal must prefill occurrence-date, build-info, and env-info in bug report url'
+  );
+  assert.ok(
+    prefModalSrc.includes('navigator.userAgent'),
+    'PrefModal must include User Agent in environment diagnostics'
+  );
+  assert.ok(
+    bugReportTemplate.includes('id: env-info'),
+    'bug_report.yml must provide env-info textarea'
+  );
+  assert.ok(
+    prefModalSrc.includes('PrefModal__About__BugReportBtn'),
+    'PrefModal About tab must render bug report link as a button'
+  );
+  assert.strictEqual(zhTW.about_bug_report.message, '問題回報');
+  assert.strictEqual(enUS.about_bug_report.message, 'Bug Report');
+});
+
 
 
 

@@ -109,10 +109,8 @@ export class PwaPromptPlugin {
     return {
       id: 'pwa_prompt',
       name: 'pwa_prompt',
-      title: _('plugin_pwa_prompt_title') || 'PWA 安裝指引',
-      description:
-        _('plugin_pwa_prompt_desc') ||
-        '引導使用者將 PTT Term 安裝為 PWA 獨立應用程式 (支援 iOS / Android / 桌面版)',
+      title: _('plugin_pwa_prompt_title'),
+      description: _('plugin_pwa_prompt_desc'),
       prefKey: 'enablePwaPrompt',
       icon: 'smartphone',
       group: 'ui',
@@ -168,8 +166,8 @@ export class PwaPromptPlugin {
           const platform = getPlatform();
           const isMobile = platform === 'ios' || platform === 'android';
           return isMobile
-            ? _('cmenu_pwa_install_mobile') || '📱 安裝至主畫面 (PWA)'
-            : _('cmenu_pwa_install_desktop') || '💻 安裝桌面版 App (PWA)';
+            ? _('cmenu_pwa_install_mobile')
+            : _('cmenu_pwa_install_desktop');
         },
         visible: () => Boolean(this.enabled && !this.isStandalone() && !this.isInstalled),
         onClick: () => {

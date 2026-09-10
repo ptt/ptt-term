@@ -177,6 +177,11 @@ test('getMessage and _ support substitutions with [args] or single arg ($1, $2, 
   // Missing substitutions returns raw template
   assert.equal(_('__test_sub__'), 'Hello $1, welcome to $2!');
 
+  // Multiple occurrences of substitution variable
+  en_US['__test_multi_sub__'] = { message: 'App $1 is also known as $1!' };
+  assert.equal(_('__test_multi_sub__', 'MyApp'), 'App MyApp is also known as MyApp!');
+  delete en_US['__test_multi_sub__'];
+
   delete en_US['__test_sub__'];
   restore();
 });
