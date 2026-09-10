@@ -2132,7 +2132,7 @@ test('src/plugins exports TouchDebugHUD and provides plugin metadata and lifecyc
   };
   const hudPlugin = new hudModule.TouchDebugHUDPlugin(mockApp);
   hudPlugin.init({ app: mockApp });
-  assert.equal(mockApp.touchDebugHUD, hudPlugin);
+  assert.equal(mockApp.touchDebugHUD, undefined);
   assert.equal(hudPlugin.id, 'touch_debug_hud');
   assert.equal(hudPlugin.prefKey, 'enableTouchDebugHUD');
   assert.equal(hudPlugin.icon, 'debug');

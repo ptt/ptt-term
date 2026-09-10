@@ -29,13 +29,13 @@ export class TouchDebugHUDPlugin {
     this.component = null;
 
     this._onChanged = (e) => {
-      if (e?.detail && typeof e.detail.enabled === "boolean") {
-        this.enabled = e.detail.enabled;
+      const enabled = e?.enabled ?? e?.detail?.enabled;
+      if (typeof enabled === "boolean") {
+        this.enabled = enabled;
       }
     };
     if (typeof window !== "undefined") {
       window.addEventListener("term:touch-debug-changed", this._onChanged);
-      window.addEventListener("touch-debug:changed", this._onChanged);
     }
   }
 
@@ -83,7 +83,6 @@ export class TouchDebugHUDPlugin {
   init({ app, view, buf } = {}) {
     if (app) {
       this.app = app;
-      app.touchDebugHUD = this;
       this._onPrefChangeBound = (e) => {
         if (e.detail?.key === "enableTouchDebugHUD") {
           this.setEnabled(Boolean(e.detail.value));
@@ -133,32 +132,17 @@ export class TouchDebugHUDPlugin {
     }
     if (this.component) {
       this.component.setHudEnabled(isEnabled);
-    } else if (typeof window !== "undefined") {
-      if (isEnabled && window.enableTouchDebugHUD) {
-        window.enableTouchDebugHUD();
-      } else if (!isEnabled && window.disableTouchDebugHUD) {
-        window.disableTouchDebugHUD();
-      } else {
-        window.dispatchEvent(
-          new CustomEvent("touch-debug:changed", {
-            detail: { enabled: isEnabled },
-          })
-        );
-      }
     }
   }
 
   renderOverlay({ app } = {}) {
     const targetApp = app || this.app;
-    return React.createElement(TouchDebugHUD, { app: targetApp });
+    return React.createElement(TouchDebugHUD, { app: targetApp, plugin: this });
   }
 
   toggle() {
     if (this.component) {
       return this.component.toggleHud();
-    }
-    if (typeof window !== "undefined" && window.toggleTouchDebugHUD) {
-      return window.toggleTouchDebugHUD();
     }
     this.setEnabled(!this.enabled);
     return this.enabled;
@@ -167,9 +151,6 @@ export class TouchDebugHUDPlugin {
   isActive() {
     if (this.component && typeof this.component.state?.enabled === "boolean") {
       return Boolean(this.component.state.enabled);
-    }
-    if (typeof window !== "undefined" && window.isTouchDebugHUDActive) {
-      return window.isTouchDebugHUDActive();
     }
     return this.enabled;
   }
@@ -184,7 +165,6 @@ export class TouchDebugHUDPlugin {
       window.removeEventListener?.("term:toggle-touch-debug", this._onToggleBound);
       if (this._onChanged) {
         window.removeEventListener("term:touch-debug-changed", this._onChanged);
-        window.removeEventListener("touch-debug:changed", this._onChanged);
       }
     }
   }
@@ -217,10 +197,12 @@ export class TouchDebugHUD extends React.Component {
     this.eventListeners = [];
   }
 
+  getPlugin() {
+    return this.props.plugin || this.props.app?.getPlugin?.("touch_debug_hud");
+  }
+
   componentDidMount() {
-    const plugin =
-      this.props.app?.touchDebugHUD ||
-      this.props.app?.getPlugin?.("touch_debug_hud");
+    const plugin = this.getPlugin();
     if (plugin) {
       plugin.component = this;
       if (plugin.enabled !== this.state.enabled) {
@@ -228,17 +210,11 @@ export class TouchDebugHUD extends React.Component {
       }
     }
 
-    if (typeof window !== "undefined") {
-      window.enableTouchDebugHUD = () => this.setHudEnabled(true);
-      window.disableTouchDebugHUD = () => this.setHudEnabled(false);
-      window.toggleTouchDebugHUD = () => this.toggleHud();
-      window.isTouchDebugHUDActive = () => Boolean(this.state.enabled);
-
+    if (typeof window !== "undefined" && !plugin) {
       this.handleToggleEvent = () => {
         this.toggleHud();
       };
       window.addEventListener("term:toggle-touch-debug", this.handleToggleEvent);
-      window.addEventListener("touch-debug:toggle", this.handleToggleEvent);
     }
 
     if (this.state.enabled) {
@@ -250,19 +226,12 @@ export class TouchDebugHUD extends React.Component {
             detail: { enabled: true },
           })
         );
-        window.dispatchEvent(
-          new CustomEvent("touch-debug:changed", {
-            detail: { enabled: true },
-          })
-        );
       }
     }
   }
 
   componentWillUnmount() {
-    const plugin =
-      this.props.app?.touchDebugHUD ||
-      this.props.app?.getPlugin?.("touch_debug_hud");
+    const plugin = this.getPlugin();
     if (plugin && plugin.component === this) {
       plugin.component = null;
     }
@@ -275,16 +244,8 @@ export class TouchDebugHUD extends React.Component {
           "term:toggle-touch-debug",
           this.handleToggleEvent
         );
-        window.removeEventListener(
-          "touch-debug:toggle",
-          this.handleToggleEvent
-        );
         this.handleToggleEvent = null;
       }
-      if (window.enableTouchDebugHUD) delete window.enableTouchDebugHUD;
-      if (window.disableTouchDebugHUD) delete window.disableTouchDebugHUD;
-      if (window.toggleTouchDebugHUD) delete window.toggleTouchDebugHUD;
-      if (window.isTouchDebugHUDActive) delete window.isTouchDebugHUDActive;
     }
   }
 
@@ -318,9 +279,7 @@ export class TouchDebugHUD extends React.Component {
       this.detachListeners();
     }
 
-    const plugin =
-      this.props.app?.touchDebugHUD ||
-      this.props.app?.getPlugin?.("touch_debug_hud");
+    const plugin = this.getPlugin();
     if (plugin) {
       plugin.enabled = isEnabled;
     }
@@ -329,11 +288,6 @@ export class TouchDebugHUD extends React.Component {
     if (typeof window !== "undefined") {
       window.dispatchEvent(
         new CustomEvent("term:touch-debug-changed", {
-          detail: { enabled: isEnabled },
-        })
-      );
-      window.dispatchEvent(
-        new CustomEvent("touch-debug:changed", {
           detail: { enabled: isEnabled },
         })
       );
@@ -451,7 +405,7 @@ export class TouchDebugHUD extends React.Component {
       .join("\n");
 
     const report = [
-      "=== PTT-TERM MOBILE TOUCH & KEYBOARD DIAGNOSTICS ===",
+      "=== MOBILE TOUCH & KEYBOARD DIAGNOSTICS ===",
       `Timestamp: ${diag.time}`,
       `User Agent: ${diag.userAgent}`,
       `Screen: ${diag.screen}`,
