@@ -1,6 +1,9 @@
 
 
 import { b2uTable, u2bTable } from '../conv/uao.js';
+import { wcwidth, wcswidth, stringWidth, isFullWidth } from './wcwidth.js';
+
+export { wcwidth, wcswidth, stringWidth, isFullWidth };
 
 /**
  * Only support caret notations (^C, ^H, ^U, ^[, ^?, ...)
@@ -42,6 +45,7 @@ export function unescapeStr(it) {
 // Wrap text within maxLen without hyphenating English words,
 // where the maxLen is generally the screen width.
 export function wrapText(it, maxLen, enterChar) {
+  if (!it || typeof it !== 'string') return '';
   // Divide string into non-hyphenated groups
   // classified as \r, \n, single full-width character, an English word,
   // and space characters in the beginning of original line. (indent)
@@ -50,16 +54,13 @@ export function wrapText(it, maxLen, enterChar) {
   // FIXME: full-width punctuation marks aren't recognized
   const pattern = /\r|\n|([^\x00-\x7f][,.?!:;]?[\t ]*)|([\x00-\x08\x0b\x0c\x0e-\x1f\x21-\x7f]+[\t ]*)|[\t ]+/g;
   const splited = it.match(pattern);
+  if (!splited) return it;
 
   let result = '';
   let len = 0;
   for (let i = 0; i < splited.length; ++i) {
-    // Convert special characters to spaces with the same width
-    // and then we can get the width by the length of the converted string
-    const grouplen = splited[i].replace(/[^\x00-\x7f]/g,"  ")
-                             .replace(/\t/,"    ")
-                             .replace(/\r|\n/,"")
-                             .length;
+    const cleanGroup = splited[i].replace(/\t/g, "    ").replace(/\r|\n/g, "");
+    const grouplen = stringWidth(cleanGroup);
 
     if (splited[i] == '\r' || splited[i] == '\n')
       len = 0;
@@ -72,30 +73,6 @@ export function wrapText(it, maxLen, enterChar) {
   }
   return result;
 };
-
-/**
- * Calculates display byte length for PTT / Big5 BBS:
- * - ASCII: 1 byte
- * - Non-ASCII / CJK / full-width: 2 bytes
- * @param {string} str
- * @returns {number}
- */
-export function calculatePTTByteLength(str) {
-  if (!str) return 0;
-  let bytes = 0;
-  for (let i = 0; i < str.length; i++) {
-    const code = str.charCodeAt(i);
-    if (code >= 0xd800 && code <= 0xdbff) {
-      bytes += 2;
-      i++;
-    } else if (code > 0x7f) {
-      bytes += 2;
-    } else {
-      bytes += 1;
-    }
-  }
-  return bytes;
-}
 
 
 export function u2b(it) {

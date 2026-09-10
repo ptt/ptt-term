@@ -2,8 +2,7 @@
 
 import { Event } from './event';
 import { ColorState } from './term_ui';
-import { isForceWidthCode } from './symbol_table';
-import { u2bTable } from '../conv/uao';
+import { isFullWidth } from './wcwidth.js';
 import { getSite } from './sites';
 import { playTerminalBell } from './bell.js';
 import { Locator } from './locator.js';
@@ -216,7 +215,6 @@ export class TermBuf extends Event {
     this.posChanged = false;
     this.bellOccurred = false;
     this.pageState = 0;
-    this.forceFullWidth = false;
     this.inSyncUpdate = false;
     this.hasFrameSync = false;
     this._syncUpdateTimeout = null;
@@ -401,7 +399,7 @@ export class TermBuf extends Event {
         this.tab();
         break;
       default: {
-        const isWide = this.isFullWidth(ch);
+        const isWide = isFullWidth(ch);
         if (isWide && this.cur_x >= cols - 1) {
           if (!this.disableLinefeed) this.lineFeed();
           this.cur_x = 0;
@@ -501,7 +499,7 @@ export class TermBuf extends Event {
         if (ch.needUpdate)
             needUpdate=true;
 
-        if ((ch.isDBCSLead || this.isFullWidth(ch.ch)) && (col + 1) < cols) {
+        if ((ch.isDBCSLead || isFullWidth(ch.ch)) && (col + 1) < cols) {
           ch.isDBCSLead = true;
           ch.isDBCSTrail = false;
           ++col;
@@ -1254,38 +1252,6 @@ export class TermBuf extends Event {
       text += '4' + thisBg + ';';
     if (!text) return '';
     else return ('\x1b[' + text.slice(0, -1) + 'm');
-  }
-
-  /**
-   * @param {string} str
-   * @returns {boolean}
-   */
-  isFullWidth(str) {
-    if (typeof str !== 'string' || str.length === 0) return false;
-    const code = str.charCodeAt(0);
-    if (code <= 0x7f) return false;
-    if ((code >= 0x1100 && code <= 0x115f) || 
-        (code >= 0x2329 && code <= 0x232a) || 
-        (code >= 0x2000 && code <= 0x243f) || // General punctuation, arrows, math, enclosed alphanumerics
-        (code >= 0x2500 && code <= 0x27bf) || // Box drawing, blocks, geometric shapes, misc symbols
-        (code >= 0x2e80 && code <= 0xa4cf) || // CJK radicals, CJK symbols/punctuation, ideographs
-        (code >= 0xac00 && code <= 0xd7a3) || // Hangul
-        (code >= 0xe000 && code <= 0xf8ff) || // UAO Private Use Area
-        (code >= 0xf900 && code <= 0xfaff) || // CJK Compatibility
-        (code >= 0xfe10 && code <= 0xfe6f) || // CJK compatibility forms
-        (code >= 0xff00 && code <= 0xff60) || // Fullwidth Forms
-        (code >= 0xffe0 && code <= 0xffe6) || // Fullwidth signs
-        (code >= 0x0370 && code <= 0x04ff) || // Greek, Cyrillic
-        (code >= 0x3000 && code <= 0x303f) || // CJK symbols and punctuation
-        isForceWidthCode(code) ||
-        (u2bTable && u2bTable[code] > 0)) {
-      return true;
-    }
-    const isUtf8 = this.site.isUtf8;
-    if (!isUtf8 || this.forceFullWidth) {
-      return true;
-    }
-    return false;
   }
 
   setPageState() {

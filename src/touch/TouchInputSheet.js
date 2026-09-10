@@ -1,10 +1,10 @@
 import React from "react";
 import cx from "classnames";
 import { _ } from "../js/i18n.js";
-import { wrapText, calculatePTTByteLength } from "../js/string_util.js";
+import { wrapText, stringWidth } from "../js/string_util.js";
 import "./TouchInputSheet.css";
 
-export { calculatePTTByteLength };
+export { stringWidth };
 
 export class TouchInputSheet extends React.Component {
   textareaRef = React.createRef();
@@ -239,13 +239,13 @@ export class TouchInputSheet extends React.Component {
     const lines = text.split(/\r\n|\r|\n/);
     let maxLineBytes = 0;
     for (const line of lines) {
-      const len = calculatePTTByteLength(line);
+      const len = stringWidth(line);
       if (len > maxLineBytes) maxLineBytes = len;
     }
     const isOverLimit = maxLineBytes > 78;
     const counterText =
       lines.length <= 1
-        ? `${calculatePTTByteLength(text)} / 78 B`
+        ? `${stringWidth(text)} / 78 B`
         : `${lines.length} 行 · 最大 ${maxLineBytes} / 78 B`;
 
     return (

@@ -47,7 +47,8 @@ const G3 = [
 ];
 
 const badDbcsSet = new Set(G3);
-const forceWidthSet = new Set([...G1, ...G2]);
+export const forceWidthCodes = [...G1, ...G2];
+const forceWidthSet = new Set(forceWidthCodes);
 
 export function isBadDBCSCode(code) {
   return badDbcsSet.has(typeof code === 'string' ? code.charCodeAt(0) : code);

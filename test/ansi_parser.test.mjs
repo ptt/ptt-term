@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { AnsiParser } from '../src/js/ansi_parser.js';
+import { isFullWidth } from '../src/js/wcwidth.js';
 
 const termBufSource = fs.readFileSync(path.resolve('src/js/term_buf.js'), 'utf-8');
 const termCharMatch = termBufSource.match(/(class TermChar \{[\s\S]*?\n\})/);
@@ -346,9 +347,11 @@ test('TermBuf getRowText and getText correctly handle DBCS slice boundaries with
 
 test('TermBuf updateCharAttr resets orphaned trail cells to space and clears isDBCSTrail', () => {
   const updateCharAttrMatch = termBufSource.match(/(updateCharAttr\(\)\s*\{[\s\S]*?\n  \})/);
-  const isFullWidthMatch = termBufSource.match(/(isFullWidth\(str\)\s*\{[\s\S]*?\n  \})/);
-  const isFullWidth = new Function('return function ' + isFullWidthMatch[1])();
-  const updateCharAttr = new Function('TermChar', 'return function ' + updateCharAttrMatch[1])(TermChar);
+  const updateCharAttr = new Function(
+    'TermChar',
+    'isFullWidth',
+    'return function ' + updateCharAttrMatch[1]
+  )(TermChar, isFullWidth);
 
   const line = [
     new TermChar('A'),
@@ -364,7 +367,6 @@ test('TermBuf updateCharAttr resets orphaned trail cells to space and clears isD
     rows: 1,
     lines: [line],
     lineChangeds: [false],
-    isFullWidth,
     updateCharAttr
   };
 

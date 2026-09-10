@@ -14,6 +14,7 @@ import {
   LiveUpdate,
   MouseBrowsing,
 } from '../src/plugins/index.js';
+import { isFullWidth } from '../src/js/wcwidth.js';
 
 // Extract queueUpdate and notify directly from term_buf.js to test their exact implementation
 const termBufSource = fs.readFileSync(
@@ -592,9 +593,6 @@ test('TermBuf puts handles bell (\\x07), setting bellOccurred and dispatching be
     carriageReturn() {},
     lineFeed() {},
     gotoPos() {},
-    isFullWidth() {
-      return false;
-    },
     queueUpdate() {},
     dispatchEvent(evt) {
       if (evt.type === 'bell') bellDispatched++;
@@ -602,8 +600,9 @@ test('TermBuf puts handles bell (\\x07), setting bellOccurred and dispatching be
   };
   mockTerm.puts = new Function(
     'playTerminalBell',
+    'isFullWidth',
     'return function(str, attr = null) { ' + putsBody + ' }'
-  )(playTerminalBell).bind(mockTerm);
+  )(playTerminalBell, isFullWidth).bind(mockTerm);
 
   assert.equal(mockTerm.bellOccurred, false);
   mockTerm.puts('hello\x07world');
@@ -3498,13 +3497,13 @@ test('DOMScreen and CanvasScreen support hyperlink hover and preview hooks and T
   assert.equal(dispatchedEvents[2].type, 'term:hyperlink-leave');
 });
 
-test('calculatePTTByteLength calculates Big5 BBS byte width accurately', async () => {
-  const { calculatePTTByteLength } = await import('../src/js/string_util.js');
-  assert.equal(calculatePTTByteLength(''), 0);
-  assert.equal(calculatePTTByteLength('Hello'), 5);
-  assert.equal(calculatePTTByteLength('你好'), 4);
-  assert.equal(calculatePTTByteLength('Hello 你好!'), 11);
-  assert.equal(calculatePTTByteLength('推 批踢踢'), 9);
+test('stringWidth calculates Big5 BBS column width accurately', async () => {
+  const { stringWidth } = await import('../src/js/string_util.js');
+  assert.equal(stringWidth(''), 0);
+  assert.equal(stringWidth('Hello'), 5);
+  assert.equal(stringWidth('你好'), 4);
+  assert.equal(stringWidth('Hello 你好!'), 11);
+  assert.equal(stringWidth('推 批踢踢'), 9);
 });
 
 test('TouchInputSheet component source defines UI, title, counter and auto-wrap', () => {

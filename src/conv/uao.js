@@ -4,6 +4,15 @@ export const b2uTable = new Uint16Array(65536);
 export const u2bTable = new Uint16Array(65536);
 
 let isInitialized = false;
+const initListeners = [];
+
+export function addUAOInitListener(listener) {
+  if (typeof listener !== "function") return;
+  if (isInitialized) {
+    listener();
+  }
+  initListeners.push(listener);
+}
 
 function decodeBase64ToUint16(b64) {
   if (typeof Uint8Array.fromBase64 === "function") {
@@ -111,6 +120,13 @@ export function initUAO() {
   }
 
   isInitialized = true;
+  for (const listener of initListeners) {
+    try {
+      listener();
+    } catch (err) {
+      console.error("Error in UAO init listener:", err);
+    }
+  }
 }
 
 // Automatically initialize tables on module load

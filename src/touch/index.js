@@ -8,4 +8,4 @@ export {
   TouchUIPlugin,
 } from "./TouchUI.js";
 export { TouchDebugHUD } from "./TouchDebugHUD.js";
-export { TouchInputSheet, calculatePTTByteLength } from "./TouchInputSheet.js";
+export { TouchInputSheet, stringWidth } from "./TouchInputSheet.js";

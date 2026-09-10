@@ -6,7 +6,7 @@ import { termColors, termInvColors } from './term_buf';
 import { renderRowHtml, renderScreen } from './term_ui';
 import { _ } from './i18n';
 import { setTimer } from './util';
-import { u2b } from './string_util';
+import { stringWidth } from './string_util';
 
 const ENTER_CHAR = '\r';
 const DEFINE_INPUT_BUFFER_SIZE = 12;
@@ -817,7 +817,7 @@ export class TermView extends Event {
 
   updateInputBufferWidth() {
     // change width according to input
-    const wordCounts = u2b(this.input.value).length;
+    const wordCounts = stringWidth(this.input.value);
     // chh / 2 - 2 because border of 1
     const oneWordWidth = (this.chh/2-2);
     const width = oneWordWidth*wordCounts;
@@ -921,11 +921,11 @@ export class TermView extends Event {
     let col = 0;
     let doCount = function(cur) {
       if (cur == node) {
-        col += u2b(cur.textContent.substring(0, pos)).length;
+        col += stringWidth(cur.textContent.substring(0, pos));
         return false;
       }
       if (cur.nodeName == '#text') {
-        col += u2b(cur.textContent).length;
+        col += stringWidth(cur.textContent);
         return true;
       }
       for (let e of cur.childNodes) {
