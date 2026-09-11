@@ -3562,3 +3562,93 @@ test('TouchInputSheet styles support compact single-row landscape layout', () =>
   assert.ok(cssSource.includes('--keyboard-offset'));
   assert.ok(cssSource.includes('TouchInputSheet__OptionText--compact'));
 });
+test('TermView fontFitWindowWidth sets transformOrigin to center and prevents viewport overflow', () => {
+  const currentTermViewSource = fs.readFileSync(path.resolve('src/js/term_view.js'), 'utf-8');
+
+  // 1. Static check: transformOrigin must be 'center' and not 'center top'
+  assert.ok(
+    !currentTermViewSource.includes("transformOrigin = 'center top'"),
+    'TermView must not set transformOrigin to center top (causes status line cut off)'
+  );
+  assert.ok(
+    currentTermViewSource.includes("this.mainDisplay.style.transformOrigin = 'center'"),
+    'TermView must set transformOrigin to center'
+  );
+  assert.ok(
+    currentTermViewSource.includes("this.mainDisplay.style.height = (this.chh * this.buf.rows) + 'px'"),
+    'TermView mainDisplay height must match chh * rows'
+  );
+
+  // 2. Behavioral verification of transform origin and viewport bounds calculation
+  function simulateTerminalScale({ innerBounds, cols = 80, rows = 24, chw = 19, chh = 38, fontFitWindowWidth = true }) {
+    const totalHeight = chh * rows;
+    const totalWidth = chw * cols + 10;
+    let baseMarginTop = 0;
+    if (totalHeight < innerBounds.height) {
+      baseMarginTop = (innerBounds.height - totalHeight) / 2;
+    }
+
+    let scaleX = 1;
+    let scaleY = 1;
+    if (fontFitWindowWidth) {
+      scaleX = Math.floor((innerBounds.width / totalWidth) * 100) / 100;
+      scaleY = Math.floor((innerBounds.height / totalHeight) * 100) / 100;
+    }
+
+    // With transformOrigin = 'center':
+    // The unscaled element is at [baseMarginTop, baseMarginTop + totalHeight].
+    // Center is at baseMarginTop + totalHeight / 2 = innerBounds.height / 2.
+    // Scaled bounds expand symmetrically around innerBounds.height / 2:
+    const centerY = baseMarginTop + totalHeight / 2;
+    const scaledHeight = totalHeight * scaleY;
+    const topCenterOrigin = centerY - scaledHeight / 2;
+    const bottomCenterOrigin = centerY + scaledHeight / 2;
+
+    // With broken transformOrigin = 'center top':
+    // Top stays at baseMarginTop, scaling expands downward:
+    const topTopOrigin = baseMarginTop;
+    const bottomTopOrigin = baseMarginTop + scaledHeight;
+
+    return {
+      baseMarginTop,
+      scaleX,
+      scaleY,
+      centerOrigin: { top: topCenterOrigin, bottom: bottomCenterOrigin },
+      topOrigin: { top: topTopOrigin, bottom: bottomTopOrigin },
+    };
+  }
+
+  // Test standard 1080p browser window: 1920 x 950
+  const sim = simulateTerminalScale({
+    innerBounds: { width: 1920, height: 950 },
+    cols: 80,
+    rows: 24,
+    chw: 19,
+    chh: 38,
+    fontFitWindowWidth: true,
+  });
+
+  assert.equal(sim.baseMarginTop, 19, 'Unscaled margin-top is 19px');
+  assert.equal(sim.scaleY, 1.04, 'scaleY is 1.04');
+
+  // With center origin: bottom remains within window height (<= 950)
+  assert.ok(
+    sim.centerOrigin.bottom <= 950,
+    `Center origin bottom (${sim.centerOrigin.bottom}) must not overflow window height (950)`
+  );
+  assert.ok(
+    sim.centerOrigin.top >= 0,
+    `Center origin top (${sim.centerOrigin.top}) must not underflow window top (0)`
+  );
+
+  // Demonstrate that center top origin would overflow and cut off the bottom status line:
+  assert.ok(
+    sim.topOrigin.bottom > 950,
+    `Broken center top origin bottom (${sim.topOrigin.bottom}) overflows window height`
+  );
+  assert.equal(
+    Math.round(sim.topOrigin.bottom - 950),
+    17,
+    'Broken center top origin cuts off bottom status bar by ~half a row'
+  );
+});

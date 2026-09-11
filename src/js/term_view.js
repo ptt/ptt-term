@@ -532,7 +532,7 @@ export class TermView extends Event {
     this.mainDisplay.style.overflowY = 'hidden';
     this.mainDisplay.style.textAlign = 'left';
     this.mainDisplay.style.width = mainWidth;
-    this.mainDisplay.style.height = (this.chh * this.buf.rows + 10) + 'px';
+    this.mainDisplay.style.height = (this.chh * this.buf.rows) + 'px';
 
     this.updateMainDisplayMargin();
     if (this.fontFitWindowWidth) {
@@ -543,10 +543,10 @@ export class TermView extends Event {
       this.scaleY = 1;
     }
 
+    this.mainDisplay.style.transformOrigin = 'center';
     let scaleCss = 'none';
     if (this.scaleX != 1 || this.scaleY != 1) {
       scaleCss = 'scale(' + this.scaleX + ',' + this.scaleY + ')';
-      this.mainDisplay.style.transformOrigin = 'center top';
     }
     this.mainDisplay.style.transform = scaleCss;
 
