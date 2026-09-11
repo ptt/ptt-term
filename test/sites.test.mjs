@@ -1590,16 +1590,15 @@ test('ContextMenu and DropdownMenu decouple LiveHelper and remove right-click it
     'utf-8'
   );
 
-  // DropdownMenu conditionally renders helper items linked to extensions
+  // DropdownMenu dynamically renders helper items linked to extensions
   assert.ok(
-    dropdownSource.includes('liveHelperEnabled &&') &&
-    dropdownSource.includes('cmenu_showLiveArticleHelper'),
-    'DropdownMenu must conditionally render cmenu_showLiveArticleHelper when liveHelperEnabled'
+    dropdownSource.includes('pluginItems &&') &&
+    dropdownSource.includes('pluginItems.map'),
+    'DropdownMenu must dynamically render pluginItems without hardcoded helper fallbacks'
   );
   assert.ok(
-    dropdownSource.includes('inputHelperEnabled &&') &&
-    dropdownSource.includes('cmenu_showInputHelper'),
-    'DropdownMenu must conditionally render cmenu_showInputHelper when inputHelperEnabled'
+    !dropdownSource.includes('liveHelperEnabled'),
+    'DropdownMenu must not contain hardcoded liveHelperEnabled fallback'
   );
 
   // ContextMenu no longer imports legacy LiveHelperModal

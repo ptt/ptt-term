@@ -72,20 +72,13 @@ export const DropdownMenu = ({
   urlEnabled,
   normalEnabled,
   selEnabled,
-  mouseBrowsingEnabled,
-  inputHelperEnabled = true,
-  liveHelperEnabled = false,
   selectedText,
   onMenuSelect,
-  onInputHelperClick,
-  onLiveArticleHelperClick,
-  onLiveHelperClick,
   onSettingsClick,
   pluginItems = [],
 }) => {
   const menuRef = useRef(null);
   const openedAtRef = useRef(0);
-  const handleLiveArticleClick = onLiveArticleHelperClick || onLiveHelperClick;
 
   useLayoutEffect(() => {
     const el = menuRef.current;
@@ -202,7 +195,7 @@ export const DropdownMenu = ({
               {isMac ? "⌘A" : "Ctrl+A"}
             </span>
           </MenuItem>
-          {pluginItems && pluginItems.length > 0 ? (
+          {pluginItems &&
             pluginItems.map((item) => (
               <MenuItem
                 key={item.id}
@@ -213,30 +206,7 @@ export const DropdownMenu = ({
               >
                 {typeof item.label === "function" ? item.label() : item.label}
               </MenuItem>
-            ))
-          ) : (
-            <React.Fragment>
-              <MenuItem
-                eventKey="mouseBrowsing"
-                onSelect={onMenuSelect}
-                className={cx({
-                  "DropdownMenu__Item--checked": mouseBrowsingEnabled,
-                })}
-              >
-                {_("cmenu_mouseBrowsing")}
-              </MenuItem>
-              {inputHelperEnabled && (
-                <MenuItem onClick={onInputHelperClick}>
-                  {_("cmenu_showInputHelper")}
-                </MenuItem>
-              )}
-              {liveHelperEnabled && (
-                <MenuItem onClick={handleLiveArticleClick}>
-                  {_("cmenu_showLiveArticleHelper")}
-                </MenuItem>
-              )}
-            </React.Fragment>
-          )}
+            ))}
           <MenuItem divider />
         </React.Fragment>
       )}

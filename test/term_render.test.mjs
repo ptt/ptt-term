@@ -3136,24 +3136,19 @@ test('ContextMenu and DropdownMenu dynamically link Live Helper and Input Helper
     'DEFAULT_PREFS must include enableInputHelper: true'
   );
 
-  // 2. DropdownMenu accepts inputHelperEnabled and liveHelperEnabled props
+  // 2. DropdownMenu renders dynamic pluginItems instead of hardcoded helpers
   assert.ok(
-    dropdownSource.includes('inputHelperEnabled = true'),
-    'DropdownMenu must accept inputHelperEnabled with default true'
+    dropdownSource.includes('pluginItems &&') &&
+      dropdownSource.includes('pluginItems.map'),
+    'DropdownMenu must dynamically render pluginItems'
   );
   assert.ok(
-    dropdownSource.includes('liveHelperEnabled = false'),
-    'DropdownMenu must accept liveHelperEnabled with default false'
+    !dropdownSource.includes('liveHelperEnabled'),
+    'DropdownMenu must not contain hardcoded liveHelperEnabled fallback'
   );
   assert.ok(
-    dropdownSource.includes('inputHelperEnabled &&') &&
-      dropdownSource.includes('cmenu_showInputHelper'),
-    'DropdownMenu must conditionally render cmenu_showInputHelper'
-  );
-  assert.ok(
-    dropdownSource.includes('liveHelperEnabled &&') &&
-      dropdownSource.includes('cmenu_showLiveArticleHelper'),
-    'DropdownMenu must conditionally render cmenu_showLiveArticleHelper'
+    !dropdownSource.includes('inputHelperEnabled'),
+    'DropdownMenu must not contain hardcoded inputHelperEnabled fallback'
   );
 
   // 3. ContextMenu allows plugins to register items without proactive lookup
@@ -3172,8 +3167,8 @@ test('ContextMenu and DropdownMenu dynamically link Live Helper and Input Helper
     'ContextMenu must not proactively query getPlugin("input_helper")'
   );
   assert.ok(
-    contextMenuSource.includes('handleLiveArticleHelperClick'),
-    'ContextMenu must define handleLiveArticleHelperClick'
+    !contextMenuSource.includes('handleLiveArticleHelperClick'),
+    'ContextMenu must not define hardcoded handleLiveArticleHelperClick'
   );
 
   // 4. InputHelper plugin reads preference on init and App handles onValuesPrefChange
@@ -3287,10 +3282,10 @@ test('InputHelper decouples UI from ContextMenu and renders via PluginOverlay', 
     'ContextMenu must not manage showsInputHelper state'
   );
 
-  // ContextMenu delegates to registered input_helper item
+  // ContextMenu no longer has hardcoded handleInputHelperClick
   assert.ok(
-    contextMenuSource.includes('item.id === "input_helper"'),
-    'ContextMenu handleInputHelperClick must delegate to registered input_helper item'
+    !contextMenuSource.includes('handleInputHelperClick'),
+    'ContextMenu must not define hardcoded handleInputHelperClick'
   );
 
   // InputHelper defines renderOverlay

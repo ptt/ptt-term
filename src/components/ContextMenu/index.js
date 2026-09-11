@@ -21,7 +21,6 @@ const menuHandlerByEventKey = {
   openUrlNewTab: (app, { aElement }) => app.doOpenUrlNewTab(aElement),
   copyLinkUrl: (app, { contextOnUrl }) => app.doCopy(contextOnUrl),
   selectAll: (app) => app.doSelectAll(),
-  mouseBrowsing: (app) => app.switchMouseBrowsing(),
 };
 
 const onPrefSaveImpl = (app, values) => {
@@ -465,47 +464,6 @@ export class ContextMenu extends React.Component {
     this.setState(initialState);
   };
 
-  handleInputHelperClick = (event) => {
-    if (event) {
-      event.stopPropagation();
-    }
-    this.handleHide();
-    const registered = this.getRegisteredItems().find(
-      (item) => item.id === "input_helper"
-    );
-    if (registered && typeof registered.onClick === "function") {
-      registered.onClick(this.props.app, {
-        closeMenu: () => this.handleHide(),
-        event,
-        state: this.state,
-      });
-    }
-  };
-
-  handleLiveArticleHelperClick = (event) => {
-    if (event) {
-      event.stopPropagation();
-    }
-    const { app } = this.props;
-    if (app) {
-      app.contextMenuShown = false;
-    }
-    this.setState({
-      ...initialState,
-    });
-    const registered = this.getRegisteredItems().find(
-      (item) => item.id === "live_update"
-    );
-    if (registered && typeof registered.onClick === "function") {
-      registered.onClick(app, {
-        closeMenu: () => this.handleHide(),
-        event,
-        state: this.state,
-      });
-    }
-  };
-  handleLiveHelperClick = this.handleLiveArticleHelperClick;
-
   handleSettingsClick = (event) => {
     event.stopPropagation();
     const { app } = this.props;
@@ -606,8 +564,6 @@ export class ContextMenu extends React.Component {
     }
     pluginItems.sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
 
-    const mouseBrowsingEnabled = Boolean(app?.useMouseBrowsing);
-
     return (
       <React.Fragment>
         <div className={cx({ open })}>
@@ -619,15 +575,9 @@ export class ContextMenu extends React.Component {
             urlEnabled={urlEnabled}
             normalEnabled={normalEnabled}
             selEnabled={selEnabled}
-            mouseBrowsingEnabled={mouseBrowsingEnabled}
             pluginItems={pluginItems}
-            inputHelperEnabled={true}
-            liveHelperEnabled={false}
             selectedText={selectedText}
             onMenuSelect={this.handleMenuSelect}
-            onInputHelperClick={this.handleInputHelperClick}
-            onLiveArticleHelperClick={this.handleLiveArticleHelperClick}
-            onLiveHelperClick={this.handleLiveArticleHelperClick}
             onSettingsClick={this.handleSettingsClick}
           />
         </div>
