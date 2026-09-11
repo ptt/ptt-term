@@ -315,6 +315,12 @@
   "options_colorScheme_customizeThis": {
     "message": "以目前主題為基底自訂顏色"
   },
+  "options_colorScheme_defaultBg": {
+    "message": "預設底色"
+  },
+  "options_colorScheme_defaultFg": {
+    "message": "預設文字"
+  },
   "options_cursorStyle": {
     "message": "文字游標 (Caret) 樣式"
   },

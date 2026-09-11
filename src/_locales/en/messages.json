@@ -315,6 +315,12 @@
   "options_colorScheme_customizeThis": {
     "message": "Customize colors based on this theme"
   },
+  "options_colorScheme_defaultBg": {
+    "message": "Default Background"
+  },
+  "options_colorScheme_defaultFg": {
+    "message": "Default Foreground"
+  },
   "options_cursorStyle": {
     "message": "Caret style"
   },

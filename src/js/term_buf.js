@@ -7,7 +7,7 @@ import { isFullWidth } from './wcwidth.js';
 import { playTerminalBell } from './bell.js';
 import { Locator } from './locator.js';
 
-export { termColors, termInvColors } from './color_schemes.js';
+export { termColors, termInvColors, termDefaultBg, termDefaultFg } from './color_schemes.js';
 
 export class TermChar {
   static defaultFg = 7;
@@ -69,7 +69,11 @@ export class TermChar {
         // invisible is not supported
         break;
       default:
-        if (v <= 37) {
+        if (v === 39) {
+          this.fg = 7;
+        } else if (v === 49) {
+          this.bg = 0;
+        } else if (v <= 37) {
           if (v >= 30) { // fg
             this.fg = v - 30;
           }

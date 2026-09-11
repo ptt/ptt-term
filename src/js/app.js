@@ -1057,6 +1057,9 @@ export class App extends EventEmitter {
 
   onValuesPrefChange(values) {
   this.prefValues = values;
+  if (values && values.colorScheme !== undefined) {
+    this.colorScheme = values.colorScheme;
+  }
   for (const name in values) {
     this.onPrefChange(name, values[name]);
   }
@@ -1129,15 +1132,27 @@ export class App extends EventEmitter {
       break;
     case 'colorScheme':
       this.colorScheme = value;
-      applyColorScheme(value, this.prefValues?.customColors);
+      applyColorScheme(
+        value,
+        this.prefValues?.customColors,
+        this.prefValues?.customDefaultBg,
+        this.prefValues?.customDefaultFg
+      );
       if (this.view) {
         this.view.updateHighlightColor();
         this.view.redraw(true);
       }
       break;
     case 'customColors':
+    case 'customDefaultBg':
+    case 'customDefaultFg':
       if (this.colorScheme === 'custom') {
-        applyColorScheme('custom', value);
+        applyColorScheme(
+          'custom',
+          this.prefValues?.customColors,
+          this.prefValues?.customDefaultBg,
+          this.prefValues?.customDefaultFg
+        );
         if (this.view) {
           this.view.updateHighlightColor();
           this.view.redraw(true);

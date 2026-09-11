@@ -448,10 +448,10 @@ export class EasyReading {
   updatePushInitRow(row) {
     if (!this.lastRowDiv) return;
     const el = document.createElement('span');
-    el.style = "background-color:black;";
+    el.style = "background-color:var(--term-bg, var(--term-color-0, black));";
     this.renderSingleRow(el, row);
     this.setSingleChild(this.lastRowDiv.childNodes[0] || this.lastRowDiv, el);
-    this.lastRowDiv.style.backgroundColor = 'black';
+    this.lastRowDiv.style.backgroundColor = 'var(--term-bg, var(--term-color-0, black))';
     this.lastRowDiv.style.display = 'block';
   }
 

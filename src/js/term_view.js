@@ -2,7 +2,7 @@
 
 import { EventEmitter } from './event.js';
 import { TermKeyboard } from './term_keyboard';
-import { termColors, termInvColors } from './term_buf';
+import { termColors, termInvColors, termDefaultBg, termDefaultFg } from './term_buf';
 import { renderRowHtml, renderScreen } from './term_ui';
 import { _ } from './i18n';
 import { setTimer } from './util';
@@ -346,6 +346,9 @@ export class TermView extends EventEmitter {
             this.handleRenderFrame(durationMs, isCanvas);
           },
           smoothAnsiArt: this.smoothAnsiArt,
+          colorScheme: this.colorScheme || this.app?.colorScheme,
+          defaultBg: termColors.defaultBg || termDefaultBg,
+          defaultFg: termColors.defaultFg || termDefaultFg,
           changedRows: changedRows,
           createHyperlinkPreviewRequest: (href) => this.resolveHyperlinkPreview(href),
           renderHyperlinkPreview: this.renderHyperlinkPreview,

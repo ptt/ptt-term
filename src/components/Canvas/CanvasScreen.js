@@ -78,6 +78,9 @@ export class CanvasScreen extends React.Component {
       this.props.cols !== prevProps.cols ||
       this.props.rows !== prevProps.rows ||
       this.props.charset !== prevProps.charset ||
+      this.props.colorScheme !== prevProps.colorScheme ||
+      this.props.defaultBg !== prevProps.defaultBg ||
+      this.props.defaultFg !== prevProps.defaultFg ||
       (prevState &&
         this.state.currentHighlighted !== prevState.currentHighlighted);
 

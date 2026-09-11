@@ -731,19 +731,44 @@ export class PrefModal extends React.Component {
     }
     if (name === "colorScheme" && value === "custom") {
       const prevScheme = this.state.values.colorScheme || "default";
+      const scheme = COLOR_SCHEMES[prevScheme] || COLOR_SCHEMES["default"];
       const baseColors = this.state.values.customColors ||
-        [...(COLOR_SCHEMES[prevScheme]?.colors || COLOR_SCHEMES["default"].colors)];
+        [...(scheme?.colors || COLOR_SCHEMES["default"].colors)];
+      const baseBg = this.state.values.customDefaultBg || scheme?.defaultBg || scheme?.colors[0] || "#000000";
+      const baseFg = this.state.values.customDefaultFg || scheme?.defaultFg || scheme?.colors[7] || "#c0c0c0";
       this.setState((prevState) => ({
         values: {
           ...prevState.values,
           colorScheme: "custom",
           customColors: baseColors,
+          customDefaultBg: baseBg,
+          customDefaultFg: baseFg,
         },
       }));
       return;
     }
     this.setState((prevState) => ({
       values: changeNestedValue(prevState.values, name, value),
+    }));
+  };
+
+  handleCustomDefaultBgChange = (newColor) => {
+    this.setState((prevState) => ({
+      values: {
+        ...prevState.values,
+        colorScheme: "custom",
+        customDefaultBg: newColor,
+      },
+    }));
+  };
+
+  handleCustomDefaultFgChange = (newColor) => {
+    this.setState((prevState) => ({
+      values: {
+        ...prevState.values,
+        colorScheme: "custom",
+        customDefaultFg: newColor,
+      },
     }));
   };
 
@@ -762,10 +787,13 @@ export class PrefModal extends React.Component {
   };
 
   handleResetCustomColors = () => {
+    const defScheme = COLOR_SCHEMES["default"];
     this.setState((prevState) => ({
       values: {
         ...prevState.values,
-        customColors: [...COLOR_SCHEMES["default"].colors],
+        customColors: [...defScheme.colors],
+        customDefaultBg: defScheme.defaultBg || defScheme.colors[0],
+        customDefaultFg: defScheme.defaultFg || defScheme.colors[7],
       },
     }));
   };
@@ -773,12 +801,17 @@ export class PrefModal extends React.Component {
   handleCustomizeCurrentScheme = (e) => {
     e?.preventDefault?.();
     const currentScheme = this.state.values.colorScheme || "default";
-    const colors = [...(COLOR_SCHEMES[currentScheme]?.colors || COLOR_SCHEMES["default"].colors)];
+    const scheme = COLOR_SCHEMES[currentScheme] || COLOR_SCHEMES["default"];
+    const colors = [...(scheme?.colors || COLOR_SCHEMES["default"].colors)];
+    const defaultBg = scheme?.defaultBg || colors[0];
+    const defaultFg = scheme?.defaultFg || colors[7];
     this.setState((prevState) => ({
       values: {
         ...prevState.values,
         colorScheme: "custom",
         customColors: colors,
+        customDefaultBg: defaultBg,
+        customDefaultFg: defaultFg,
       },
     }));
   };
@@ -980,11 +1013,70 @@ export class PrefModal extends React.Component {
                   )}
                   {(() => {
                     const isCustom = (values.colorScheme === "custom");
+                    const scheme = COLOR_SCHEMES[values.colorScheme] || COLOR_SCHEMES["default"];
                     const activeColors = isCustom
                       ? (values.customColors || COLOR_SCHEMES["default"].colors)
-                      : ((COLOR_SCHEMES[values.colorScheme] || COLOR_SCHEMES["default"]).colors);
+                      : (scheme?.colors || COLOR_SCHEMES["default"].colors);
+                    const activeBg = isCustom
+                      ? (values.customDefaultBg || activeColors[0])
+                      : (scheme?.defaultBg || activeColors[0]);
+                    const activeFg = isCustom
+                      ? (values.customDefaultFg || activeColors[7])
+                      : (scheme?.defaultFg || activeColors[7]);
                     return (
                       <>
+                        <div className="PrefModal__ColorDefaults">
+                          <div className="PrefModal__ColorDefaultItem">
+                            <span className="PrefModal__ColorDefaultLabel">
+                              {_("options_colorScheme_defaultBg")}
+                            </span>
+                            {isCustom ? (
+                              <label
+                                className="PrefModal__ColorSwatch PrefModal__ColorSwatch--editable PrefModal__ColorDefaultSwatch"
+                                title={`${_("options_colorScheme_defaultBg")}: ${activeBg}`}
+                                style={{ backgroundColor: activeBg }}
+                              >
+                                <input
+                                  type="color"
+                                  value={ensureHexColor(activeBg)}
+                                  onChange={(e) => this.handleCustomDefaultBgChange(e.target.value)}
+                                  className="PrefModal__ColorInput"
+                                />
+                              </label>
+                            ) : (
+                              <span
+                                className="PrefModal__ColorSwatch PrefModal__ColorDefaultSwatch"
+                                title={`${_("options_colorScheme_defaultBg")}: ${activeBg}`}
+                                style={{ backgroundColor: activeBg }}
+                              />
+                            )}
+                          </div>
+                          <div className="PrefModal__ColorDefaultItem">
+                            <span className="PrefModal__ColorDefaultLabel">
+                              {_("options_colorScheme_defaultFg")}
+                            </span>
+                            {isCustom ? (
+                              <label
+                                className="PrefModal__ColorSwatch PrefModal__ColorSwatch--editable PrefModal__ColorDefaultSwatch"
+                                title={`${_("options_colorScheme_defaultFg")}: ${activeFg}`}
+                                style={{ backgroundColor: activeFg }}
+                              >
+                                <input
+                                  type="color"
+                                  value={ensureHexColor(activeFg)}
+                                  onChange={(e) => this.handleCustomDefaultFgChange(e.target.value)}
+                                  className="PrefModal__ColorInput"
+                                />
+                              </label>
+                            ) : (
+                              <span
+                                className="PrefModal__ColorSwatch PrefModal__ColorDefaultSwatch"
+                                title={`${_("options_colorScheme_defaultFg")}: ${activeFg}`}
+                                style={{ backgroundColor: activeFg }}
+                              />
+                            )}
+                          </div>
+                        </div>
                         <div className="PrefModal__ColorSchemePreview">
                           {activeColors.map((c, i) =>
                             isCustom ? (

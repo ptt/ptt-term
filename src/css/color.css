@@ -15,7 +15,7 @@
 .q6, .q6::before, .rq6::after{color:var(--term-color-6, #008080);}
 .y:not(.o):hover, .y:hover::before, .y:hover::after,
 .aid-action:not(.o):hover, .aid-action:hover::before, .aid-action:hover::after,
-.q7, .q7::before, .rq7::after{color:var(--term-color-7, #c0c0c0);}
+.q7, .q7::before, .rq7::after{color:var(--term-fg, var(--term-color-7, #c0c0c0));}
 .q8, .q8::before, .rq8::after{color:var(--term-color-8, #808080);}
 .q9, .q9::before, .rq9::after{color:var(--term-color-9, #ff0000);}
 .q10, .q10::before, .rq10::after{color:var(--term-color-10, #00ff00);}

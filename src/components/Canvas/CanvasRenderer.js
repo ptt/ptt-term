@@ -1,4 +1,4 @@
-import { termColors } from "../../js/term_buf";
+import { termColors, termDefaultBg, termDefaultFg } from "../../js/term_buf";
 import { SmoothAnsiArt, ANSI_BLOCK_SET, hasAnsiArt } from "./SmoothAnsiArt";
 import { CanvasSelection } from "./CanvasSelection";
 
@@ -566,6 +566,11 @@ export class CanvasRenderer {
       this.hasBlink = false;
     }
 
+    const defaultBg =
+      termColors.defaultBg || termDefaultBg || termColors[0] || "#000000";
+    const defaultFg =
+      termColors.defaultFg || termDefaultFg || termColors[7] || "#c0c0c0";
+
     if (targetRows) {
       ctx.save();
       ctx.beginPath();
@@ -575,13 +580,13 @@ export class CanvasRenderer {
       }
       ctx.clip();
 
-      ctx.fillStyle = termColors[0] || "#000000";
+      ctx.fillStyle = defaultBg;
       for (let i = 0; i < targetRows.length; ++i) {
         const r = targetRows[i];
         ctx.fillRect(0, r * chh, width, chh);
       }
     } else {
-      ctx.fillStyle = termColors[0] || "#000000";
+      ctx.fillStyle = defaultBg;
       ctx.fillRect(0, 0, width, height);
     }
 
@@ -598,7 +603,7 @@ export class CanvasRenderer {
       for (let cIdx = 0; cIdx < 16; ++cIdx) {
         const bucket = ansiBlockBuckets[cIdx];
         if (bucket.length === 0) continue;
-        ctx.fillStyle = termColors[cIdx];
+        ctx.fillStyle = cIdx === 7 ? defaultFg : termColors[cIdx];
         ctx.beginPath();
         for (let i = 0; i < bucket.length; ++i) {
           SmoothAnsiArt.drawBlock(ctx, bucket[i], blockGrid, cols, rows, chw, chh);
@@ -610,7 +615,7 @@ export class CanvasRenderer {
     for (let cIdx = 0; cIdx < 16; ++cIdx) {
       const bucket = textBuckets[cIdx];
       if (bucket.length === 0) continue;
-      ctx.fillStyle = termColors[cIdx];
+      ctx.fillStyle = cIdx === 7 ? defaultFg : termColors[cIdx];
       for (let i = 0; i < bucket.length; ++i) {
         const item = bucket[i];
         if (item.clip) {
@@ -636,7 +641,7 @@ export class CanvasRenderer {
     for (let uIdx = 0; uIdx < 16; ++uIdx) {
       const uRuns = underlineBuckets[uIdx];
       if (uRuns.length === 0) continue;
-      ctx.fillStyle = termColors[uIdx];
+      ctx.fillStyle = uIdx === 7 ? defaultFg : termColors[uIdx];
       for (let i = 0; i < uRuns.length; i += 4) {
         ctx.fillRect(uRuns[i], uRuns[i + 1], uRuns[i + 2], uRuns[i + 3]);
       }

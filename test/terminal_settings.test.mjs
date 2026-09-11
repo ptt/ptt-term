@@ -43,6 +43,8 @@ test('COLOR_SCHEMES defines all standard terminal color palettes with 16 colors 
     const scheme = COLOR_SCHEMES[name];
     assert.ok(scheme, `Scheme ${name} should be defined`);
     assert.equal(scheme.colors.length, 16, `Scheme ${name} must have 16 colors`);
+    assert.match(scheme.defaultBg, /^#[0-9a-fA-F]{6}$/, `defaultBg in ${name} must be hex`);
+    assert.match(scheme.defaultFg, /^#[0-9a-fA-F]{6}$/, `defaultFg in ${name} must be hex`);
     for (let i = 0; i < 16; i++) {
       assert.match(scheme.colors[i], /^#[0-9a-fA-F]{6}$/, `Color ${i} in ${name} must be hex`);
     }
@@ -72,18 +74,23 @@ test('applyColorScheme updates termColors in-place and sets CSS variables', () =
     assert.equal(termColors[0], '#002b36');
     assert.equal(cssVars['--term-color-0'], '#002b36');
     assert.equal(cssVars['--term-bg'], '#002b36');
+    assert.equal(cssVars['--term-fg'], '#839496');
     assert.equal(mockElement.style.backgroundColor, '#002b36');
 
     // 2. Apply nord
     applyColorScheme('nord');
     assert.equal(termColors[0], '#2e3440');
     assert.equal(cssVars['--term-color-0'], '#2e3440');
+    assert.equal(cssVars['--term-bg'], '#2e3440');
+    assert.equal(cssVars['--term-fg'], '#d8dee9');
 
     // 3. Restore default
     applyColorScheme('default');
     assert.equal(termColors[0], '#000000');
     assert.equal(termColors[15], '#ffffff');
     assert.equal(cssVars['--term-color-0'], '#000000');
+    assert.equal(cssVars['--term-bg'], '#000000');
+    assert.equal(cssVars['--term-fg'], '#c0c0c0');
   } finally {
     globalThis.document = originalDoc;
   }
@@ -112,13 +119,14 @@ test('applyColorScheme supports custom scheme with customColors array', () => {
       '#999999', '#aaaaaa', '#bbbbbb', '#cccccc', '#dddddd', '#eeeeee', '#f5f5f5', '#ffffff'
     ];
 
-    applyColorScheme('custom', myCustomColors);
+    applyColorScheme('custom', myCustomColors, '#050505', '#e0e0e0');
     assert.equal(termColors[0], '#111111');
     assert.equal(termColors[7], '#888888');
     assert.equal(termColors[15], '#ffffff');
     assert.equal(cssVars['--term-color-0'], '#111111');
     assert.equal(cssVars['--term-color-7'], '#888888');
-    assert.equal(cssVars['--term-bg'], '#111111');
+    assert.equal(cssVars['--term-bg'], '#050505');
+    assert.equal(cssVars['--term-fg'], '#e0e0e0');
   } finally {
     globalThis.document = originalDoc;
     applyColorScheme('default');
@@ -129,6 +137,8 @@ test('DEFAULT_PREFS includes new terminal settings with sensible defaults', () =
   assert.equal(DEFAULT_PREFS.uiLocale, 'auto');
   assert.equal(DEFAULT_PREFS.warnBeforeClose, true);
   assert.equal(DEFAULT_PREFS.colorScheme, 'default');
+  assert.equal(DEFAULT_PREFS.customDefaultBg, '#000000');
+  assert.equal(DEFAULT_PREFS.customDefaultFg, '#c0c0c0');
   assert.ok(Array.isArray(DEFAULT_PREFS.customColors));
   assert.equal(DEFAULT_PREFS.customColors.length, 16);
   assert.equal(DEFAULT_PREFS.trimTrailingSpaces, true);
@@ -228,6 +238,10 @@ test('PrefModal source code includes Mouse tab, colorScheme, visualBell, lineHei
     prefModalSrc.includes('PrefModal__ColorSchemePreview'),
     'Appearance tab must render colorScheme preview bar'
   );
+  assert.ok(
+    prefModalSrc.includes('PrefModal__ColorDefaults'),
+    'Appearance tab must render default background and foreground pickers'
+  );
   const prefModalCss = fs.readFileSync(
     PREF_MODAL_CSS_PATH,
     'utf-8'
@@ -298,6 +312,8 @@ test('i18n files define all required translations for new settings', () => {
     'options_colorScheme_dracula',
     'options_colorScheme_retroAmber',
     'options_colorScheme_retroGreen',
+    'options_colorScheme_defaultBg',
+    'options_colorScheme_defaultFg',
     'options_trimTrailingSpaces',
     'options_rightClickAction',
     'options_rightClickAction_menu',
@@ -982,4 +998,84 @@ test('Bug report helper detects site, client, OS, browser, settings, and builds 
   assert.ok(parsedUrl.searchParams.get('env-info').includes('Site: https://term.ptt.cc'));
   assert.ok(parsedUrl.searchParams.get('env-info').includes('Render Engine Type: Canvas Engine'));
   assert.ok(parsedUrl.searchParams.get('env-info').includes('fontFitWindowWidth=true'));
+});
+
+test('applyColorScheme updates .main element and meta theme-color', () => {
+  const originalDoc = globalThis.document;
+  try {
+    const cssVars = {};
+    const mockElement = {
+      style: {
+        setProperty: (k, v) => {
+          cssVars[k] = v;
+        },
+        backgroundColor: '',
+      },
+    };
+    const mainElement = {
+      style: {
+        backgroundColor: '',
+      },
+    };
+    let metaThemeContent = '';
+    const mockMeta = {
+      setAttribute: (name, val) => {
+        if (name === 'content') metaThemeContent = val;
+      },
+    };
+
+    globalThis.document = {
+      documentElement: mockElement,
+      body: mockElement,
+      getElementById: (id) => (id === 'TermWindow' ? mockElement : null),
+      querySelectorAll: (sel) => (sel === '.main' ? [mainElement] : []),
+      querySelector: (sel) => (sel === 'meta[name="theme-color"]' ? mockMeta : null),
+    };
+
+    applyColorScheme('dracula');
+    assert.equal(mockElement.style.backgroundColor, '#282a36');
+    assert.equal(mainElement.style.backgroundColor, '#282a36');
+    assert.equal(metaThemeContent, '#282a36');
+  } finally {
+    globalThis.document = originalDoc;
+    applyColorScheme('default');
+  }
+});
+
+test('main.css and easy reading use dynamic default background variables', () => {
+  const mainCss = fs.readFileSync(path.resolve('src/css/main.css'), 'utf-8');
+  assert.ok(
+    mainCss.includes('.main {\n  font-family:\n    MingLiu, SymMingLiu, "Noto Sans Mono CJK TC", "PingFang TC", monospace;\n  font-size: 26px;\n  line-height: 100%;\n  margin-top: 0px;\n  margin-left: 0px;\n  margin-right: 0px;\n  margin-bottom: 0px;\n  user-select: text;\n  background-color: var(--term-bg, var(--term-color-0, black));'),
+    '.main must use var(--term-bg, var(--term-color-0, black))'
+  );
+  assert.ok(
+    mainCss.includes('#easyReadingReplyRow {\n  position: absolute;\n  bottom: 0;\n  left: 0;\n  right: 0;\n  height: 1.2em;\n  display: none;\n  overflow: hidden;\n  user-select: none;\n  background-color: var(--term-bg, var(--term-color-0, black));'),
+    '#easyReadingReplyRow must use var(--term-bg, var(--term-color-0, black))'
+  );
+  assert.ok(
+    mainCss.includes('body {\n  width: 100%;\n  height: 100%;\n  color: white;\n  /* background-color: #101010; */\n  background-color: var(--term-bg, var(--term-color-0, black));'),
+    'body must use var(--term-bg, var(--term-color-0, black))'
+  );
+
+  const canvasScreenSrc = fs.readFileSync(
+    path.resolve('src/components/Canvas/CanvasScreen.js'),
+    'utf-8'
+  );
+  assert.ok(
+    canvasScreenSrc.includes('this.props.colorScheme !== prevProps.colorScheme'),
+    'CanvasScreen layoutOrStyleChanged must check colorScheme'
+  );
+  assert.ok(
+    canvasScreenSrc.includes('this.props.defaultBg !== prevProps.defaultBg'),
+    'CanvasScreen layoutOrStyleChanged must check defaultBg'
+  );
+
+  const termViewSrc = fs.readFileSync(
+    path.resolve('src/js/term_view.js'),
+    'utf-8'
+  );
+  assert.ok(
+    termViewSrc.includes('defaultBg: termColors.defaultBg || termDefaultBg'),
+    'TermView must pass defaultBg to renderScreen'
+  );
 });

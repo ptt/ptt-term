@@ -46,6 +46,8 @@ export const DEFAULT_PREFS = {
 
   // displays
   colorScheme: 'default',
+  customDefaultBg: '#000000',
+  customDefaultFg: '#c0c0c0',
   customColors: [
     '#000000', '#800000', '#008000', '#808000', '#000080', '#800080', '#008080', '#c0c0c0',
     '#808080', '#ff0000', '#00ff00', '#ffff00', '#0000ff', '#ff00ff', '#00ffff', '#ffffff'
@@ -100,6 +102,8 @@ export const getDefaultPrefs = () => ({
   enableVirtualKeyboard: getDefaultVirtualKeyboard(),
   termSize: { ...DEFAULT_PREFS.termSize },
   customColors: [...DEFAULT_PREFS.customColors],
+  customDefaultBg: DEFAULT_PREFS.customDefaultBg,
+  customDefaultFg: DEFAULT_PREFS.customDefaultFg,
 });
 
 export const readValuesWithDefault = () => {
@@ -119,6 +123,12 @@ export const readValuesWithDefault = () => {
     };
     if (saved && Array.isArray(saved.customColors) && saved.customColors.length === 16) {
       prefs.customColors = [...saved.customColors];
+    }
+    if (saved && typeof saved.customDefaultBg === 'string' && /^#[0-9a-fA-F]{6}$/.test(saved.customDefaultBg)) {
+      prefs.customDefaultBg = saved.customDefaultBg;
+    }
+    if (saved && typeof saved.customDefaultFg === 'string' && /^#[0-9a-fA-F]{6}$/.test(saved.customDefaultFg)) {
+      prefs.customDefaultFg = saved.customDefaultFg;
     }
     if (isStandaloneMode()) {
       prefs.enablePwaPrompt = false;
