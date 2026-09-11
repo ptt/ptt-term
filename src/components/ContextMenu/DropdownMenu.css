@@ -1,17 +1,15 @@
-/* macOS Translucent Acrylic Context Menu */
+/* Context Menu */
 .DropdownMenu--reset {
   visibility: hidden;
   user-select: none;
   min-width: 180px;
   padding: 5px;
   border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  background-color: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(25px) saturate(190%);
-  -webkit-backdrop-filter: blur(25px) saturate(190%);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background-color: #ffffff;
   box-shadow:
-    0 14px 34px rgba(0, 0, 0, 0.22),
-    0 3px 8px rgba(0, 0, 0, 0.08);
+    0 8px 24px rgba(0, 0, 0, 0.16),
+    0 2px 6px rgba(0, 0, 0, 0.08);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
     "PingFang TC", "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
