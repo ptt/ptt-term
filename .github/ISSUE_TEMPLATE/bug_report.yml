@@ -73,7 +73,7 @@ body:
     id: os-version
     attributes:
       label: 作業系統詳細版本 (OS Version)
-      description: 例如：Windows 11 23H2, macOS 14.5, iOS 17.5, Ubuntu 24.04
+      description: 例如：Windows 11 23H2, macOS 14.5, iOS 17.5, Ubuntu 24.04（若由「關於」分頁點擊「問題回報」將會自動填入）
       placeholder: 例如：Windows 11 23H2
     validations:
       required: false
@@ -99,7 +99,7 @@ body:
     id: browser-version
     attributes:
       label: 瀏覽器詳細版本 (Browser Version)
-      description: 例如：Chrome 128.0.6613.119
+      description: 例如：Chrome 128.0.6613.119（若由「關於」分頁點擊「問題回報」將會自動填入）
       placeholder: 例如：Chrome 128.0
     validations:
       required: false
@@ -108,7 +108,7 @@ body:
     id: render-engine-type
     attributes:
       label: 渲染引擎種類 (Render Engine Type)
-      description: 請選擇發生問題時所使用的渲染引擎。若未自行設定，預設即為 Canvas Engine。（若由「關於」分頁點擊「問題回報」將會自動填入）
+      description: 請選擇發生問題時所使用的渲染引擎。若未自行設定，預設即為 Canvas Engine。（若由「關於」分頁點擊「問題回報」，下方環境資訊已自動包含，此項可略過）
       options:
         - Canvas Engine（預設）
         - DOM Engine
@@ -119,7 +119,7 @@ body:
     id: term-size-mode
     attributes:
       label: 終端機大小與縮放模式 (Terminal Size Mode)
-      description: 請選擇目前設定的終端機大小或縮放模式。（若由「關於」分頁點擊「問題回報」將會自動填入）
+      description: 請選擇目前設定的終端機大小或縮放模式。（若由「關於」分頁點擊「問題回報」，下方環境資訊已自動包含，此項可略過）
       options:
         - 依視窗調整字體大小 (Max Font Size)（預設）
         - 固定字型大小 (Fixed Font Size)
@@ -164,7 +164,7 @@ body:
     id: extra-settings
     attributes:
       label: 相關特殊設定 (Relevant Settings)
-      description: 請勾選目前有開啟或調整的特殊選項（若有）
+      description: 請勾選目前有開啟或調整的特殊選項（若由「關於」分頁點擊「問題回報」，下方環境資訊已自動包含，此項可略過）
       options:
         - label: 開啟「固定終端機大小 (Fixed Terminal Size)」
         - label: 開啟「把字體拉大來補滿畫面 (fontFitWindowWidth)」

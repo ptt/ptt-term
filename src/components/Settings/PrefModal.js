@@ -21,6 +21,18 @@ import {
   PLUGIN_GROUPS,
 } from "../../plugins/index.js";
 
+import {
+  buildBugReportUrl,
+  detectSite,
+  detectClientType,
+  detectClientMode,
+  detectOS,
+  detectOSVersion,
+  detectBrowser,
+  detectBrowserVersion,
+  detectExtraSettings,
+} from "../../js/bug_report.js";
+
 export {
   getDefaultPrefs,
   readValuesWithDefault,
@@ -28,6 +40,15 @@ export {
   parseOptionText,
   groupPlugins,
   PLUGIN_GROUPS,
+  buildBugReportUrl,
+  detectSite,
+  detectClientType,
+  detectClientMode,
+  detectOS,
+  detectOSVersion,
+  detectBrowser,
+  detectBrowserVersion,
+  detectExtraSettings,
 };
 
 const ANSI_COLOR_NAMES = [
@@ -570,116 +591,14 @@ export class PrefModal extends React.Component {
   };
 
   getBugReportUrl = () => {
-    const today = new Date().toISOString().slice(0, 10);
-    const buildText = `Build: ${APP.COMMIT_HASH || ""} ${APP.BUILD_DATE || ""}`.trim();
-    const params = new URLSearchParams({
-      template: "bug_report.yml",
-      "occurrence-date": today,
+    return buildBugReportUrl({
+      app: this.props.app,
+      isTouch: this.props.isTouch,
+      values: this.state.values,
+      win: typeof window !== "undefined" ? window : undefined,
+      nav: typeof navigator !== "undefined" ? navigator : undefined,
+      appInfo: typeof APP !== "undefined" ? APP : undefined,
     });
-    if (buildText) {
-      params.set("build-info", buildText);
-    }
-
-    const useCanvas = this.state.values?.useCanvasEngine !== false;
-    params.set(
-      "render-engine-type",
-      useCanvas ? "Canvas Engine（預設）" : "DOM Engine"
-    );
-
-    const termSizeMode = this.state.values?.termSizeMode || "max-font-size";
-    let termSizeParam = "依視窗調整字體大小 (Max Font Size)（預設）";
-    if (termSizeMode === "fixed-term-size") {
-      termSizeParam = this.state.values?.fontFitWindowWidth
-        ? "固定終端機大小 + 把字體拉大來補滿畫面 (Fixed Terminal Size + fontFitWindowWidth)"
-        : "固定終端機大小 (Fixed Terminal Size)";
-    } else if (termSizeMode === "fixed-font-size") {
-      termSizeParam = "固定字型大小 (Fixed Font Size)";
-    }
-    params.set("term-size-mode", termSizeParam);
-
-    const envLines = [];
-    if (typeof window !== "undefined") {
-      const siteUrl = window.location.origin || window.location.href || "";
-      if (siteUrl) {
-        envLines.push(`Site: ${siteUrl}`);
-      }
-      const isPWA =
-        window.matchMedia?.("(display-mode: standalone)")?.matches ||
-        window.navigator?.standalone === true;
-      envLines.push(`Client: ${isPWA ? "PWA" : "Web"}`);
-
-      const isMobile = Boolean(
-        this.props.isTouch ||
-        this.props.app?.isMobileLayout?.() ||
-        this.props.app?.isMobileDevice?.()
-      );
-      envLines.push(`Mode: ${isMobile ? "Mobile (Touch)" : "Desktop"}`);
-
-      envLines.push(
-        `Render Engine Type: ${useCanvas ? "Canvas Engine" : "DOM Engine"}`
-      );
-
-      const dpr = window.devicePixelRatio || 1;
-      const screenInfo = window.screen
-        ? `${window.screen.width}x${window.screen.height}`
-        : "unknown";
-      envLines.push(
-        `Viewport: ${window.innerWidth}x${window.innerHeight} (Screen: ${screenInfo}, DPR: ${dpr})`
-      );
-    }
-
-    if (this.state.values) {
-      let termSizeDetail = termSizeMode;
-      if (termSizeMode === "fixed-term-size") {
-        const cols = this.state.values.termSize?.cols ?? 80;
-        const rows = this.state.values.termSize?.rows ?? 24;
-        const fitWidth = Boolean(this.state.values.fontFitWindowWidth);
-        termSizeDetail = `fixed-term-size (${cols}x${rows}, fontFitWindowWidth=${fitWidth})`;
-      } else if (termSizeMode === "fixed-font-size") {
-        termSizeDetail = `fixed-font-size (fontSize=${this.state.values.fontSize || 24})`;
-      } else if (termSizeMode === "max-font-size") {
-        termSizeDetail = `max-font-size (maxFontSize=${this.state.values.maxFontSize || 40})`;
-      }
-      envLines.push(`Terminal Size: ${termSizeDetail}`);
-    }
-
-    if (typeof navigator !== "undefined") {
-      if (navigator.userAgent) {
-        envLines.push(`User Agent: ${navigator.userAgent}`);
-      }
-      if (navigator.userAgentData?.platform) {
-        const brands = navigator.userAgentData.brands
-          ?.map((b) => `${b.brand} ${b.version}`)
-          .join(", ");
-        envLines.push(
-          `Platform: ${navigator.userAgentData.platform} (Mobile: ${Boolean(
-            navigator.userAgentData.mobile
-          )}, Brands: ${brands || "none"})`
-        );
-      }
-    }
-
-    if (this.state.values) {
-      const extra = [];
-      if (this.state.values.smoothAnsiArt) extra.push("smoothAnsiArt");
-      if (this.state.values.fontFamily) extra.push(`font=${this.state.values.fontFamily}`);
-      if (this.state.values.colorScheme && this.state.values.colorScheme !== "default") {
-        extra.push(`colorScheme=${this.state.values.colorScheme}`);
-      }
-      if (this.state.values.cursorStyle && this.state.values.cursorStyle !== "blink") {
-        extra.push(`cursorStyle=${this.state.values.cursorStyle}`);
-      }
-      if (this.state.values.enableVirtualKeyboard) extra.push("virtualKeyboard");
-      if (extra.length > 0) {
-        envLines.push(`Settings: ${extra.join(", ")}`);
-      }
-    }
-
-    if (envLines.length > 0) {
-      params.set("env-info", envLines.join("\n"));
-    }
-
-    return `https://github.com/${APP.GITHUB_REPOSITORY}/issues/new?${params.toString()}`;
   };
 
   componentDidMount() {

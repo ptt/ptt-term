@@ -7,6 +7,17 @@ import { termColors } from '../src/js/color_schemes.js';
 import { DEFAULT_PREFS, readValuesWithDefault, parseOptionText } from '../src/js/pref.js';
 import { TermKeyboard } from '../src/js/term_keyboard.js';
 import { getAvailablePlugins, groupPlugins, PLUGIN_GROUPS } from '../src/plugins/index.js';
+import {
+  detectSite,
+  detectClientType,
+  detectClientMode,
+  detectOS,
+  detectOSVersion,
+  detectBrowser,
+  detectBrowserVersion,
+  detectExtraSettings,
+  buildBugReportUrl,
+} from '../src/js/bug_report.js';
 
 const PREF_MODAL_JS_PATH = fs.existsSync(path.resolve('src/components/Settings/PrefModal.js'))
   ? path.resolve('src/components/Settings/PrefModal.js')
@@ -695,24 +706,28 @@ test('PrefModal About tab renders Version & Source Code with distinct version li
     bugReportTemplate.includes('Build: xxxxxxxx YYYY-MM-DD'),
     'bug_report.yml must instruct how to find build info'
   );
+  const bugReportSrc = fs.readFileSync(
+    path.resolve('src/js/bug_report.js'),
+    'utf-8'
+  );
   assert.ok(
-    prefModalSrc.includes('bug_report.yml'),
+    prefModalSrc.includes('buildBugReportUrl') && bugReportSrc.includes('bug_report.yml'),
     'PrefModal About tab must link to bug report template'
   );
   assert.ok(
-    prefModalSrc.includes('occurrence-date') &&
-      prefModalSrc.includes('build-info') &&
-      prefModalSrc.includes('render-engine-type') &&
-      prefModalSrc.includes('term-size-mode') &&
-      prefModalSrc.includes('env-info'),
-    'PrefModal must prefill occurrence-date, build-info, render-engine-type, term-size-mode, and env-info in bug report url'
+    bugReportSrc.includes('occurrence-date') &&
+      bugReportSrc.includes('build-info') &&
+      bugReportSrc.includes('os-version') &&
+      bugReportSrc.includes('browser-version') &&
+      bugReportSrc.includes('env-info'),
+    'PrefModal must prefill occurrence-date, build-info, os-version, browser-version, and env-info in bug report url'
   );
   assert.ok(
-    prefModalSrc.includes('navigator.userAgent'),
+    bugReportSrc.includes('navigator.userAgent') || bugReportSrc.includes('nav.userAgent'),
     'PrefModal must include User Agent in environment diagnostics'
   );
   assert.ok(
-    prefModalSrc.includes('Terminal Size:'),
+    bugReportSrc.includes('Terminal Size:'),
     'PrefModal must include Terminal Size diagnostics in env-info'
   );
   assert.ok(
@@ -811,3 +826,160 @@ test('ContextMenu and App do not send ^L on settings close and only switch EasyR
   );
 });
 
+test('Bug report helper detects site, client, OS, browser, settings, and builds URL with individual form fields', () => {
+  // 1. Site detection
+  assert.equal(detectSite({ connectedUrl: { hostname: 'ws.ptt.cc' } }), 'term.ptt.cc (PTT)');
+  assert.equal(detectSite({ connectedUrl: { hostname: 'ws.ptt2.cc' } }), 'term.ptt2.cc (PTT2)');
+  assert.equal(detectSite({ site: { name: 'ptt2' } }), 'term.ptt2.cc (PTT2)');
+  assert.equal(detectSite(null, { location: { hostname: 'term.ptt.cc' } }), 'term.ptt.cc (PTT)');
+  assert.equal(detectSite(null, { location: { hostname: 'term.ptt2.cc' } }), 'term.ptt2.cc (PTT2)');
+  assert.equal(detectSite(null, { location: { hostname: 'localhost' } }), '本機開發測試 (localhost / 自架)');
+  assert.equal(detectSite(null, { location: { hostname: '127.0.0.1' } }), '本機開發測試 (localhost / 自架)');
+  assert.equal(detectSite(null, { location: { hostname: 'hungte.c.googlers.com' } }), '本機開發測試 (localhost / 自架)');
+  assert.equal(detectSite(null, { location: { hostname: 'custom-bbs.example.com' } }), '其他（請在補充資訊說明）');
+
+  // 2. Client type detection
+  assert.equal(
+    detectClientType({ matchMedia: (query) => ({ matches: query.includes('standalone') }) }),
+    'PWA（已安裝成獨立 App 或桌面/手機「加入主畫面」）'
+  );
+  assert.equal(
+    detectClientType({ navigator: { standalone: true } }),
+    'PWA（已安裝成獨立 App 或桌面/手機「加入主畫面」）'
+  );
+  assert.equal(
+    detectClientType({}),
+    'Web（一般瀏覽器分頁內使用）'
+  );
+
+  // 3. Client mode detection
+  assert.equal(detectClientMode(null, true), 'Mobile mode（行動版模式 / 觸控介面）');
+  assert.equal(detectClientMode({ isMobileLayout: () => true }, false), 'Mobile mode（行動版模式 / 觸控介面）');
+  assert.equal(detectClientMode({ isMobileDevice: () => true }, false), 'Mobile mode（行動版模式 / 觸控介面）');
+  assert.equal(detectClientMode({ isMobileLayout: () => false, isMobileDevice: () => false }, false), 'Desktop mode（電腦版模式）');
+
+  // 4. OS and OS version detection
+  const macNav = { userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15' };
+  assert.equal(detectOS(macNav), 'macOS');
+  assert.equal(detectOSVersion(macNav), 'macOS 14.5');
+
+  const winNav = { userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' };
+  assert.equal(detectOS(winNav), 'Windows');
+  assert.equal(detectOSVersion(winNav), 'Windows 10 / 11 (NT 10.0)');
+
+  const androidNav = { userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36' };
+  assert.equal(detectOS(androidNav), 'Android');
+  assert.equal(detectOSVersion(androidNav), 'Android 14');
+
+  const iosNav = { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15' };
+  assert.equal(detectOS(iosNav), 'iOS');
+  assert.equal(detectOSVersion(iosNav), 'iOS 17.5');
+
+  const ipadNav = {
+    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15',
+    maxTouchPoints: 5,
+  };
+  assert.equal(detectOS(ipadNav), 'iPadOS');
+
+  const crosNav = { userAgent: 'Mozilla/5.0 (X11; CrOS x86_64 15886.44.0) AppleWebKit/537.36' };
+  assert.equal(detectOS(crosNav), 'ChromeOS');
+  assert.equal(detectOSVersion(crosNav), 'ChromeOS 15886.44.0');
+
+  const linuxNav = { userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36' };
+  assert.equal(detectOS(linuxNav), 'Linux');
+
+  // 5. Browser and browser version detection
+  const chromeNav = { userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/128.0.6613.119 Safari/537.36' };
+  assert.equal(detectBrowser(chromeNav), 'Google Chrome');
+  assert.equal(detectBrowserVersion(chromeNav), 'Chrome 128.0.6613.119');
+
+  const edgeNav = { userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/128.0.0.0 Safari/537.36 Edg/128.0.2792.79' };
+  assert.equal(detectBrowser(edgeNav), 'Microsoft Edge');
+  assert.equal(detectBrowserVersion(edgeNav), 'Edge 128.0.2792.79');
+
+  const safariNav = { userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 Version/17.5 Safari/605.1.15' };
+  assert.equal(detectBrowser(safariNav), 'Apple Safari');
+  assert.equal(detectBrowserVersion(safariNav), 'Safari 17.5');
+
+  const firefoxNav = { userAgent: 'Mozilla/5.0 (X11; Linux x86_64; rv:130.0) Gecko/20100101 Firefox/130.0' };
+  assert.equal(detectBrowser(firefoxNav), 'Mozilla Firefox');
+  assert.equal(detectBrowserVersion(firefoxNav), 'Firefox 130.0');
+
+  const braveNav = { userAgent: 'Mozilla/5.0 Chrome/128.0.0.0 Safari/537.36', brave: {} };
+  assert.equal(detectBrowser(braveNav), 'Brave');
+  assert.equal(detectBrowserVersion(braveNav), 'Brave (Chromium 128.0.0.0)');
+
+  const kiwiNav = { userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/124.0.0.0 Kiwi/124.0.0.0' };
+  assert.equal(detectBrowser(kiwiNav), 'Kiwi Browser');
+  assert.equal(detectBrowserVersion(kiwiNav), 'Kiwi 124.0.0.0');
+
+  // 6. Extra settings checkboxes indices
+  assert.deepEqual(detectExtraSettings({
+    termSizeMode: 'max-font-size',
+    fontFitWindowWidth: false,
+    cursorStyle: 'blink',
+    smoothAnsiArt: false,
+    fontFamily: '',
+    colorScheme: 'default',
+    enableVirtualKeyboard: false,
+  }), []);
+
+  assert.deepEqual(detectExtraSettings({
+    termSizeMode: 'fixed-term-size',
+    fontFitWindowWidth: true,
+    cursorStyle: 'block',
+    smoothAnsiArt: true,
+    fontFamily: 'Noto Sans Mono',
+    colorScheme: 'nord',
+    enableVirtualKeyboard: true,
+  }), [0, 1, 2, 3, 4, 5, 6]);
+
+  // 7. buildBugReportUrl integration
+  const url = buildBugReportUrl({
+    app: { connectedUrl: { hostname: 'ws.ptt.cc' } },
+    isTouch: false,
+    values: {
+      useCanvasEngine: true,
+      termSizeMode: 'fixed-term-size',
+      fontFitWindowWidth: true,
+      cursorStyle: 'underline',
+      smoothAnsiArt: true,
+      colorScheme: 'monokai',
+      fontFamily: 'monospace',
+      enableVirtualKeyboard: true,
+      termSize: { cols: 80, rows: 24 },
+    },
+    win: {
+      location: { origin: 'https://term.ptt.cc', hostname: 'term.ptt.cc' },
+      innerWidth: 1920,
+      innerHeight: 1080,
+      devicePixelRatio: 2,
+      screen: { width: 1920, height: 1080 },
+    },
+    nav: chromeNav,
+    appInfo: {
+      COMMIT_HASH: 'abcdef12',
+      BUILD_DATE: '2026-09-11',
+      GITHUB_REPOSITORY: 'ptt/ptt-term',
+    },
+  });
+
+  const parsedUrl = new URL(url);
+  assert.equal(parsedUrl.searchParams.get('template'), 'bug_report.yml');
+  assert.equal(parsedUrl.searchParams.get('build-info'), 'Build: abcdef12 2026-09-11');
+  assert.equal(parsedUrl.searchParams.get('os-version'), 'macOS 10.15.7');
+  assert.equal(parsedUrl.searchParams.get('browser-version'), 'Chrome 128.0.6613.119');
+  // Dropdowns and checkboxes are not passed as query parameters because GitHub Issue Forms
+  // web frontend does not prefill them; their diagnostics are in env-info instead.
+  assert.equal(parsedUrl.searchParams.has('site'), false);
+  assert.equal(parsedUrl.searchParams.has('client-type'), false);
+  assert.equal(parsedUrl.searchParams.has('client-mode'), false);
+  assert.equal(parsedUrl.searchParams.has('os'), false);
+  assert.equal(parsedUrl.searchParams.has('browser'), false);
+  assert.equal(parsedUrl.searchParams.has('render-engine-type'), false);
+  assert.equal(parsedUrl.searchParams.has('term-size-mode'), false);
+  assert.equal(parsedUrl.searchParams.has('extra-settings'), false);
+  assert.ok(parsedUrl.searchParams.get('env-info').includes('Site: https://term.ptt.cc'));
+  assert.ok(parsedUrl.searchParams.get('env-info').includes('Render Engine Type: Canvas Engine'));
+  assert.ok(parsedUrl.searchParams.get('env-info').includes('fontFitWindowWidth=true'));
+});
