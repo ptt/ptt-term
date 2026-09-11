@@ -203,7 +203,6 @@ export class TermBuf extends EventEmitter {
     this.scrollStart = 0;
     this.scrollEnd = validRows - 1;
     this._nowHighlight = -1;
-    this.mouseCursor = 0;
     this.highlightCursor = true;
     this.locator = new Locator(this);
     //this.scrollingTop=0;
@@ -1293,7 +1292,6 @@ export class TermBuf extends EventEmitter {
 
   clearHighlight() {
     this.nowHighlight = -1;
-    this.mouseCursor = 0;
   }
 
   /**

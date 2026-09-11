@@ -28,7 +28,7 @@ export class App extends EventEmitter {
   constructor() {
     super();
 
-  this.useMouseBrowsing = true;
+  this._useMouseBrowsing = true;
   this.preventContextMenuOnMouseUp = false;
   this.skipMouseClick = false;
 
@@ -339,6 +339,14 @@ export class App extends EventEmitter {
     for (const plugin of this.plugins) {
       plugin.onFontUpdate?.(fontInfo);
     }
+  }
+
+  get useMouseBrowsing() {
+    return this._useMouseBrowsing ?? true;
+  }
+
+  set useMouseBrowsing(val) {
+    this._useMouseBrowsing = Boolean(val);
   }
 
   registerInputInterceptor(interceptor) {

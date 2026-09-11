@@ -1646,6 +1646,18 @@ test('BaseSite implements setPageState and TermBuf delegates to site.setPageStat
   mockTerm.isLineEmpty = () => true;
   assert.equal(site.setPageState(mockTerm), 0);
   assert.equal(mockTerm.pageState, 0);
+
+  // TermBuf does not declare mouseCursor; managed by MouseBrowsing
+  const fs = await import('fs');
+  const path = await import('path');
+  const termBufSource = fs.readFileSync(
+    path.resolve('src/js/term_buf.js'),
+    'utf-8'
+  );
+  assert.ok(
+    !termBufSource.includes('mouseCursor'),
+    'TermBuf must not define mouseCursor property or getter/setter'
+  );
 });
 
 test('src/plugins exports MouseBrowsing and handles mouse click navigation', async () => {
@@ -1661,7 +1673,7 @@ test('src/plugins exports MouseBrowsing and handles mouse click navigation', asy
   const sent = [];
   const mockApp = {
     conn: { isConnected: true },
-    buf: { mouseCursor: 1, cur_y: 10 },
+    buf: { cur_y: 10 },
     site: { getThreadCommand: (cmd) => (cmd === 'prevThread' ? '[' : ']') },
     send: (data) => sent.push(data),
     on: () => {},
@@ -1672,17 +1684,18 @@ test('src/plugins exports MouseBrowsing and handles mouse click navigation', asy
   mb.init({ app: mockApp, buf: mockApp.buf });
 
   // Arrow Left for cursor 1
+  mb.mouseCursor = 1;
   const handled = mb.handleMouseClick({ clientX: 100, clientY: 100 });
   assert.equal(handled, true);
   assert.equal(sent[0], '\x1b[D');
 
   // Page Up for cursor 2
-  mockApp.buf.mouseCursor = 2;
+  mb.mouseCursor = 2;
   mb.handleMouseClick({ clientX: 100, clientY: 100 });
   assert.equal(sent[1], '\x1b[5~');
 
   // Prev thread for cursor 8
-  mockApp.buf.mouseCursor = 8;
+  mb.mouseCursor = 8;
   mb.handleMouseClick({ clientX: 100, clientY: 100 });
   assert.equal(sent[2], '[');
 
@@ -1700,7 +1713,6 @@ test('src/plugins exports MouseBrowsing and handles mouse click navigation', asy
 
   mb.setMouseCursor(5);
   assert.equal(mb.mouseCursor, 5);
-  assert.equal(mockApp.buf.mouseCursor, 5);
 
   mb.setHighlight(7);
   assert.equal(mb.nowHighlight, 7);

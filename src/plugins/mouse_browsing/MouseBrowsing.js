@@ -293,7 +293,8 @@ export class MouseBrowsing {
     if (app) {
       this.app = app;
       this._onPrefChangeBound = (e) => {
-        const { key, value } = e.detail || {};
+        const key = e?.key ?? e?.detail?.key;
+        const value = e?.value !== undefined ? e.value : e?.detail?.value;
         if (key === "useMouseBrowsing") {
           this.setEnabled(Boolean(value));
         } else if (key === "supportMouseReporting") {
@@ -301,7 +302,9 @@ export class MouseBrowsing {
         }
       };
       this._onMouseMoveBound = (e) => {
-        const { col, row, refresh } = e.detail || {};
+        const col = e?.col ?? e?.detail?.col;
+        const row = e?.row ?? e?.detail?.row;
+        const refresh = e?.refresh ?? e?.detail?.refresh;
         this.onMouseMove(col, row, !!refresh);
       };
       this._onResetMouseCursorBound = () => {
@@ -381,16 +384,13 @@ export class MouseBrowsing {
         if (termWin && termWin.style) termWin.style.cursor = "auto";
         this.clearHighlight();
         this.setMouseCursor(0);
-        buf.tempMouseCol = 0;
-        buf.tempMouseRow = 0;
+        this.tempMouseCol = 0;
+        this.tempMouseRow = 0;
       } else {
         this.resetMousePos();
         this.view?.redraw?.(true);
         this.view?.updateCursorPos?.();
       }
-    }
-    if (this.app) {
-      this.app.useMouseBrowsing = this.enabled;
     }
     updatePref("useMouseBrowsing", this.enabled);
   }
@@ -439,10 +439,6 @@ export class MouseBrowsing {
       typeof trow === "number" && Number.isFinite(trow) ? Math.floor(trow) : 0;
     this.tempMouseCol = tcol;
     this.tempMouseRow = trow;
-    if (buf) {
-      buf.tempMouseCol = tcol;
-      buf.tempMouseRow = trow;
-    }
 
     // If mouse reporting is active, suppress heuristic icon switches
     const locator = buf.locator;
@@ -570,7 +566,7 @@ export class MouseBrowsing {
       const cY = e?.clientY ?? 0;
       const pos = app.clientToPos
         ? app.clientToPos(cX, cY)
-        : { col: buf.tempMouseCol || 0, row: buf.tempMouseRow || 0 };
+        : { col: this.tempMouseCol || 0, row: this.tempMouseRow || 0 };
       const report = locator.handleMouseClick(e, pos);
       if (report) {
         app.send(report);
@@ -580,10 +576,7 @@ export class MouseBrowsing {
 
     const cX = e.clientX;
     const cY = e.clientY;
-    const currentCursor =
-      buf?.mouseCursor !== undefined && buf.mouseCursor !== 0
-        ? buf.mouseCursor
-        : this.mouseCursor;
+    const currentCursor = this.mouseCursor || 0;
 
     switch (currentCursor) {
       case 1:
@@ -683,7 +676,7 @@ export class MouseBrowsing {
     if (locator?.isActive?.()) {
       const pos = this.app?.clientToPos
         ? this.app.clientToPos(e?.clientX ?? 0, e?.clientY ?? 0)
-        : { col: buf.tempMouseCol || 0, row: buf.tempMouseRow || 0 };
+        : { col: this.tempMouseCol || 0, row: this.tempMouseRow || 0 };
       const report = locator.handleWheel(e, pos);
       if (report && this.app?.send) {
         this.app.send(report);

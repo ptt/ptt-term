@@ -923,8 +923,7 @@ export class EasyReading {
       return;
     let stop = false;
     const mouseBrowsing = this._core?.getPlugin?.("mouse_browsing");
-    const mouseCursor =
-      mouseBrowsing?.mouseCursor ?? this._termBuf?.mouseCursor ?? 0;
+    const mouseCursor = mouseBrowsing?.mouseCursor ?? 0;
     switch (mouseCursor) {
       case 0:
       case 1: // Arrow Left
