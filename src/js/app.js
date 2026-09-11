@@ -17,7 +17,7 @@ import { readValuesWithDefault, writeValues, updatePref } from './pref.js';
 import { applyColorScheme } from './color_schemes.js';
 import AppOverlay from '../components/AppOverlay';
 import { getSite } from './sites';
-import { Event } from './event';
+import { Event, EventEmitter } from './event';
 import iconLogo from 'Icon/logo.png';
 import iconLogoConnect from 'Icon/logo_connect.png';
 import iconLogoDisconnect from 'Icon/logo_disconnect.png';
@@ -637,12 +637,27 @@ export class App extends Event {
   }, 350);
   }
 
-  _debugTouchLog(msg) {
-    if (typeof window !== 'undefined' && window.__PTT_DEBUG_LOG) {
-      try {
-        window.__PTT_DEBUG_LOG(msg);
-      } catch (err) {}
+  get debugEmitter() {
+    if (!this._debugEmitter) {
+      this._debugEmitter = new EventEmitter();
     }
+    return this._debugEmitter;
+  }
+
+  registerDebugHandler(type, handler) {
+    return this.debugEmitter.subscribe(type, handler);
+  }
+
+  unregisterDebugHandler(type, handler) {
+    this._debugEmitter?.off(type, handler);
+  }
+
+  sendDebugEvent(type, event) {
+    this._debugEmitter?.emit(type, event, type);
+  }
+
+  _debugTouchLog(msg) {
+    this.sendDebugEvent('touch', msg);
   }
 
   setInputAreaFocus(force = false) {

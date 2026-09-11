@@ -230,6 +230,25 @@ export class TouchDebugHUD extends React.Component {
     }
   }
 
+  componentDidUpdate(prevProps) {
+    if (prevProps.app !== this.props.app) {
+      if (prevProps.app?.unregisterDebugHandler && this._onDebugTouch) {
+        prevProps.app.unregisterDebugHandler("touch", this._onDebugTouch);
+        this._onDebugTouch = null;
+      }
+      if (this.state.enabled) {
+        const app = this.props.app || (typeof window !== "undefined" ? window.app : null);
+        if (app?.registerDebugHandler) {
+          this._onDebugTouch = (event) => {
+            const msg = typeof event === "string" ? event : (event?.message || String(event));
+            this.addEventLog(`[APP] ${msg}`);
+          };
+          app.registerDebugHandler("touch", this._onDebugTouch);
+        }
+      }
+    }
+  }
+
   componentWillUnmount() {
     const plugin = this.getPlugin();
     if (plugin && plugin.component === this) {
@@ -303,10 +322,18 @@ export class TouchDebugHUD extends React.Component {
   attachListeners() {
     if (typeof window === "undefined") return;
 
-    // Global debug logger for App and touch components
-    window.__PTT_DEBUG_LOG = (msg) => {
-      this.addEventLog(`[APP] ${msg}`);
-    };
+    // Register debug event handler on App
+    const app = this.props.app || (typeof window !== "undefined" ? window.app : null);
+    if (app && typeof app.registerDebugHandler === "function") {
+      if (this._onDebugTouch) {
+        app.unregisterDebugHandler("touch", this._onDebugTouch);
+      }
+      this._onDebugTouch = (event) => {
+        const msg = typeof event === "string" ? event : (event?.message || String(event));
+        this.addEventLog(`[APP] ${msg}`);
+      };
+      app.registerDebugHandler("touch", this._onDebugTouch);
+    }
 
     const recordDomEvent = (e) => {
       const target = e.target;
@@ -347,8 +374,11 @@ export class TouchDebugHUD extends React.Component {
       window.removeEventListener(evt, handler, { capture: true });
     });
     this.eventListeners = [];
-    if (window.__PTT_DEBUG_LOG) {
-      delete window.__PTT_DEBUG_LOG;
+
+    const app = this.props.app || (typeof window !== "undefined" ? window.app : null);
+    if (app && typeof app.unregisterDebugHandler === "function" && this._onDebugTouch) {
+      app.unregisterDebugHandler("touch", this._onDebugTouch);
+      this._onDebugTouch = null;
     }
   }
 
