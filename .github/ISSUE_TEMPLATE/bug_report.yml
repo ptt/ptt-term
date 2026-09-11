@@ -105,14 +105,13 @@ body:
       required: false
 
   - type: dropdown
-    id: canvas-engine
+    id: render-engine-type
     attributes:
-      label: 是否關閉預設的 Canvas 繪圖引擎 (Canvas Mode)
-      description: 在設定（⚙️）->「畫面」中，是否有關閉「使用 Canvas 繪圖引擎」？（若由「關於」分頁點擊「問題回報」可略過）
+      label: 渲染引擎種類 (Render Engine Type)
+      description: 請選擇發生問題時所使用的渲染引擎。若未自行設定，預設即為 Canvas Engine。（若由「關於」分頁點擊「問題回報」將會自動填入）
       options:
-        - 否，維持預設（開啟 Canvas 渲染，useCanvasEngine = ON）
-        - 是，已手動關閉（改用 DOM 元素渲染，useCanvasEngine = OFF）
-        - 不確定 / 未曾調整過此設定（預設為開啟）
+        - Canvas Engine（預設）
+        - DOM Engine
     validations:
       required: false
 

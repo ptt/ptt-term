@@ -702,8 +702,9 @@ test('PrefModal About tab renders Version & Source Code with distinct version li
   assert.ok(
     prefModalSrc.includes('occurrence-date') &&
       prefModalSrc.includes('build-info') &&
+      prefModalSrc.includes('render-engine-type') &&
       prefModalSrc.includes('env-info'),
-    'PrefModal must prefill occurrence-date, build-info, and env-info in bug report url'
+    'PrefModal must prefill occurrence-date, build-info, render-engine-type, and env-info in bug report url'
   );
   assert.ok(
     prefModalSrc.includes('navigator.userAgent'),
@@ -712,6 +713,31 @@ test('PrefModal About tab renders Version & Source Code with distinct version li
   assert.ok(
     bugReportTemplate.includes('id: env-info'),
     'bug_report.yml must provide env-info textarea'
+  );
+  assert.ok(
+    bugReportTemplate.includes('id: render-engine-type'),
+    'bug_report.yml must provide render-engine-type dropdown'
+  );
+  assert.ok(
+    prefModalSrc.includes('<select') &&
+      prefModalSrc.includes('name="useCanvasEngine"'),
+    'PrefModal must render useCanvasEngine as a select dropdown'
+  );
+  assert.ok(
+    prefModalSrc.indexOf('id="useCanvasEngine"') < prefModalSrc.indexOf('id="uiLocale"'),
+    'Render engine option must appear before UI language option'
+  );
+  assert.ok(
+    zhTW.options_renderEngine?.message &&
+      zhTW.options_renderEngineCanvas?.message &&
+      zhTW.options_renderEngineDOM?.message,
+    'zh_TW must have render engine translations'
+  );
+  assert.ok(
+    enUS.options_renderEngine?.message &&
+      enUS.options_renderEngineCanvas?.message &&
+      enUS.options_renderEngineDOM?.message,
+    'en must have render engine translations'
   );
   assert.ok(
     prefModalSrc.includes('PrefModal__About__BugReportBtn'),

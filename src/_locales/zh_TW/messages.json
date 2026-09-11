@@ -258,6 +258,15 @@
   "options_useCanvasEngine": {
     "message": "以 HTML5 Canvas 技術繪製畫面"
   },
+  "options_renderEngine": {
+    "message": "渲染引擎"
+  },
+  "options_renderEngineCanvas": {
+    "message": "Canvas Engine (預設，高效能)"
+  },
+  "options_renderEngineDOM": {
+    "message": "DOM Engine (相容性模式)"
+  },
   "options_smoothAnsiArt": {
     "message": "平滑化 ANSI 藝術 (需要 Canvas 模式)"
   },

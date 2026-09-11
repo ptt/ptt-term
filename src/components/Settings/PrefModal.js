@@ -599,6 +599,12 @@ export class PrefModal extends React.Component {
       params.set("build-info", buildText);
     }
 
+    const useCanvas = this.state.values?.useCanvasEngine !== false;
+    params.set(
+      "render-engine-type",
+      useCanvas ? "Canvas Engine（預設）" : "DOM Engine"
+    );
+
     const envLines = [];
     if (typeof window !== "undefined") {
       const siteUrl = window.location.origin || window.location.href || "";
@@ -617,8 +623,9 @@ export class PrefModal extends React.Component {
       );
       envLines.push(`Mode: ${isMobile ? "Mobile (Touch)" : "Desktop"}`);
 
-      const useCanvas = this.state.values?.useCanvasEngine !== false;
-      envLines.push(`Canvas Engine: ${useCanvas ? "ON (Canvas)" : "OFF (DOM)"}`);
+      envLines.push(
+        `Render Engine Type: ${useCanvas ? "Canvas Engine" : "DOM Engine"}`
+      );
 
       const dpr = window.devicePixelRatio || 1;
       const screenInfo = window.screen
@@ -787,6 +794,13 @@ export class PrefModal extends React.Component {
   };
 
   handleTextInputChange = ({ target: { name, value } }) => {
+    if (name === "useCanvasEngine") {
+      const boolVal = value === "canvas" || value === true || value === "true";
+      this.setState((prevState) => ({
+        values: changeNestedValue(prevState.values, name, boolVal),
+      }));
+      return;
+    }
     if (name === "uiLocale") {
       setLocale(value);
       this.props.app?.onPrefChange?.("uiLocale", value);
@@ -1746,33 +1760,41 @@ export class PrefModal extends React.Component {
                   onCloseClick={this.handleCloseClick}
                 />
                 <div className="PrefModal__TabBody">
-                  <div className="form-group" id="uiLocale">
+                  <div className="form-group" id="useCanvasEngine">
                     <label className="control-label">
-                      {_("options_uiLocale")}
+                      {_("options_renderEngine")}
                     </label>
                     <select
                       className="form-control"
-                      name="uiLocale"
-                      value={values.uiLocale || "auto"}
+                      name="useCanvasEngine"
+                      value={values.useCanvasEngine !== false ? "canvas" : "dom"}
                       onChange={this.handleTextInputChange}
                     >
-                      <option value="auto">
-                        {parseOptionText(_("options_locale_auto")).label}
+                      <option value="canvas">
+                        {parseOptionText(_("options_renderEngineCanvas")).label}
                       </option>
-                      <option value="zh_tw">
-                        {parseOptionText(_("options_locale_zhTW")).label}
-                      </option>
-                      <option value="en_us">
-                        {parseOptionText(_("options_locale_enUS")).label}
+                      <option value="dom">
+                        {parseOptionText(_("options_renderEngineDOM")).label}
                       </option>
                     </select>
                     {renderOptionDesc(
                       {
-                        auto: _("options_locale_auto"),
-                        zh_tw: _("options_locale_zhTW"),
-                        en_us: _("options_locale_enUS"),
-                      }[values.uiLocale || "auto"]
+                        canvas: _("options_renderEngineCanvas"),
+                        dom: _("options_renderEngineDOM"),
+                      }[values.useCanvasEngine !== false ? "canvas" : "dom"]
                     )}
+                  </div>
+                  <div className="checkbox PrefModal__Grid__Col--right__SubCheckbox">
+                    <label>
+                      <input
+                        type="checkbox"
+                        name="smoothAnsiArt"
+                        checked={values.smoothAnsiArt}
+                        disabled={values.useCanvasEngine === false}
+                        onChange={this.handleCheckboxChange}
+                      />
+                      {_("options_smoothAnsiArt")}
+                    </label>
                   </div>
                   <div className="form-group" id="backspaceKey">
                   <label className="control-label">
@@ -1825,28 +1847,33 @@ export class PrefModal extends React.Component {
                     }[values.deleteKey || "escape-sequence"]
                   )}
                 </div>
-                <div className="checkbox">
-                  <label>
-                    <input
-                      type="checkbox"
-                      name="useCanvasEngine"
-                      checked={values.useCanvasEngine}
-                      onChange={this.handleCheckboxChange}
-                    />
-                    {_("options_useCanvasEngine")}
+                <div className="form-group" id="uiLocale">
+                  <label className="control-label">
+                    {_("options_uiLocale")}
                   </label>
-                </div>
-                <div className="checkbox PrefModal__Grid__Col--right__SubCheckbox">
-                  <label>
-                    <input
-                      type="checkbox"
-                      name="smoothAnsiArt"
-                      checked={values.smoothAnsiArt}
-                      disabled={!values.useCanvasEngine}
-                      onChange={this.handleCheckboxChange}
-                    />
-                    {_("options_smoothAnsiArt")}
-                  </label>
+                  <select
+                    className="form-control"
+                    name="uiLocale"
+                    value={values.uiLocale || "auto"}
+                    onChange={this.handleTextInputChange}
+                  >
+                    <option value="auto">
+                      {parseOptionText(_("options_locale_auto")).label}
+                    </option>
+                    <option value="zh_tw">
+                      {parseOptionText(_("options_locale_zhTW")).label}
+                    </option>
+                    <option value="en_us">
+                      {parseOptionText(_("options_locale_enUS")).label}
+                    </option>
+                  </select>
+                  {renderOptionDesc(
+                    {
+                      auto: _("options_locale_auto"),
+                      zh_tw: _("options_locale_zhTW"),
+                      en_us: _("options_locale_enUS"),
+                    }[values.uiLocale || "auto"]
+                  )}
                 </div>
                 </div>
               </fieldset>

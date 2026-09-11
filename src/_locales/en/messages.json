@@ -258,6 +258,15 @@
   "options_useCanvasEngine": {
     "message": "Render by HTML5 Canvas"
   },
+  "options_renderEngine": {
+    "message": "Render Engine"
+  },
+  "options_renderEngineCanvas": {
+    "message": "Canvas Engine (Default, high performance)"
+  },
+  "options_renderEngineDOM": {
+    "message": "DOM Engine (Compatibility mode)"
+  },
   "options_smoothAnsiArt": {
     "message": "Smooth ANSI Art (need Canvas mode)"
   },
