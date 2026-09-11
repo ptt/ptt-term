@@ -760,6 +760,27 @@ test('PrefModal About tab renders Version & Source Code with distinct version li
   assert.strictEqual(enUS.about_bug_report.message, 'Bug Report');
 });
 
-
-
-
+test('NativeDialog captures Escape keydown to prevent unhandled alert beeps', () => {
+  const nativeDialogSrc = fs.readFileSync(
+    path.resolve('src/components/NativeDialog.js'),
+    'utf-8'
+  );
+  assert.ok(
+    nativeDialogSrc.includes('handleGlobalKeyDown'),
+    'NativeDialog must define handleGlobalKeyDown'
+  );
+  assert.ok(
+    nativeDialogSrc.includes('attachGlobalEscape') &&
+      nativeDialogSrc.includes('detachGlobalEscape'),
+    'NativeDialog must attach and detach global escape listeners'
+  );
+  assert.ok(
+    nativeDialogSrc.includes('addEventListener("keydown", this.handleGlobalKeyDown, true)'),
+    'NativeDialog must listen to keydown in capture phase'
+  );
+  assert.ok(
+    nativeDialogSrc.includes('e.stopPropagation()') &&
+      nativeDialogSrc.includes('e.preventDefault()'),
+    'NativeDialog must preventDefault and stopPropagation on Escape keydown'
+  );
+});

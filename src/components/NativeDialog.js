@@ -7,18 +7,49 @@ export class NativeDialog extends React.Component {
 
   componentDidMount() {
     this.syncDialog();
+    if (this.props.open) {
+      this.attachGlobalEscape();
+    }
   }
 
   componentDidUpdate(prevProps) {
     if (this.props.open !== prevProps.open) {
       this.syncDialog();
+      if (this.props.open) {
+        this.attachGlobalEscape();
+      } else {
+        this.detachGlobalEscape();
+      }
     }
   }
 
   componentWillUnmount() {
+    this.detachGlobalEscape();
     const dialog = this.dialogRef.current;
     if (dialog && dialog.open) {
       dialog.close();
+    }
+  }
+
+  handleGlobalKeyDown = (e) => {
+    if (e.key === "Escape" || e.code === "Escape" || e.keyCode === 27) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (this.props.onClose) {
+        this.props.onClose(e);
+      }
+    }
+  };
+
+  attachGlobalEscape() {
+    if (typeof window !== "undefined") {
+      window.addEventListener("keydown", this.handleGlobalKeyDown, true);
+    }
+  }
+
+  detachGlobalEscape() {
+    if (typeof window !== "undefined") {
+      window.removeEventListener("keydown", this.handleGlobalKeyDown, true);
     }
   }
 
@@ -64,6 +95,19 @@ export class NativeDialog extends React.Component {
     }
   };
 
+  handleKeyDown = (e) => {
+    if (e.key === "Escape" || e.code === "Escape" || e.keyCode === 27) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (this.props.onClose) {
+        this.props.onClose(e);
+      }
+    }
+    if (this.props.onKeyDown) {
+      this.props.onKeyDown(e);
+    }
+  };
+
   render() {
     const {
       className,
@@ -80,6 +124,7 @@ export class NativeDialog extends React.Component {
         className={cx("NativeDialog", className)}
         onClick={this.handleClick}
         onCancel={this.handleCancel}
+        onKeyDown={this.handleKeyDown}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
