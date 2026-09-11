@@ -2,6 +2,7 @@ import React from "preact/compat";
 import { readValuesWithDefault, updatePref } from '../../js/pref.js';
 import { _ } from '../../js/i18n.js';
 import { isBrowser } from '../../js/util.js';
+import { PAGE_STATE } from '../../js/sites/index.js';
 
 let _LiveHelperModal = null;
 
@@ -219,7 +220,7 @@ export class LiveUpdate {
       };
       this._onStateChangeBound = (e) => {
         const state = e?.state ?? e?.detail?.state;
-        if (state !== 2 && state !== 3 && this.active) {
+        if (state !== PAGE_STATE.LIST && state !== PAGE_STATE.READING && this.active) {
           this.stop();
         }
       };
@@ -342,9 +343,9 @@ export class LiveUpdate {
     this.active = true;
     const intervalMs = (this.intervalSec || 1) * 1000;
     this.timer = setInterval(() => {
-      const pageState = this.buf ? this.buf.pageState : this.app?.buf?.pageState;
-      if (pageState === 3 || pageState === 2) {
-        const site = this.app?.site || this.buf?.site;
+      const site = this.app?.site;
+      const pageState = site?.pageState;
+      if (pageState === PAGE_STATE.READING || pageState === PAGE_STATE.LIST) {
         const cmd = site?.getRefreshLiveThreadCommand
           ? site.getRefreshLiveThreadCommand(this.buf || this.app?.buf)
           : 'r';
@@ -404,11 +405,12 @@ export class LiveUpdate {
       return false;
     }
 
-    const pageState = this.buf ? this.buf.pageState : this.app?.buf?.pageState;
+    const site = this.app?.site;
+    const pageState = site?.pageState;
 
-    // Toggle on 'End' key when in article reading mode (pageState 2 or 3)
+    // Toggle on 'End' key when in article reading mode (PAGE_STATE.LIST or PAGE_STATE.READING)
     if (!e.ctrlKey && !e.altKey && (e.key === 'End' || e.keyCode === 35)) {
-      if (this.endTurnsOn && (pageState === 2 || pageState === 3)) {
+      if (this.endTurnsOn && (pageState === PAGE_STATE.LIST || pageState === PAGE_STATE.READING)) {
         this.toggle();
         this.showModal(true);
         e.preventDefault?.();
@@ -419,7 +421,7 @@ export class LiveUpdate {
 
     // Toggle on 'Alt + r'
     if (!e.ctrlKey && e.altKey && (e.key === 'r' || e.key === 'R' || e.keyCode === 82)) {
-      if (pageState === 2 || pageState === 3) {
+      if (pageState === PAGE_STATE.LIST || pageState === PAGE_STATE.READING) {
         this.toggle();
         this.showModal(true);
         e.preventDefault?.();

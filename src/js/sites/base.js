@@ -3,6 +3,16 @@ import { CHARSETS } from '../conv.js';
 import { b2u } from '../string_util.js';
 export { CHARSETS };
 
+export const PAGE_STATE = Object.freeze({
+  NORMAL: 0,
+  MENU: 1,
+  LIST: 2,
+  READING: 3,
+  MAPLE_LIST: 4,
+  PASS: 5,
+  EDITING: 6,
+});
+
 export class BaseSite extends EventEmitter {
   constructor(name = 'base', charset = CHARSETS.BIG5) {
     super();
@@ -14,6 +24,8 @@ export class BaseSite extends EventEmitter {
     this._loginPromptFired = false;
     this._byteBuffer = null;
     this._textBuffer = '';
+    this.pageState = PAGE_STATE.NORMAL;
+    this.prevPageState = PAGE_STATE.NORMAL;
   }
 
   set charset(val) {
@@ -238,43 +250,33 @@ export class BaseSite extends EventEmitter {
    * @returns {number}
    */
   setPageState(termBuf) {
-    if (!termBuf) return 0;
+    if (!termBuf) return PAGE_STATE.NORMAL;
     let lastRowNum = this.getLastRowNum(termBuf);
     let cols = termBuf.cols;
     const lastRowText = termBuf.getRowText(lastRowNum, 0, cols);
+    let state = this.pageState ?? PAGE_STATE.NORMAL;
     if (this.isEditingScreen(termBuf)) {
-      termBuf.pageState = 6;
-      return 6;
+      state = PAGE_STATE.EDITING;
+    } else if (this.parseReadingStatus(lastRowText, termBuf)) {
+      state = PAGE_STATE.READING;
+    } else if (this.isMenuScreen(termBuf)) {
+      state = PAGE_STATE.MENU;
+    } else if (this.isListScreen(termBuf)) {
+      state = PAGE_STATE.LIST;
+    } else if (this.isPassScreen(termBuf)) {
+      state = PAGE_STATE.PASS;
     }
 
-    if (this.parseReadingStatus(lastRowText, termBuf)) {
-      termBuf.pageState = 3; // READING
-      return 3;
-    }
-
-    if (this.isMenuScreen(termBuf)) {
-      termBuf.pageState = 1; // MENU
-      return 1;
-    }
-
-    if (this.isListScreen(termBuf)) {
-      termBuf.pageState = 2; // LIST
-      return 2;
+    if (state !== PAGE_STATE.MENU && termBuf.isLineEmpty(lastRowNum)) {
+      state = PAGE_STATE.NORMAL;
     }
 
     if (lastRowText && lastRowText.trim()) {
-      console.debug('[setPageState] site=' + this.name + ', state=' + termBuf.pageState + ', lastRow=' + JSON.stringify(lastRowText));
+      console.debug('[setPageState] site=' + this.name + ', state=' + state + ', lastRow=' + JSON.stringify(lastRowText));
     }
 
-    if (this.isPassScreen(termBuf)) {
-      termBuf.pageState = 5; // PASS
-      return 5;
-    }
-    if (termBuf.pageState != 1 && termBuf.isLineEmpty(lastRowNum)) {
-      termBuf.pageState = 0; // NORMAL
-      return 0;
-    }
-    return termBuf.pageState;
+    this.pageState = state;
+    return state;
   }
 
   /**
@@ -775,3 +777,6 @@ export class BaseSite extends EventEmitter {
     return false;
   }
 }
+
+BaseSite.PAGE_STATE = PAGE_STATE;
+

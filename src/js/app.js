@@ -16,7 +16,7 @@ import { setTerminalBellEnabled, setWindowFocused } from './bell.js';
 import { readValuesWithDefault, writeValues, updatePref } from './pref.js';
 import { applyColorScheme } from './color_schemes.js';
 import AppOverlay from '../components/AppOverlay';
-import { getSite } from './sites';
+import { getSite, PAGE_STATE } from './sites';
 import { EventEmitter } from './event';
 import iconLogo from 'Icon/logo.png';
 import iconLogoConnect from 'Icon/logo_connect.png';
@@ -1662,15 +1662,17 @@ export class App extends EventEmitter {
         this.send('\x1b[6~');
         break;
       case "previousThread": {
-        const cmd = this.site.getThreadCommand("prevThread");
-        if (cmd && this.buf && (this.buf.pageState == 2 || this.buf.pageState == 3 || this.buf.pageState == 4)) {
+        const cmd = this.site?.getThreadCommand("prevThread");
+        const pageState = this.site?.pageState;
+        if (cmd && (pageState === PAGE_STATE.LIST || pageState === PAGE_STATE.READING || pageState === PAGE_STATE.MAPLE_LIST)) {
           this.send(cmd);
         }
         break;
       }
       case "nextThread": {
-        const cmd = this.site.getThreadCommand("nextThread");
-        if (cmd && this.buf && (this.buf.pageState == 2 || this.buf.pageState == 3 || this.buf.pageState == 4)) {
+        const cmd = this.site?.getThreadCommand("nextThread");
+        const pageState = this.site?.pageState;
+        if (cmd && (pageState === PAGE_STATE.LIST || pageState === PAGE_STATE.READING || pageState === PAGE_STATE.MAPLE_LIST)) {
           this.send(cmd);
         }
         break;

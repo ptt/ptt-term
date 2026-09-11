@@ -2,7 +2,7 @@ import { PttSite } from './ptt.js';
 import { Maple3Site } from './maple3.js';
 import { AutoSite } from './auto.js';
 
-export { BaseSite, CHARSETS } from './base.js';
+export { BaseSite, CHARSETS, PAGE_STATE } from './base.js';
 export { PttSite } from './ptt.js';
 export { Maple3Site } from './maple3.js';
 export { AutoSite } from './auto.js';

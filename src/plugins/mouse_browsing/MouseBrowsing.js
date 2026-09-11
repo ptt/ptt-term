@@ -1,6 +1,7 @@
 import React from "preact/compat";
 import { readValuesWithDefault, updatePref, parseOptionText } from "../../js/pref.js";
 import { _ } from "../../js/i18n.js";
+import { PAGE_STATE } from "../../js/sites/index.js";
 const cursorBack = new URL("../../cursor/back.png", import.meta.url).href;
 const cursorPageup = new URL("../../cursor/pageup.png", import.meta.url).href;
 const cursorPagedown = new URL("../../cursor/pagedown.png", import.meta.url).href;
@@ -461,18 +462,18 @@ export class MouseBrowsing {
       this.clearHighlight();
     }
 
-    const site = this.app?.site || buf.site;
+    const site = this.app?.site;
     const lastRowNum = site?.getLastRowNum
       ? site.getLastRowNum(buf)
       : buf.rows - 1;
     const cols = buf.cols;
 
-    switch (buf.pageState) {
-      case 0: // NORMAL
+    switch (site?.pageState) {
+      case PAGE_STATE.NORMAL:
         this.setMouseCursor(0);
         break;
 
-      case 4: // LIST
+      case PAGE_STATE.MAPLE_LIST:
         if (trow > 1 && trow < lastRowNum - 1) {
           this._calcListRowMouseCursor(trow, tcol, lastRowNum, cols);
         } else if (trow == 1 || trow == 2) {
@@ -484,7 +485,7 @@ export class MouseBrowsing {
         }
         break;
 
-      case 2: // LIST
+      case PAGE_STATE.LIST:
         if (trow > 2 && trow < lastRowNum) {
           this._calcListRowMouseCursor(trow, tcol, lastRowNum, cols);
         } else if (trow == 1 || trow == 2) {
@@ -502,7 +503,7 @@ export class MouseBrowsing {
         }
         break;
 
-      case 3: // READING
+      case PAGE_STATE.READING:
         if (trow == lastRowNum) {
           if (tcol < 2) this.setMouseCursor(12);
           else if (tcol > cols - 5) this.setMouseCursor(14);
@@ -517,7 +518,7 @@ export class MouseBrowsing {
         else this.setMouseCursor(3);
         break;
 
-      case 1: // MENU
+      case PAGE_STATE.MENU:
         if (trow > 0 && trow < lastRowNum) {
           if (tcol > 7) this.setMouseCursor(7);
           else this.setMouseCursor(1);

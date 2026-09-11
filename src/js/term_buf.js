@@ -213,12 +213,10 @@ export class TermBuf extends EventEmitter {
     this.changed = false;
     this.posChanged = false;
     this.bellOccurred = false;
-    this.pageState = 0;
     this.inSyncUpdate = false;
     this.hasFrameSync = false;
     this._syncUpdateTimeout = null;
 
-    this.prevPageState = 0;
     this.site = getSite(process.env.SITE_TYPE || 'auto');
 
     /** @type {TermChar[][]} */

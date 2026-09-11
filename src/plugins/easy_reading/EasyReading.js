@@ -1,5 +1,6 @@
 import { readValuesWithDefault } from '../../js/pref.js';
 import { _ } from '../../js/i18n.js';
+import { PAGE_STATE } from '../../js/sites/index.js';
 
 export const INFLIGHT_WATCHDOG_MS = 1500;
 export const MAX_INFLIGHT_RETRIES = 2;
@@ -61,6 +62,10 @@ export class EasyReading {
       icon: this.icon,
       group: this.group,
     };
+  }
+
+  get _site() {
+    return this._core?.site;
   }
 
   constructor(core, viewOrOptions, termBuf) {
@@ -147,8 +152,8 @@ export class EasyReading {
         const doSwitch = e?.doSwitch !== undefined ? e.doSwitch : e?.detail?.doSwitch;
         if (doSwitch) {
           this.clearRows();
-          if (this._termBuf?.pageState == 3 && this._core?.send) {
-            const cmd = this._core.site?.getReenterArticleCommand?.(this._termBuf);
+          if (this._site?.pageState === PAGE_STATE.READING && this._core?.send) {
+            const cmd = this._site?.getReenterArticleCommand?.(this._termBuf);
             if (cmd) this._core.send(cmd);
           }
         } else {
@@ -417,7 +422,7 @@ export class EasyReading {
       const scrollBottom = cont.scrollTop + cont.clientHeight;
       percent = Math.min(100, Math.max(0, Math.round((scrollBottom / cont.scrollHeight) * 100)));
     }
-    const site = this._termBuf?.site;
+    const site = this._site;
     if (site) {
       this.lastRowDiv.innerHTML = site.getEasyReadingPrompt(' ', percent);
     }
@@ -455,10 +460,10 @@ export class EasyReading {
   }
 
   populatePage() {
-    const site = this._termBuf?.site;
+    const site = this._site;
     if (!site) return;
     let lastRowNum = site.getLastRowNum(this._termBuf);
-    if (this._termBuf.pageState == 3 && this._termBuf.prevPageState == 3) {
+    if (site.pageState === PAGE_STATE.READING && site.prevPageState === PAGE_STATE.READING) {
       this.show();
       const lastRowText = this._termBuf.getRowText(lastRowNum, 0, this._termBuf.cols);
       const result = site.parseReadingStatus(lastRowText, this._termBuf);
@@ -496,13 +501,13 @@ export class EasyReading {
         // deep clone lines for selection (getRowText and get ansi color)
         this.pageLines = (this.pageLines || []).concat(JSON.parse(JSON.stringify(this._termBuf.lines.slice(beginIndex, lastRowNum))));
       }
-      this._termBuf.prevPageState = 3;
+      site.prevPageState = PAGE_STATE.READING;
     } else {
       this.actualRowIndex = 0;
       this.pageWrappedLines = [];
       this._lastEasyReadingPageIndex = 1;
       this._easyReadingAppendedEnd = false;
-      if (this._termBuf.pageState == 3) {
+      if (site.pageState === PAGE_STATE.READING) {
         const lastRowText = this._termBuf.getRowText(lastRowNum, 0, this._termBuf.cols);
         const statusResult = site.parseReadingStatus(lastRowText, this._termBuf);
         const isEnd = site.isArticleEnd(lastRowText, this._termBuf, statusResult);
@@ -535,7 +540,7 @@ export class EasyReading {
       } else {
         this.hide();
       }
-      this._termBuf.prevPageState = this._termBuf.pageState;
+      site.prevPageState = site.pageState;
     }
   }
 
@@ -573,11 +578,12 @@ export class EasyReading {
   }
 
   _onChanged(e) {
-    console.debug("page state: " + this._termBuf.prevPageState + "->" + this._termBuf.pageState);
+    const site = this._site;
+    console.debug("page state: " + site?.prevPageState + "->" + site?.pageState);
     const values = readValuesWithDefault()
     // make sure to come back to easy reading mode
-    const isEnteringReading = (this._termBuf.prevPageState == 2 || this._termBuf.prevPageState == 0) &&
-        this._termBuf.pageState == 3;
+    const isEnteringReading = (site?.prevPageState === PAGE_STATE.LIST || site?.prevPageState === PAGE_STATE.NORMAL) &&
+        site?.pageState === PAGE_STATE.READING;
     if (isEnteringReading) {
       this._resetInFlight();
     }
@@ -591,14 +597,13 @@ export class EasyReading {
       this.enabled = false;
     }
 
-    if (!this.enabled)
+    if (!this.enabled || !site)
       return;
 
-    const site = this._termBuf.site;
     let lastRowNum = site.getLastRowNum(this._termBuf);
     const lastRowText = this._termBuf.getRowText(lastRowNum, 0, this._termBuf.cols);
     // dealing with page state jump to 0 because last row wasn't updated fully 
-    if (this._termBuf.pageState == 3) {
+    if (site.pageState === PAGE_STATE.READING) {
       this.started = true;
     } else if (this.started && site.isPushPrompt(this._termBuf)) {
       this.showPushInitText = true;
@@ -652,7 +657,9 @@ export class EasyReading {
           this.easyReadingReachedPageEnd = true;
           this._resetInFlight();
         } else if (!this.showPushInitText) { // only if not showing last row text
-          this._termBuf.pageState = 5;
+          if (site) {
+            site.pageState = PAGE_STATE.PASS;
+          }
           this.started = false;
           this._resetInFlight();
         }
@@ -735,7 +742,9 @@ export class EasyReading {
     if (!this.easyReadingReachedPageEnd) {
       this.ignoreOneUpdate = true;
     }
-    this._termBuf.prevPageState = 0;
+    if (this._site) {
+      this._site.prevPageState = PAGE_STATE.NORMAL;
+    }
   }
 
   stopEasyReading() {
@@ -763,7 +772,7 @@ export class EasyReading {
     if (e.defaultPrevented)
       return;
 
-    const site = this._termBuf?.site;
+    const site = this._site;
     let stop = false;
     if (!e.ctrlKey && !e.altKey) {
       switch (e.key) {
@@ -820,7 +829,7 @@ export class EasyReading {
   }
 
   _onKeyDownProcessUI(e) {
-    const site = this._termBuf?.site;
+    const site = this._site;
     if (site?.handleEasyReadingKeyDown?.(this, e)) {
       e.preventDefault();
       return;

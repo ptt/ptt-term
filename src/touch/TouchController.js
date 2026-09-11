@@ -1,4 +1,5 @@
 import { readValuesWithDefault, writeValues } from "../js/pref.js";
+import { PAGE_STATE } from "../js/sites/index.js";
 
 const MOVE_THRESHOLD = 8;
 const PINCH_STEP_PX = 28;
@@ -162,7 +163,8 @@ export class TouchController {
         if (!this.panDirection) {
           const dx = Math.abs(e.clientX - this.startX);
           const dy = Math.abs(e.clientY - this.startY);
-          if (dy >= dx && app.buf && app.buf.pageState === 2) {
+          const site = app.site;
+          if (dy >= dx && site?.pageState === PAGE_STATE.LIST) {
             this.panDirection = "list_scroll";
             this.isPanning = true;
           } else {
@@ -236,10 +238,11 @@ export class TouchController {
       }
 
       if (this.isPanning) {
+        const site = app.site;
         if (
           this.panDirection === "list_scroll" &&
+          site?.pageState === PAGE_STATE.LIST &&
           app.buf &&
-          app.buf.pageState === 2 &&
           app.buf.highlightCursor &&
           app.buf.nowHighlight !== -1
         ) {

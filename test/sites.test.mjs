@@ -8,6 +8,7 @@ import {
   Maple3Site,
   AutoSite,
   CHARSETS,
+  PAGE_STATE,
 } from '../src/js/sites/index.js';
 import { EventEmitter } from '../src/js/event.js';
 import {
@@ -713,6 +714,7 @@ test('EasyReading in-flight control prevents multiple concurrent PageDowns', () 
       connectedUrl: { easyReadingSupported: true },
       suppressInertialWheel: () => {},
       send: (cmd) => sentCommands.push(cmd),
+      site: ptt,
     };
 
     const mockView = {
@@ -723,13 +725,14 @@ test('EasyReading in-flight control prevents multiple concurrent PageDowns', () 
       hideEasyReading: () => {},
     };
 
+    ptt.pageState = PAGE_STATE.READING;
+    ptt.prevPageState = PAGE_STATE.NORMAL;
+
     const mockTermBuf = Object.assign(new MockTarget(), {
       cols: 80,
       rows: 24,
       cur_x: 79,
       cur_y: 23,
-      prevPageState: 0,
-      pageState: 3,
       site: ptt,
       lines: Array.from({ length: 24 }, () => []),
       statusText: '  瀏覽 第 1/3 頁 ( 33%)  目前顯示: 第 01~22 行 (y)回應(X%)推文(h)說明 (←)離開 ',
@@ -755,7 +758,7 @@ test('EasyReading in-flight control prevents multiple concurrent PageDowns', () 
     assert.deepEqual(sentCommands, ['\x1b[6~']);
     assert.equal(easyReading.sendCommandAfterUpdate, '');
     assert.equal(easyReading._pageDownInFlight, true);
-    mockTermBuf.prevPageState = 3;
+    ptt.prevPageState = 3;
 
     // 2. While in-flight, duplicate updates for same page must NOT trigger another PageDown
     mockTermBuf.dispatchEvent({ type: 'change' });
@@ -763,7 +766,7 @@ test('EasyReading in-flight control prevents multiple concurrent PageDowns', () 
     assert.equal(easyReading._pageDownInFlight, true);
 
     // 3. Server delivers page 2 -> advances page, clears in-flight, queues next PageDown
-    mockTermBuf.prevPageState = 3;
+    ptt.prevPageState = 3;
     mockTermBuf.statusText = '  瀏覽 第 2/3 頁 ( 66%)  目前顯示: 第 21~42 行 (y)回應(X%)推文(h)說明 (←)離開 ';
     mockTermBuf.dispatchEvent({ type: 'change' });
     assert.equal(easyReading._pageDownInFlight, true);
@@ -809,6 +812,7 @@ test('EasyReading in-flight watchdog handles dropped response with retries and b
       connectedUrl: { easyReadingSupported: true },
       suppressInertialWheel: () => {},
       send: (cmd) => sentCommands.push(cmd),
+      site: ptt,
     };
 
     const mockView = {
@@ -819,13 +823,14 @@ test('EasyReading in-flight watchdog handles dropped response with retries and b
       hideEasyReading: () => {},
     };
 
+    ptt.pageState = PAGE_STATE.READING;
+    ptt.prevPageState = PAGE_STATE.NORMAL;
+
     const mockTermBuf = Object.assign(new MockTarget(), {
       cols: 80,
       rows: 24,
       cur_x: 79,
       cur_y: 23,
-      prevPageState: 0,
-      pageState: 3,
       site: ptt,
       lines: Array.from({ length: 24 }, () => []),
       statusText: '  瀏覽 第 1/3 頁 ( 33%)  目前顯示: 第 01~22 行 (y)回應(X%)推文(h)說明 (←)離開 ',
@@ -914,6 +919,7 @@ test('EasyReading captures complete frames with DEC 2026 synchronized update', (
       connectedUrl: { easyReadingSupported: true },
       suppressInertialWheel: () => {},
       send: (cmd) => sentCommands.push(cmd),
+      site: ptt,
     };
 
     const mockView = {
@@ -924,14 +930,15 @@ test('EasyReading captures complete frames with DEC 2026 synchronized update', (
       hideEasyReading: () => {},
     };
 
+    ptt.pageState = PAGE_STATE.READING;
+    ptt.prevPageState = PAGE_STATE.NORMAL;
+
     // Note: cursor parked at column 15 instead of legacy 79
     const mockTermBuf = Object.assign(new MockTarget(), {
       cols: 80,
       rows: 24,
       cur_x: 15,
       cur_y: 23,
-      prevPageState: 0,
-      pageState: 3,
       site: ptt,
       hasFrameSync: true,
       inSyncUpdate: false,
@@ -1024,9 +1031,11 @@ test('EasyReading encapsulates overlay DOM elements and page stitching', () => {
       getElementById: (id) => (id === 'TermWindow' ? container : null),
     };
 
+    const ptt = new PttSite();
     const mockCore = {
       connectedUrl: { easyReadingSupported: true },
       suppressInertialWheel: () => {},
+      site: ptt,
     };
     const renderedRows = [];
     const mockView = {
@@ -1036,7 +1045,6 @@ test('EasyReading encapsulates overlay DOM elements and page stitching', () => {
         renderedRows.push({ line, row });
       },
     };
-    const ptt = new PttSite();
     const mockTermBuf = {
       cols: 80,
       rows: 24,
@@ -1080,6 +1088,7 @@ test('EasyReading decouples state tracking and removes TermBuf property injectio
   const mockCore = {
     connectedUrl: { easyReadingSupported: true },
     suppressInertialWheel: () => {},
+    site: new PttSite(),
   };
   const mockView = {
     chh: 16,
@@ -1354,6 +1363,7 @@ test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update
 
   mockApp.view = mockView;
   mockApp.buf = mockBuf;
+  mockApp.site = new PttSite();
 
   const plugin = new EasyReading();
   assert.equal(plugin.name, 'easy_reading');
@@ -1484,7 +1494,8 @@ test('src/plugins exports LiveUpdate and provides timer and keyboard lifecycle',
   // Timer & sending logic
   const sentCommands = [];
   const mockApp = new EventEmitter();
-  mockApp.buf = { pageState: 3 };
+  mockApp.site = { pageState: PAGE_STATE.READING };
+  mockApp.buf = { site: mockApp.site };
   mockApp.send = (cmd) => {
     sentCommands.push(cmd);
   };
@@ -1629,12 +1640,22 @@ test('ContextMenu and DropdownMenu decouple LiveHelper and remove right-click it
   );
 });
 
-test('BaseSite implements setPageState and TermBuf delegates to site.setPageState', () => {
+test('PAGE_STATE enum provides named constants for terminal screen states', () => {
+  assert.equal(PAGE_STATE.NORMAL, 0);
+  assert.equal(PAGE_STATE.MENU, 1);
+  assert.equal(PAGE_STATE.LIST, 2);
+  assert.equal(PAGE_STATE.READING, 3);
+  assert.equal(PAGE_STATE.MAPLE_LIST, 4);
+  assert.equal(PAGE_STATE.PASS, 5);
+  assert.equal(PAGE_STATE.EDITING, 6);
+  assert.equal(BaseSite.PAGE_STATE, PAGE_STATE);
+});
+
+test('BaseSite manages pageState and TermBuf does not own pageState', async () => {
   const site = new BaseSite('test-site');
   const mockTerm = {
     cols: 80,
     rows: 24,
-    pageState: 0,
     lines: Array.from({ length: 24 }, () => []),
     getRowText(r) {
       if (r === 23) return '請按任意鍵繼續';
@@ -1645,21 +1666,37 @@ test('BaseSite implements setPageState and TermBuf delegates to site.setPageStat
     },
   };
 
-  assert.equal(site.setPageState(mockTerm), 5);
-  assert.equal(mockTerm.pageState, 5);
+  assert.equal(site.setPageState(mockTerm), PAGE_STATE.PASS);
+  assert.equal(site.pageState, PAGE_STATE.PASS);
 
   // When pass screen is cleared to empty row
   mockTerm.getRowText = () => '';
   mockTerm.isLineEmpty = () => true;
-  assert.equal(site.setPageState(mockTerm), 0);
-  assert.equal(mockTerm.pageState, 0);
+  assert.equal(site.setPageState(mockTerm), PAGE_STATE.NORMAL);
+  assert.equal(site.pageState, PAGE_STATE.NORMAL);
 
-  // TermBuf does not declare mouseCursor; managed by MouseBrowsing
+  // TermBuf does not declare pageState API; callers query site directly
   const fs = await import('fs');
   const path = await import('path');
   const termBufSource = fs.readFileSync(
     path.resolve('src/js/term_buf.js'),
     'utf-8'
+  );
+  assert.ok(
+    !termBufSource.includes('get pageState()'),
+    'TermBuf must not define pageState getter'
+  );
+  assert.ok(
+    !termBufSource.includes('set pageState('),
+    'TermBuf must not define pageState setter'
+  );
+  assert.ok(
+    !termBufSource.includes('get prevPageState()'),
+    'TermBuf must not define prevPageState getter'
+  );
+  assert.ok(
+    !termBufSource.includes('set prevPageState('),
+    'TermBuf must not define prevPageState setter'
   );
   assert.ok(
     !termBufSource.includes('mouseCursor'),
