@@ -14,14 +14,17 @@ class MockConnection {
     this.listeners = {};
     this.sent = [];
   }
-  addEventListener(type, fn) {
+  on(type, fn) {
     this.listeners[type] = this.listeners[type] || [];
     this.listeners[type].push(fn);
+  }
+  addEventListener(type, fn) {
+    this.on(type, fn);
   }
   emit(type, data) {
     const fns = this.listeners[type] || [];
     for (const fn of fns) {
-      fn({ detail: { data } });
+      fn({ data });
     }
   }
   send(data) {

@@ -236,3 +236,71 @@ test('TouchDebugHUD integrates with App debug event dispatcher', () => {
     global.window = origWindow;
   }
 });
+
+test('VirtualKeyboard interacts with App via EventEmitter (pref-change and overlay:update)', async () => {
+  const { VirtualKeyboardPlugin } = await import('../src/plugins/virtual_keyboard/index.js');
+  const mockApp = new EventEmitter();
+  let overlayUpdated = false;
+  mockApp.on('term:overlay:update', () => {
+    overlayUpdated = true;
+  });
+
+  const plugin = new VirtualKeyboardPlugin(mockApp);
+  plugin.init({ app: mockApp });
+
+  assert.equal(plugin.enabled, false);
+
+  // 1. Enabling emits term:overlay:update
+  plugin.setEnabled(true);
+  assert.equal(plugin.enabled, true);
+  assert.equal(overlayUpdated, true);
+
+  // 2. Pref change event via emit triggers plugin
+  mockApp.emit('term:pref-change', { key: 'enableVirtualKeyboard', value: false });
+  assert.equal(plugin.enabled, false);
+
+  // 3. Destroy unregisters listener
+  plugin.destroy();
+  mockApp.emit('term:pref-change', { key: 'enableVirtualKeyboard', value: true });
+  assert.equal(plugin.enabled, false, 'Plugin should not react to events after destroy');
+});
+
+test('TouchKeyboard and ContextMenu communicate via ui:floating-menu-toggle EventEmitter', async () => {
+  const mockApp = new EventEmitter();
+  let toggledWith = null;
+
+  // Simulate ContextMenu mounting and listening
+  const unsub = mockApp.subscribe('ui:floating-menu-toggle', ({ event, targetEl }) => {
+    toggledWith = { event, targetEl };
+  });
+
+  assert.equal(mockApp.listenerCount('ui:floating-menu-toggle'), 1);
+
+  // Simulate TouchKeyboard handleFloatingMenuToggle
+  const dummyEvent = { type: 'pointerdown' };
+  const dummyTarget = { id: 'btn' };
+  mockApp.emit('ui:floating-menu-toggle', { event: dummyEvent, targetEl: dummyTarget });
+
+  assert.deepEqual(toggledWith, { event: dummyEvent, targetEl: dummyTarget });
+
+  // Unsubscribe
+  unsub();
+  assert.equal(mockApp.listenerCount('ui:floating-menu-toggle'), 0);
+});
+
+test('TermKeyboard emits term:key event directly to EventEmitter subscribers', async () => {
+  const { TermKeyboard } = await import('../src/js/term_keyboard.js');
+  const kb = new TermKeyboard(() => {});
+  const received = [];
+
+  kb.on('term:key', (detail) => {
+    received.push(detail);
+  });
+
+  kb._fireKeyEvent('ArrowUp', '\x1b[A', null);
+  assert.equal(received.length, 1);
+  assert.equal(received[0].key, 'ArrowUp');
+  assert.equal(received[0].mapped, '\x1b[A');
+  assert.equal(received[0].term, kb);
+});
+

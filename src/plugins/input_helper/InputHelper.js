@@ -114,11 +114,13 @@ export class InputHelper {
     if (app) {
       this.app = app;
       this._onPrefChangeBound = (e) => {
-        if (e.detail?.key === "enableInputHelper") {
-          this.enabled = Boolean(e.detail.value);
+        const key = e?.key ?? e?.detail?.key;
+        const value = e?.value !== undefined ? e.value : e?.detail?.value;
+        if (key === "enableInputHelper") {
+          this.enabled = Boolean(value);
         }
       };
-      app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
+      app.on("term:pref-change", this._onPrefChangeBound);
       app.registerContextMenuItem?.(this.getContextMenuItems()[0]);
     }
     if (view) this.view = view;
@@ -141,24 +143,24 @@ export class InputHelper {
   destroy() {
     this.showsModal = false;
     if (this.app) {
-      this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
+      this.app.off("term:pref-change", this._onPrefChangeBound);
       this.app.unregisterContextMenuItem?.("input_helper");
     }
   }
 
   show() {
     this.showsModal = true;
-    this.app?.dispatchEvent?.(new CustomEvent("term:overlay:update"));
+    this.app?.emit('term:overlay:update');
   }
 
   hide() {
     this.showsModal = false;
-    this.app?.dispatchEvent?.(new CustomEvent("term:overlay:update"));
+    this.app?.emit('term:overlay:update');
   }
 
   toggle() {
     this.showsModal = !this.showsModal;
-    this.app?.dispatchEvent?.(new CustomEvent("term:overlay:update"));
+    this.app?.emit('term:overlay:update');
     return this.showsModal;
   }
 

@@ -131,16 +131,25 @@ test('VirtualKeyboard lifecycle, preference sync, and renderOverlay', () => {
   let overlayUpdated = false;
   const mockApp = {
     _prefHandler: null,
-    addEventListener(name, fn) {
+    on(name, fn) {
       if (name === 'term:pref-change') this._prefHandler = fn;
     },
-    removeEventListener(name, fn) {
+    off(name, fn) {
       if (name === 'term:pref-change') this._prefHandler = null;
     },
-    dispatchEvent(event) {
-      if (event.type === 'term:overlay:update') {
+    emit(type) {
+      if (type === 'term:overlay:update') {
         overlayUpdated = true;
       }
+    },
+    addEventListener(name, fn) {
+      this.on(name, fn);
+    },
+    removeEventListener(name, fn) {
+      this.off(name, fn);
+    },
+    dispatchEvent(event) {
+      this.emit(event?.type || event);
     },
   };
 
@@ -220,18 +229,17 @@ test('ContextMenu cleanly decouples TouchKeyboard and delegates floating menu to
     'ContextMenu must not import TouchKeyboard'
   );
 
-  // ContextMenu binds app.handleFloatingMenuToggle
+  // ContextMenu listens to ui:floating-menu-toggle
   assert.ok(
-    contextMenuSource.includes(
-      'app.handleFloatingMenuToggle = this.handleFloatingMenuToggle'
-    ),
-    'ContextMenu must expose app.handleFloatingMenuToggle'
+    contextMenuSource.includes('"ui:floating-menu-toggle"'),
+    'ContextMenu must listen to ui:floating-menu-toggle'
   );
 
-  // TouchKeyboard delegates to app.handleFloatingMenuToggle
+  // TouchKeyboard delegates to ui:floating-menu-toggle
   assert.ok(
-    touchKbSource.includes('this.props.app?.handleFloatingMenuToggle'),
-    'TouchKeyboard must delegate to app.handleFloatingMenuToggle'
+    touchKbSource.includes("this.props.app?.emit(\"ui:floating-menu-toggle\"") ||
+    touchKbSource.includes("this.props.app?.emit('ui:floating-menu-toggle'"),
+    'TouchKeyboard must delegate to ui:floating-menu-toggle'
   );
 });
 

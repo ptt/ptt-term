@@ -133,8 +133,10 @@ export class EasyReading {
     if (targetCore) {
       targetCore.registerInputInterceptor?.(this);
       this._onPrefChangeBound = (e) => {
-        if (e.detail?.key === 'enableEasyReading') {
-          this.enabled = Boolean(e.detail.value);
+        const key = e?.key ?? e?.detail?.key;
+        const value = e?.value !== undefined ? e.value : e?.detail?.value;
+        if (key === 'enableEasyReading') {
+          this.enabled = Boolean(value);
           if (!this.enabled && this.isActive()) {
             this.hide();
           }
@@ -142,7 +144,8 @@ export class EasyReading {
       };
       this._onEasyReadingSwitchBound = (e) => {
         this.leaveCurrentPost();
-        if (e.detail?.doSwitch) {
+        const doSwitch = e?.doSwitch !== undefined ? e.doSwitch : e?.detail?.doSwitch;
+        if (doSwitch) {
           this.clearRows();
           if (this._termBuf?.pageState == 3 && this._core?.send) {
             const cmd = this._core.site?.getReenterArticleCommand?.(this._termBuf);
@@ -153,16 +156,17 @@ export class EasyReading {
         }
       };
       this._onScreenUpdateBound = (e) => {
-        this.onScreenUpdate(e.detail?.changedLineHtmlStrs);
+        const changedLineHtmlStrs = e?.changedLineHtmlStrs !== undefined ? e.changedLineHtmlStrs : e?.detail?.changedLineHtmlStrs;
+        this.onScreenUpdate(changedLineHtmlStrs);
       };
-      targetCore.addEventListener?.('term:pref-change', this._onPrefChangeBound);
-      targetCore.addEventListener?.('term:easy-reading:switch', this._onEasyReadingSwitchBound);
-      targetCore.addEventListener?.('term:screen-update', this._onScreenUpdateBound);
+      targetCore.on?.('term:pref-change', this._onPrefChangeBound);
+      targetCore.on?.('term:easy-reading:switch', this._onEasyReadingSwitchBound);
+      targetCore.on?.('term:screen-update', this._onScreenUpdateBound);
     }
     if (targetBuf) {
-      if (targetBuf.addEventListener && !this._bufListenersAttached) {
-        targetBuf.addEventListener('change', this._onBufChanged);
-        targetBuf.addEventListener('viewUpdate', this._onBufViewUpdated);
+      if (targetBuf.on && !this._bufListenersAttached) {
+        targetBuf.on('change', this._onBufChanged);
+        targetBuf.on('viewUpdate', this._onBufViewUpdated);
         this._bufListenersAttached = true;
       }
     }
@@ -187,14 +191,14 @@ export class EasyReading {
     this.hide();
     this._resetInFlight();
     if (this._termBuf && this._bufListenersAttached) {
-      this._termBuf.removeEventListener?.('change', this._onBufChanged);
-      this._termBuf.removeEventListener?.('viewUpdate', this._onBufViewUpdated);
+      this._termBuf.off?.('change', this._onBufChanged);
+      this._termBuf.off?.('viewUpdate', this._onBufViewUpdated);
       this._bufListenersAttached = false;
     }
     if (this._core) {
-      this._core.removeEventListener?.('term:pref-change', this._onPrefChangeBound);
-      this._core.removeEventListener?.('term:easy-reading:switch', this._onEasyReadingSwitchBound);
-      this._core.removeEventListener?.('term:screen-update', this._onScreenUpdateBound);
+      this._core.off?.('term:pref-change', this._onPrefChangeBound);
+      this._core.off?.('term:easy-reading:switch', this._onEasyReadingSwitchBound);
+      this._core.off?.('term:screen-update', this._onScreenUpdateBound);
       this._core.unregisterInputInterceptor?.(this);
     }
     if (this._overlay && this._overlay.parentNode) {

@@ -39,7 +39,7 @@ export class App extends EventEmitter {
   this.backspaceKey = 'control-h';
   this.deleteKey = 'escape-sequence';
   this.lineHeight = 1.0;
-  this.buf.addEventListener('bell', () => {
+  this.buf.on('bell', () => {
     if (this.enableVisualBell) {
       this.view.triggerVisualBell();
     }
@@ -240,9 +240,7 @@ export class App extends EventEmitter {
     } else {
       this.overlays.push(overlay);
     }
-    this.dispatchEvent(
-      new CustomEvent('term:overlay:update', { detail: { overlay } })
-    );
+    this.emit('term:overlay:update', { overlay, detail: { overlay } });
   }
 
   unregisterOverlay(idOrOverlay) {
@@ -250,9 +248,7 @@ export class App extends EventEmitter {
     const idx = this.overlays.findIndex((o) => o.id === id);
     if (idx !== -1) {
       const [removed] = this.overlays.splice(idx, 1);
-      this.dispatchEvent(
-        new CustomEvent('term:overlay:update', { detail: { removed } })
-      );
+      this.emit('term:overlay:update', { removed, detail: { removed } });
     }
   }
 
@@ -268,9 +264,7 @@ export class App extends EventEmitter {
     } else {
       this.contextMenuItems.push(item);
     }
-    this.dispatchEvent(
-      new CustomEvent('term:context-menu:update', { detail: { item } })
-    );
+    this.emit('term:context-menu:update', { item, detail: { item } });
   }
 
   unregisterContextMenuItem(idOrItem) {
@@ -278,9 +272,7 @@ export class App extends EventEmitter {
     const idx = this.contextMenuItems.findIndex((i) => i.id === id);
     if (idx !== -1) {
       const [removed] = this.contextMenuItems.splice(idx, 1);
-      this.dispatchEvent(
-        new CustomEvent('term:context-menu:update', { detail: { removed } })
-      );
+      this.emit('term:context-menu:update', { removed, detail: { removed } });
     }
   }
 
@@ -504,7 +496,7 @@ export class App extends EventEmitter {
 
   _setupWebsocketConn(url) {
     const wsConn = new Websocket(url);
-    this.dispatchEvent(new CustomEvent('term:socket', { detail: { socket: wsConn } }));
+    this.emit('term:socket', { socket: wsConn, detail: { socket: wsConn } });
     for (const plugin of this.plugins) {
       plugin.onAttachSocket?.(wsConn);
     }
@@ -522,12 +514,13 @@ export class App extends EventEmitter {
     if (!conn.convSend) conn.convSend = (str) => this.stream.send(str);
     this.conn.addEventListener('open', () => this.onConnect());
     this.conn.addEventListener('close', () => this.onClose());
-    this.stream.addEventListener('telopt', (e) => {
-      this.site.onTelopt(e.detail.cmd, e.detail.opt, this.buf);
-    });
-    this.conn.addEventListener('telopt', (e) => {
-      this.site.onTelopt(e.detail.cmd, e.detail.opt, this.buf);
-    });
+    const onTelopt = (e) => {
+      if (this.site?.onTelopt) {
+        this.site.onTelopt(e.cmd, e.opt, this.buf);
+      }
+    };
+    this.stream.addEventListener('telopt', onTelopt);
+    this.conn.addEventListener('telopt', onTelopt);
     this.stream.addEventListener('doNaws', (e) => {
       this.stream.sendWillNaws(this.buf.cols, this.buf.rows);
       this.stream.sendNaws(this.buf.cols, this.buf.rows);
@@ -537,8 +530,7 @@ export class App extends EventEmitter {
       this.stream.sendNaws(this.buf.cols, this.buf.rows);
     });
     this.conn.addEventListener('data', (e) => {
-      const data = (e && e.detail && e.detail.data !== undefined) ? e.detail.data : (e ? e.data : null);
-      this.site.onData(data, this.buf);
+      this.site.onData(e.data, this.buf);
     });
   }
 
@@ -552,9 +544,9 @@ export class App extends EventEmitter {
     this.connectState = 1;
     this.updateTabIcon('connect');
     this.view.buf.setTitle({conn: this.connectedUrl.hostname});
-    this.dispatchEvent(new CustomEvent('term:connect'));
+    this.emit('term:connect');
     this.timerEverySec = setTimer(true, () => {
-      this.dispatchEvent(new CustomEvent('term:tick', { detail: { intervalMs: 1000 } }));
+      this.emit('term:tick', { intervalMs: 1000, detail: { intervalMs: 1000 } });
       this.view.onBlink();
     }, 1000);
   }
@@ -580,7 +572,7 @@ export class App extends EventEmitter {
     this.cancelMbTimer();
 
     this.connectState = 2;
-    this.dispatchEvent(new CustomEvent('term:disconnect'));
+    this.emit('term:disconnect');
 
     this.showAlert('connection', {
       onDismiss: () => {
@@ -591,7 +583,7 @@ export class App extends EventEmitter {
   }
 
   send(data) {
-    this.dispatchEvent(new CustomEvent('term:send', { detail: { data } }));
+    this.emit('term:send', { data, detail: { data } });
     this.stream.send(data);
   }
 
@@ -600,7 +592,7 @@ export class App extends EventEmitter {
   }
 
   sendData(str) {
-    this.dispatchEvent(new CustomEvent('term:send', { detail: { data: str } }));
+    this.emit('term:send', { data: str, detail: { data: str } });
     if (this.connectState == 1) {
       this.stream.send(str);
     }
@@ -706,7 +698,7 @@ export class App extends EventEmitter {
   }
 
   switchToEasyReadingMode(doSwitch) {
-    this.dispatchEvent(new CustomEvent('term:easy-reading:switch', { detail: { doSwitch } }));
+    this.emit('term:easy-reading:switch', { doSwitch, detail: { doSwitch } });
     this.send(unescapeStr('^L'));
   }
 
@@ -767,7 +759,7 @@ export class App extends EventEmitter {
   }
 
   onDOMCopy(e) {
-    this.dispatchEvent(new CustomEvent('term:user-activity', { detail: { type: 'copy' } }));
+    this.emit('term:user-activity', { type: 'copy', detail: { type: 'copy' } });
     if (this.strToCopy) {
     e.clipboardData.setData('text', this.strToCopy);
     e.preventDefault();
@@ -943,11 +935,11 @@ export class App extends EventEmitter {
   switchMouseBrowsing() {
     this.useMouseBrowsing = !this.useMouseBrowsing;
     updatePref('useMouseBrowsing', this.useMouseBrowsing);
-    this.dispatchEvent(
-      new CustomEvent('term:pref-change', {
-        detail: { key: 'useMouseBrowsing', value: this.useMouseBrowsing },
-      })
-    );
+    this.emit('term:pref-change', {
+      key: 'useMouseBrowsing',
+      value: this.useMouseBrowsing,
+      detail: { key: 'useMouseBrowsing', value: this.useMouseBrowsing },
+    });
     return this.useMouseBrowsing;
   }
 
@@ -1027,21 +1019,28 @@ export class App extends EventEmitter {
     if (!this.conn || !this.conn.isConnected)
       return;
 
-    this.dispatchEvent(new CustomEvent('term:click', { detail: { event: e } }));
+    this.emit('term:click', { event: e, detail: { event: e } });
     this.dispatchMouseClick(e);
   }
 
   onMouse_move(cX, cY) {
     const pos = this.clientToPos(cX, cY);
-    this.dispatchEvent(new CustomEvent('term:mouse-move', {
+    this.emit('term:mouse-move', {
+      col: pos.col,
+      row: pos.row,
+      clientX: cX,
+      clientY: cY,
+      refresh: false,
       detail: { col: pos.col, row: pos.row, clientX: cX, clientY: cY, refresh: false }
-    }));
+    });
   }
 
   resetMouseCursor(cX, cY) {
-    this.dispatchEvent(new CustomEvent('term:reset-mouse-cursor', {
+    this.emit('term:reset-mouse-cursor', {
+      clientX: cX,
+      clientY: cY,
       detail: { clientX: cX, clientY: cY }
-    }));
+    });
   }
 
   isMobileLayout() {
@@ -1133,13 +1132,12 @@ export class App extends EventEmitter {
 
   onPrefChange(name, value) {
   try {
-    this.dispatchEvent(new CustomEvent('term:pref-change', { detail: { key: name, value } }));
-    this.dispatchEvent(new CustomEvent('prefChange', { detail: { name, value } }));
+    this.emit('term:pref-change', { key: name, value, detail: { key: name, value } });
     switch (name) {
     case 'uiLocale':
       setupI18n(value);
-      this.dispatchEvent(new CustomEvent('term:i18n:change', { detail: { lang: value } }));
-      this.dispatchEvent(new CustomEvent('term:overlay:update'));
+      this.emit('term:i18n:change', { lang: value, detail: { lang: value } });
+      this.emit('term:overlay:update');
       break;
     case 'useMouseBrowsing': {
       const useMouseBrowsing = !!value;
@@ -1348,9 +1346,14 @@ export class App extends EventEmitter {
         if (skipMouseClick) {
           doMouseCommand = false;
           const pos = this.clientToPos(e.clientX, e.clientY);
-          this.dispatchEvent(new CustomEvent('term:mouse-move', {
+          this.emit('term:mouse-move', {
+            col: pos.col,
+            row: pos.row,
+            clientX: e.clientX,
+            clientY: e.clientY,
+            refresh: true,
             detail: { col: pos.col, row: pos.row, clientX: e.clientX, clientY: e.clientY, refresh: true }
-          }));
+          });
         }
         if (doMouseCommand) {
           this.onMouse_click(e);

@@ -181,15 +181,21 @@ export class PwaPromptPlugin {
     if (app) {
       this.app = app;
       this._onPrefChangeBound = (e) => {
-        if (e.detail?.key === PwaPromptPlugin.prefKey) {
-          this.enabled = Boolean(e.detail.value);
+        const key = e?.key ?? e?.detail?.key;
+        const value = e?.value !== undefined ? e.value : e?.detail?.value;
+        if (key === PwaPromptPlugin.prefKey) {
+          this.enabled = Boolean(value);
           if (!this.enabled && this.showsModal) {
             this.showsModal = false;
           }
           this.notifyUpdate();
         }
       };
-      app.addEventListener?.('term:pref-change', this._onPrefChangeBound);
+      if (typeof app.on === 'function') {
+        app.on('term:pref-change', this._onPrefChangeBound);
+      } else {
+        app.addEventListener?.('term:pref-change', this._onPrefChangeBound);
+      }
     }
 
     // If already running as PWA standalone, turn off the plugin immediately!
@@ -294,8 +300,30 @@ export class PwaPromptPlugin {
     this.disablePlugin();
   }
 
+  destroy() {
+    this.showsModal = false;
+    this.enabled = false;
+    if (this._autoPromptTimer) {
+      clearTimeout(this._autoPromptTimer);
+      this._autoPromptTimer = null;
+    }
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('term:pwa:installable', this._onInstallable);
+      window.removeEventListener('term:pwa:installed', this._onInstalled);
+    }
+    if (this.app && this._onPrefChangeBound) {
+      if (typeof this.app.off === 'function') {
+        this.app.off('term:pref-change', this._onPrefChangeBound);
+      } else {
+        this.app.removeEventListener?.('term:pref-change', this._onPrefChangeBound);
+      }
+      this._onPrefChangeBound = null;
+    }
+    this.notifyUpdate();
+  }
+
   notifyUpdate() {
-    this.app?.dispatchEvent?.(new CustomEvent('term:plugin:update'));
+    this.app?.emit?.('term:overlay:update');
   }
 
   renderOverlay({ app } = {}) {

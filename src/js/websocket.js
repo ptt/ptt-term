@@ -44,31 +44,23 @@ export class Websocket extends EventEmitter {
   }
 
   _onOpen(e) {
-    this.dispatchEvent(new CustomEvent('open'));
+    this.emit('open');
   }
 
   _onMessage(e) {
     const data = new Uint8Array(e.data);
-    this.dispatchEvent(new CustomEvent('rawRecv', {
-      detail: {
-        data: data
-      }
-    }));
-    this.dispatchEvent(new CustomEvent('data', {
-      detail: {
-        data: data
-      }
-    }));
+    this.emit('rawRecv', { data });
+    this.emit('data', { data });
   }
 
   _onError(e) {
-    this.dispatchEvent(new CustomEvent('error'));
+    this.emit('error');
   }
 
   _onClose(e) {
     this._sendQueue = [];
     this._isFlushing = false;
-    this.dispatchEvent(new CustomEvent('close'));
+    this.emit('close');
   }
 
   send(data) {
@@ -114,13 +106,12 @@ export class Websocket extends EventEmitter {
         const chunk = this._sendQueue.shift();
         if (!chunk) continue;
 
-        this.dispatchEvent(
-          new CustomEvent('rawSend', {
-            detail: {
-              data: chunk,
-            },
-          })
-        );
+        this.emit('rawSend', {
+          data: chunk,
+          detail: {
+            data: chunk,
+          },
+        });
         this._conn.send(chunk.buffer);
 
         // If more chunks remain in queue (bulk transmission / paste), apply inter-chunk delay

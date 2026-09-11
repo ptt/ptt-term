@@ -364,7 +364,7 @@ export class TermBuf extends EventEmitter {
       case '\x07':
         this.bellOccurred = true;
         playTerminalBell();
-        this.dispatchEvent(new CustomEvent('bell'));
+        this.emit('bell');
         continue;
       case '\b':
         this.back();
@@ -1035,7 +1035,7 @@ export class TermBuf extends EventEmitter {
     }
     this.inSyncUpdate = false;
     this.hasFrameSync = true;
-    this.dispatchEvent(new CustomEvent('frame'));
+    this.emit('frame');
     if (this.changed || this.posChanged) {
       this.queueUpdate();
     }
@@ -1090,12 +1090,12 @@ export class TermBuf extends EventEmitter {
       this.setPageState();
       this.clearHighlight();
 
-      this.dispatchEvent(new CustomEvent('change'));
+      this.emit('change');
 
       this.view.update();
       this.changed = false;
 
-      this.dispatchEvent(new CustomEvent('viewUpdate'));
+      this.emit('viewUpdate');
     }
 
     if (this.posChanged) { // cursor pos changed

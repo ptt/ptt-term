@@ -100,17 +100,12 @@ export class TermView extends EventEmitter {
   this.mainDisplay.style.border = '0px';
   this.setFontFace('MingLiu,monospace');
 
-  this._keyboard = new TermKeyboard(
-    (data) => this._send(data),
-    (detail) => {
-      const termDetail = { ...detail, term: this, view: this, buf: this.buf };
-      const customEvent = typeof CustomEvent !== 'undefined'
-        ? new CustomEvent('term:key', { detail: termDetail })
-        : { type: 'term:key', detail: termDetail };
-      this.dispatchEvent(customEvent);
-      this.buf?.dispatchEvent?.(customEvent);
-    }
-  );
+  this._keyboard = new TermKeyboard((data) => this._send(data));
+  this._keyboard.on('term:key', (detail) => {
+    const termDetail = { ...detail, term: this, view: this, buf: this.buf };
+    this.emit('term:key', termDetail);
+    this.buf?.emit?.('term:key', termDetail);
+  });
 
   this.input.addEventListener('compositionstart', (e) => {
     this.onCompositionStart(e);
@@ -288,20 +283,20 @@ export class TermView extends EventEmitter {
 
   handleHyperlinkHover(event, href) {
     const detail = { event, href };
-    this.app?.dispatchEvent?.(new CustomEvent('term:hyperlink-hover', { detail }));
-    this.dispatchEvent(new CustomEvent('term:hyperlink-hover', { detail }));
+    this.app?.emit('term:hyperlink-hover', detail);
+    this.emit('term:hyperlink-hover', detail);
   }
 
   handleHyperlinkLeave(event) {
     const detail = { event };
-    this.app?.dispatchEvent?.(new CustomEvent('term:hyperlink-leave', { detail }));
-    this.dispatchEvent(new CustomEvent('term:hyperlink-leave', { detail }));
+    this.app?.emit('term:hyperlink-leave', detail);
+    this.emit('term:hyperlink-leave', detail);
   }
 
   handleHyperlinkMove(event) {
     const detail = { event };
-    this.app?.dispatchEvent?.(new CustomEvent('term:hyperlink-move', { detail }));
-    this.dispatchEvent(new CustomEvent('term:hyperlink-move', { detail }));
+    this.app?.emit('term:hyperlink-move', detail);
+    this.emit('term:hyperlink-move', detail);
   }
 
   update() {
@@ -380,18 +375,14 @@ export class TermView extends EventEmitter {
         this.handleRenderFrame(performance.now() - t0, false);
       }
 
-      this.app?.dispatchEvent?.(
-        new CustomEvent('term:screen-update', { detail: { changedLineHtmlStrs } })
-      );
-
+      this.app?.emit('term:screen-update', { changedLineHtmlStrs });
       this.app?.dispatchScreenUpdate?.(changedLineHtmlStrs);
 
       if (this.buf.prevPageState !== this.buf.pageState) {
-        this.app?.dispatchEvent?.(
-          new CustomEvent('term:state-change', {
-            detail: { state: this.buf.pageState, prevState: this.buf.prevPageState },
-          })
-        );
+        this.app?.emit('term:state-change', {
+          state: this.buf.pageState,
+          prevState: this.buf.prevPageState,
+        });
         if (this.panX > 0 || this.panY > 0) {
           this.resetPan();
         }

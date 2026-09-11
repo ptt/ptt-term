@@ -1655,25 +1655,8 @@ export class TouchKeyboard extends React.Component {
 
     if (this.props.onMenuToggle) {
       this.props.onMenuToggle(event, targetEl);
-    } else if (this.props.app?.handleFloatingMenuToggle) {
-      this.props.app.handleFloatingMenuToggle(event, targetEl);
-    } else if (this.props.app) {
-      const target =
-        targetEl ||
-        event?.currentTarget ||
-        event?.target?.closest?.("button") ||
-        event?.target ||
-        (typeof document !== "undefined"
-          ? document.querySelector?.(
-              ".TouchFloatingToolbar [aria-label='Menu & Settings']"
-            ) ||
-            document.querySelector?.(".TouchFloatingToolbar__Btn--system") ||
-            document.querySelector?.(".TouchFloatingToolbar")
-          : null);
-      const rect = target?.getBoundingClientRect?.();
-      if (rect) {
-        this.props.app.openContextMenu(rect.right, rect.top - 4);
-      }
+    } else {
+      this.props.app?.emit("ui:floating-menu-toggle", { event, targetEl });
     }
   };
   renderArrowLeft = () => (

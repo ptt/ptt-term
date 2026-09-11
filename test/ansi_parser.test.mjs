@@ -469,6 +469,7 @@ test('TermBuf defers rendering during synchronized update and aligns with V-Sync
       updateCharAttr() {},
       setPageState() {},
       clearHighlight() {},
+      emit(type) { events.push(type); },
       dispatchEvent(e) { events.push(e.type); },
       view: {
         update() { viewUpdates++; },

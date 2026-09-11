@@ -134,16 +134,16 @@ export class ContextMenu extends React.Component {
         if (!this.isInstanceActive()) return;
         this.showMenuAt(x, y);
       };
-      app.handleFloatingMenuToggle = this.handleFloatingMenuToggle;
+      this._onFloatingMenuToggle = ({ event, targetEl } = {}) => {
+        this.handleFloatingMenuToggle(event, targetEl);
+      };
+      app.on("ui:floating-menu-toggle", this._onFloatingMenuToggle);
       this._onContextMenuUpdate = () => {
         if (this.isInstanceActive()) {
           this.forceUpdate();
         }
       };
-      app.addEventListener?.(
-        "term:context-menu:update",
-        this._onContextMenuUpdate
-      );
+      app.on("term:context-menu:update", this._onContextMenuUpdate);
     }
 
     this.contextMenuHandler = (event) => {
@@ -264,14 +264,12 @@ export class ContextMenu extends React.Component {
     if (app && app.openContextMenu) {
       app.openContextMenu = null;
     }
-    if (app && app.handleFloatingMenuToggle === this.handleFloatingMenuToggle) {
-      app.handleFloatingMenuToggle = null;
+    if (app && this._onFloatingMenuToggle) {
+      app.off("ui:floating-menu-toggle", this._onFloatingMenuToggle);
+      this._onFloatingMenuToggle = null;
     }
     if (app && this._onContextMenuUpdate) {
-      app.removeEventListener?.(
-        "term:context-menu:update",
-        this._onContextMenuUpdate
-      );
+      app.off("term:context-menu:update", this._onContextMenuUpdate);
     }
     window.removeEventListener("resize", this.handleResizeOrTouch, false);
     window.removeEventListener(

@@ -57,11 +57,11 @@ export class BaseSite extends EventEmitter {
     this._attachedTerm = term;
     if (term) {
       this._keyListener = (e) => this.onKey(e);
-      term.addEventListener?.('term:key', this._keyListener);
       this._connectListener = () => this.resetLoginPrompt();
       this._disconnectListener = () => this.resetLoginPrompt();
-      term.addEventListener?.('term:connect', this._connectListener);
-      term.addEventListener?.('term:disconnect', this._disconnectListener);
+      term.on('term:key', this._keyListener);
+      term.on('term:connect', this._connectListener);
+      term.on('term:disconnect', this._disconnectListener);
     }
   }
 
@@ -70,9 +70,9 @@ export class BaseSite extends EventEmitter {
    */
   detach() {
     if (this._attachedTerm) {
-      if (this._keyListener) this._attachedTerm.removeEventListener?.('term:key', this._keyListener);
-      if (this._connectListener) this._attachedTerm.removeEventListener?.('term:connect', this._connectListener);
-      if (this._disconnectListener) this._attachedTerm.removeEventListener?.('term:disconnect', this._disconnectListener);
+      if (this._keyListener) this._attachedTerm.off('term:key', this._keyListener);
+      if (this._connectListener) this._attachedTerm.off('term:connect', this._connectListener);
+      if (this._disconnectListener) this._attachedTerm.off('term:disconnect', this._disconnectListener);
     }
     this._attachedTerm = null;
     this._keyListener = null;
@@ -712,32 +712,16 @@ export class BaseSite extends EventEmitter {
    */
   fireLoginPrompt(termBuf) {
     const detail = { site: this, siteType: this.name };
-    const eventNames = ['login', 'term:login', 'term:login-prompt'];
-
-    if (termBuf && typeof termBuf.dispatchEvent === 'function') {
-      for (const name of eventNames) {
-        termBuf.dispatchEvent(new CustomEvent(name, { detail }));
-      }
-    }
-
-    const app =
+    const target =
       termBuf?.app ||
       termBuf?.view?.app ||
-      termBuf?.view?.core ||
       this._attachedTerm?.app ||
-      (this._attachedTerm && typeof this._attachedTerm.send === 'function' ? this._attachedTerm : null);
+      termBuf;
 
-    if (app && typeof app.dispatchEvent === 'function' && app !== termBuf) {
-      for (const name of eventNames) {
-        app.dispatchEvent(new CustomEvent(name, { detail }));
-      }
+    if (target && target !== this) {
+      target.emit('term:login-prompt', detail);
     }
-
-    if (typeof this.dispatchEvent === 'function') {
-      for (const name of eventNames) {
-        this.dispatchEvent(new CustomEvent(name, { detail }));
-      }
-    }
+    this.emit('term:login-prompt', detail);
   }
 
   /**

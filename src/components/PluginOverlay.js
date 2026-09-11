@@ -5,18 +5,16 @@ export class PluginOverlay extends React.Component {
     const { app } = this.props;
     if (app) {
       this._onOverlayUpdate = () => this.forceUpdate();
-      app.addEventListener?.("term:overlay:update", this._onOverlayUpdate);
-      app.addEventListener?.("term:pref-change", this._onOverlayUpdate);
-      app.addEventListener?.("term:plugin:update", this._onOverlayUpdate);
+      app.on("term:overlay:update", this._onOverlayUpdate);
+      app.on("term:pref-change", this._onOverlayUpdate);
     }
   }
 
   componentWillUnmount() {
     const { app } = this.props;
     if (app && this._onOverlayUpdate) {
-      app.removeEventListener?.("term:overlay:update", this._onOverlayUpdate);
-      app.removeEventListener?.("term:pref-change", this._onOverlayUpdate);
-      app.removeEventListener?.("term:plugin:update", this._onOverlayUpdate);
+      app.off("term:overlay:update", this._onOverlayUpdate);
+      app.off("term:pref-change", this._onOverlayUpdate);
     }
   }
 

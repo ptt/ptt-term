@@ -123,16 +123,14 @@ test('E2E Session: Mock Terminal WebSocket server negotiates Telnet and feeds AN
     const parser = new AnsiParser(term);
     const telnetConn = new TelnetConnection(socketAdapter);
 
-    telnetConn.addEventListener('data', (e) => {
-      parser.feed(e.detail.data);
+    telnetConn.on('data', (e) => {
+      parser.feed(e.data);
     });
 
     await new Promise((resolve) => {
       ws.onmessage = (e) => {
         const data = new Uint8Array(e.data);
-        socketAdapter.dispatchEvent(new CustomEvent('data', {
-          detail: { data }
-        }));
+        socketAdapter.emit('data', { data });
 
         socketAdapter.send('guest\r');
         setTimeout(resolve, 60);

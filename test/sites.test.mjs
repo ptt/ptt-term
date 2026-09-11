@@ -9,6 +9,7 @@ import {
   AutoSite,
   CHARSETS,
 } from '../src/js/sites/index.js';
+import { EventEmitter } from '../src/js/event.js';
 import {
   EasyReading,
   INFLIGHT_WATCHDOG_MS,
@@ -706,19 +707,7 @@ test('EasyReading in-flight control prevents multiple concurrent PageDowns', () 
     const ptt = new PttSite();
     const sentCommands = [];
 
-    class MockTarget {
-      constructor() {
-        this._listeners = {};
-      }
-      addEventListener(evt, fn) {
-        if (!this._listeners[evt]) this._listeners[evt] = [];
-        this._listeners[evt].push(fn);
-      }
-      dispatchEvent(evt) {
-        const list = this._listeners[evt.type] || [];
-        for (const fn of list) fn(evt);
-      }
-    }
+    class MockTarget extends EventEmitter {}
 
     const mockCore = {
       connectedUrl: { easyReadingSupported: true },
@@ -814,19 +803,7 @@ test('EasyReading in-flight watchdog handles dropped response with retries and b
     const ptt = new PttSite();
     const sentCommands = [];
 
-    class MockTarget {
-      constructor() {
-        this._listeners = {};
-      }
-      addEventListener(evt, fn) {
-        if (!this._listeners[evt]) this._listeners[evt] = [];
-        this._listeners[evt].push(fn);
-      }
-      dispatchEvent(evt) {
-        const list = this._listeners[evt.type] || [];
-        for (const fn of list) fn(evt);
-      }
-    }
+    class MockTarget extends EventEmitter {}
 
     const mockCore = {
       connectedUrl: { easyReadingSupported: true },
@@ -931,19 +908,7 @@ test('EasyReading captures complete frames with DEC 2026 synchronized update', (
     const ptt = new PttSite();
     const sentCommands = [];
 
-    class MockTarget {
-      constructor() {
-        this._listeners = {};
-      }
-      addEventListener(evt, fn) {
-        if (!this._listeners[evt]) this._listeners[evt] = [];
-        this._listeners[evt].push(fn);
-      }
-      dispatchEvent(evt) {
-        const list = this._listeners[evt.type] || [];
-        for (const fn of list) fn(evt);
-      }
-    }
+    class MockTarget extends EventEmitter {}
 
     const mockCore = {
       connectedUrl: { easyReadingSupported: true },
@@ -1365,15 +1330,21 @@ test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update
 
   const listeners = new Map();
   const mockBuf = {
-    addEventListener(evt, fn) {
+    on(evt, fn) {
       if (!listeners.has(evt)) listeners.set(evt, []);
       listeners.get(evt).push(fn);
     },
-    removeEventListener(evt, fn) {
+    off(evt, fn) {
       if (!listeners.has(evt)) return;
       const arr = listeners.get(evt);
       const idx = arr.indexOf(fn);
       if (idx !== -1) arr.splice(idx, 1);
+    },
+    addEventListener(evt, fn) {
+      this.on(evt, fn);
+    },
+    removeEventListener(evt, fn) {
+      this.off(evt, fn);
     },
   };
 
@@ -1512,11 +1483,10 @@ test('src/plugins exports LiveUpdate and provides timer and keyboard lifecycle',
 
   // Timer & sending logic
   const sentCommands = [];
-  const mockApp = {
-    buf: { pageState: 3 },
-    send(cmd) {
-      sentCommands.push(cmd);
-    },
+  const mockApp = new EventEmitter();
+  mockApp.buf = { pageState: 3 };
+  mockApp.send = (cmd) => {
+    sentCommands.push(cmd);
   };
   const plugin = new liveUpdateModule.LiveUpdate(mockApp, { enabled: true, intervalSec: 1 });
   plugin.init({ app: mockApp, buf: mockApp.buf });
@@ -2029,7 +1999,7 @@ test('src/plugins exports ConnectionLog and formats hex data', async () => {
   const cl = new connLogModule.ConnectionLog(mockApp);
   assert.equal(cl.enabled, false);
   cl.init({ app: mockApp });
-  assert.equal(mockApp.connLog, cl);
+  assert.equal(mockApp.connLog, undefined);
 });
 
 test('src/plugins exports FpsMeter and provides plugin metadata and lifecycle', async () => {
@@ -2129,9 +2099,8 @@ test('src/plugins exports TouchDebugHUD and provides plugin metadata and lifecyc
   const available = pluginsModule.getAvailablePlugins();
   assert.ok(available.some((p) => p.id === 'touch_debug_hud'));
 
-  const mockApp = {
-    onPrefChange: () => {},
-  };
+  const mockApp = new EventEmitter();
+  mockApp.onPrefChange = () => {};
   const hudPlugin = new hudModule.TouchDebugHUDPlugin(mockApp);
   hudPlugin.init({ app: mockApp });
   assert.equal(mockApp.touchDebugHUD, undefined);
@@ -2189,14 +2158,9 @@ test('BaseSite and PttSite checkLoginPrompt matches 請輸入代號 across Taiwa
   // 3. Big5 binary decoding in onData
   const pttBig5 = Uint8Array.from(u2b('請輸入代號，或以 guest 參觀，或以 new 註冊: '), c => c.charCodeAt(0));
   let loginFired = false;
-  const mockBuf = {
-    app: {
-      dispatchEvent(e) {
-        if (e.type === 'login') loginFired = true;
-      },
-    },
-    dispatchEvent() {},
-  };
+  const mockBuf = new EventEmitter();
+  mockBuf.app = new EventEmitter();
+  mockBuf.app.on('term:login-prompt', () => { loginFired = true; });
   pttSite.onData(pttBig5, mockBuf);
   assert.equal(loginFired, true);
 
@@ -2242,14 +2206,9 @@ test('Maple3Site checkLoginPrompt matches maplebbs-itoc strings', async () => {
   // 2. Big5 binary decoding in onData
   const mapleBig5 = Uint8Array.from(u2b('   [您的帳號] '), c => c.charCodeAt(0));
   let loginFired = false;
-  const mockBuf = {
-    app: {
-      dispatchEvent(e) {
-        if (e.type === 'login') loginFired = true;
-      },
-    },
-    dispatchEvent() {},
-  };
+  const mockBuf = new EventEmitter();
+  mockBuf.app = new EventEmitter();
+  mockBuf.app.on('term:login-prompt', () => { loginFired = true; });
   site.onData(mapleBig5, mockBuf);
   assert.equal(loginFired, true);
 });
@@ -2260,16 +2219,11 @@ test('AutoSite onData fires login on 請輸入代號 without locking to PTT, and
   // Case 1: Maple login prompt [您的帳號] locks AutoSite to maple3 and fires login
   const auto1 = new AutoSite();
   let fired1 = false;
-  const mockBuf1 = {
-    rows: 24,
-    cols: 80,
-    app: {
-      dispatchEvent(e) {
-        if (e.type === 'login') fired1 = true;
-      },
-    },
-    dispatchEvent() {},
-  };
+  const mockBuf1 = new EventEmitter();
+  mockBuf1.rows = 24;
+  mockBuf1.cols = 80;
+  mockBuf1.app = new EventEmitter();
+  mockBuf1.app.on('term:login-prompt', () => { fired1 = true; });
   const mapleChunk = Uint8Array.from(u2b('   [您的帳號] '), c => c.charCodeAt(0));
   auto1.onData(mapleChunk, mockBuf1);
   assert.equal(auto1.name, 'maple3');
@@ -2279,16 +2233,11 @@ test('AutoSite onData fires login on 請輸入代號 without locking to PTT, and
   // Case 2: Generic BBS login prompt 請輸入代號 triggers login, but does NOT lock to PTT
   const auto2 = new AutoSite();
   let fired2 = false;
-  const mockBuf2 = {
-    rows: 24,
-    cols: 80,
-    app: {
-      dispatchEvent(e) {
-        if (e.type === 'login') fired2 = true;
-      },
-    },
-    dispatchEvent() {},
-  };
+  const mockBuf2 = new EventEmitter();
+  mockBuf2.rows = 24;
+  mockBuf2.cols = 80;
+  mockBuf2.app = new EventEmitter();
+  mockBuf2.app.on('term:login-prompt', () => { fired2 = true; });
   const pttChunk = Uint8Array.from(u2b('請輸入代號，或以 guest 參觀: '), c => c.charCodeAt(0));
   auto2.onData(pttChunk, mockBuf2);
   assert.equal(fired2, true, '請輸入代號 must fire login event');

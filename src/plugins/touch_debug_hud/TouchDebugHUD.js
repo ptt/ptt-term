@@ -84,13 +84,15 @@ export class TouchDebugHUDPlugin {
     if (app) {
       this.app = app;
       this._onPrefChangeBound = (e) => {
-        if (e.detail?.key === "enableTouchDebugHUD") {
-          this.setEnabled(Boolean(e.detail.value));
+        const key = e?.key ?? e?.detail?.key;
+        const value = e?.value !== undefined ? e.value : e?.detail?.value;
+        if (key === "enableTouchDebugHUD") {
+          this.setEnabled(Boolean(value));
         }
       };
       this._onToggleBound = () => this.toggle();
-      app.addEventListener?.("term:toggle-touch-debug", this._onToggleBound);
-      app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
+      app.on("term:toggle-touch-debug", this._onToggleBound);
+      app.on("term:pref-change", this._onPrefChangeBound);
       if (typeof window !== "undefined") {
         window.addEventListener?.("term:toggle-touch-debug", this._onToggleBound);
       }
@@ -117,12 +119,8 @@ export class TouchDebugHUDPlugin {
   setEnabled(enabled) {
     const isEnabled = Boolean(enabled);
     this.enabled = isEnabled;
-    this.app?.dispatchEvent?.(new CustomEvent("term:overlay:update"));
-    this.app?.dispatchEvent?.(
-      new CustomEvent("term:touch-debug-changed", {
-        detail: { enabled: isEnabled },
-      })
-    );
+    this.app?.emit("term:overlay:update");
+    this.app?.emit("term:touch-debug-changed", { enabled: isEnabled });
     if (typeof window !== "undefined") {
       window.dispatchEvent(
         new CustomEvent("term:touch-debug-changed", {
@@ -158,8 +156,8 @@ export class TouchDebugHUDPlugin {
   destroy() {
     this.setEnabled(false);
     if (this.app) {
-      this.app.removeEventListener?.("term:toggle-touch-debug", this._onToggleBound);
-      this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
+      this.app.off("term:toggle-touch-debug", this._onToggleBound);
+      this.app.off("term:pref-change", this._onPrefChangeBound);
     }
     if (typeof window !== "undefined") {
       window.removeEventListener?.("term:toggle-touch-debug", this._onToggleBound);

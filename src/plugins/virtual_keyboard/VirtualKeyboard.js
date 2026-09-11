@@ -100,14 +100,16 @@ export class VirtualKeyboardPlugin {
     if (app) {
       this.app = app;
       this._onPrefChangeBound = (e) => {
+        const key = e?.detail?.key ?? e?.key;
+        const value = e?.detail?.value ?? e?.value;
         if (
-          e.detail?.key === "enableVirtualKeyboard" ||
-          e.detail?.key === "enableTouchKeyboard"
+          key === "enableVirtualKeyboard" ||
+          key === "enableTouchKeyboard"
         ) {
-          this.setEnabled(Boolean(e.detail.value));
+          this.setEnabled(Boolean(value));
         }
       };
-      app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
+      app.on("term:pref-change", this._onPrefChangeBound);
     }
     if (view) this.view = view;
     if (buf) this.buf = buf;
@@ -133,7 +135,7 @@ export class VirtualKeyboardPlugin {
   setEnabled(enabled) {
     const isEnabled = Boolean(enabled);
     this.enabled = isEnabled;
-    this.app?.dispatchEvent?.(new CustomEvent("term:overlay:update"));
+    this.app?.emit("term:overlay:update");
   }
 
   toggle() {
@@ -154,7 +156,7 @@ export class VirtualKeyboardPlugin {
     this.setEnabled(false);
     if (this.app) {
       if (this._onPrefChangeBound) {
-        this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
+        this.app.off("term:pref-change", this._onPrefChangeBound);
         this._onPrefChangeBound = null;
       }
     }

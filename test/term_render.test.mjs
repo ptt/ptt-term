@@ -46,6 +46,9 @@ function createHarness() {
     updateCharAttr() {},
     setPageState() {},
     clearHighlight() {},
+    emit(type) {
+      this.events.push(type);
+    },
     dispatchEvent(evt) {
       this.events.push(evt.type);
     },
@@ -594,6 +597,9 @@ test('TermBuf puts handles bell (\\x07), setting bellOccurred and dispatching be
     lineFeed() {},
     gotoPos() {},
     queueUpdate() {},
+    emit(type) {
+      if (type === 'bell') bellDispatched++;
+    },
     dispatchEvent(evt) {
       if (evt.type === 'bell') bellDispatched++;
     }
@@ -3478,20 +3484,20 @@ test('DOMScreen and CanvasScreen support hyperlink hover and preview hooks and T
   // Test TermView method dispatching
   const dispatchedEvents = [];
   const mockApp = {
-    dispatchEvent: (ev) => dispatchedEvents.push(ev),
+    emit: (type, detail) => dispatchedEvents.push({ type, detail }),
   };
   const termView = {
     app: mockApp,
-    dispatchEvent: (ev) => dispatchedEvents.push(ev),
+    emit: (type, detail) => dispatchedEvents.push({ type, detail }),
     handleHyperlinkHover(event, href) {
       const detail = { event, href };
-      this.app?.dispatchEvent?.(new CustomEvent('term:hyperlink-hover', { detail }));
-      this.dispatchEvent(new CustomEvent('term:hyperlink-hover', { detail }));
+      this.app?.emit('term:hyperlink-hover', detail);
+      this.emit('term:hyperlink-hover', detail);
     },
     handleHyperlinkLeave(event) {
       const detail = { event };
-      this.app?.dispatchEvent?.(new CustomEvent('term:hyperlink-leave', { detail }));
-      this.dispatchEvent(new CustomEvent('term:hyperlink-leave', { detail }));
+      this.app?.emit('term:hyperlink-leave', detail);
+      this.emit('term:hyperlink-leave', detail);
     },
   };
 

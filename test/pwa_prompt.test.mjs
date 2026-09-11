@@ -317,3 +317,33 @@ test('PwaPrompt plugin and modal are generic and do not hardcode any app name', 
   assert.ok(!_('pwa_prompt_android_desc').includes('PTT Term'));
   assert.ok(!_('pwa_prompt_desktop_desc').includes('PTT Term'));
 });
+
+test('PwaPrompt plugin provides destroy lifecycle and cleans up listeners', async () => {
+  const { EventEmitter } = await import('../src/js/event.js');
+  const origWindow = globalThis.window;
+  const removedEvents = [];
+  const addedEvents = [];
+  globalThis.window = {
+    addEventListener: (type) => addedEvents.push(type),
+    removeEventListener: (type) => removedEvents.push(type),
+    dispatchEvent: () => {},
+  };
+
+  try {
+    const mockApp = new EventEmitter();
+    const plugin = new PwaPromptPlugin(mockApp);
+    plugin.init({ app: mockApp });
+
+    assert.strictEqual(typeof plugin.destroy, 'function');
+    plugin.destroy();
+
+    assert.strictEqual(plugin.enabled, false);
+    assert.strictEqual(plugin.showsModal, false);
+    assert.ok(removedEvents.includes('term:pwa:installable'));
+    assert.ok(removedEvents.includes('term:pwa:installed'));
+    assert.strictEqual(mockApp.listenerCount('term:pref-change'), 0);
+  } finally {
+    globalThis.window = origWindow;
+  }
+});
+

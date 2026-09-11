@@ -48,18 +48,12 @@ export class Stream extends EventEmitter {
     this.conn = conn;
     if (!conn) return this;
 
-    if (conn.addEventListener) {
-      conn.addEventListener('data', (e) => {
-        const d = (e && e.detail && e.detail.data !== undefined) ? e.detail.data : (e ? e.data : null);
-        this.feed(d);
-      });
-      conn.addEventListener('open', () => this.dispatchEvent(new CustomEvent('open')));
-      conn.addEventListener('close', () => this.dispatchEvent(new CustomEvent('close')));
-    } else if (conn.on) {
-      conn.on('data', (d) => this.feed(d));
-      conn.on('open', () => this.dispatchEvent(new CustomEvent('open')));
-      conn.on('close', () => this.dispatchEvent(new CustomEvent('close')));
-    }
+    conn.on('data', (d) => {
+      const raw = (d && d.data !== undefined) ? d.data : d;
+      this.feed(raw);
+    });
+    conn.on('open', () => this.emit('open'));
+    conn.on('close', () => this.emit('close'));
     return this;
   }
 
@@ -105,7 +99,7 @@ export class Stream extends EventEmitter {
         if (!current || current.length === 0) break;
       }
     }
-    this.dispatchEvent(new CustomEvent('data', { detail: { data: current } }));
+    this.emit('data', { data: current });
     return current;
   }
 

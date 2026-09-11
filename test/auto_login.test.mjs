@@ -5,6 +5,7 @@ import path from 'node:path';
 import { AutoLogin, AutoLoginPlugin } from '../src/plugins/auto_login/index.js';
 import { BUILTIN_PLUGINS, PLUGIN_GROUP_MAP, getAvailablePlugins } from '../src/plugins/index.js';
 import { DEFAULT_PREFS } from '../src/js/pref.js';
+import { EventEmitter } from '../src/js/event.js';
 
 test('AutoLogin plugin exports, metadata, and registration', () => {
   // 1. Exports
@@ -37,33 +38,13 @@ test('AutoLogin lifecycle, context menu, and modal toggle', () => {
   const registeredMenuItems = [];
   const unregisteredMenuItemIds = [];
 
-  const mockApp = {
-    modalShown: false,
-    inputAreaFocused: false,
-    listeners: {},
-    addEventListener(type, fn) {
-      if (!this.listeners[type]) this.listeners[type] = [];
-      this.listeners[type].push(fn);
-    },
-    removeEventListener(type, fn) {
-      if (!this.listeners[type]) return;
-      this.listeners[type] = this.listeners[type].filter(f => f !== fn);
-    },
-    dispatchEvent(evt) {
-      dispatchedEvents.push(evt.type);
-      const fns = this.listeners[evt.type] || [];
-      fns.forEach(fn => fn(evt));
-    },
-    registerContextMenuItem(item) {
-      registeredMenuItems.push(item);
-    },
-    unregisterContextMenuItem(id) {
-      unregisteredMenuItemIds.push(id);
-    },
-    setInputAreaFocus() {
-      this.inputAreaFocused = true;
-    },
-  };
+  const mockApp = new EventEmitter();
+  mockApp.modalShown = false;
+  mockApp.inputAreaFocused = false;
+  mockApp.on('term:overlay:update', () => dispatchedEvents.push('term:overlay:update'));
+  mockApp.registerContextMenuItem = (item) => { registeredMenuItems.push(item); };
+  mockApp.unregisterContextMenuItem = (id) => { unregisteredMenuItemIds.push(id); };
+  mockApp.setInputAreaFocus = () => { mockApp.inputAreaFocused = true; };
 
   const plugin = new AutoLogin(mockApp);
   assert.strictEqual(plugin.enabled, true);
@@ -100,14 +81,12 @@ test('AutoLogin lifecycle, context menu, and modal toggle', () => {
 
 test('AutoLogin handleLogin sends ID and password with CR and short typeahead interval', async () => {
   const sentData = [];
-  const mockApp = {
-    modalShown: true,
-    send(data) {
-      sentData.push(data);
-    },
-    dispatchEvent() {},
-    setInputAreaFocus() {},
+  const mockApp = new EventEmitter();
+  mockApp.modalShown = true;
+  mockApp.send = (data) => {
+    sentData.push(data);
   };
+  mockApp.setInputAreaFocus = () => {};
 
   const plugin = new AutoLogin(mockApp, { submitCooldownMs: 150 });
   plugin.showsModal = true;
@@ -187,45 +166,25 @@ test('ContextMenu and DropdownMenu integration passes pluginItems', () => {
 });
 
 test('AutoLogin triggers modal on login prompt events', async () => {
-  const listeners = {};
-  const mockApp = {
-    modalShown: false,
-    addEventListener(type, fn) {
-      if (!listeners[type]) listeners[type] = [];
-      listeners[type].push(fn);
-    },
-    removeEventListener(type, fn) {
-      if (!listeners[type]) return;
-      listeners[type] = listeners[type].filter(f => f !== fn);
-    },
-    dispatchEvent(evt) {
-      const fns = listeners[evt.type] || [];
-      fns.forEach(fn => fn(evt));
-    },
-    registerContextMenuItem() {},
-  };
+  const mockApp = new EventEmitter();
+  mockApp.modalShown = false;
+  mockApp.registerContextMenuItem = () => {};
 
   const plugin = new AutoLogin(mockApp);
   plugin.init({ app: mockApp });
   assert.strictEqual(plugin.showsModal, false);
 
-  // 1. Firing login event automatically triggers modal
-  mockApp.dispatchEvent(new CustomEvent('login'));
+  // 1. Firing term:login-prompt event automatically triggers modal
+  mockApp.emit('term:login-prompt');
   assert.strictEqual(plugin.showsModal, true);
   assert.strictEqual(mockApp.modalShown, true);
 
   plugin.hide();
   assert.strictEqual(plugin.showsModal, false);
 
-  // 2. Firing term:login-prompt event also triggers modal
-  mockApp.dispatchEvent(new CustomEvent('term:login-prompt'));
-  assert.strictEqual(plugin.showsModal, true);
-
-  plugin.hide();
-
-  // 3. When disabled, login event does NOT trigger modal
+  // 2. When disabled, term:login-prompt event does NOT trigger modal
   plugin.enabled = false;
-  mockApp.dispatchEvent(new CustomEvent('login'));
+  mockApp.emit('term:login-prompt');
   assert.strictEqual(plugin.showsModal, false);
 });
 
@@ -235,32 +194,14 @@ test('Site onData with PTT and Maple login strings triggers AutoLogin plugin mod
   const { u2b } = await import('../src/js/string_util.js');
 
   const createMockEnvironment = () => {
-    const listeners = {};
-    const app = {
-      modalShown: false,
-      addEventListener(type, fn) {
-        if (!listeners[type]) listeners[type] = [];
-        listeners[type].push(fn);
-      },
-      removeEventListener(type, fn) {
-        if (!listeners[type]) return;
-        listeners[type] = listeners[type].filter(f => f !== fn);
-      },
-      dispatchEvent(evt) {
-        const fns = listeners[evt.type] || [];
-        fns.forEach(fn => fn(evt));
-      },
-      registerContextMenuItem() {},
-    };
-    const buf = {
-      app,
-      rows: 24,
-      cols: 80,
-      dispatchEvent(evt) {
-        app.dispatchEvent(evt);
-      },
-      getRowText: () => '',
-    };
+    const app = new EventEmitter();
+    app.modalShown = false;
+    app.registerContextMenuItem = () => {};
+    const buf = new EventEmitter();
+    buf.app = app;
+    buf.rows = 24;
+    buf.cols = 80;
+    buf.getRowText = () => '';
     return { app, buf };
   };
 
@@ -315,33 +256,15 @@ test('Approach A: Site onData detects login prompt, fires login event, AutoLogin
   const { BaseSite } = await import('../src/js/sites/base.js');
   const { u2b } = await import('../src/js/string_util.js');
 
-  const listeners = {};
-  const mockApp = {
-    modalShown: false,
-    addEventListener(type, fn) {
-      if (!listeners[type]) listeners[type] = [];
-      listeners[type].push(fn);
-    },
-    removeEventListener(type, fn) {
-      if (!listeners[type]) return;
-      listeners[type] = listeners[type].filter(f => f !== fn);
-    },
-    dispatchEvent(evt) {
-      const fns = listeners[evt.type] || [];
-      fns.forEach(fn => fn(evt));
-    },
-    registerContextMenuItem() {},
-  };
+  const mockApp = new EventEmitter();
+  mockApp.modalShown = false;
+  mockApp.registerContextMenuItem = () => {};
 
-  const mockBuf = {
-    app: mockApp,
-    rows: 24,
-    cols: 80,
-    dispatchEvent(evt) {
-      mockApp.dispatchEvent(evt);
-    },
-    getRowText: () => '',
-  };
+  const mockBuf = new EventEmitter();
+  mockBuf.app = mockApp;
+  mockBuf.rows = 24;
+  mockBuf.cols = 80;
+  mockBuf.getRowText = () => '';
 
   const site = new BaseSite();
   const plugin = new AutoLogin(mockApp);
@@ -376,11 +299,11 @@ test('Approach A: Site onData detects login prompt, fires login event, AutoLogin
 
   // 3. On disconnect and reconnect, both site and plugin reset
   site.resetLoginPrompt();
-  mockApp.dispatchEvent(new CustomEvent('term:disconnect'));
+  mockApp.emit('term:disconnect');
   assert.strictEqual(site._loginPromptFired, false, 'BaseSite _loginPromptFired must reset on disconnect');
   assert.strictEqual(plugin.loginPromptDetected, false, 'AutoLogin loginPromptDetected must reset on disconnect');
 
-  mockApp.dispatchEvent(new CustomEvent('term:connect'));
+  mockApp.emit('term:connect');
   assert.strictEqual(plugin.loginPromptDetected, false, 'AutoLogin loginPromptDetected ready for next session');
 });
 

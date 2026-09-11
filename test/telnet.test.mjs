@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { IAC, WILL, WONT, DO, DONT, ECHO, TelnetConnection } from '../src/js/telnet.js';
+import { IAC, WILL, WONT, DO, DONT, ECHO, TelnetConnection, TelnetFilter } from '../src/js/telnet.js';
 import { initUAO } from '../src/conv/uao.js';
 
 initUAO();
@@ -10,14 +10,17 @@ class MockSocket {
     this.listeners = {};
     this.sent = [];
   }
-  addEventListener(type, fn) {
+  on(type, fn) {
     this.listeners[type] = this.listeners[type] || [];
     this.listeners[type].push(fn);
+  }
+  addEventListener(type, fn) {
+    this.on(type, fn);
   }
   emit(type, detail) {
     const fns = this.listeners[type] || [];
     for (const fn of fns) {
-      fn({ detail });
+      fn(detail);
     }
   }
   send(data) {
@@ -40,8 +43,8 @@ test('TelnetConnection parses stream and dispatches pure data', () => {
   const received = [];
 
   conn.addEventListener('data', (e) => {
-    assert.ok(e.detail.data instanceof Uint8Array);
-    received.push(e.detail.data);
+    assert.ok(e.data instanceof Uint8Array);
+    received.push(e.data);
   });
 
   // Plain data
@@ -92,5 +95,46 @@ test('TelnetConnection convSend encodes via UTF-8 when site isUtf8 is true', () 
   conn.convSend('ABC');
   assert.deepEqual(socket.sent[1], new Uint8Array([0x41, 0x42, 0x43]));
 });
+
+test('TelnetFilter and TelnetConnection emit telopt with { cmd, opt } payload', () => {
+  const socket = new MockSocket();
+  const conn = new TelnetConnection(socket);
+  const telopts = [];
+
+  conn.addEventListener('telopt', (e) => {
+    telopts.push(e);
+  });
+
+  // IAC WILL ECHO (0xFF 0xFB 0x01)
+  socket.emit('data', { data: new Uint8Array([IAC, WILL, ECHO]) });
+
+  assert.equal(telopts.length, 1);
+  const ev = telopts[0];
+  assert.equal(ev.cmd, 'WILL');
+  assert.equal(ev.opt, ECHO);
+});
+
+test('TelnetFilter inbound on Stream notifies stream telopt listener', () => {
+  const filter = new TelnetFilter();
+  const events = [];
+
+  const mockStream = {
+    emit(type, payload) {
+      if (type === 'telopt') {
+        events.push(payload);
+      }
+    },
+    sendRaw() {}
+  };
+
+  // Feed IAC DO BINARY (0xFF 0xFD 0x00)
+  filter.inbound(new Uint8Array([IAC, DO, 0x00]), mockStream);
+
+  assert.equal(events.length, 1);
+  const payload = events[0];
+  assert.equal(payload.cmd, 'DO');
+  assert.equal(payload.opt, 0);
+});
+
 
 

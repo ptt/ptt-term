@@ -93,14 +93,9 @@ export class TermKeyboard extends EventEmitter {
 
   _fireKeyEvent(key, mapped, event) {
     const detail = { key, mapped, term: this, event };
-    const customEvent = typeof CustomEvent !== 'undefined'
-      ? new CustomEvent('term:key', { detail })
-      : { type: 'term:key', detail };
-    this.dispatchEvent(customEvent);
+    this.emit('term:key', { ...detail, detail });
     if (typeof this._onKey === 'function') {
       this._onKey(detail);
-    } else if (this._onKey && typeof this._onKey.dispatchEvent === 'function') {
-      this._onKey.dispatchEvent(customEvent);
     }
   }
 

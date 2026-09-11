@@ -128,29 +128,25 @@ export class AutoLogin {
     if (app) {
       this.app = app;
       this._onPrefChangeBound = (e) => {
-        if (e.detail?.key === "enableAutoLogin") {
-          this.enabled = Boolean(e.detail.value);
+        const key = e?.key ?? e?.detail?.key;
+        const value = e?.value !== undefined ? e.value : e?.detail?.value;
+        if (key === "enableAutoLogin") {
+          this.enabled = Boolean(value);
         }
       };
-      app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
-      app.addEventListener?.("login", this._onLoginPromptBound);
-      app.addEventListener?.("term:login", this._onLoginPromptBound);
-      app.addEventListener?.("term:login-prompt", this._onLoginPromptBound);
-      app.addEventListener?.("term:connect", this._onResetBound);
-      app.addEventListener?.("term:disconnect", this._onResetBound);
+      app.on("term:pref-change", this._onPrefChangeBound);
+      app.on("term:login-prompt", this._onLoginPromptBound);
+      app.on("term:connect", this._onResetBound);
+      app.on("term:disconnect", this._onResetBound);
       app.registerContextMenuItem?.(this.getContextMenuItems()[0]);
+    } else if (buf) {
+      this.buf = buf;
+      buf.on("term:login-prompt", this._onLoginPromptBound);
+      buf.on("term:connect", this._onResetBound);
+      buf.on("term:disconnect", this._onResetBound);
     }
     if (view) this.view = view;
-    if (buf) {
-      this.buf = buf;
-      if (buf !== this.app && buf.addEventListener) {
-        buf.addEventListener?.("login", this._onLoginPromptBound);
-        buf.addEventListener?.("term:login", this._onLoginPromptBound);
-        buf.addEventListener?.("term:login-prompt", this._onLoginPromptBound);
-        buf.addEventListener?.("term:connect", this._onResetBound);
-        buf.addEventListener?.("term:disconnect", this._onResetBound);
-      }
-    }
+    if (buf) this.buf = buf;
     const prefs = readValuesWithDefault();
     this.enabled =
       prefs.enableAutoLogin !== undefined
@@ -170,23 +166,18 @@ export class AutoLogin {
     this.showsModal = false;
     this.loginPromptDetected = false;
     if (this.app) {
-      this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
-      this.app.removeEventListener?.("login", this._onLoginPromptBound);
-      this.app.removeEventListener?.("term:login", this._onLoginPromptBound);
-      this.app.removeEventListener?.("term:login-prompt", this._onLoginPromptBound);
-      this.app.removeEventListener?.("term:connect", this._onResetBound);
-      this.app.removeEventListener?.("term:disconnect", this._onResetBound);
+      this.app.off("term:pref-change", this._onPrefChangeBound);
+      this.app.off("term:login-prompt", this._onLoginPromptBound);
+      this.app.off("term:connect", this._onResetBound);
+      this.app.off("term:disconnect", this._onResetBound);
       this.app.unregisterContextMenuItem?.("auto_login");
       if (this.app.modalShown) {
         this.app.modalShown = false;
       }
-    }
-    if (this.buf && this.buf !== this.app) {
-      this.buf.removeEventListener?.("login", this._onLoginPromptBound);
-      this.buf.removeEventListener?.("term:login", this._onLoginPromptBound);
-      this.buf.removeEventListener?.("term:login-prompt", this._onLoginPromptBound);
-      this.buf.removeEventListener?.("term:connect", this._onResetBound);
-      this.buf.removeEventListener?.("term:disconnect", this._onResetBound);
+    } else if (this.buf) {
+      this.buf.off("term:login-prompt", this._onLoginPromptBound);
+      this.buf.off("term:connect", this._onResetBound);
+      this.buf.off("term:disconnect", this._onResetBound);
     }
   }
 
@@ -195,7 +186,7 @@ export class AutoLogin {
     if (this.app) {
       this.app.modalShown = true;
     }
-    this.app?.dispatchEvent?.(new CustomEvent("term:overlay:update"));
+    this.app?.emit("term:overlay:update");
   }
 
   hide() {
@@ -203,7 +194,7 @@ export class AutoLogin {
     if (this.app) {
       this.app.modalShown = false;
     }
-    this.app?.dispatchEvent?.(new CustomEvent("term:overlay:update"));
+    this.app?.emit("term:overlay:update");
     this.app?.setInputAreaFocus?.();
   }
 

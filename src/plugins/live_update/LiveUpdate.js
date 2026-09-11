@@ -200,7 +200,8 @@ export class LiveUpdate {
 
     if (this.app) {
       this._onPrefChangeBound = (e) => {
-        const { key, value } = e.detail || {};
+        const key = e?.key ?? e?.detail?.key;
+        const value = e?.value !== undefined ? e.value : e?.detail?.value;
         switch (key) {
           case 'enableLiveUpdate':
             this.setEnabled(Boolean(value));
@@ -217,7 +218,7 @@ export class LiveUpdate {
         }
       };
       this._onStateChangeBound = (e) => {
-        const state = e.detail?.state;
+        const state = e?.state ?? e?.detail?.state;
         if (state !== 2 && state !== 3 && this.active) {
           this.stop();
         }
@@ -228,7 +229,8 @@ export class LiveUpdate {
         }
       };
       this._onEasyReadingSwitchBound = (e) => {
-        if (e.detail?.doSwitch && this.active) {
+        const doSwitch = e?.doSwitch ?? e?.detail?.doSwitch;
+        if (doSwitch && this.active) {
           this.stop();
         }
       };
@@ -237,11 +239,11 @@ export class LiveUpdate {
           this.stop();
         }
       };
-      this.app.addEventListener?.('term:pref-change', this._onPrefChangeBound);
-      this.app.addEventListener?.('term:state-change', this._onStateChangeBound);
-      this.app.addEventListener?.('term:disconnect', this._onDisconnectBound);
-      this.app.addEventListener?.('term:easy-reading:switch', this._onEasyReadingSwitchBound);
-      this.app.addEventListener?.('term:click', this._onClickBound);
+      this.app.on('term:pref-change', this._onPrefChangeBound);
+      this.app.on('term:state-change', this._onStateChangeBound);
+      this.app.on('term:disconnect', this._onDisconnectBound);
+      this.app.on('term:easy-reading:switch', this._onEasyReadingSwitchBound);
+      this.app.on('term:click', this._onClickBound);
       this.app.registerContextMenuItem?.(this.getContextMenuItems()[0]);
     }
 
@@ -269,17 +271,17 @@ export class LiveUpdate {
     this.stop();
     this.hideModal();
     if (this.app) {
-      this.app.removeEventListener?.('term:pref-change', this._onPrefChangeBound);
-      this.app.removeEventListener?.('term:state-change', this._onStateChangeBound);
-      this.app.removeEventListener?.('term:disconnect', this._onDisconnectBound);
-      this.app.removeEventListener?.('term:easy-reading:switch', this._onEasyReadingSwitchBound);
-      this.app.removeEventListener?.('term:click', this._onClickBound);
+      this.app.off('term:pref-change', this._onPrefChangeBound);
+      this.app.off('term:state-change', this._onStateChangeBound);
+      this.app.off('term:disconnect', this._onDisconnectBound);
+      this.app.off('term:easy-reading:switch', this._onEasyReadingSwitchBound);
+      this.app.off('term:click', this._onClickBound);
       this.app.unregisterContextMenuItem?.('live_update');
     }
   }
 
   renderUI() {
-    this.app?.dispatchEvent?.(new CustomEvent('term:overlay:update'));
+    this.app?.emit('term:overlay:update');
   }
 
   renderOverlay({ app } = {}) {

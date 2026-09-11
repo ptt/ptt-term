@@ -70,6 +70,7 @@ export function escapeIAC(data) {
   return out;
 }
 
+
 /**
  * TelnetFilter handles RFC 854 Telnet option negotiations and IAC escaping/unescaping.
  */
@@ -153,14 +154,14 @@ export class TelnetFilter extends EventEmitter {
           this.state = STATE_SB;
           this.iac_sb = [];
           break;
-        case NOP:
-          this.dispatchEvent(new CustomEvent('nop'));
-          this.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'NOP', opt: null } }));
-          if (s && s.dispatchEvent) {
-            s.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'NOP', opt: null } }));
-          }
+        case NOP: {
+          const payload = { cmd: 'NOP', opt: null };
+          this.emit('nop');
+          this.emit('telopt', payload);
+          s?.emit?.('telopt', payload);
           this.state = STATE_DATA;
           break;
+        }
         case IAC:
           // Escaped IAC byte in data stream (0xFF 0xFF -> 0xFF)
           cleanChunks.push(new Uint8Array([IAC]));
@@ -171,11 +172,10 @@ export class TelnetFilter extends EventEmitter {
         }
         break;
 
-      case STATE_WILL:
-        this.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'WILL', opt: b } }));
-        if (s && s.dispatchEvent) {
-          s.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'WILL', opt: b } }));
-        }
+      case STATE_WILL: {
+        const payload = { cmd: 'WILL', opt: b };
+        this.emit('telopt', payload);
+        s?.emit?.('telopt', payload);
         switch (b) {
         case BINARY:
         case ECHO:
@@ -191,12 +191,12 @@ export class TelnetFilter extends EventEmitter {
         }
         this.state = STATE_DATA;
         break;
+      }
 
-      case STATE_DO:
-        this.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'DO', opt: b } }));
-        if (s && s.dispatchEvent) {
-          s.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'DO', opt: b } }));
-        }
+      case STATE_DO: {
+        const payload = { cmd: 'DO', opt: b };
+        this.emit('telopt', payload);
+        s?.emit?.('telopt', payload);
         switch (b) {
         case BINARY:
         case TERM_TYPE:
@@ -205,10 +205,8 @@ export class TelnetFilter extends EventEmitter {
           }
           break;
         case NAWS:
-          this.dispatchEvent(new CustomEvent('doNaws'));
-          if (s && s.dispatchEvent) {
-            s.dispatchEvent(new CustomEvent('doNaws'));
-          }
+          this.emit('doNaws');
+          s?.emit?.('doNaws');
           break;
         default:
           if (s && s.sendRaw) {
@@ -217,22 +215,23 @@ export class TelnetFilter extends EventEmitter {
         }
         this.state = STATE_DATA;
         break;
+      }
 
-      case STATE_DONT:
-        this.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'DONT', opt: b } }));
-        if (s && s.dispatchEvent) {
-          s.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'DONT', opt: b } }));
-        }
+      case STATE_DONT: {
+        const payload = { cmd: 'DONT', opt: b };
+        this.emit('telopt', payload);
+        s?.emit?.('telopt', payload);
         this.state = STATE_DATA;
         break;
+      }
 
-      case STATE_WONT:
-        this.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'WONT', opt: b } }));
-        if (s && s.dispatchEvent) {
-          s.dispatchEvent(new CustomEvent('telopt', { detail: { cmd: 'WONT', opt: b } }));
-        }
+      case STATE_WONT: {
+        const payload = { cmd: 'WONT', opt: b };
+        this.emit('telopt', payload);
+        s?.emit?.('telopt', payload);
         this.state = STATE_DATA;
         break;
+      }
 
       case STATE_SB: // sub negotiation
         this.iac_sb.push(b);
@@ -323,14 +322,16 @@ export class TelnetConnection extends EventEmitter {
     this.site = site;
     this.filter = new TelnetFilter();
 
-    this.socket.addEventListener('open', (e) => this._onOpen(e));
-    this.socket.addEventListener('data', (e) => this._onDataAvailable(e));
-    this.socket.addEventListener('close', (e) => this._onClose(e));
+    this.socket.on('open', (e) => this._onOpen(e));
+    this.socket.on('data', (e) => this._onDataAvailable(e));
+    this.socket.on('close', (e) => this._onClose(e));
 
     // Forward filter events
-    this.filter.addEventListener('telopt', (e) => this.dispatchEvent(new CustomEvent('telopt', { detail: e.detail })));
-    this.filter.addEventListener('doNaws', () => this.dispatchEvent(new CustomEvent('doNaws')));
-    this.filter.addEventListener('nop', () => this.dispatchEvent(new CustomEvent('nop')));
+    this.filter.on('telopt', (e) => {
+      this.emit('telopt', e);
+    });
+    this.filter.on('doNaws', () => this.emit('doNaws'));
+    this.filter.on('nop', () => this.emit('nop'));
 
     this.termType = 'VT100';
   }
@@ -356,29 +357,24 @@ export class TelnetConnection extends EventEmitter {
   }
 
   _onOpen(e) {
-    this.dispatchEvent(new CustomEvent('open'));
+    this.emit('open');
   }
 
   _onClose(e) {
-    this.dispatchEvent(new CustomEvent('close'));
+    this.emit('close');
   }
 
   _onDataAvailable(e) {
-    const raw = e.detail ? e.detail.data : e.data;
+    const raw = (e && e.data !== undefined) ? e.data : e;
     const clean = this.filter.inbound(raw, {
       sendRaw: (d) => this._sendRaw(d),
-      dispatchEvent: (ev) => this.dispatchEvent(ev)
     });
     this._dispatchData(clean);
   }
 
   _dispatchData(data) {
     if (!data || data.length === 0) return;
-    this.dispatchEvent(new CustomEvent('data', {
-      detail: {
-        data: data
-      }
-    }));
+    this.emit('data', { data });
   }
 
   send(str) {

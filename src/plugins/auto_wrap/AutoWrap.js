@@ -118,7 +118,8 @@ export class AutoWrap {
       this.app = targetApp;
       if (!this._onPrefChangeBound) {
         this._onPrefChangeBound = (e) => {
-          const { key, value } = e.detail || {};
+          const key = e?.key ?? e?.detail?.key;
+          const value = e?.value !== undefined ? e.value : e?.detail?.value;
           if (key === "lineWrap") {
             this.setLineWrap(value);
           } else if (key === "enableAutoWrap") {
@@ -126,7 +127,11 @@ export class AutoWrap {
             this.syncView();
           }
         };
-        this.app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
+        if (typeof this.app.on === "function") {
+          this.app.on("term:pref-change", this._onPrefChangeBound);
+        } else {
+          this.app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
+        }
       }
       if (!this._onPasteBound) {
         this._onPasteBound = (e) => {
@@ -143,7 +148,11 @@ export class AutoWrap {
             e.data = wrapped;
           }
         };
-        this.app.addEventListener?.("term:paste", this._onPasteBound);
+        if (typeof this.app.on === "function") {
+          this.app.on("term:paste", this._onPasteBound);
+        } else {
+          this.app.addEventListener?.("term:paste", this._onPasteBound);
+        }
       }
     }
     if (view) this.view = view;
@@ -172,9 +181,6 @@ export class AutoWrap {
   }
 
   syncView() {
-    if (this.view && "lineWrap" in this.view) {
-      this.view.lineWrap = (this.enabled && this.lineWrap > 0) ? this.lineWrap : 0;
-    }
   }
 
   wrap(text, enterChar = "\r") {
@@ -194,11 +200,19 @@ export class AutoWrap {
   destroy() {
     if (this.app) {
       if (this._onPrefChangeBound) {
-        this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
+        if (typeof this.app.off === "function") {
+          this.app.off("term:pref-change", this._onPrefChangeBound);
+        } else {
+          this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
+        }
         this._onPrefChangeBound = null;
       }
       if (this._onPasteBound) {
-        this.app.removeEventListener?.("term:paste", this._onPasteBound);
+        if (typeof this.app.off === "function") {
+          this.app.off("term:paste", this._onPasteBound);
+        } else {
+          this.app.removeEventListener?.("term:paste", this._onPasteBound);
+        }
         this._onPasteBound = null;
       }
     }

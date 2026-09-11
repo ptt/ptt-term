@@ -92,19 +92,26 @@ export class ConnectionLog {
   init({ app, view, buf } = {}) {
     if (app) {
       this.app = app;
-      app.connLog = this;
       this._onPrefChangeBound = (e) => {
-        if (e.detail?.key === "captureConnectionLog") {
-          this.setEnabled(Boolean(e.detail.value));
+        const key = e?.key ?? e?.detail?.key;
+        const value = e?.value !== undefined ? e.value : e?.detail?.value;
+        if (key === "captureConnectionLog") {
+          this.setEnabled(Boolean(value));
         }
       };
       this._onSocketBound = (e) => {
-        if (e.detail?.socket) {
-          this.attachSocket(e.detail.socket);
+        const socket = e?.socket ?? e?.detail?.socket;
+        if (socket) {
+          this.attachSocket(socket);
         }
       };
-      app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
-      app.addEventListener?.("term:socket", this._onSocketBound);
+      if (typeof app.on === "function") {
+        app.on("term:pref-change", this._onPrefChangeBound);
+        app.on("term:socket", this._onSocketBound);
+      } else {
+        app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
+        app.addEventListener?.("term:socket", this._onSocketBound);
+      }
       if (app.conn?.rawSocket) {
         this.attachSocket(app.conn.rawSocket);
       }
@@ -116,8 +123,13 @@ export class ConnectionLog {
     this.setEnabled(false);
     this.attachSocket(null);
     if (this.app) {
-      this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
-      this.app.removeEventListener?.("term:socket", this._onSocketBound);
+      if (typeof this.app.off === "function") {
+        this.app.off("term:pref-change", this._onPrefChangeBound);
+        this.app.off("term:socket", this._onSocketBound);
+      } else {
+        this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
+        this.app.removeEventListener?.("term:socket", this._onSocketBound);
+      }
     }
   }
 
