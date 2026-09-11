@@ -363,20 +363,6 @@ export class TermView extends EventEmitter {
       }
 
       this.app?.emit('term:screen-update', { changedLineHtmlStrs });
-
-      const site = this.app?.site;
-      if (site) {
-        if (site.prevPageState !== site.pageState) {
-          this.app?.emit('term:state-change', {
-            state: site.pageState,
-            prevState: site.prevPageState,
-          });
-          if (this.panX > 0 || this.panY > 0) {
-            this.resetPan();
-          }
-        }
-        site.prevPageState = site.pageState;
-      }
     }
   }
 

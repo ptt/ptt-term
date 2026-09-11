@@ -3392,10 +3392,14 @@ test('App and ContextMenu decouple mouse browsing and easy reading through event
     'ContextMenu must not depend on app.view.isEasyReadingActive'
   );
 
-  // TermView delegates to hasActiveInputInterceptor
+  // TermView delegates to hasActiveInputInterceptor and does not inspect pageState
   assert.ok(
     termViewSource.includes('this.app?.hasActiveInputInterceptor'),
     'TermView isEasyReadingActive must delegate to app.hasActiveInputInterceptor'
+  );
+  assert.ok(
+    !termViewSource.includes('pageState'),
+    'TermView must not inspect or reference pageState'
   );
 });
 

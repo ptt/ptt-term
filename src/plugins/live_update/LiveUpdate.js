@@ -218,9 +218,10 @@ export class LiveUpdate {
             break;
         }
       };
-      this._onStateChangeBound = (e) => {
-        const state = e?.state ?? e?.detail?.state;
-        if (state !== PAGE_STATE.LIST && state !== PAGE_STATE.READING && this.active) {
+      this._onScreenUpdateBound = () => {
+        if (!this.active) return;
+        const pageState = this.app?.site?.pageState;
+        if (pageState !== PAGE_STATE.LIST && pageState !== PAGE_STATE.READING) {
           this.stop();
         }
       };
@@ -241,7 +242,7 @@ export class LiveUpdate {
         }
       };
       this.app.on('term:pref-change', this._onPrefChangeBound);
-      this.app.on('term:state-change', this._onStateChangeBound);
+      this.app.on('term:screen-update', this._onScreenUpdateBound);
       this.app.on('term:disconnect', this._onDisconnectBound);
       this.app.on('term:easy-reading:switch', this._onEasyReadingSwitchBound);
       this.app.on('term:click', this._onClickBound);
@@ -273,7 +274,7 @@ export class LiveUpdate {
     this.hideModal();
     if (this.app) {
       this.app.off('term:pref-change', this._onPrefChangeBound);
-      this.app.off('term:state-change', this._onStateChangeBound);
+      this.app.off('term:screen-update', this._onScreenUpdateBound);
       this.app.off('term:disconnect', this._onDisconnectBound);
       this.app.off('term:easy-reading:switch', this._onEasyReadingSwitchBound);
       this.app.off('term:click', this._onClickBound);
