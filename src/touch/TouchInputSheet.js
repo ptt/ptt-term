@@ -246,7 +246,8 @@ export class TouchInputSheet extends React.Component {
     const counterText =
       lines.length <= 1
         ? `${stringWidth(text)} / 78 B`
-        : `${lines.length} 行 · 最大 ${maxLineBytes} / 78 B`;
+        : _("touch_input_sheet_multi_lines", [lines.length, maxLineBytes]) ||
+          `${lines.length} 行 · 最大 ${maxLineBytes} / 78 B`;
 
     return (
       <React.Fragment>
@@ -284,8 +285,10 @@ export class TouchInputSheet extends React.Component {
                 })}
                 title={
                   isOverLimit
-                    ? "超過 PTT 單行 78 Bytes (送出時將自動折行)"
-                    : "PTT 單行長度 (上限 78 Bytes)"
+                    ? _("touch_input_sheet_line_over_limit") ||
+                      "超過單行建議長度 78 字元 (送出時將自動折行)"
+                    : _("touch_input_sheet_line_limit") ||
+                      "單行建議長度 (78字元)"
                 }
               >
                 {counterText}
@@ -295,7 +298,7 @@ export class TouchInputSheet extends React.Component {
                 type="button"
                 className="TouchInputSheet__IconBtn TouchInputSheet__IconBtn--direct"
                 title={_("touch_input_sheet_direct_mode") || "切換為終端直連輸入"}
-                aria-label="Direct Input"
+                aria-label={_("touch_input_sheet_direct_mode") || "Direct Input"}
                 onClick={this.handleSwitchToDirectInput}
               >
                 <svg
@@ -316,8 +319,8 @@ export class TouchInputSheet extends React.Component {
               <button
                 type="button"
                 className="TouchInputSheet__IconBtn TouchInputSheet__IconBtn--close"
-                title="收起 (Close)"
-                aria-label="Close"
+                title={_("touch_input_sheet_close") || "收起"}
+                aria-label={_("touch_input_sheet_close") || "Close"}
                 onClick={this.handleClose}
               >
                 <svg
@@ -381,7 +384,9 @@ export class TouchInputSheet extends React.Component {
                 <span className="TouchInputSheet__OptionText--full">
                   {_("touch_input_sheet_auto_wrap") || "自動折行"}
                 </span>
-                <span className="TouchInputSheet__OptionText--compact">折行</span>
+                <span className="TouchInputSheet__OptionText--compact">
+                  {_("touch_input_sheet_auto_wrap_compact") || "折行"}
+                </span>
               </label>
             </div>
 
@@ -392,7 +397,7 @@ export class TouchInputSheet extends React.Component {
                   className="TouchInputSheet__Btn TouchInputSheet__Btn--clear"
                   onClick={this.handleClear}
                 >
-                  清空
+                  {_("touch_input_sheet_clear") || "清空"}
                 </button>
               ) : null}
               <button

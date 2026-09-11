@@ -171,8 +171,8 @@ export class LoginModal extends React.Component {
         className="LoginModal native-modal"
       >
         <iframe
-          name="ptt_auth_target_frame"
-          id="ptt_auth_target_frame"
+          name="site_auth_target_frame"
+          id="site_auth_target_frame"
           style={{ display: "none", width: 0, height: 0, border: 0 }}
           tabIndex={-1}
           aria-hidden="true"
@@ -182,7 +182,7 @@ export class LoginModal extends React.Component {
           className="LoginModal__Form"
           method="post"
           action="#"
-          target="ptt_auth_target_frame"
+          target="site_auth_target_frame"
           onSubmit={this.handleSubmit}
           autoComplete="on"
         >
@@ -221,12 +221,12 @@ export class LoginModal extends React.Component {
             </p>
 
             <div className="form-group LoginModal__Field">
-              <label htmlFor="ptt-login-username">
+              <label htmlFor="site-login-username">
                 {_("login_modal_username")}
               </label>
               <input
                 ref={this.usernameInputRef}
-                id="ptt-login-username"
+                id="site-login-username"
                 name="username"
                 type="text"
                 className="form-control LoginModal__Input"
@@ -254,12 +254,12 @@ export class LoginModal extends React.Component {
             </div>
 
             <div className="form-group LoginModal__Field">
-              <label htmlFor="ptt-login-password">
+              <label htmlFor="site-login-password">
                 {_("login_modal_password")}
               </label>
               <input
                 ref={this.passwordInputRef}
-                id="ptt-login-password"
+                id="site-login-password"
                 name="password"
                 type="password"
                 className="form-control LoginModal__Input"

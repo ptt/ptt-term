@@ -653,6 +653,24 @@
   "touch_input_sheet_direct_mode": {
     "message": "Switch to direct terminal input"
   },
+  "touch_input_sheet_line_over_limit": {
+    "message": "Exceeds recommended line length of 78 characters (auto-wrap on send)"
+  },
+  "touch_input_sheet_line_limit": {
+    "message": "Recommended line length (78 characters)"
+  },
+  "touch_input_sheet_multi_lines": {
+    "message": "$1 lines · Max $2 / 78 B"
+  },
+  "touch_input_sheet_close": {
+    "message": "Close"
+  },
+  "touch_input_sheet_clear": {
+    "message": "Clear"
+  },
+  "touch_input_sheet_auto_wrap_compact": {
+    "message": "Wrap"
+  },
   "plugin_pwa_prompt_title": {
     "message": "PWA Install Guide"
   },

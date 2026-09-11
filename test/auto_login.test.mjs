@@ -129,8 +129,8 @@ test('LoginModal structure adheres to browser password manager conventions', () 
   assert.ok(modalSource.includes('enterKeyHint="go"'), 'Password input must specify enterKeyHint="go"');
 
   // iOS Safari hidden target iframe and history state for password capture
-  assert.ok(modalSource.includes('target="ptt_auth_target_frame"'), 'Form must target hidden iframe');
-  assert.ok(modalSource.includes('ptt_auth_target_frame'), 'Must define hidden iframe for WebKit password capture');
+  assert.ok(modalSource.includes('target="site_auth_target_frame"'), 'Form must target hidden iframe');
+  assert.ok(modalSource.includes('site_auth_target_frame'), 'Must define hidden iframe for WebKit password capture');
   assert.ok(modalSource.includes('window.history?.replaceState'), 'Must trigger history transition for WebKit');
 
   // iOS Safari font-size 16px to prevent zoom

@@ -653,6 +653,24 @@
   "touch_input_sheet_direct_mode": {
     "message": "切換終端直接輸入"
   },
+  "touch_input_sheet_line_over_limit": {
+    "message": "超過單行建議長度 78 字元 (送出時將自動折行)"
+  },
+  "touch_input_sheet_line_limit": {
+    "message": "單行建議長度 (78字元)"
+  },
+  "touch_input_sheet_multi_lines": {
+    "message": "$1 行 · 最大 $2 / 78 B"
+  },
+  "touch_input_sheet_close": {
+    "message": "收起"
+  },
+  "touch_input_sheet_clear": {
+    "message": "清空"
+  },
+  "touch_input_sheet_auto_wrap_compact": {
+    "message": "折行"
+  },
   "plugin_pwa_prompt_title": {
     "message": "PWA 安裝指引"
   },

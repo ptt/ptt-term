@@ -1306,7 +1306,7 @@ export class TermBuf extends EventEmitter {
         this.titleConn = part.conn;
       }
     }
-    let title = typeof this.titleBase === 'string' ? this.titleBase : 'PTT Chrome';
+    let title = this.titleBase;
     if (this.dynamicTitle) {
       if (this.titleSite) {
         title += ' - ' + this.titleSite;

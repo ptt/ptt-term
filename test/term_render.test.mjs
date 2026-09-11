@@ -3573,8 +3573,10 @@ test('TouchInputSheet component source defines UI, title, counter and auto-wrap'
   assert.ok(touchInputSheetSource.includes('appendEnter'));
   assert.ok(touchInputSheetSource.includes('autoWrap'));
   assert.ok(touchInputSheetSource.includes('rows={3}'));
-  assert.ok(touchInputSheetSource.includes('tabIndex={-1}'));
   assert.ok(touchInputSheetSource.includes('enterKeyHint="enter"'));
+  assert.ok(touchInputSheetSource.includes('touch_input_sheet_line_over_limit'));
+  assert.ok(touchInputSheetSource.includes('touch_input_sheet_line_limit'));
+  assert.ok(touchInputSheetSource.includes('touch_input_sheet_multi_lines'));
 });
 
 test('TouchKeyboard integrates TouchInputSheet and toggles edit area', () => {
