@@ -3384,7 +3384,7 @@ test('App and ContextMenu decouple mouse browsing and easy reading through event
 
   // ContextMenu checks hasActiveInputInterceptor
   assert.ok(
-    contextMenuSource.includes('app.hasActiveInputInterceptor?.()'),
+    contextMenuSource.includes('app.hasActiveInputInterceptor()'),
     'ContextMenu must use app.hasActiveInputInterceptor'
   );
   assert.ok(
@@ -3603,7 +3603,7 @@ test('TouchInputSheet stops key event propagation and registers input intercepto
   assert.ok(touchInputSheetSource.includes('handleNativeKeyStop'));
   assert.ok(touchInputSheetSource.includes('handleKeyUp'));
   assert.ok(touchInputSheetSource.includes('handleKeyPress'));
-  assert.ok(touchInputSheetSource.includes('registerInputInterceptor'));
+  assert.ok(touchInputSheetSource.includes('inputInterceptors.on'));
 });
 
 test('TouchInputSheet styles support compact single-row landscape layout', () => {

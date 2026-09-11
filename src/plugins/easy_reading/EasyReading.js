@@ -136,7 +136,7 @@ export class EasyReading {
     this._termBuf = targetBuf;
 
     if (targetCore) {
-      targetCore.registerInputInterceptor?.(this);
+      this._attachInputInterceptors(targetCore.inputInterceptors);
       this._onPrefChangeBound = (e) => {
         const key = e?.key ?? e?.detail?.key;
         const value = e?.value !== undefined ? e.value : e?.detail?.value;
@@ -204,7 +204,7 @@ export class EasyReading {
       this._core.off?.('term:pref-change', this._onPrefChangeBound);
       this._core.off?.('term:easy-reading:switch', this._onEasyReadingSwitchBound);
       this._core.off?.('term:screen-update', this._onScreenUpdateBound);
-      this._core.unregisterInputInterceptor?.(this);
+      this._detachInputInterceptors(this._core.inputInterceptors);
     }
     if (this._overlay && this._overlay.parentNode) {
       this._overlay.parentNode.removeChild(this._overlay);
@@ -973,7 +973,83 @@ export class EasyReading {
       e.preventDefault();
   }
 
-  // --- Input Interceptor Interface ---
+  // --- Input Interceptor Interface (EventEmitter) ---
+
+  _attachInputInterceptors(inputInterceptors) {
+    if (!inputInterceptors) return;
+    this._onNavCmdBound = (event) => {
+      if (!this.isActive()) return;
+      if (this.handleNavCmd(event.cmd)) {
+        event.preventDefault();
+      }
+    };
+    this._onWheelBound = (event) => {
+      const res = this.handleWheel(event.originalEvent || event);
+      if (res === 'suppress') {
+        event.suppress = true;
+        event.preventDefault();
+      } else if (res) {
+        event.handled = true;
+        event.preventDefault();
+      }
+    };
+    this._onMouseClickBound = (e) => {
+      this.handleMouseClick(e);
+    };
+    this._onKeyDownBound = (e) => {
+      this.handleKeyDown(e);
+    };
+    this._onTextInputBound = (e) => {
+      if (this.handleTextInput(e)) {
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+        e.defaultPrevented = true;
+      }
+    };
+    this._onSelectAllBound = (event) => {
+      if (this.selectAll()) {
+        event.preventDefault();
+      }
+    };
+    this._onQueryActiveBound = (event) => {
+      if (this.isActive()) {
+        event.active = true;
+      }
+    };
+    this._onGetSelectedTextBound = (event) => {
+      const text = this.getSelectedText();
+      if (text !== undefined) {
+        event.text = text;
+      }
+    };
+    this._onGetSelectionColRowBound = (event) => {
+      if (this.isActive()) {
+        event.colRow = this.getSelectionColRow();
+      }
+    };
+
+    inputInterceptors.on('navCmd', this._onNavCmdBound);
+    inputInterceptors.on('wheel', this._onWheelBound);
+    inputInterceptors.on('mouseClick', this._onMouseClickBound);
+    inputInterceptors.on('keyDown', this._onKeyDownBound);
+    inputInterceptors.on('textInput', this._onTextInputBound);
+    inputInterceptors.on('selectAll', this._onSelectAllBound);
+    inputInterceptors.on('queryActive', this._onQueryActiveBound);
+    inputInterceptors.on('getSelectedText', this._onGetSelectedTextBound);
+    inputInterceptors.on('getSelectionColRow', this._onGetSelectionColRowBound);
+  }
+
+  _detachInputInterceptors(inputInterceptors) {
+    if (!inputInterceptors) return;
+    if (this._onNavCmdBound) inputInterceptors.off('navCmd', this._onNavCmdBound);
+    if (this._onWheelBound) inputInterceptors.off('wheel', this._onWheelBound);
+    if (this._onMouseClickBound) inputInterceptors.off('mouseClick', this._onMouseClickBound);
+    if (this._onKeyDownBound) inputInterceptors.off('keyDown', this._onKeyDownBound);
+    if (this._onTextInputBound) inputInterceptors.off('textInput', this._onTextInputBound);
+    if (this._onSelectAllBound) inputInterceptors.off('selectAll', this._onSelectAllBound);
+    if (this._onQueryActiveBound) inputInterceptors.off('queryActive', this._onQueryActiveBound);
+    if (this._onGetSelectedTextBound) inputInterceptors.off('getSelectedText', this._onGetSelectedTextBound);
+    if (this._onGetSelectionColRowBound) inputInterceptors.off('getSelectionColRow', this._onGetSelectionColRowBound);
+  }
 
   handleNavCmd(cmd) {
     if (!this.isActive()) return false;

@@ -11,6 +11,7 @@ import {
   PAGE_STATE,
 } from '../src/js/sites/index.js';
 import { EventEmitter } from '../src/js/event.js';
+import { InputInterceptors } from '../src/js/input_interceptors.js';
 import {
   EasyReading,
   INFLIGHT_WATCHDOG_MS,
@@ -1133,80 +1134,21 @@ test('EasyReading decouples state tracking and removes TermBuf property injectio
 test('EasyReading and App input interceptor pipeline decouples navigation, wheel, keydown, and text input', () => {
   const sent = [];
   const mockCore = {
-    inputInterceptors: [],
     site: {
       getThreadCommand: (type) => (type === 'prevThread' ? '\x1b[D\x1b[A\x1b[C' : '\x1b[D\x1b[B\x1b[C'),
     },
     send: (data) => sent.push(data),
     suppressInertialWheel: (duration) => { mockCore.lastSuppressedDuration = duration; },
   };
-
-  mockCore.registerInputInterceptor = (interceptor) => {
-    if (!interceptor || mockCore.inputInterceptors.includes(interceptor)) return;
-    mockCore.inputInterceptors.push(interceptor);
-  };
-  mockCore.unregisterInputInterceptor = (interceptor) => {
-    const idx = mockCore.inputInterceptors.indexOf(interceptor);
-    if (idx !== -1) mockCore.inputInterceptors.splice(idx, 1);
-  };
-  mockCore.dispatchNavCmd = (cmd) => {
-    for (const interceptor of mockCore.inputInterceptors) {
-      if (interceptor.handleNavCmd?.(cmd)) return true;
-    }
-    return false;
-  };
-  mockCore.dispatchWheel = (e) => {
-    for (const interceptor of mockCore.inputInterceptors) {
-      if (interceptor.handleWheel) {
-        const res = interceptor.handleWheel(e);
-        if (res) return res;
-      }
-    }
-    return false;
-  };
-  mockCore.dispatchKeyDown = (e) => {
-    for (const interceptor of mockCore.inputInterceptors) {
-      if (interceptor.handleKeyDown?.(e)) return true;
-      if (e.defaultPrevented) return true;
-    }
-    return false;
-  };
-  mockCore.dispatchTextInput = (e) => {
-    for (const interceptor of mockCore.inputInterceptors) {
-      if (interceptor.handleTextInput?.(e)) return true;
-    }
-    return false;
-  };
-  mockCore.getInterceptorSelectedText = () => {
-    for (const interceptor of mockCore.inputInterceptors) {
-      if (interceptor.getSelectedText) {
-        const text = interceptor.getSelectedText();
-        if (text !== undefined && text !== null) return text;
-      }
-    }
-    return null;
-  };
-  mockCore.getInterceptorSelectionColRow = () => {
-    for (const interceptor of mockCore.inputInterceptors) {
-      if (interceptor.getSelectionColRow) {
-        const res = interceptor.getSelectionColRow();
-        if (res !== undefined) return res;
-      }
-    }
-    return undefined;
-  };
-  mockCore.dispatchSelectAll = () => {
-    for (const interceptor of mockCore.inputInterceptors) {
-      if (interceptor.selectAll?.()) return true;
-    }
-    return false;
-  };
-  mockCore.hasActiveInputInterceptor = () => {
-    for (const interceptor of mockCore.inputInterceptors) {
-      if (interceptor.isActive?.()) return true;
-    }
-    return false;
-  };
+  mockCore.inputInterceptors = new InputInterceptors(mockCore);
+  mockCore.dispatchNavCmd = (cmd) => mockCore.inputInterceptors.dispatchNavCmd(cmd);
+  mockCore.dispatchWheel = (e) => mockCore.inputInterceptors.dispatchWheel(e);
+  mockCore.dispatchKeyDown = (e) => mockCore.inputInterceptors.dispatchKeyDown(e);
+  mockCore.dispatchTextInput = (e) => mockCore.inputInterceptors.dispatchTextInput(e);
+  mockCore.getInterceptorSelectedText = () => mockCore.inputInterceptors.getSelectedText();
+  mockCore.getInterceptorSelectionColRow = () => mockCore.inputInterceptors.getSelectionColRow();
+  mockCore.dispatchSelectAll = () => mockCore.inputInterceptors.dispatchSelectAll();
+  mockCore.hasActiveInputInterceptor = () => mockCore.inputInterceptors.hasActive();
 
   const mockTermBuf = {
     site: mockCore.site,
@@ -1219,7 +1161,7 @@ test('EasyReading and App input interceptor pipeline decouples navigation, wheel
   };
 
   const easyReading = new EasyReading(mockCore, mockView, mockTermBuf);
-  assert.ok(mockCore.inputInterceptors.includes(easyReading));
+  assert.ok(mockCore.inputInterceptors.listenerCount('navCmd') > 0);
 
   // 1. Inactive: interceptor returns false / undefined
   assert.equal(easyReading.isActive(), false);
@@ -1289,33 +1231,22 @@ test('EasyReading and App input interceptor pipeline decouples navigation, wheel
   assert.equal(suppressedWheel, 'suppress');
 
   // Unregister interceptor
-  mockCore.unregisterInputInterceptor(easyReading);
-  assert.equal(mockCore.inputInterceptors.includes(easyReading), false);
+  easyReading.destroy();
+  assert.equal(mockCore.inputInterceptors.listenerCount('navCmd'), 0);
 });
 
 test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update hooks', () => {
   const mockApp = {
     plugins: [],
-    inputInterceptors: [],
-    registerInputInterceptor(interceptor) {
-      if (!interceptor || this.inputInterceptors.includes(interceptor)) return;
-      this.inputInterceptors.push(interceptor);
-    },
-    unregisterInputInterceptor(interceptor) {
-      const idx = this.inputInterceptors.indexOf(interceptor);
-      if (idx !== -1) this.inputInterceptors.splice(idx, 1);
-    },
     registerPlugin(plugin) {
       if (!plugin || this.plugins.includes(plugin)) return;
       this.plugins.push(plugin);
       if (plugin.init) plugin.init({ app: this, core: this, view: this.view, buf: this.buf });
-      this.registerInputInterceptor(plugin);
     },
     unregisterPlugin(plugin) {
       const idx = this.plugins.indexOf(plugin);
       if (idx !== -1) {
         this.plugins.splice(idx, 1);
-        this.unregisterInputInterceptor(plugin);
         plugin.destroy?.();
       }
     },
@@ -1336,6 +1267,7 @@ test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update
       }
     },
   };
+  mockApp.inputInterceptors = new InputInterceptors(mockApp);
 
   const listeners = new Map();
   const mockBuf = {
@@ -1372,7 +1304,7 @@ test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update
   // 1. Register plugin into App
   mockApp.registerPlugin(plugin);
   assert.ok(mockApp.plugins.includes(plugin));
-  assert.ok(mockApp.inputInterceptors.includes(plugin));
+  assert.ok(mockApp.inputInterceptors.listenerCount('navCmd') > 0);
   assert.equal(mockApp.getPlugin('easy_reading'), plugin);
   assert.equal(plugin._initialized, true);
   assert.equal(mockBuf._easyReading, undefined);
@@ -1406,7 +1338,7 @@ test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update
   // 4. Unregister and destroy plugin
   mockApp.unregisterPlugin(plugin);
   assert.equal(mockApp.plugins.includes(plugin), false);
-  assert.equal(mockApp.inputInterceptors.includes(plugin), false);
+  assert.equal(mockApp.inputInterceptors.listenerCount('navCmd'), 0);
   assert.equal(mockApp.getPlugin('easy_reading'), undefined);
   assert.equal(mockApp.easyReading, undefined);
   assert.equal(mockView._easyReading, undefined);

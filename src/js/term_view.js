@@ -408,7 +408,7 @@ export class TermView extends EventEmitter {
       return;
     }
 
-    if (this.app?.dispatchTextInput?.(e)) {
+    if (this.app?.dispatchTextInput(e)) {
       return;
     }
     if (e.target.value) {
@@ -441,7 +441,7 @@ export class TermView extends EventEmitter {
   }
 
   onKeyDown(e) {
-    if (this.app?.dispatchKeyDown?.(e)) {
+    if (this.app?.dispatchKeyDown(e)) {
       return;
     }
 
@@ -924,7 +924,7 @@ export class TermView extends EventEmitter {
   }
 
   getSelectedText() {
-    const interceptorText = this.app?.getInterceptorSelectedText?.();
+    const interceptorText = this.app?.getInterceptorSelectedText();
     if (interceptorText !== null && interceptorText !== undefined) {
       return interceptorText;
     }
@@ -971,7 +971,7 @@ export class TermView extends EventEmitter {
   }
 
   getSelectionColRow() {
-    const interceptorColRow = this.app?.getInterceptorSelectionColRow?.();
+    const interceptorColRow = this.app?.getInterceptorSelectionColRow();
     if (interceptorColRow !== undefined) {
       return interceptorColRow;
     }
@@ -992,7 +992,7 @@ export class TermView extends EventEmitter {
   }
 
   selectAll() {
-    if (this.app?.dispatchSelectAll?.()) {
+    if (this.app?.dispatchSelectAll()) {
       return;
     }
     if (this.useCanvasEngine) {

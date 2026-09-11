@@ -39,31 +39,38 @@ export class TouchInputSheet extends React.Component {
   }
 
   registerInterceptor = () => {
-    if (this.props.app && typeof this.props.app.registerInputInterceptor === "function") {
-      this.interceptor = {
-        isActive: () => Boolean(this.props.open),
-        handleKeyDown: (e) => {
-          if (!this.props.open) return false;
-          if (e.key === "Escape") {
-            e.preventDefault();
-            this.handleClose();
-            return true;
-          }
-          return true;
-        },
+    const inputInterceptors = this.props.app?.inputInterceptors;
+    if (inputInterceptors) {
+      this.handleKeyDownBound = (e) => {
+        if (!this.props.open) return;
+        if (e.key === "Escape") {
+          e.preventDefault();
+          this.handleClose();
+        } else {
+          e.preventDefault();
+        }
       };
-      this.props.app.registerInputInterceptor(this.interceptor);
+      this.handleQueryActiveBound = (e) => {
+        if (this.props.open) {
+          e.active = true;
+        }
+      };
+      inputInterceptors.on("keyDown", this.handleKeyDownBound);
+      inputInterceptors.on("queryActive", this.handleQueryActiveBound);
     }
   };
 
   unregisterInterceptor = () => {
-    if (
-      this.interceptor &&
-      this.props.app &&
-      typeof this.props.app.unregisterInputInterceptor === "function"
-    ) {
-      this.props.app.unregisterInputInterceptor(this.interceptor);
-      this.interceptor = null;
+    const inputInterceptors = this.props.app?.inputInterceptors;
+    if (inputInterceptors) {
+      if (this.handleKeyDownBound) {
+        inputInterceptors.off("keyDown", this.handleKeyDownBound);
+        this.handleKeyDownBound = null;
+      }
+      if (this.handleQueryActiveBound) {
+        inputInterceptors.off("queryActive", this.handleQueryActiveBound);
+        this.handleQueryActiveBound = null;
+      }
     }
   };
 

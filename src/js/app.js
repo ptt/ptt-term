@@ -18,6 +18,7 @@ import { applyColorScheme } from './color_schemes.js';
 import AppOverlay from '../components/AppOverlay';
 import { getSite, PAGE_STATE } from './sites';
 import { EventEmitter } from './event';
+import { InputInterceptors } from './input_interceptors.js';
 import iconLogo from 'Icon/logo.png';
 import iconLogoConnect from 'Icon/logo_connect.png';
 import iconLogoDisconnect from 'Icon/logo_disconnect.png';
@@ -71,7 +72,7 @@ export class App extends EventEmitter {
   }
 
   this.plugins = [];
-  this.inputInterceptors = [];
+  this.inputInterceptors = new InputInterceptors(this);
   this.overlays = [];
   this.contextMenuItems = [];
   this.on('term:anti-idle', () => this.sendAntiIdle());
@@ -192,7 +193,6 @@ export class App extends EventEmitter {
     if (plugin.init) {
       plugin.init({ app: this, core: this, view: this.view, buf: this.buf });
     }
-    this.registerInputInterceptor(plugin);
     if (plugin.getContextMenuItems) {
       const items = plugin.getContextMenuItems();
       if (Array.isArray(items)) {
@@ -211,7 +211,6 @@ export class App extends EventEmitter {
     const idx = this.plugins.indexOf(plugin);
     if (idx !== -1) {
       this.plugins.splice(idx, 1);
-      this.unregisterInputInterceptor(plugin);
       if (plugin.getContextMenuItems) {
         const items = plugin.getContextMenuItems();
         if (Array.isArray(items)) {
@@ -349,120 +348,40 @@ export class App extends EventEmitter {
     this._useMouseBrowsing = Boolean(val);
   }
 
-  registerInputInterceptor(interceptor) {
-    if (!interceptor || this.inputInterceptors.includes(interceptor)) return;
-    this.inputInterceptors.push(interceptor);
-  }
-
-  unregisterInputInterceptor(interceptor) {
-    const idx = this.inputInterceptors.indexOf(interceptor);
-    if (idx !== -1) {
-      this.inputInterceptors.splice(idx, 1);
-    }
-  }
-
   dispatchNavCmd(cmd) {
-    for (const interceptor of this.inputInterceptors) {
-      if (interceptor.handleNavCmd?.(cmd)) {
-        return true;
-      }
-    }
-    return false;
+    return this.inputInterceptors.dispatchNavCmd(cmd);
   }
 
   dispatchWheel(e) {
-    for (const interceptor of this.inputInterceptors) {
-      if (interceptor.handleWheel) {
-        const res = interceptor.handleWheel(e);
-        if (res) return res;
-      }
-    }
-    return false;
+    return this.inputInterceptors.dispatchWheel(e);
   }
 
   dispatchMouseClick(e) {
-    for (const interceptor of this.inputInterceptors) {
-      if (interceptor.handleMouseClick?.(e)) {
-        return true;
-      }
-      if (e.defaultPrevented) {
-        return true;
-      }
-    }
-    return false;
+    return this.inputInterceptors.dispatchMouseClick(e);
   }
 
   dispatchKeyDown(e) {
-    for (const interceptor of this.inputInterceptors) {
-      if (interceptor.handleKeyDown?.(e)) {
-        return true;
-      }
-      if (e.defaultPrevented) {
-        return true;
-      }
-    }
-    return false;
+    return this.inputInterceptors.dispatchKeyDown(e);
   }
 
   dispatchTextInput(e) {
-    for (const interceptor of this.inputInterceptors) {
-      if (interceptor.handleTextInput?.(e)) {
-        return true;
-      }
-    }
-    return false;
+    return this.inputInterceptors.dispatchTextInput(e);
   }
 
   getInterceptorSelectedText() {
-    for (const interceptor of this.inputInterceptors) {
-      if (interceptor.getSelectedText) {
-        const text = interceptor.getSelectedText();
-        if (text !== undefined && text !== null) {
-          return text;
-        }
-      }
-    }
-    return null;
+    return this.inputInterceptors.getSelectedText();
   }
 
   getInterceptorSelectionColRow() {
-    for (const interceptor of this.inputInterceptors) {
-      if (interceptor.getSelectionColRow) {
-        const res = interceptor.getSelectionColRow();
-        if (res !== undefined) {
-          return res;
-        }
-      }
-    }
-    return undefined;
+    return this.inputInterceptors.getSelectionColRow();
   }
 
   dispatchSelectAll() {
-    for (const interceptor of this.inputInterceptors) {
-      if (interceptor.selectAll?.()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  dispatchTransformPaste(text, enterChar = '\r') {
-    let result = text;
-    for (const interceptor of this.inputInterceptors) {
-      if (interceptor.transformPaste) {
-        result = interceptor.transformPaste(result, enterChar);
-      }
-    }
-    return result;
+    return this.inputInterceptors.dispatchSelectAll();
   }
 
   hasActiveInputInterceptor() {
-    for (const interceptor of this.inputInterceptors) {
-      if (interceptor.isActive?.()) {
-        return true;
-      }
-    }
-    return false;
+    return this.inputInterceptors.hasActive();
   }
 
   isConnected() {
