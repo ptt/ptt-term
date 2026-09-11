@@ -74,6 +74,7 @@ export class App extends EventEmitter {
   this.inputInterceptors = [];
   this.overlays = [];
   this.contextMenuItems = [];
+  this.on('term:anti-idle', () => this.sendAntiIdle());
   this.initPlugins(BUILTIN_PLUGINS);
   this.suppressWheelUntil = 0;
   this.suppressWheelContinuous = false;
@@ -596,6 +597,16 @@ export class App extends EventEmitter {
     if (this.connectState == 1) {
       this.stream.send(str);
     }
+  }
+
+  sendAntiIdle() {
+    const conn = this.stream || this.conn;
+    if (!conn || this.connectState !== 1) return false;
+    if (this.site?.sendAntiIdle) {
+      this.site.sendAntiIdle(conn);
+      return true;
+    }
+    return false;
   }
 
   cancelMbTimer() {

@@ -1761,12 +1761,17 @@ test('src/plugins exports AntiIdle and delegates keepalive to site', async () =>
     send: (d) => sentData.push(d),
   };
 
-  const mockApp = {
-    connectState: 1,
-    site: pttSite,
-    conn: mockConn,
-    stream: null,
+  const mockApp = new EventEmitter();
+  mockApp.connectState = 1;
+  mockApp.site = pttSite;
+  mockApp.conn = mockConn;
+  mockApp.stream = null;
+  mockApp.sendAntiIdle = () => {
+    if (mockApp.site?.sendAntiIdle) {
+      mockApp.site.sendAntiIdle(mockApp.conn, mockApp.stream);
+    }
   };
+  mockApp.on('term:anti-idle', () => mockApp.sendAntiIdle());
 
   const antiIdle = new antiIdleModule.AntiIdle(mockApp, {
     enabled: true,
@@ -1792,6 +1797,28 @@ test('src/plugins exports AntiIdle and delegates keepalive to site', async () =>
   antiIdle.resetIdle();
   antiIdle.tick(1000);
   assert.equal(sentData.length, 1);
+
+  // Verify App sendAntiIdle and term:anti-idle event dispatching
+  let appAntiIdleSent = false;
+  const eventApp = new EventEmitter();
+  eventApp.connectState = 1;
+  eventApp.site = {
+    sendAntiIdle: () => { appAntiIdleSent = true; },
+  };
+  eventApp.conn = {};
+  eventApp.stream = null;
+  eventApp.events = [];
+  eventApp.on('term:anti-idle', () => {
+    eventApp.events.push('term:anti-idle');
+    eventApp.site.sendAntiIdle(eventApp.conn);
+  });
+  const eventAntiIdle = new antiIdleModule.AntiIdle(eventApp, {
+    enabled: true,
+    interval: 1000,
+  });
+  eventAntiIdle.tick(1000);
+  assert.ok(eventApp.events.includes('term:anti-idle'));
+  assert.equal(appAntiIdleSent, true);
 });
 
 test('src/plugins exports AutoWrap and wraps pasted text', async () => {

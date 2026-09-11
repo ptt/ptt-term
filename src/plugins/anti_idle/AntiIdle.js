@@ -108,21 +108,23 @@ export class AntiIdle {
   init({ app, view, buf } = {}) {
     if (app) {
       this.app = app;
-      this._onTickBound = (e) => this.tick(e.detail?.intervalMs || 1000);
+      this._onTickBound = (e) =>
+        this.tick(e?.intervalMs ?? e?.detail?.intervalMs ?? 1000);
       this._onActivityBound = () => this.resetIdle();
       this._onPrefChangeBound = (e) => {
-        const { key, value } = e.detail || {};
+        const key = e?.key ?? e?.detail?.key;
+        const value = e?.value !== undefined ? e.value : e?.detail?.value;
         if (key === "antiIdleTime") {
           this.setInterval(value);
         } else if (key === "enableAntiIdle") {
           this.enabled = Boolean(value);
         }
       };
-      app.addEventListener?.("term:tick", this._onTickBound);
-      app.addEventListener?.("term:send", this._onActivityBound);
-      app.addEventListener?.("term:user-activity", this._onActivityBound);
-      app.addEventListener?.("term:connect", this._onActivityBound);
-      app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
+      this.app.on("term:tick", this._onTickBound);
+      this.app.on("term:send", this._onActivityBound);
+      this.app.on("term:user-activity", this._onActivityBound);
+      this.app.on("term:connect", this._onActivityBound);
+      this.app.on("term:pref-change", this._onPrefChangeBound);
     }
     if (view) this.view = view;
     if (buf) this.buf = buf;
@@ -150,14 +152,11 @@ export class AntiIdle {
 
   tick(deltaMs = 1000) {
     if (!this.enabled || !this.app) return;
-    const conn = this.app.stream || this.app.conn;
-    if (!conn || this.app.connectState !== 1) return;
+    if (this.app.connectState !== 1) return;
 
     this.idleTime += deltaMs;
     if (this.interval > 0 && this.idleTime >= this.interval) {
-      if (this.app.site) {
-        this.app.site.sendAntiIdle(conn);
-      }
+      this.app.emit("term:anti-idle");
       this.idleTime = 0;
     }
   }
@@ -165,11 +164,11 @@ export class AntiIdle {
   destroy() {
     this.idleTime = 0;
     if (this.app) {
-      this.app.removeEventListener?.("term:tick", this._onTickBound);
-      this.app.removeEventListener?.("term:send", this._onActivityBound);
-      this.app.removeEventListener?.("term:user-activity", this._onActivityBound);
-      this.app.removeEventListener?.("term:connect", this._onActivityBound);
-      this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
+      this.app.off("term:tick", this._onTickBound);
+      this.app.off("term:send", this._onActivityBound);
+      this.app.off("term:user-activity", this._onActivityBound);
+      this.app.off("term:connect", this._onActivityBound);
+      this.app.off("term:pref-change", this._onPrefChangeBound);
     }
   }
 }
