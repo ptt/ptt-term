@@ -24,10 +24,16 @@ const menuHandlerByEventKey = {
 };
 
 const onPrefSaveImpl = (app, values) => {
+  const prevEnableEasyReading = Boolean(app.prefValues?.enableEasyReading);
+  const nextEnableEasyReading = Boolean(
+    values?.enableEasyReading ?? app.prefValues?.enableEasyReading
+  );
   app.onValuesPrefChange(values);
   app.modalShown = false;
   app.setInputAreaFocus();
-  app.switchToEasyReadingMode(values?.enableEasyReading ?? app.prefValues?.enableEasyReading);
+  if (prevEnableEasyReading !== nextEnableEasyReading) {
+    app.switchToEasyReadingMode(nextEnableEasyReading);
+  }
 
   return {
     showsSettings: false,
@@ -483,9 +489,15 @@ export class ContextMenu extends React.Component {
 
   handlePrefReset = (values) => {
     const { app } = this.props;
+    const prevEnableEasyReading = Boolean(app.prefValues?.enableEasyReading);
+    const nextEnableEasyReading = Boolean(
+      values?.enableEasyReading ?? app.prefValues?.enableEasyReading
+    );
     app.onValuesPrefChange(values);
     app.view.redraw(true);
-    app.switchToEasyReadingMode(values?.enableEasyReading ?? app.prefValues?.enableEasyReading);
+    if (prevEnableEasyReading !== nextEnableEasyReading) {
+      app.switchToEasyReadingMode(nextEnableEasyReading);
+    }
   };
 
   render() {

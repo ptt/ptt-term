@@ -637,7 +637,6 @@ export class App extends EventEmitter {
 
   switchToEasyReadingMode(doSwitch) {
     this.emit('term:easy-reading:switch', { doSwitch, detail: { doSwitch } });
-    this.send(unescapeStr('^L'));
   }
 
   async doCopy(str) {

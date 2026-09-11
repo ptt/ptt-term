@@ -784,3 +784,30 @@ test('NativeDialog captures Escape keydown to prevent unhandled alert beeps', ()
     'NativeDialog must preventDefault and stopPropagation on Escape keydown'
   );
 });
+
+test('ContextMenu and App do not send ^L on settings close and only switch EasyReading if changed', () => {
+  const appSrc = fs.readFileSync(
+    path.resolve('src/js/app.js'),
+    'utf-8'
+  );
+  const contextMenuSrc = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/index.js'),
+    'utf-8'
+  );
+
+  // App.switchToEasyReadingMode must not send ^L
+  const switchFnMatch = appSrc.match(/switchToEasyReadingMode\([^)]*\)\s*\{([^}]+)\}/);
+  assert.ok(switchFnMatch, 'App must define switchToEasyReadingMode');
+  assert.ok(
+    !switchFnMatch[1].includes("send(unescapeStr('^L'))") &&
+      !switchFnMatch[1].includes("send('^L')"),
+    'switchToEasyReadingMode must not send ^L'
+  );
+
+  // ContextMenu onPrefSaveImpl checks whether enableEasyReading changed
+  assert.ok(
+    contextMenuSrc.includes('prevEnableEasyReading !== nextEnableEasyReading'),
+    'ContextMenu must only switch easy reading mode if enableEasyReading changed'
+  );
+});
+
