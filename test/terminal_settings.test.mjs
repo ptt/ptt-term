@@ -703,12 +703,17 @@ test('PrefModal About tab renders Version & Source Code with distinct version li
     prefModalSrc.includes('occurrence-date') &&
       prefModalSrc.includes('build-info') &&
       prefModalSrc.includes('render-engine-type') &&
+      prefModalSrc.includes('term-size-mode') &&
       prefModalSrc.includes('env-info'),
-    'PrefModal must prefill occurrence-date, build-info, render-engine-type, and env-info in bug report url'
+    'PrefModal must prefill occurrence-date, build-info, render-engine-type, term-size-mode, and env-info in bug report url'
   );
   assert.ok(
     prefModalSrc.includes('navigator.userAgent'),
     'PrefModal must include User Agent in environment diagnostics'
+  );
+  assert.ok(
+    prefModalSrc.includes('Terminal Size:'),
+    'PrefModal must include Terminal Size diagnostics in env-info'
   );
   assert.ok(
     bugReportTemplate.includes('id: env-info'),
@@ -717,6 +722,14 @@ test('PrefModal About tab renders Version & Source Code with distinct version li
   assert.ok(
     bugReportTemplate.includes('id: render-engine-type'),
     'bug_report.yml must provide render-engine-type dropdown'
+  );
+  assert.ok(
+    bugReportTemplate.includes('id: term-size-mode'),
+    'bug_report.yml must provide term-size-mode dropdown'
+  );
+  assert.ok(
+    bugReportTemplate.includes('fontFitWindowWidth'),
+    'bug_report.yml must include fontFitWindowWidth in options'
   );
   assert.ok(
     prefModalSrc.includes('<select') &&

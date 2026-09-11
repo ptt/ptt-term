@@ -586,6 +586,17 @@ export class PrefModal extends React.Component {
       useCanvas ? "Canvas Engine（預設）" : "DOM Engine"
     );
 
+    const termSizeMode = this.state.values?.termSizeMode || "max-font-size";
+    let termSizeParam = "依視窗調整字體大小 (Max Font Size)（預設）";
+    if (termSizeMode === "fixed-term-size") {
+      termSizeParam = this.state.values?.fontFitWindowWidth
+        ? "固定終端機大小 + 把字體拉大來補滿畫面 (Fixed Terminal Size + fontFitWindowWidth)"
+        : "固定終端機大小 (Fixed Terminal Size)";
+    } else if (termSizeMode === "fixed-font-size") {
+      termSizeParam = "固定字型大小 (Fixed Font Size)";
+    }
+    params.set("term-size-mode", termSizeParam);
+
     const envLines = [];
     if (typeof window !== "undefined") {
       const siteUrl = window.location.origin || window.location.href || "";
@@ -617,6 +628,21 @@ export class PrefModal extends React.Component {
       );
     }
 
+    if (this.state.values) {
+      let termSizeDetail = termSizeMode;
+      if (termSizeMode === "fixed-term-size") {
+        const cols = this.state.values.termSize?.cols ?? 80;
+        const rows = this.state.values.termSize?.rows ?? 24;
+        const fitWidth = Boolean(this.state.values.fontFitWindowWidth);
+        termSizeDetail = `fixed-term-size (${cols}x${rows}, fontFitWindowWidth=${fitWidth})`;
+      } else if (termSizeMode === "fixed-font-size") {
+        termSizeDetail = `fixed-font-size (fontSize=${this.state.values.fontSize || 24})`;
+      } else if (termSizeMode === "max-font-size") {
+        termSizeDetail = `max-font-size (maxFontSize=${this.state.values.maxFontSize || 40})`;
+      }
+      envLines.push(`Terminal Size: ${termSizeDetail}`);
+    }
+
     if (typeof navigator !== "undefined") {
       if (navigator.userAgent) {
         envLines.push(`User Agent: ${navigator.userAgent}`);
@@ -639,6 +665,9 @@ export class PrefModal extends React.Component {
       if (this.state.values.fontFamily) extra.push(`font=${this.state.values.fontFamily}`);
       if (this.state.values.colorScheme && this.state.values.colorScheme !== "default") {
         extra.push(`colorScheme=${this.state.values.colorScheme}`);
+      }
+      if (this.state.values.cursorStyle && this.state.values.cursorStyle !== "blink") {
+        extra.push(`cursorStyle=${this.state.values.cursorStyle}`);
       }
       if (this.state.values.enableVirtualKeyboard) extra.push("virtualKeyboard");
       if (extra.length > 0) {

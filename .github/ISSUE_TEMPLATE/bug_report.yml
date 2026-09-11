@@ -115,6 +115,20 @@ body:
     validations:
       required: false
 
+  - type: dropdown
+    id: term-size-mode
+    attributes:
+      label: 終端機大小與縮放模式 (Terminal Size Mode)
+      description: 請選擇目前設定的終端機大小或縮放模式。（若由「關於」分頁點擊「問題回報」將會自動填入）
+      options:
+        - 依視窗調整字體大小 (Max Font Size)（預設）
+        - 固定字型大小 (Fixed Font Size)
+        - 固定終端機大小 (Fixed Terminal Size)
+        - 固定終端機大小 + 把字體拉大來補滿畫面 (Fixed Terminal Size + fontFitWindowWidth)
+        - 其他 / 不確定
+    validations:
+      required: false
+
   - type: input
     id: build-info
     attributes:
@@ -152,6 +166,9 @@ body:
       label: 相關特殊設定 (Relevant Settings)
       description: 請勾選目前有開啟或調整的特殊選項（若有）
       options:
+        - label: 開啟「固定終端機大小 (Fixed Terminal Size)」
+        - label: 開啟「把字體拉大來補滿畫面 (fontFitWindowWidth)」
+        - label: 變更「文字游標樣式 (Caret Style)」（如：半高方塊、實心方塊、垂直線）
         - label: 開啟「平滑 ANSI 圖形 (smoothAnsiArt)」
         - label: 使用自訂字型 (Custom Font)
         - label: 啟用自訂色彩盤 / 高對比色
