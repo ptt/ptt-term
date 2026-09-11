@@ -1607,18 +1607,25 @@ test('ContextMenu and DropdownMenu decouple LiveHelper and remove right-click it
     'ContextMenu must not import or render legacy LiveHelperModal'
   );
 
-  // PrefModal Plugins tab provides sub-options for live_update
-  assert.ok(
-    prefModalSource.includes('name="endTurnsOnLiveUpdate"'),
-    'PrefModal Plugins tab must provide endTurnsOnLiveUpdate checkbox'
+  // LiveUpdate plugin provides sub-options rendered via renderOptions
+  const liveUpdateSource = fs.readFileSync(
+    path.resolve('src/plugins/live_update/LiveUpdate.js'),
+    'utf-8'
   );
   assert.ok(
-    prefModalSource.includes('name="liveUpdateInterval"'),
-    'PrefModal Plugins tab must provide liveUpdateInterval input'
+    liveUpdateSource.includes('name: "endTurnsOnLiveUpdate"') ||
+    liveUpdateSource.includes('name="endTurnsOnLiveUpdate"'),
+    'LiveUpdate plugin provides endTurnsOnLiveUpdate checkbox'
   );
   assert.ok(
-    prefModalSource.includes('name="showLiveUpdateToolbar"'),
-    'PrefModal Plugins tab must provide showLiveUpdateToolbar checkbox'
+    liveUpdateSource.includes('name: "liveUpdateInterval"') ||
+    liveUpdateSource.includes('name="liveUpdateInterval"'),
+    'LiveUpdate plugin provides liveUpdateInterval input'
+  );
+  assert.ok(
+    liveUpdateSource.includes('name: "showLiveUpdateToolbar"') ||
+    liveUpdateSource.includes('name="showLiveUpdateToolbar"'),
+    'LiveUpdate plugin provides showLiveUpdateToolbar checkbox'
   );
 });
 

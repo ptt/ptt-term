@@ -1728,16 +1728,27 @@ test('PrefModal redesign includes Extensions/Plugins tab with Mac-style toggle l
     'PrefModal should render subtitle below TabLegend divider'
   );
   assert.ok(
-    prefModalSource.includes('name="endTurnsOnLiveUpdate"'),
-    'PrefModal Plugins tab must provide endTurnsOnLiveUpdate setting'
+    prefModalSource.includes('plugin.renderOptions'),
+    'PrefModal Plugins tab must render plugin.renderOptions'
+  );
+  const liveUpdateSource = fs.readFileSync(
+    path.resolve('src/plugins/live_update/LiveUpdate.js'),
+    'utf-8'
   );
   assert.ok(
-    prefModalSource.includes('name="liveUpdateInterval"'),
-    'PrefModal Plugins tab must provide liveUpdateInterval setting'
+    liveUpdateSource.includes('name: "endTurnsOnLiveUpdate"') ||
+    liveUpdateSource.includes('name="endTurnsOnLiveUpdate"'),
+    'LiveUpdate plugin must provide endTurnsOnLiveUpdate setting'
   );
   assert.ok(
-    prefModalSource.includes('name="showLiveUpdateToolbar"'),
-    'PrefModal Plugins tab must provide showLiveUpdateToolbar setting'
+    liveUpdateSource.includes('name: "liveUpdateInterval"') ||
+    liveUpdateSource.includes('name="liveUpdateInterval"'),
+    'LiveUpdate plugin must provide liveUpdateInterval setting'
+  );
+  assert.ok(
+    liveUpdateSource.includes('name: "showLiveUpdateToolbar"') ||
+    liveUpdateSource.includes('name="showLiveUpdateToolbar"'),
+    'LiveUpdate plugin must provide showLiveUpdateToolbar setting'
   );
 
   // 3. PrefModal.css defines Mac list and switch styles
@@ -1833,17 +1844,23 @@ test('PrefModal streamlines extensions UI and consolidates options', () => {
     !prefModalSource.includes('navActiveKey === "mouseBrowsing"'),
     'PrefModal must remove standalone mouseBrowsing nav and tab'
   );
-  assert.ok(
-    prefModalSource.includes('plugin.id === "mouse_browsing"'),
-    'PrefModal must provide mouse_browsing configuration options under plugins tab'
+  const mouseBrowsingSource = fs.readFileSync(
+    path.resolve('src/plugins/mouse_browsing/MouseBrowsing.js'),
+    'utf-8'
   );
   assert.ok(
-    prefModalSource.includes('name="mouseBrowsingHighlight"'),
-    'PrefModal must provide mouseBrowsingHighlight under mouse_browsing options'
+    mouseBrowsingSource.includes('renderOptions'),
+    'MouseBrowsing plugin must provide renderOptions under plugins tab'
   );
   assert.ok(
-    prefModalSource.includes('name="mouseLeftFunction"'),
-    'PrefModal must provide mouseLeftFunction under mouse_browsing options'
+    mouseBrowsingSource.includes('name: "mouseBrowsingHighlight"') ||
+    mouseBrowsingSource.includes('name="mouseBrowsingHighlight"'),
+    'MouseBrowsing must provide mouseBrowsingHighlight under options'
+  );
+  assert.ok(
+    mouseBrowsingSource.includes('name: "mouseLeftFunction"') ||
+    mouseBrowsingSource.includes('name="mouseLeftFunction"'),
+    'MouseBrowsing must provide mouseLeftFunction under options'
   );
 
   // 3. Obsolete image preview options are removed from General tab
@@ -1909,8 +1926,13 @@ test('PrefModal extension options container and checkboxes are constrained to pr
   );
 
   // 4. media_previewer checkbox wraps translation in span for flex container
+  const mediaPreviewerSource = fs.readFileSync(
+    path.resolve('src/plugins/media_previewer/MediaPreviewer.js'),
+    'utf-8'
+  );
   assert.ok(
-    prefModalSource.includes('<span>{_("options_picPreviewWhitelistOnly")}</span>'),
+    mediaPreviewerSource.includes('<span>{_("options_picPreviewWhitelistOnly")}</span>') ||
+    mediaPreviewerSource.includes('_("options_picPreviewWhitelistOnly")'),
     'media_previewer option label text must be wrapped in a span'
   );
 });

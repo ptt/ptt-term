@@ -105,12 +105,7 @@ export class TouchDebugHUDPlugin {
   syncFromPrefs() {
     try {
       const prefs = readValuesWithDefault();
-      const isDebugUrl = Boolean(
-        getQueryVariable("debug") ||
-          (typeof window !== "undefined" &&
-            window.localStorage &&
-            window.localStorage.getItem("ptt_debug") === "1")
-      );
+      const isDebugUrl = Boolean(getQueryVariable("debug"));
       const isEnabled = Boolean(prefs?.enableTouchDebugHUD || isDebugUrl);
       this.setEnabled(isEnabled);
     } catch (e) {}
@@ -170,18 +165,13 @@ export class TouchDebugHUDPlugin {
 
 /**
  * TouchDebugHUD provides an on-screen diagnostic interface on mobile devices
- * when ?debug=1 or ?debug=touch is present in the URL, or ptt_debug=1 in localStorage,
+ * when ?debug=1 or ?debug=touch is present in the URL,
  * or when enableTouchDebugHUD is enabled via preferences/plugins.
  */
 export class TouchDebugHUD extends React.Component {
   constructor(props) {
     super(props);
-    const isDebugUrl = Boolean(
-      getQueryVariable("debug") ||
-        (typeof window !== "undefined" &&
-          window.localStorage &&
-          window.localStorage.getItem("ptt_debug") === "1")
-    );
+    const isDebugUrl = Boolean(getQueryVariable("debug"));
     const prefs = readValuesWithDefault();
     const isEnabled = Boolean(prefs?.enableTouchDebugHUD || isDebugUrl);
 
