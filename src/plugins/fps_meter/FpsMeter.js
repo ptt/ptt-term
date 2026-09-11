@@ -24,13 +24,13 @@ export class FpsMeter {
     let options = {};
     if (
       appOrOptions &&
-      (appOrOptions.view ||
+      (appOrOptions.on ||
+        appOrOptions.view ||
         appOrOptions.buf ||
         appOrOptions.conn ||
         appOrOptions.onPrefChange ||
         appOrOptions.getPlugin ||
-        appOrOptions.registerPlugin ||
-        appOrOptions.addEventListener)
+        appOrOptions.registerPlugin)
     ) {
       app = appOrOptions;
       options = maybeOptions || {};
@@ -105,10 +105,9 @@ export class FpsMeter {
   init({ app, view, buf } = {}) {
     if (app) {
       this.app = app;
-      app.fpsMeter = this;
       this._onPrefChangeBound = (e) => {
-        const key = e.detail?.key;
-        const val = e.detail?.value;
+        const key = e?.key ?? e?.detail?.key;
+        const val = e?.value !== undefined ? e.value : e?.detail?.value;
         if (key === "showFps") {
           this.setEnabled(Boolean(val));
         } else if (key === "useCanvasEngine") {
@@ -117,14 +116,14 @@ export class FpsMeter {
           this.setSmoothAnsiArt(Boolean(val));
         }
       };
-      app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
+      app.on("term:pref-change", this._onPrefChangeBound);
       this._onRenderFrameBound = (e) => {
         if (!this.enabled) return;
-        const durationMs = e.detail?.durationMs ?? 0;
-        const isCanvas = e.detail?.isCanvas ?? this.isCanvas;
+        const durationMs = e?.durationMs ?? e?.detail?.durationMs ?? 0;
+        const isCanvas = e?.isCanvas ?? e?.detail?.isCanvas ?? this.isCanvas;
         this.recordFrame(durationMs, isCanvas);
       };
-      app.addEventListener?.("term:render-frame", this._onRenderFrameBound);
+      app.on("term:render-frame", this._onRenderFrameBound);
       if (!this.onToggleCanvas) {
         this.onToggleCanvas = (isCanvas) => {
           if (this.app?.onPrefChange) {
@@ -148,9 +147,6 @@ export class FpsMeter {
       if (typeof view.smoothAnsiArt === "boolean") {
         this.smoothAnsiArt = view.smoothAnsiArt;
       }
-      if (this._onRenderFrameBound) {
-        view.addEventListener?.("term:render-frame", this._onRenderFrameBound);
-      }
     }
     if (buf) this.buf = buf;
     this.syncFromPrefs();
@@ -168,11 +164,8 @@ export class FpsMeter {
   destroy() {
     this.setEnabled(false);
     if (this.app) {
-      this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
-      this.app.removeEventListener?.("term:render-frame", this._onRenderFrameBound);
-    }
-    if (this.view) {
-      this.view.removeEventListener?.("term:render-frame", this._onRenderFrameBound);
+      this.app.off("term:pref-change", this._onPrefChangeBound);
+      this.app.off("term:render-frame", this._onRenderFrameBound);
     }
   }
 

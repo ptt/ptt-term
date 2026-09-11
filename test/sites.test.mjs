@@ -2050,47 +2050,31 @@ test('src/plugins exports FpsMeter and provides plugin metadata and lifecycle', 
 
   const mockApp = {
     onPrefChange: () => {},
+    on: () => {},
+    off: () => {},
   };
   const meter = new fpsModule.FpsMeter(mockApp);
   assert.equal(meter.id, 'fps_meter');
   assert.equal(meter.prefKey, 'showFps');
   assert.equal(meter.icon, 'speed');
-  assert.equal(mockApp.fpsMeter, meter);
 
   const meta = meter.getMetadata();
   assert.equal(meta.id, 'fps_meter');
   assert.equal(meta.prefKey, 'showFps');
 
   // Core event broadcasts
-  const listeners = {};
-  const eventApp = {
-    addEventListener: (type, fn) => {
-      listeners[type] = listeners[type] || [];
-      listeners[type].push(fn);
-    },
-    removeEventListener: (type, fn) => {
-      if (listeners[type]) {
-        listeners[type] = listeners[type].filter((cb) => cb !== fn);
-      }
-    },
-    dispatchEvent: (ev) => {
-      if (listeners[ev.type]) {
-        listeners[ev.type].forEach((cb) => cb(ev));
-      }
-    },
-  };
-
+  const eventApp = new EventEmitter();
   const eventMeter = new fpsModule.FpsMeter(eventApp);
   assert.equal(eventMeter.enabled, false);
 
   // Broadcast showFps pref change
-  eventApp.dispatchEvent(new CustomEvent('term:pref-change', { detail: { key: 'showFps', value: true } }));
+  eventApp.emit('term:pref-change', { key: 'showFps', value: true });
   assert.equal(eventMeter.enabled, true);
 
   // Broadcast engine and smooth pref changes
-  eventApp.dispatchEvent(new CustomEvent('term:pref-change', { detail: { key: 'useCanvasEngine', value: true } }));
+  eventApp.emit('term:pref-change', { key: 'useCanvasEngine', value: true });
   assert.equal(eventMeter.isCanvas, true);
-  eventApp.dispatchEvent(new CustomEvent('term:pref-change', { detail: { key: 'smoothAnsiArt', value: false } }));
+  eventApp.emit('term:pref-change', { key: 'smoothAnsiArt', value: false });
   assert.equal(eventMeter.smoothAnsiArt, false);
 
   // Broadcast term:render-frame
@@ -2100,11 +2084,35 @@ test('src/plugins exports FpsMeter and provides plugin metadata and lifecycle', 
     recordFrameCalled = true;
     originalRecord(duration, isCanvas);
   };
-  eventApp.dispatchEvent(new CustomEvent('term:render-frame', { detail: { durationMs: 16.6, isCanvas: true } }));
+  eventApp.emit('term:render-frame', { durationMs: 16.6, isCanvas: true });
   assert.equal(recordFrameCalled, true);
 
   eventMeter.destroy();
   assert.equal(eventMeter.enabled, false);
+});
+
+test('FpsMeter handles term:render-frame and term:pref-change via EventEmitter', async () => {
+  const { FpsMeter } = await import('../src/plugins/fps_meter/index.js');
+  const mockApp = new EventEmitter();
+  const meter = new FpsMeter(mockApp);
+  meter.init({ app: mockApp });
+
+  assert.equal(meter.enabled, false);
+  mockApp.emit('term:pref-change', { key: 'showFps', value: true });
+  assert.equal(meter.enabled, true);
+
+  mockApp.emit('term:pref-change', { key: 'useCanvasEngine', value: true });
+  assert.equal(meter.isCanvas, true);
+
+  let recorded = null;
+  meter.recordFrame = (duration, isCanvas) => {
+    recorded = { duration, isCanvas };
+  };
+  mockApp.emit('term:render-frame', { durationMs: 14.2, isCanvas: true });
+  assert.deepEqual(recorded, { duration: 14.2, isCanvas: true });
+
+  meter.destroy();
+  assert.equal(meter.enabled, false);
 });
 
 test('src/plugins exports TouchDebugHUD and provides plugin metadata and lifecycle', async () => {
@@ -2145,26 +2153,47 @@ test('src/plugins exports TouchDebugHUD and provides plugin metadata and lifecyc
   hudPlugin.destroy();
 });
 
-test('MediaPreviewer exposes getHyperlinkPreviewHook for screen integration', async () => {
+test('MediaPreviewer resolveImageUrl resolves preview URLs according to whitelistOnly and enabled', async () => {
   const { MediaPreviewer } = await import('../src/plugins/media_previewer/index.js');
   const previewer = new MediaPreviewer();
   previewer.enabled = true;
   previewer.whitelistOnly = true;
 
-  const hook = previewer.getHyperlinkPreviewHook();
-  assert.ok(hook && typeof hook.createPreviewRequest === 'function');
-
   // Whitelisted domain returns resolved URL
-  const valid = hook.createPreviewRequest('https://imgur.com/abc1234');
+  const valid = previewer.resolveImageUrl('https://imgur.com/abc1234');
   assert.equal(valid, 'https://i.imgur.com/abc1234.jpg');
 
   // Non-whitelisted domain returns null when whitelistOnly is true
-  const untrusted = hook.createPreviewRequest('https://untrusted.org/pic.png');
+  const untrusted = previewer.resolveImageUrl('https://untrusted.org/pic.png');
   assert.equal(untrusted, null);
 
   // When disabled, returns null
   previewer.enabled = false;
-  assert.equal(hook.createPreviewRequest('https://imgur.com/abc1234'), null);
+  assert.equal(previewer.resolveImageUrl('https://imgur.com/abc1234'), null);
+});
+
+test('MediaPreviewer handles term:hyperlink-preview event via EventEmitter', async () => {
+  const { MediaPreviewer } = await import('../src/plugins/media_previewer/index.js');
+  const mockApp = new EventEmitter();
+  const previewer = new MediaPreviewer(mockApp, { enabled: true, whitelistOnly: true });
+  previewer.init({ app: mockApp });
+
+  const detail = { href: 'https://imgur.com/abc1234', request: null };
+  mockApp.emit('term:hyperlink-preview', detail);
+  assert.equal(detail.request, 'https://i.imgur.com/abc1234.jpg');
+
+  // When disabled
+  previewer.enabled = false;
+  const detailDisabled = { href: 'https://imgur.com/abc1234', request: null };
+  mockApp.emit('term:hyperlink-preview', detailDisabled);
+  assert.equal(detailDisabled.request, null);
+
+  // After destroy
+  previewer.enabled = true;
+  previewer.destroy();
+  const detailDestroyed = { href: 'https://imgur.com/abc1234', request: null };
+  mockApp.emit('term:hyperlink-preview', detailDestroyed);
+  assert.equal(detailDestroyed.request, null);
 });
 
 test('BaseSite and PttSite checkLoginPrompt matches 請輸入代號 across Taiwan BBSes', async () => {

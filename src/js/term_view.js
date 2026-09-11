@@ -30,7 +30,6 @@ export class TermView extends EventEmitter {
   this.useCanvasEngine = true;
   this.showFps = false;
   this.smoothAnsiArt = true;
-  this._fpsMeter = null;
   //new pref - end
 
   this.viewMargin = 0;
@@ -257,14 +256,6 @@ export class TermView extends EventEmitter {
     this.app?.dispatchFontUpdate?.({ fontFace: this.fontFace });
   }
 
-  get fpsMeter() {
-    return this.app?.getPlugin?.('fps_meter') || this.app?.fpsMeter || this._fpsMeter;
-  }
-
-  set fpsMeter(val) {
-    this._fpsMeter = val;
-  }
-
   setShowFps(show) {
     this.showFps = !!show;
     this.redraw(true);
@@ -277,8 +268,7 @@ export class TermView extends EventEmitter {
 
   handleRenderFrame(durationMs, isCanvas) {
     const detail = { durationMs, isCanvas: isCanvas ?? this.useCanvasEngine };
-    this.app?.dispatchEvent?.(new CustomEvent('term:render-frame', { detail }));
-    this.dispatchEvent(new CustomEvent('term:render-frame', { detail }));
+    this.app?.emit('term:render-frame', detail);
   }
 
   handleHyperlinkHover(event, href) {
@@ -351,7 +341,6 @@ export class TermView extends EventEmitter {
           copyOnSelect: this.app.copyOnSelect,
           doCopy: this.app.doCopy.bind(this.app),
           setInputAreaFocus: this.app.setInputAreaFocus.bind(this.app),
-          fpsMeter: this.fpsMeter,
           onRenderFrame: ({ durationMs, isCanvas }) => {
             this.handleRenderFrame(durationMs, isCanvas);
           },

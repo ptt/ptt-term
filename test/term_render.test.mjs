@@ -3192,14 +3192,18 @@ test('ContextMenu and DropdownMenu dynamically link Live Helper and Input Helper
   );
 });
 
-test('TermView eliminates redundant FpsMeter instantiation in constructor', () => {
+test('TermView eliminates redundant FpsMeter instantiation and decouples from plugin', () => {
   assert.ok(
     !termViewSource.includes('new FpsMeter'),
     'TermView constructor must not instantiate new FpsMeter directly'
   );
   assert.ok(
-    termViewSource.includes("this.app?.getPlugin?.('fps_meter')"),
-    'TermView fpsMeter getter must retrieve plugin from App'
+    !termViewSource.includes("getPlugin?.('fps_meter')"),
+    'TermView must not directly reference fps_meter plugin'
+  );
+  assert.ok(
+    termViewSource.includes("term:render-frame"),
+    'TermView should dispatch term:render-frame for frame monitoring'
   );
 });
 

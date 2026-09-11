@@ -199,7 +199,7 @@ export class CanvasRenderer {
 
   draw(canvas, options) {
     const shouldMeasure =
-      (options.onRenderFrame || (options.fpsMeter && options.fpsMeter.enabled)) &&
+      typeof options.onRenderFrame === "function" &&
       typeof performance !== "undefined";
     const t0 = shouldMeasure ? performance.now() : 0;
     if (!canvas) return;
@@ -283,12 +283,7 @@ export class CanvasRenderer {
 
     if (t0 > 0) {
       const durationMs = performance.now() - t0;
-      if (typeof options.onRenderFrame === "function") {
-        options.onRenderFrame({ durationMs, isCanvas: true });
-      }
-      if (options.fpsMeter && typeof options.fpsMeter.recordFrame === "function") {
-        options.fpsMeter.recordFrame(durationMs, true);
-      }
+      options.onRenderFrame({ durationMs, isCanvas: true });
     }
   }
 

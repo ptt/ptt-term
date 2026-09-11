@@ -2,8 +2,8 @@
 
 import { EventEmitter } from './event.js';
 import { ColorState } from './term_ui';
-import { isFullWidth } from './wcwidth.js';
 import { getSite } from './sites';
+import { isFullWidth } from './wcwidth.js';
 import { playTerminalBell } from './bell.js';
 import { Locator } from './locator.js';
 
