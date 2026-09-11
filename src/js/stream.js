@@ -1,10 +1,10 @@
 // Stream wrapper managing connection, character conversion (Conv), and filter pipeline
 
-import { Event } from './event.js';
+import { EventEmitter } from './event.js';
 import { Conv, CHARSETS } from './conv.js';
 import { escapeIAC, TelnetFilter } from './telnet.js';
 
-export class Stream extends Event {
+export class Stream extends EventEmitter {
   /**
    * @param {any} [conn] The underlying connection (socket or connection object)
    * @param {object} [options]

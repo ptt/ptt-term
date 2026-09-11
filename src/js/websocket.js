@@ -1,4 +1,4 @@
-import { Event } from './event.js';
+import { EventEmitter } from './event.js';
 
 export function uint8ArrayToBinaryString(bytes) {
   const len = bytes.length;
@@ -25,7 +25,7 @@ export const BUFFER_LOW_WATERMARK = 1024;
 export const CHUNK_SIZE = 512;
 export const INTER_CHUNK_DELAY_MS = 15;
 
-export class Websocket extends Event {
+export class Websocket extends EventEmitter {
   constructor(url) {
     super();
     this._conn = new WebSocket(url, "telnet");

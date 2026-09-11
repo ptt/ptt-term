@@ -17,14 +17,14 @@ import { readValuesWithDefault, writeValues, updatePref } from './pref.js';
 import { applyColorScheme } from './color_schemes.js';
 import AppOverlay from '../components/AppOverlay';
 import { getSite } from './sites';
-import { Event, EventEmitter } from './event';
+import { EventEmitter } from './event';
 import iconLogo from 'Icon/logo.png';
 import iconLogoConnect from 'Icon/logo_connect.png';
 import iconLogoDisconnect from 'Icon/logo_disconnect.png';
 
 function noop() {}
 
-export class App extends Event {
+export class App extends EventEmitter {
   constructor() {
     super();
 

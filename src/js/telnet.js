@@ -1,6 +1,6 @@
 // Handle Telnet Connections and Filters according to RFC 854
 
-import { Event } from './event.js';
+import { EventEmitter } from './event.js';
 import { Conv, CHARSETS } from './conv.js';
 
 // Telnet commands
@@ -73,7 +73,7 @@ export function escapeIAC(data) {
 /**
  * TelnetFilter handles RFC 854 Telnet option negotiations and IAC escaping/unescaping.
  */
-export class TelnetFilter extends Event {
+export class TelnetFilter extends EventEmitter {
   constructor(options = {}) {
     super();
     this.name = 'telnet';
@@ -316,7 +316,7 @@ export class TelnetFilter extends Event {
   }
 }
 
-export class TelnetConnection extends Event {
+export class TelnetConnection extends EventEmitter {
   constructor(socket, site = null) {
     super();
     this.socket = socket;

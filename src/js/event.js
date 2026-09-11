@@ -1,36 +1,3 @@
-const BaseEventTarget =
-  typeof EventTarget !== "undefined"
-    ? EventTarget
-    : class FallbackEventTarget {
-        addEventListener(type, listener) {
-          this._listeners = this._listeners || {};
-          (this._listeners[type] = this._listeners[type] || []).push(listener);
-        }
-
-        dispatchEvent(e) {
-          this._listeners = this._listeners || {};
-          const fns = this._listeners[e.type];
-          if (fns) {
-            for (const fn of fns.slice(0)) {
-              fn(e);
-            }
-          }
-          return true;
-        }
-
-        removeEventListener(type, listener) {
-          this._listeners = this._listeners || {};
-          const fns = this._listeners[type];
-          if (fns) {
-            const idx = fns.indexOf(listener);
-            if (idx !== -1) fns.splice(idx, 1);
-          }
-        }
-      };
-
-export class Event extends BaseEventTarget {}
-export default Event;
-
 /**
  * Lightweight, DOM-free EventEmitter with two-level SmartSlot optimization:
  * - 0 listeners: null internal state (zero allocation)
@@ -39,6 +6,7 @@ export default Event;
  * - Automatically demotes back to single slot or null on removal
  * - Supports subscribe() returning an unsubscribe function
  * - Supports '*' wildcard listener
+ * - Includes addEventListener/removeEventListener/dispatchEvent compatibility aliases
  */
 export class EventEmitter {
   constructor() {
@@ -246,4 +214,22 @@ export class EventEmitter {
     if (existing instanceof Set) return existing.size;
     return 0;
   }
+
+  addEventListener(type, listener) {
+    return this.on(type, listener);
+  }
+
+  removeEventListener(type, listener) {
+    return this.off(type, listener);
+  }
+
+  dispatchEvent(e) {
+    if (!e) return true;
+    const type = typeof e === 'string' ? e : e.type;
+    if (!type) return true;
+    return this.emit(type, e);
+  }
 }
+
+export class Event extends EventEmitter {}
+export default Event;

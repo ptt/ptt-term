@@ -1,9 +1,9 @@
-import { Event } from '../event.js';
+import { EventEmitter } from '../event.js';
 import { CHARSETS } from '../conv.js';
 import { b2u } from '../string_util.js';
 export { CHARSETS };
 
-export class BaseSite extends Event {
+export class BaseSite extends EventEmitter {
   constructor(name = 'base', charset = CHARSETS.BIG5) {
     super();
     this.name = name;

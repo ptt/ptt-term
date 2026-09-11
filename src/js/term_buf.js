@@ -1,6 +1,6 @@
 // Terminal Screen Buffer, displayed by TermView
 
-import { Event } from './event';
+import { EventEmitter } from './event.js';
 import { ColorState } from './term_ui';
 import { isFullWidth } from './wcwidth.js';
 import { getSite } from './sites';
@@ -180,7 +180,7 @@ export class TermChar {
 
 TermChar.newChar = new TermChar(' ');
 
-export class TermBuf extends Event {
+export class TermBuf extends EventEmitter {
   timerUpdate = null;
   animFrameId = null;
   uriRegEx = /((ftp|http|https|telnet):\/\/([A-Za-z0-9_]+:{0,1}[A-Za-z0-9_]*@)?([A-Za-z0-9_#!:.?+=&%@!\-\/\$\^,;|*~'()]+)(:[0-9]+)?(\/|\/([A-Za-z0-9_#!:.?+=&%@!\-\/]))?)|(pid:\/\/(\d{1,10}))/ig;

@@ -1,4 +1,4 @@
-import { Event } from './event.js';
+import { EventEmitter } from './event.js';
 
 export const KeyMap = {
   'Backspace': '\b',
@@ -38,7 +38,7 @@ for (let i = 97; i <= 122; i++) {
 // FIXME: Under Mac, IME inputs will be sent as key of modified char.
 // Need to use key code directly.
 
-export class TermKeyboard extends Event {
+export class TermKeyboard extends EventEmitter {
   /**
    * @param {function(string): boolean} send
    * @param {function(object)|EventTarget} [onKey]

@@ -1,6 +1,6 @@
 // Terminal View
 
-import { Event } from './event.js';
+import { EventEmitter } from './event.js';
 import { TermKeyboard } from './term_keyboard';
 import { termColors, termInvColors } from './term_buf';
 import { renderRowHtml, renderScreen } from './term_ui';
@@ -11,7 +11,7 @@ import { stringWidth } from './string_util';
 const ENTER_CHAR = '\r';
 const DEFINE_INPUT_BUFFER_SIZE = 12;
 
-export class TermView extends Event {
+export class TermView extends EventEmitter {
   constructor() {
     super();
     //new pref - start

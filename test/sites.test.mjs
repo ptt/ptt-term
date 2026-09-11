@@ -1865,9 +1865,9 @@ test('src/plugins exports AutoWrap and wraps pasted text', async () => {
 
 test('AutoWrap intercepts term:paste event to adjust data before propagating to term', async () => {
   const { AutoWrap } = await import('../src/plugins/auto_wrap/index.js');
-  const { Event } = await import('../src/js/event.js');
+  const { EventEmitter } = await import('../src/js/event.js');
 
-  class MockApp extends Event {
+  class MockApp extends EventEmitter {
     constructor() {
       super();
       this.pastedToTerm = null;

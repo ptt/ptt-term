@@ -11,7 +11,7 @@ import {
 } from '../src/js/telnet.js';
 import { AnsiParser } from '../src/js/ansi_parser.js';
 import { uint8ArrayToBinaryString } from '../src/js/websocket.js';
-import { Event } from '../src/js/event.js';
+import { EventEmitter } from '../src/js/event.js';
 
 class MockTermBuf {
   constructor() {
@@ -111,7 +111,7 @@ test('E2E Session: Mock Terminal WebSocket server negotiates Telnet and feeds AN
     ws = new WebSocket(`ws://127.0.0.1:${port}`, 'telnet');
     ws.binaryType = 'arraybuffer';
 
-    class ClientSocketAdapter extends Event {
+    class ClientSocketAdapter extends EventEmitter {
       send(str) {
         const bytes = Buffer.from(str, 'binary');
         ws.send(bytes);
