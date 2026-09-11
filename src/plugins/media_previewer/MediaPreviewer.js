@@ -112,16 +112,25 @@ export class MediaPreviewer {
     if (app) {
       this.app = app;
       this._onPrefChangeBound = (e) => {
-        const { key, value } = e.detail || {};
+        const key = e?.key ?? e?.detail?.key;
+        const value = e?.value !== undefined ? e.value : e?.detail?.value;
         if (key === "enablePicPreview") {
           this.enabled = Boolean(value);
         } else if (key === "picPreviewWhitelistOnly") {
           this.whitelistOnly = Boolean(value);
         }
       };
-      this.app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
+      this.app.on("term:pref-change", this._onPrefChangeBound);
+      this._onPreviewRequestBound = (detail) => {
+        if (!this.enabled || !detail) return;
+        detail.request = this.resolveImageUrl(detail.href, this.whitelistOnly);
+      };
+      this.app.on("term:hyperlink-preview", this._onPreviewRequestBound);
     }
-    if (view) this.view = view;
+    const targetView = view || this.app?.view;
+    if (targetView) {
+      this.view = targetView;
+    }
     if (buf) this.buf = buf;
     this.syncFromPrefs();
   }
@@ -141,18 +150,12 @@ export class MediaPreviewer {
     return isTrustedImageDomain(hostname);
   }
 
-  getHyperlinkPreviewHook() {
-    return {
-      createPreviewRequest: (href, whitelistOnly = this.whitelistOnly) => {
-        if (!this.enabled) return null;
-        return this.resolveImageUrl(href, whitelistOnly);
-      },
-    };
-  }
-
   destroy() {
     if (this.app) {
-      this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
+      this.app.off("term:pref-change", this._onPrefChangeBound);
+      if (this._onPreviewRequestBound) {
+        this.app.off("term:hyperlink-preview", this._onPreviewRequestBound);
+      }
     }
   }
 }

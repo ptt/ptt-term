@@ -3468,50 +3468,68 @@ test('DOMScreen and CanvasScreen support hyperlink hover and preview hooks and T
 
   // DOMScreen contains hook invocations
   assert.ok(domSource.includes('renderHyperlinkPreview'), 'DOMScreen should have renderHyperlinkPreview method');
-  assert.ok(domSource.includes('this.props.hyperlinkPreviewHook?.onHover'), 'DOMScreen should support hyperlinkPreviewHook.onHover');
-  assert.ok(domSource.includes('this.props.hyperlinkPreviewHook?.onLeave'), 'DOMScreen should support hyperlinkPreviewHook.onLeave');
-  assert.ok(domSource.includes('this.props.hyperlinkPreviewHook?.renderPreview'), 'DOMScreen should support hyperlinkPreviewHook.renderPreview');
+  assert.ok(!domSource.includes('hyperlinkPreviewHook'), 'DOMScreen should not contain hyperlinkPreviewHook');
+  assert.ok(domSource.includes('this.props.createHyperlinkPreviewRequest'), 'DOMScreen should support createHyperlinkPreviewRequest prop');
   assert.ok(domSource.includes('this.props.onHyperlinkHover'), 'DOMScreen should support onHyperlinkHover prop');
 
   // CanvasScreen contains hook invocations
   assert.ok(canvasSource.includes('renderHyperlinkPreview'), 'CanvasScreen should have renderHyperlinkPreview method');
-  assert.ok(canvasSource.includes('this.props.hyperlinkPreviewHook?.onHover'), 'CanvasScreen should support hyperlinkPreviewHook.onHover');
-  assert.ok(canvasSource.includes('this.props.hyperlinkPreviewHook?.onLeave'), 'CanvasScreen should support hyperlinkPreviewHook.onLeave');
-  assert.ok(canvasSource.includes('this.props.hyperlinkPreviewHook?.renderPreview'), 'CanvasScreen should support hyperlinkPreviewHook.renderPreview');
+  assert.ok(!canvasSource.includes('hyperlinkPreviewHook'), 'CanvasScreen should not contain hyperlinkPreviewHook');
+  assert.ok(canvasSource.includes('this.props.createHyperlinkPreviewRequest'), 'CanvasScreen should support createHyperlinkPreviewRequest prop');
   assert.ok(canvasSource.includes('this.props.onHyperlinkHover'), 'CanvasScreen should support onHyperlinkHover prop');
 
   // TermView event broadcasting
   assert.ok(termViewSource.includes('term:hyperlink-hover'), 'TermView should dispatch term:hyperlink-hover');
   assert.ok(termViewSource.includes('term:hyperlink-leave'), 'TermView should dispatch term:hyperlink-leave');
-  assert.ok(termViewSource.includes('hyperlinkPreviewHook:'), 'TermView should pass hyperlinkPreviewHook to renderScreen');
+  assert.ok(!termViewSource.includes('hyperlinkPreviewHook'), 'TermView should not reference hyperlinkPreviewHook');
+  assert.ok(!termViewSource.includes('picPreviewWhitelistOnly'), 'TermView should not reference picPreviewWhitelistOnly');
+  assert.ok(
+    !termViewSource.includes("getPlugin?.('media_previewer')"),
+    'TermView must not directly reference media_previewer plugin'
+  );
+  assert.ok(
+    termViewSource.includes('term:hyperlink-preview'),
+    'TermView should dispatch term:hyperlink-preview for resolving preview requests'
+  );
 
   // Test TermView method dispatching
   const dispatchedEvents = [];
   const mockApp = {
-    emit: (type, detail) => dispatchedEvents.push({ type, detail }),
+    emit: (type, detail) => {
+      dispatchedEvents.push({ type, detail });
+      if (type === 'term:hyperlink-preview') {
+        detail.request = 'https://i.imgur.com/resolved.jpg';
+      }
+    },
   };
   const termView = {
     app: mockApp,
     emit: (type, detail) => dispatchedEvents.push({ type, detail }),
+    resolveHyperlinkPreview(href) {
+      const detail = { href, request: null };
+      this.app?.emit('term:hyperlink-preview', detail);
+      return detail.request;
+    },
     handleHyperlinkHover(event, href) {
       const detail = { event, href };
       this.app?.emit('term:hyperlink-hover', detail);
-      this.emit('term:hyperlink-hover', detail);
     },
     handleHyperlinkLeave(event) {
       const detail = { event };
       this.app?.emit('term:hyperlink-leave', detail);
-      this.emit('term:hyperlink-leave', detail);
     },
   };
 
+  const req = termView.resolveHyperlinkPreview('https://imgur.com/resolved');
+  assert.equal(req, 'https://i.imgur.com/resolved.jpg');
+
   termView.handleHyperlinkHover({ type: 'mouseover' }, 'https://example.com');
   assert.equal(dispatchedEvents.length, 2);
-  assert.equal(dispatchedEvents[0].type, 'term:hyperlink-hover');
-  assert.equal(dispatchedEvents[0].detail.href, 'https://example.com');
+  assert.equal(dispatchedEvents[1].type, 'term:hyperlink-hover');
+  assert.equal(dispatchedEvents[1].detail.href, 'https://example.com');
 
   termView.handleHyperlinkLeave({ type: 'mouseout' });
-  assert.equal(dispatchedEvents.length, 4);
+  assert.equal(dispatchedEvents.length, 3);
   assert.equal(dispatchedEvents[2].type, 'term:hyperlink-leave');
 });
 

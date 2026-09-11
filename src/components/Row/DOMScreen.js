@@ -4,7 +4,6 @@ import ImagePreviewer, {
   initialImagePreviewState,
   resetImagePreviewState,
   updateImagePreviewMove,
-  createImagePreviewRequest,
 } from "../ImagePreviewer";
 
 export class DOMScreen extends React.Component {
@@ -67,7 +66,6 @@ export class DOMScreen extends React.Component {
       this.state.currentImagePreview
     ) {
       const resetState =
-        this.props.hyperlinkPreviewHook?.resetPreviewState ||
         this.props.resetHyperlinkPreviewState ||
         resetImagePreviewState;
       this.setState(resetState());
@@ -78,10 +76,9 @@ export class DOMScreen extends React.Component {
     const clientX = e?.clientX;
     const clientY = e?.clientY;
     this.props.onHyperlinkMove?.(e, { screen: this });
-    this.props.hyperlinkPreviewHook?.onMove?.(e, { screen: this });
 
     const updateMove =
-      this.props.hyperlinkPreviewHook?.updateMove || updateImagePreviewMove;
+      this.props.updateHyperlinkPreviewMove || updateImagePreviewMove;
     const nextPos = updateMove(this.state, clientX, clientY);
     if (nextPos) {
       this.setState(nextPos);
@@ -90,14 +87,9 @@ export class DOMScreen extends React.Component {
 
   handleHyperLinkMouseOver = (e) => {
     const href = e && e.currentTarget ? e.currentTarget.href : undefined;
-    const hookHandled = this.props.hyperlinkPreviewHook?.onHover?.(e, href, {
-      screen: this,
-    });
-    const propHandled =
-      this.props.onHyperlinkHover?.(e, href, { screen: this }) ??
-      this.props.onHyperlinkOver?.(e, href, { screen: this });
+    const propHandled = this.props.onHyperlinkHover?.(e, href, { screen: this });
 
-    if (hookHandled === false || propHandled === false) {
+    if (propHandled === false) {
       return;
     }
 
@@ -106,12 +98,8 @@ export class DOMScreen extends React.Component {
         if (this.state.currentImagePreview && this.state.previewHref === href) {
           return;
         }
-        const whitelistOnly = this.props.picPreviewWhitelistOnly !== false;
-        const createRequest =
-          this.props.hyperlinkPreviewHook?.createPreviewRequest ||
-          this.props.createHyperlinkPreviewRequest ||
-          createImagePreviewRequest;
-        const request = createRequest(href, whitelistOnly);
+        const createRequest = this.props.createHyperlinkPreviewRequest;
+        const request = createRequest?.(href);
         if (request) {
           this.setState({
             currentImagePreview: request,
@@ -134,19 +122,13 @@ export class DOMScreen extends React.Component {
       return;
     }
 
-    const hookHandled = this.props.hyperlinkPreviewHook?.onLeave?.(e, {
-      screen: this,
-    });
-    const propHandled =
-      this.props.onHyperlinkLeave?.(e, { screen: this }) ??
-      this.props.onHyperlinkOut?.(e, { screen: this });
+    const propHandled = this.props.onHyperlinkLeave?.(e, { screen: this });
 
-    if (hookHandled === false || propHandled === false) {
+    if (propHandled === false) {
       return;
     }
 
     const resetState =
-      this.props.hyperlinkPreviewHook?.resetPreviewState ||
       this.props.resetHyperlinkPreviewState ||
       resetImagePreviewState;
     this.setState(resetState());
@@ -162,13 +144,7 @@ export class DOMScreen extends React.Component {
     if (typeof this.props.renderHyperlinkPreview === "function") {
       return this.props.renderHyperlinkPreview(previewState);
     }
-    if (typeof this.props.hyperlinkPreviewHook?.renderPreview === "function") {
-      return this.props.hyperlinkPreviewHook.renderPreview(previewState);
-    }
-    if (
-      this.props.renderHyperlinkPreview === false ||
-      this.props.hyperlinkPreviewHook?.renderPreview === false
-    ) {
+    if (this.props.renderHyperlinkPreview === false) {
       return null;
     }
     return (

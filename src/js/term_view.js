@@ -70,8 +70,6 @@ export class TermView extends EventEmitter {
   this.lineHeight = 1.0;
   this.fontSizePx = 24;
   this.enablePicPreview = true;
-  this.picPreviewWhitelistOnly = true;
-  this.hyperlinkPreviewHook = null;
   this.renderHyperlinkPreview = null;
   this.scaleX = 1;
   this.scaleY = 1;
@@ -274,19 +272,22 @@ export class TermView extends EventEmitter {
   handleHyperlinkHover(event, href) {
     const detail = { event, href };
     this.app?.emit('term:hyperlink-hover', detail);
-    this.emit('term:hyperlink-hover', detail);
   }
 
   handleHyperlinkLeave(event) {
     const detail = { event };
     this.app?.emit('term:hyperlink-leave', detail);
-    this.emit('term:hyperlink-leave', detail);
   }
 
   handleHyperlinkMove(event) {
     const detail = { event };
     this.app?.emit('term:hyperlink-move', detail);
-    this.emit('term:hyperlink-move', detail);
+  }
+
+  resolveHyperlinkPreview(href) {
+    const detail = { href, request: null };
+    this.app?.emit('term:hyperlink-preview', detail);
+    return detail.request;
   }
 
   update() {
@@ -346,10 +347,7 @@ export class TermView extends EventEmitter {
           },
           smoothAnsiArt: this.smoothAnsiArt,
           changedRows: changedRows,
-          picPreviewWhitelistOnly: this.picPreviewWhitelistOnly !== false,
-          hyperlinkPreviewHook:
-            this.hyperlinkPreviewHook ||
-            this.app?.getPlugin?.("media_previewer")?.getHyperlinkPreviewHook?.(),
+          createHyperlinkPreviewRequest: (href) => this.resolveHyperlinkPreview(href),
           renderHyperlinkPreview: this.renderHyperlinkPreview,
           onHyperlinkHover: (e, href) => this.handleHyperlinkHover(e, href),
           onHyperlinkLeave: (e) => this.handleHyperlinkLeave(e),
@@ -365,7 +363,6 @@ export class TermView extends EventEmitter {
       }
 
       this.app?.emit('term:screen-update', { changedLineHtmlStrs });
-      this.app?.dispatchScreenUpdate?.(changedLineHtmlStrs);
 
       if (this.buf.prevPageState !== this.buf.pageState) {
         this.app?.emit('term:state-change', {
