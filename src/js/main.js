@@ -5,6 +5,9 @@ import { getQueryVariable } from './util';
 import { readValuesWithDefault } from './pref';
 
 async function startApp() {
+  if (typeof window !== 'undefined' && (window.name === 'site_auth_target_frame' || window.name === 'ptt_auth_target_frame')) {
+    return;
+  }
   setupI18n();
 
   const app = new App();
@@ -29,9 +32,9 @@ async function startApp() {
   // TODO: Call onSymFont for font data when it's implemented.
   console.log("load pref from storage");
   app.onValuesPrefChange(readValuesWithDefault());
-  app.setInputAreaFocus();
   document.getElementById('TermWindow').style.display = '';
   app.onWindowResize();
+  app.setInputAreaFocus();
 }
 
 if (document.readyState === 'loading') {

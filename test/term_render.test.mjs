@@ -3621,6 +3621,7 @@ test('TouchInputSheet styles support compact single-row landscape layout', () =>
   assert.ok(cssSource.includes('--keyboard-offset'));
   assert.ok(cssSource.includes('TouchInputSheet__OptionText--compact'));
 });
+
 test('TermView and TermKeyboard handle Safari WebKit IME composition, colors, and trailing keys', () => {
   const termViewSource = fs.readFileSync(path.resolve('src/js/term_view.js'), 'utf-8');
   const termKbSource = fs.readFileSync(path.resolve('src/js/term_keyboard.js'), 'utf-8');
@@ -3751,7 +3752,16 @@ test('TermView fontFitWindowWidth sets transformOrigin to center and prevents vi
 test('TermView and App handle DOM selection preservation and fallback', () => {
   const currentTermViewSource = fs.readFileSync(path.resolve('src/js/term_view.js'), 'utf-8');
   const currentAppSource = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+  const currentUtilSource = fs.readFileSync(path.resolve('src/js/util.js'), 'utf-8');
+  const currentQuirksSource = fs.readFileSync(path.resolve('src/js/quirks.js'), 'utf-8');
 
+  // quirks.js export check and util.js separation
+  assert.ok(currentQuirksSource.includes('export function shouldPreserveDomSelection'), 'quirks.js must export shouldPreserveDomSelection');
+  assert.ok(currentQuirksSource.includes('export function hasWebKitImeQuirk'), 'quirks.js must export hasWebKitImeQuirk');
+  assert.ok(!currentUtilSource.includes('shouldPreserveDomSelection'), 'util.js must not export shouldPreserveDomSelection');
+  assert.ok(!currentUtilSource.includes('hasWebKitImeQuirk'), 'util.js must not export hasWebKitImeQuirk');
+  assert.ok(!currentUtilSource.includes('quirks'), 'util.js must not reference quirks.js');
+  assert.ok(currentAppSource.includes("from './quirks'"), 'app.js must import directly from quirks');
   assert.ok(currentTermViewSource.includes("from './quirks'"), 'term_view.js must import directly from quirks');
 
   // TermView constructor & selection fallback
@@ -3835,6 +3845,43 @@ test('quirks.js detects WebKit IME and Gecko DOM selection quirks via API/engine
   } finally {
     delete globalThis.window;
   }
+});
+
+test('IME composition styling applies across all browsers and initial focus succeeds in Canvas mode', () => {
+  const termViewSource = fs.readFileSync(path.resolve('src/js/term_view.js'), 'utf-8');
+  const appSource = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+  const mainSource = fs.readFileSync(path.resolve('src/js/main.js'), 'utf-8');
+
+  // 1. updateInputBufferPos must set visible color/background unconditionally (not gated by hasWebKitImeQuirk)
+  const updatePosMatch = termViewSource.match(/updateInputBufferPos\(\)\s*\{[\s\S]*?updateInputBufferWidth\(\)/);
+  assert.ok(updatePosMatch, 'updateInputBufferPos found');
+  assert.ok(!updatePosMatch[0].includes('if (this.hasWebKitImeQuirk)'), 'updateInputBufferPos must not gate IME colors behind hasWebKitImeQuirk');
+  assert.ok(updatePosMatch[0].includes("this.input.style.color = '#ffffff'"), 'updateInputBufferPos must set visible text color');
+  assert.ok(updatePosMatch[0].includes("this.input.style.background = '#000000'"), 'updateInputBufferPos must set visible background color');
+
+  // 2. main.js must show TermWindow before focusing inputArea so Canvas mode initial focus succeeds
+  const displayIdx = mainSource.indexOf("getElementById('TermWindow').style.display = ''");
+  const focusIdx = mainSource.indexOf('app.setInputAreaFocus()');
+  assert.ok(displayIdx !== -1 && focusIdx !== -1, 'TermWindow display and setInputAreaFocus present in main.js');
+  assert.ok(displayIdx < focusIdx, 'TermWindow must be made visible before calling app.setInputAreaFocus()');
+
+  // 3. app.js must check isMobileDevice() rather than hasTouch before setting inputmode="none"
+  assert.ok(appSource.includes('if (this.inputArea && this.isMobileDevice())'), 'app.js must check isMobileDevice() for inputmode="none"');
+
+  // 4. CanvasScreen must blur #t on mousedown when not composing and call setInputAreaFocus(true) on mouseup
+  const canvasScreenSource = fs.readFileSync(path.resolve('src/components/Canvas/CanvasScreen.js'), 'utf-8');
+  assert.ok(canvasScreenSource.includes('document.activeElement.blur()'), 'CanvasScreen handleMouseDown must blur #t on mousedown when not composing');
+  assert.ok(canvasScreenSource.includes('this.props.setInputAreaFocus(true)'), 'CanvasScreen handleGlobalMouseUp must call setInputAreaFocus(true)');
+
+  // 5. LoginModal must use about:blank for target iframe and form action to prevent loading second app instance
+  const loginModalSource = fs.readFileSync(path.resolve('src/plugins/auto_login/LoginModal.js'), 'utf-8');
+  assert.ok(loginModalSource.includes('action="about:blank"'), 'LoginModal form action must be about:blank');
+  assert.ok(loginModalSource.includes('src="about:blank"'), 'LoginModal iframe src must be about:blank');
+  assert.ok(mainSource.includes("window.name === 'site_auth_target_frame'"), 'main.js must guard startApp against running inside site_auth_target_frame');
+
+  // 6. NativeDialog and AutoLogin must schedule focus restoration after dialog.close()
+  const nativeDialogSource = fs.readFileSync(path.resolve('src/components/NativeDialog.js'), 'utf-8');
+  assert.ok(nativeDialogSource.includes('window.app.setInputAreaFocus?.(true)'), 'NativeDialog must restore focus after dialog.close()');
 });
 
 

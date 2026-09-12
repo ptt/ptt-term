@@ -28,6 +28,13 @@ export class NativeDialog extends React.Component {
     const dialog = this.dialogRef.current;
     if (dialog && dialog.open) {
       dialog.close();
+      if (typeof window !== "undefined" && window.app && !window.app.modalShown && !window.app.contextMenuShown) {
+        setTimeout(() => {
+          if (!window.app.modalShown && !window.app.contextMenuShown) {
+            window.app.setInputAreaFocus?.(true);
+          }
+        }, 0);
+      }
     }
   }
 
@@ -72,6 +79,13 @@ export class NativeDialog extends React.Component {
     } else {
       if (dialog.open) {
         dialog.close();
+        if (typeof window !== "undefined" && window.app && !window.app.modalShown && !window.app.contextMenuShown) {
+          setTimeout(() => {
+            if (!window.app.modalShown && !window.app.contextMenuShown) {
+              window.app.setInputAreaFocus?.(true);
+            }
+          }, 0);
+        }
       }
     }
   }

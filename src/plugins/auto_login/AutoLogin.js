@@ -195,7 +195,12 @@ export class AutoLogin {
       this.app.modalShown = false;
     }
     this.app?.emit("term:overlay:update");
-    this.app?.setInputAreaFocus?.();
+    this.app?.setInputAreaFocus?.(true);
+    setTimeout(() => {
+      if (!this.showsModal && !this.app?.modalShown) {
+        this.app?.setInputAreaFocus?.(true);
+      }
+    }, 0);
   }
 
   toggle() {

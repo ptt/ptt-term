@@ -183,6 +183,7 @@ export class LoginModal extends React.Component {
         <iframe
           name="site_auth_target_frame"
           id="site_auth_target_frame"
+          src="about:blank"
           style={{ display: "none", width: 0, height: 0, border: 0 }}
           tabIndex={-1}
           aria-hidden="true"
@@ -191,7 +192,7 @@ export class LoginModal extends React.Component {
           ref={this.formRef}
           className="LoginModal__Form"
           method="post"
-          action="#"
+          action="about:blank"
           target="site_auth_target_frame"
           onSubmit={this.handleSubmit}
           autoComplete="on"

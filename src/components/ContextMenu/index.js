@@ -484,7 +484,9 @@ export class ContextMenu extends React.Component {
   handlePrefSave = (values) => {
     const { app } = this.props;
     const nextState = onPrefSaveImpl(app, values);
-    this.setState(nextState);
+    this.setState(nextState, () => {
+      setTimeout(() => app?.setInputAreaFocus?.(true), 0);
+    });
   };
 
   handlePrefReset = (values) => {
