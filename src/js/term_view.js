@@ -6,7 +6,7 @@ import { termColors, termInvColors, termDefaultBg, termDefaultFg, termDefaultLin
 import { renderRowHtml, renderScreen } from './term_ui';
 import { _ } from './i18n';
 import { setTimer } from './util';
-import { shouldPreserveDomSelection } from './quirks';
+import { hasWebKitImeQuirk, shouldPreserveDomSelection } from './quirks';
 import { stringWidth } from './string_util';
 
 const ENTER_CHAR = '\r';
@@ -15,6 +15,11 @@ const DEFINE_INPUT_BUFFER_SIZE = 12;
 export class TermView extends EventEmitter {
   constructor(options = {}) {
     super();
+
+    // Workaround for WebKit and Gecko engine quirks
+    this.hasWebKitImeQuirk = typeof options?.hasWebKitImeQuirk === 'boolean'
+      ? options.hasWebKitImeQuirk
+      : hasWebKitImeQuirk();
 
     this.preserveDomSelection = typeof options?.preserveDomSelection === 'boolean'
       ? options.preserveDomSelection
@@ -146,6 +151,45 @@ export class TermView extends EventEmitter {
     // iOS sends backspace when composing. Disallow any non-control keys during it.
     if (this.isComposition && !e.ctrlKey && !e.altKey)
       return false;
+
+    // Workaround for Safari: WebKit (Safari / DuckDuckGo on macOS & iOS) Bug 165004.
+    // WebKit dispatches compositionend BEFORE firing the keydown event of the key that committed
+    // the composition (e.g. Enter, Space, candidate digits 1-9, or arrow keys).
+    // In that trailing keydown event, e.isComposing is false, keyCode is normal (13/32/etc.),
+    // and this.isComposition has already become false.
+    //
+    // By using the 'Lock Delay' pattern:
+    // When hasWebKitImeQuirk is enabled, we maintain an event-loop task lock (_isComposingSafe) cleared via setTimeout(0),
+    // along with a fallback timestamp. Because the browser event loop processes queued
+    // UI events in strict FIFO order before processing newly scheduled timer tasks,
+    // the trailing keydown is guaranteed to run while the lock is active, completely immune
+    // to system lag, GC pauses, or wall-clock jitter.
+    if (this.hasWebKitImeQuirk) {
+      const isTrailingCommitKey = Boolean(
+        this._isComposingSafe ||
+        (this._lastCompositionEndTime && (Date.now() - this._lastCompositionEndTime < 100))
+      );
+      if (isTrailingCommitKey) {
+        if (
+          e.key === 'Enter' ||
+          e.key === ' ' ||
+          e.key === 'ArrowDown' ||
+          e.key === 'ArrowUp' ||
+          e.key === 'ArrowLeft' ||
+          e.key === 'ArrowRight' ||
+          /^[1-9]$/.test(e.key) ||
+          e.keyCode === 13 ||
+          e.keyCode === 32
+        ) {
+          this._isComposingSafe = false;
+          this._lastCompositionEndTime = 0;
+          e.preventDefault();
+          return false;
+        }
+        this._isComposingSafe = false;
+        this._lastCompositionEndTime = 0;
+      }
+    }
 
     // Allow meta keys on macOS for shortcuts like Cmd+A, Cmd+C, Cmd+V
     if (e.metaKey) {
@@ -854,6 +898,14 @@ export class TermView extends EventEmitter {
     this.input.setAttribute('bshow', '1');
     this.input.style.pointerEvents = 'auto';
     this.input.style.minWidth = ((this.chh || 16) * 2) + 'px';
+    // Workaround for WebKit IME: Lock Delay pattern for composition candidate window
+    if (this.hasWebKitImeQuirk) {
+      this._isComposingSafe = true;
+      if (this._composingSafeTimer) {
+        clearTimeout(this._composingSafeTimer);
+        this._composingSafeTimer = null;
+      }
+    }
     this.updateInputBufferPos();
     this.isComposition = true;
   }
@@ -872,6 +924,18 @@ export class TermView extends EventEmitter {
     this.input.style.background = 'transparent';
     this.input.style.caretColor = 'transparent';
     this.input.style.minWidth = '';
+    // Workaround for WebKit IME: activate Lock Delay for trailing keydown
+    if (this.hasWebKitImeQuirk) {
+      this._lastCompositionEndTime = Date.now();
+      this._isComposingSafe = true;
+      if (this._composingSafeTimer) {
+        clearTimeout(this._composingSafeTimer);
+      }
+      this._composingSafeTimer = setTimeout(() => {
+        this._isComposingSafe = false;
+        this._composingSafeTimer = null;
+      }, 0);
+    }
     this.isComposition = false;
   }
 

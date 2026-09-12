@@ -12,7 +12,7 @@ import { TouchController } from './touch_controller';
 import { _, setupI18n } from './i18n';
 import { unescapeStr } from './string_util';
 import { setTimer, parseConnectUrl } from './util';
-import { shouldPreserveDomSelection } from './quirks';
+import { hasWebKitImeQuirk, shouldPreserveDomSelection } from './quirks';
 import { setTerminalBellEnabled, setWindowFocused } from './bell.js';
 import { readValuesWithDefault, writeValues, updatePref } from './pref.js';
 import { applyColorScheme } from './color_schemes.js';
@@ -34,9 +34,11 @@ export class App extends EventEmitter {
   this.preventContextMenuOnMouseUp = false;
   this.skipMouseClick = false;
 
-  // Browser quirks handling: Gecko DOM selection preservation
+  // Browser quirks handling: WebKit IME composition, Gecko DOM selection preservation
+  this.hasWebKitImeQuirk = hasWebKitImeQuirk();
   this.preserveDomSelection = shouldPreserveDomSelection();
   this.view = new TermView({
+    hasWebKitImeQuirk: this.hasWebKitImeQuirk,
     preserveDomSelection: this.preserveDomSelection,
   });
   this.buf = new TermBuf(80, 24);
@@ -153,7 +155,7 @@ export class App extends EventEmitter {
     this.onDOMPaste(e);
   });
   this.inputArea.addEventListener('blur', () => {
-    if (this.isMobileLayout() || this.touch) {
+    if (this.isMobileDevice()) {
       this.inputArea.setAttribute('inputmode', 'none');
     }
   });
@@ -186,9 +188,14 @@ export class App extends EventEmitter {
   if (hasTouch) {
     this.touch = new TouchController(this);
   }
-  if (this.inputArea && (hasTouch || this.isMobileLayout())) {
+  if (this.inputArea && this.isMobileDevice()) {
     this.inputArea.setAttribute('inputmode', 'none');
     this.inputArea.setAttribute('virtualkeyboardpolicy', 'manual');
+  } else if (this.inputArea && !this.isMobileDevice()) {
+    // Workaround for Safari / Desktop: index.html defines inputmode="none" for mobile touch devices.
+    // On desktop browsers (especially Safari & Chrome), inputmode="none" suppresses native IME composition.
+    this.inputArea.removeAttribute('inputmode');
+    this.inputArea.removeAttribute('virtualkeyboardpolicy');
   }
   }
 

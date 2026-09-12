@@ -111,6 +111,12 @@ export class TermKeyboard extends EventEmitter {
       return false;
     }
 
+    // Standard IME guard (Safari & Chrome): Do not process BBS mapped keys (arrows, enter, backspace)
+    // while IME composition is active in any browser.
+    if (e.isComposing || e.key === 'Process' || e.keyCode === 229) {
+      return false;
+    }
+
     if (!e.ctrlKey && !e.altKey) {
       // Shift-Insert as paste.
       if (e.shiftKey && e.key == 'Insert') {

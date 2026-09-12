@@ -1644,6 +1644,9 @@ export class TouchKeyboard extends React.Component {
       }
       return;
     }
+    // Workaround for Safari (iOS WebKit): Prevent <label htmlFor="t"> from triggering
+    // native input focus conflict on the hidden input #t when opening TouchInputSheet.
+    event?.preventDefault?.();
     this.toggleEditArea(event);
   };
 

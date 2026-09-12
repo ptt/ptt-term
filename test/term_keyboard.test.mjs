@@ -183,11 +183,19 @@ test('TermKeyboard sends single printable characters', () => {
 test('TermKeyboard ignores key events during IME composition', () => {
   const { kb, sent } = createKeyboard();
 
-  // Composing flag
+  // Composing flag for char key
   const compEvent = mockKeyEvent({ key: 'a', isComposing: true });
   kb.onKeyDown(compEvent);
   assert.equal(sent.length, 0);
   assert.equal(compEvent.isDefaultPrevented, false);
+
+  // Composing flag for mapped navigation keys (ArrowDown, ArrowUp, Enter, Backspace)
+  for (const key of ['ArrowDown', 'ArrowUp', 'Enter', 'Backspace', ' ']) {
+    const navCompEvent = mockKeyEvent({ key, isComposing: true });
+    kb.onKeyDown(navCompEvent);
+    assert.equal(sent.length, 0, `Expected mapped key ${key} to be ignored during composition`);
+    assert.equal(navCompEvent.isDefaultPrevented, false);
+  }
 
   // keyCode 229 (standard IME composition keycode)
   const imeEvent = mockKeyEvent({ key: 'Process', keyCode: 229 });

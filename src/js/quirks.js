@@ -17,6 +17,32 @@ function getQueryParam(variable) {
 }
 
 /**
+ * Detects whether the current environment has the WebKit IME composition quirk
+ * (WebKit Bug 165004: compositionend fires before the trailing keydown event of the
+ * committing Enter/Space/number key, plus transparent input box positioning issues).
+ *
+ * Uses Apple/WebKit API-level feature detection:
+ * - "ApplePaySession" in window (Safari on macOS and iOS)
+ * - "safari" in window (macOS Safari desktop)
+ * - "GestureEvent" in window (iOS WebKit / Safari)
+ *
+ * Supports ?safari=1 / ?safari=0 URL parameter override for debugging.
+ */
+export function hasWebKitImeQuirk() {
+  const param = getQueryParam("safari");
+  if (param === "1" || param === "true") return true;
+  if (param === "0" || param === "false") return false;
+
+  if (typeof window !== "undefined") {
+    if ("ApplePaySession" in window || "safari" in window || "GestureEvent" in window) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Detects whether the current environment requires DOM selection preservation
  * (e.g. Gecko / Firefox clearing window.getSelection() when focusing an input element
  * or when right-clicking outside the selected text).

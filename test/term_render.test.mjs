@@ -3621,6 +3621,42 @@ test('TouchInputSheet styles support compact single-row landscape layout', () =>
   assert.ok(cssSource.includes('--keyboard-offset'));
   assert.ok(cssSource.includes('TouchInputSheet__OptionText--compact'));
 });
+test('TermView and TermKeyboard handle Safari WebKit IME composition, colors, and trailing keys', () => {
+  const termViewSource = fs.readFileSync(path.resolve('src/js/term_view.js'), 'utf-8');
+  const termKbSource = fs.readFileSync(path.resolve('src/js/term_keyboard.js'), 'utf-8');
+  const appSource = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+  const touchKbSource = fs.readFileSync(path.resolve('src/touch/TouchKeyboard.js'), 'utf-8');
+
+  // Workaround for Safari comments check
+  assert.ok(termViewSource.includes('Workaround for Safari'), 'term_view.js must include Workaround for Safari comments');
+  assert.ok(appSource.includes('Workaround for Safari'), 'app.js must include Workaround for Safari comments');
+  assert.ok(touchKbSource.includes('Workaround for Safari'), 'TouchKeyboard.js must include Workaround for Safari comments');
+
+  // hasWebKitImeQuirk option and detection check
+  assert.ok(termViewSource.includes('this.hasWebKitImeQuirk = typeof options?.hasWebKitImeQuirk === \'boolean\''), 'TermView constructor must support hasWebKitImeQuirk option');
+  assert.ok(appSource.includes('this.hasWebKitImeQuirk = hasWebKitImeQuirk()'), 'App constructor must initialize hasWebKitImeQuirk');
+  assert.ok(appSource.includes('hasWebKitImeQuirk: this.hasWebKitImeQuirk'), 'App must pass hasWebKitImeQuirk option to TermView');
+
+  // TermView WebKit composition trailing key suppression check
+  assert.ok(termViewSource.includes('_lastCompositionEndTime'), 'TermView must track _lastCompositionEndTime');
+  assert.ok(termViewSource.includes('if (this.hasWebKitImeQuirk)'), 'TermView must guard trailing key logic with hasWebKitImeQuirk');
+  assert.ok(termViewSource.includes('WebKit (Safari / DuckDuckGo on macOS & iOS) Bug'), 'TermView should document WebKit bug');
+  assert.ok(termViewSource.includes("e.key === 'Enter'"), 'keyEventFilter must guard trailing Enter');
+  assert.ok(termViewSource.includes("e.key === 'ArrowDown'"), 'keyEventFilter must guard candidate arrow keys');
+
+  // TermView composition text visibility check
+  assert.ok(termViewSource.includes("this.input.style.color = '#ffffff'"), 'TermView must set visible text color during composition');
+  assert.ok(termViewSource.includes("this.input.style.background = '#000000'"), 'TermView must set background during composition');
+  assert.ok(termViewSource.includes("this.input.style.color = 'transparent'"), 'TermView must restore transparent color on composition end');
+
+  // TermKeyboard composition guard check
+  assert.ok(termKbSource.includes('e.isComposing || e.key === \'Process\' || e.keyCode === 229'), 'TermKeyboard._onKeyDown must guard against composing keys');
+
+  // App desktop inputmode removal check
+  assert.ok(appSource.includes('!this.isMobileDevice()'), 'App should check !this.isMobileDevice() to remove inputmode on desktop');
+  assert.ok(appSource.includes('this.inputArea.removeAttribute(\'inputmode\')'), 'App should remove inputmode on desktop');
+});
+
 test('TermView fontFitWindowWidth sets transformOrigin to center and prevents viewport overflow', () => {
   const currentTermViewSource = fs.readFileSync(path.resolve('src/js/term_view.js'), 'utf-8');
 
@@ -3717,17 +3753,88 @@ test('TermView and App handle DOM selection preservation and fallback', () => {
   const currentAppSource = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
 
   assert.ok(currentTermViewSource.includes("from './quirks'"), 'term_view.js must import directly from quirks');
+
+  // TermView constructor & selection fallback
   assert.ok(currentTermViewSource.includes("this.preserveDomSelection = typeof options?.preserveDomSelection === 'boolean'"), 'TermView constructor must support preserveDomSelection option');
+  assert.ok(currentTermViewSource.includes("this.hasWebKitImeQuirk = typeof options?.hasWebKitImeQuirk === 'boolean'"), 'TermView constructor must support hasWebKitImeQuirk option');
   assert.ok(currentTermViewSource.includes("this._domSelectedText = ''"), 'TermView must initialize _domSelectedText');
   assert.ok(currentTermViewSource.includes("this._domSelectionColRow = null"), 'TermView must initialize _domSelectionColRow');
   assert.ok(currentTermViewSource.includes("document.addEventListener('selectionchange'"), 'TermView must track selectionchange');
   assert.ok(currentTermViewSource.includes('if (this.preserveDomSelection && this._domSelectedText)'), 'TermView getSelectedText must fall back to _domSelectedText');
   assert.ok(currentTermViewSource.includes('if (this.preserveDomSelection && this._domSelectionColRow)'), 'TermView getSelectionColRow must fall back to _domSelectionColRow');
 
+  // App constructor & focus/collapsed gating
   assert.ok(currentAppSource.includes('this.preserveDomSelection = shouldPreserveDomSelection()'), 'App constructor must initialize preserveDomSelection');
+  assert.ok(currentAppSource.includes('this.hasWebKitImeQuirk = hasWebKitImeQuirk()'), 'App constructor must initialize hasWebKitImeQuirk');
   assert.ok(currentAppSource.includes('preserveDomSelection: this.preserveDomSelection'), 'App must pass preserveDomSelection option to TermView');
+  assert.ok(currentAppSource.includes('hasWebKitImeQuirk: this.hasWebKitImeQuirk'), 'App must pass hasWebKitImeQuirk option to TermView');
   assert.ok(currentAppSource.includes('if (this.preserveDomSelection && !force && !this.isSelectionCollapsed())'), 'App setInputAreaFocus must preserve selection');
   assert.ok(currentAppSource.includes('if (this.preserveDomSelection && this.view?._domSelectedText)'), 'App isSelectionCollapsed must check selection fallback');
   assert.ok(currentAppSource.includes('if (this.preserveDomSelection && this.view && !this.view.useCanvasEngine)'), 'App mouse_down must snapshot selection on right-click');
 });
+
+test('quirks.js detects WebKit IME and Gecko DOM selection quirks via API/engine features', async () => {
+  const { hasWebKitImeQuirk, shouldPreserveDomSelection } = await import('../src/js/quirks.js');
+
+  // Default without APIs -> false
+  try {
+    globalThis.window = {};
+    globalThis.CSS = { supports: () => false };
+    assert.equal(hasWebKitImeQuirk(), false, 'hasWebKitImeQuirk returns false when APIs absent');
+    assert.equal(shouldPreserveDomSelection(), false, 'shouldPreserveDomSelection returns false when -moz-appearance absent');
+  } finally {
+    delete globalThis.window;
+    delete globalThis.CSS;
+  }
+
+  // Test ApplePaySession API detection for WebKit IME quirk
+  try {
+    globalThis.window = { ApplePaySession: class {} };
+    assert.equal(hasWebKitImeQuirk(), true, 'ApplePaySession presence detects WebKit IME quirk');
+  } finally {
+    delete globalThis.window;
+  }
+
+  // Test safari in window for desktop Safari
+  try {
+    globalThis.window = { safari: {} };
+    assert.equal(hasWebKitImeQuirk(), true, 'window.safari presence detects WebKit IME quirk');
+  } finally {
+    delete globalThis.window;
+  }
+
+  // Test GestureEvent API detection for iOS WebKit
+  try {
+    globalThis.window = { GestureEvent: function() {} };
+    assert.equal(hasWebKitImeQuirk(), true, 'GestureEvent presence detects iOS WebKit IME quirk');
+  } finally {
+    delete globalThis.window;
+  }
+
+  // Test CSS.supports('-moz-appearance', 'none') for Gecko DOM selection quirk
+  try {
+    globalThis.CSS = {
+      supports: (prop, val) => prop === '-moz-appearance' && val === 'none',
+    };
+    assert.equal(shouldPreserveDomSelection(), true, 'CSS.supports -moz-appearance detects Gecko DOM selection quirk');
+  } finally {
+    delete globalThis.CSS;
+  }
+
+  // URL query parameter override tests
+  try {
+    globalThis.window = { location: { search: '?safari=1' } };
+    assert.equal(hasWebKitImeQuirk(), true, '?safari=1 forces true');
+    globalThis.window = { location: { search: '?safari=0' } };
+    assert.equal(hasWebKitImeQuirk(), false, '?safari=0 forces false');
+
+    globalThis.window = { location: { search: '?firefox=1' } };
+    assert.equal(shouldPreserveDomSelection(), true, '?firefox=1 forces true');
+    globalThis.window = { location: { search: '?firefox=0' } };
+    assert.equal(shouldPreserveDomSelection(), false, '?firefox=0 forces false');
+  } finally {
+    delete globalThis.window;
+  }
+});
+
 
