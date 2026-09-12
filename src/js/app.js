@@ -20,6 +20,7 @@ import { getSite } from './sites';
 import { EventEmitter } from './event';
 import { InputInterceptors } from './input_interceptors.js';
 import { ClipboardManager } from './clipboard.js';
+import { MouseController } from './mouse_controller.js';
 import iconLogo from 'Icon/logo.png';
 import iconLogoConnect from 'Icon/logo_connect.png';
 import iconLogoDisconnect from 'Icon/logo_disconnect.png';
@@ -123,45 +124,8 @@ export class App extends EventEmitter {
     this.trimTrailingSpaces = true;
     this.rightClickAction = 'menu';
 
-    window.addEventListener(
-      'click',
-      (e) => {
-        this.mouse_click(e);
-      },
-      false
-    );
-
-    window.addEventListener(
-      'mousedown',
-      (e) => {
-        this.mouse_down(e);
-      },
-      false
-    );
-
-    window.addEventListener(
-      'mouseup',
-      (e) => {
-        this.mouse_up(e);
-      },
-      false
-    );
-
-    document.addEventListener(
-      'mousemove',
-      (e) => {
-        this.mouse_move(e);
-      },
-      false
-    );
-
-    window.addEventListener(
-      'wheel',
-      (e) => {
-        this.mouse_scroll(e);
-      },
-      { capture: true, passive: false }
-    );
+    this.mouse = new MouseController(this);
+    this.mouse.attachDOMListeners();
 
     window.addEventListener(
       'focus',
@@ -826,41 +790,11 @@ export class App extends EventEmitter {
   }
 
   onMouse_click(e, force = false) {
-    if (!this.conn || !this.conn.isConnected) return false;
-
-    if (force && e && typeof e === 'object') {
-      e.force = true;
-    }
-    const clickEvent = { event: e, force, handled: false };
-    this.emit('term:click', clickEvent);
-    if (this.inputInterceptors?.dispatchMouseClick(e)) {
-      return true;
-    }
-    return Boolean(clickEvent.handled);
+    return this.mouse.dispatchClick(e, force);
   }
 
   onMouse_move(cX, cY, refresh = false, force = false, options = {}) {
-    const eventName = force ? 'term:mouse-move:force' : 'term:mouse-move';
-    if (
-      !this.listenerCount(eventName) &&
-      !this.listenerCount('term:mouse-move')
-    )
-      return;
-    const pos = this.clientToPos(cX, cY);
-    const payload = {
-      col: pos.col,
-      row: pos.row,
-      clientX: cX,
-      clientY: cY,
-      refresh,
-      force,
-      highlight: options?.highlight,
-    };
-    if (force && this.listenerCount('term:mouse-move:force')) {
-      this.emit('term:mouse-move:force', payload);
-    } else {
-      this.emit('term:mouse-move', payload);
-    }
+    return this.mouse.dispatchMove(cX, cY, refresh, force, options);
   }
 
   isMobileLayout() {
@@ -1078,208 +1012,27 @@ export class App extends EventEmitter {
   }
 
   isDialogOrExcludedTarget(e) {
-    if (!e || !e.target) return false;
-    if (typeof e.target.closest === 'function') {
-      if (
-        e.target.closest('dialog') ||
-        e.target.closest('.nomouse_command') ||
-        e.target.closest('.modal-dialog') ||
-        e.target.closest('.modal-content')
-      ) {
-        return true;
-      }
-    }
-    const cn = e.target.className;
-    const cnStr =
-      typeof cn === 'string'
-        ? cn
-        : typeof cn?.baseVal === 'string'
-          ? cn.baseVal
-          : '';
-    if (cnStr.indexOf('nomouse_command') >= 0) {
-      return true;
-    }
-    if (
-      e.target.tagName &&
-      String(e.target.tagName).toLowerCase().indexOf('menuitem') >= 0
-    ) {
-      return true;
-    }
-    return false;
+    return this.mouse.isDialogOrExcludedTarget(e);
   }
 
   mouse_click(e) {
-    if (
-      this.modalShown ||
-      this.contextMenuShown ||
-      this.isDialogOrExcludedTarget(e)
-    )
-      return;
-    const skipMouseClick = this.skipMouseClick;
-    this.skipMouseClick = false;
-
-    if (e.button !== 0) return;
-
-    if (this.view?.clearDomSelectionIfCollapsed?.()) {
-      this.lastSelection = null;
-    }
-    const a = e.target && e.target.closest('a');
-    if (a) {
-      if (this.site.handleCustomLink(a.href, this)) {
-        e.preventDefault();
-      }
-      return;
-    }
-    if (this.isSelectionCollapsed()) {
-      //no anything be select
-      const forceFocus = Boolean(this.view?.useCanvasEngine);
-      if (
-        !skipMouseClick &&
-        this.site.handlePassScreenClick(this.buf, this.conn)
-      ) {
-        e.preventDefault();
-        this.setInputAreaFocus(forceFocus);
-        return;
-      }
-      if (!skipMouseClick && this.buf?.locator?.isActive?.()) {
-        const pos = this.clientToPos(e.clientX, e.clientY);
-        const report = this.buf.locator.handleMouseClick(e, pos);
-        if (report) {
-          this.send(report);
-          e.preventDefault();
-          this.setInputAreaFocus(forceFocus);
-          return;
-        }
-      }
-      if (skipMouseClick) {
-        this.onMouse_move(e.clientX, e.clientY, true);
-      } else if (this.onMouse_click(e)) {
-        e.preventDefault();
-        this.setInputAreaFocus(forceFocus);
-      }
-    }
+    return this.mouse.onClick(e);
   }
 
   mouse_down(e) {
-    if (
-      this.modalShown ||
-      this.contextMenuShown ||
-      this.isDialogOrExcludedTarget(e)
-    )
-      return;
-    if (this.inputInterceptors?.dispatchMouseDown(e)) {
-      return;
-    }
-    //0=left button, 1=middle button, 2=right button
-    if (e.button === 0) {
-      if (!this.isSelectionCollapsed()) this.skipMouseClick = true;
-    } else if (e.button == 2) {
-      const colRow = this.view?.snapshotDomSelection?.();
-      if (colRow) {
-        this.lastSelection = colRow;
-      }
-    }
+    return this.mouse.onMouseDown(e);
   }
 
   mouse_up(e) {
-    if (
-      this.modalShown ||
-      this.contextMenuShown ||
-      this.isDialogOrExcludedTarget(e)
-    )
-      return;
-    this.inputInterceptors?.dispatchMouseUp(e);
-    //0=left button, 1=middle button, 2=right button
-    if (e.button === 0) {
-      const forceFocus = Boolean(this.view?.useCanvasEngine);
-      if (this.isSelectionCollapsed()) {
-        //no anything be select
-        this.setInputAreaFocus(forceFocus);
-        e.preventDefault();
-      } else {
-        //something has be select
-        if (
-          this.copyOnSelect &&
-          (this.hasActiveInputInterceptor() ||
-            !this.view ||
-            !this.view.useCanvasEngine)
-        ) {
-          this.doCopy(
-            this.view
-              ? this.view.getSelectedText()
-              : typeof window !== 'undefined' && window.getSelection
-                ? window
-                    .getSelection()
-                    .toString()
-                    .replace(/\u00a0/g, ' ')
-                : ''
-          );
-        }
-        if (this.inputAreaFocusTimer) {
-          this.inputAreaFocusTimer.cancel();
-        }
-        this.inputAreaFocusTimer = setTimer(
-          false,
-          () => {
-            this.inputAreaFocusTimer = null;
-            if (!this.contextMenuShown && this.isSelectionCollapsed())
-              this.setInputAreaFocus(forceFocus);
-          },
-          10
-        );
-      }
-    } else if (e.button == 2) {
-      // right button: do not preventDefault so contextmenu can open
-    } else {
-      this.setInputAreaFocus();
-      e.preventDefault();
-    }
+    return this.mouse.onMouseUp(e);
   }
 
   mouse_move(e) {
-    if (
-      this.modalShown ||
-      this.contextMenuShown ||
-      this.isDialogOrExcludedTarget(e)
-    )
-      return;
-    if (this.buf?.locator?.isActive?.()) {
-      if (this.view?.setCursor) {
-        this.view.setCursor('default');
-      } else if (this.termWin?.style) {
-        this.termWin.style.cursor = 'default';
-      }
-      if (this.buf.locator.requiresMotionReports?.()) {
-        const pos = this.clientToPos(e.clientX, e.clientY);
-        const report = this.buf.locator.handleMouseMove(e, pos);
-        if (report) {
-          this.send(report);
-        }
-      }
-      return;
-    }
-    this.onMouse_move(e.clientX, e.clientY);
+    return this.mouse.onMouseMove(e);
   }
 
   mouse_scroll(e) {
-    if (this.modalShown || this.isDialogOrExcludedTarget(e)) return;
-
-    if (this.buf?.locator?.isActive?.()) {
-      const pos = this.clientToPos(e.clientX, e.clientY);
-      const report = this.buf.locator.handleWheel(e, pos);
-      if (report) {
-        this.send(report);
-        e.stopPropagation();
-        e.preventDefault();
-        return;
-      }
-    }
-
-    const interceptorHandled = this.inputInterceptors?.dispatchWheel(e);
-    if (interceptorHandled) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
+    return this.mouse.onWheel(e);
   }
 
   setNavCmd(cmd) {

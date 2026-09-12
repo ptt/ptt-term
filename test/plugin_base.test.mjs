@@ -1185,6 +1185,7 @@ test('EasyReading Ctrl+H scroll sets stop and onFontUpdate preserves lineHeight'
 
 test('App dispatches wheel and motion reports to active locator even when MouseBrowsing is disabled', async () => {
   const { MouseBrowsing } = await import('../src/plugins/mouse_browsing/MouseBrowsing.js');
+  const { MouseController } = await import('../src/js/mouse_controller.js');
   const appSrc = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
   const extractMethod = (name) => {
     const startIdx = appSrc.indexOf(`  ${name}(`);
@@ -1212,6 +1213,7 @@ test('App dispatches wheel and motion reports to active locator even when MouseB
 
   const sent = [];
   const app = new MockApp();
+  app.mouse = new MouseController(app);
   app.modalShown = false;
   app.contextMenuShown = false;
   app.isDialogOrExcludedTarget = () => false;
@@ -1251,6 +1253,7 @@ test('App dispatches wheel and motion reports to active locator even when MouseB
 
 test('App dispatches mouse click reports to active locator even when MouseBrowsing is disabled', async () => {
   const { MouseBrowsing } = await import('../src/plugins/mouse_browsing/MouseBrowsing.js');
+  const { MouseController } = await import('../src/js/mouse_controller.js');
   const appSrc = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
   const startIdx = appSrc.indexOf('  mouse_click(');
   let depth = 0;
@@ -1271,6 +1274,7 @@ test('App dispatches mouse click reports to active locator even when MouseBrowsi
 
   const sent = [];
   const app = new MockApp();
+  app.mouse = new MouseController(app);
   app.modalShown = false;
   app.contextMenuShown = false;
   app.isDialogOrExcludedTarget = () => false;
@@ -1488,7 +1492,4 @@ test('Plugins declare defaultPrefs and onTogglePref hooks, decoupling PrefModal 
     'PrefModal must not hardcode enableLiveUpdate check in handleCheckboxChange'
   );
 });
-
-
-
 

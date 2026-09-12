@@ -6,6 +6,7 @@ import { Locator } from '../src/js/locator.js';
 import { AnsiParser } from '../src/js/ansi_parser.js';
 import { MouseBrowsing } from '../src/plugins/mouse_browsing/MouseBrowsing.js';
 import { readValuesWithDefault } from '../src/js/pref.js';
+import { MouseController } from '../src/js/mouse_controller.js';
 
 class MockTermBuf {
   constructor(cols = 80, rows = 24) {
@@ -291,6 +292,7 @@ test('App handles VT Mouse Reporting (Locator) click, move, and wheel when Mouse
     onMouse_move: () => {},
     prefValues: { supportMouseReporting: true },
   };
+  mockApp.mouse = new MouseController(mockApp);
 
   // 1. Click
   let defaultPrevented = false;

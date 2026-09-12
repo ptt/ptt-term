@@ -627,10 +627,12 @@ test('TermView _send and conn getter delegate to app.send and app.conn', () => {
 });
 
 test('App isDialogOrExcludedTarget handles string, SVGAnimatedString, null and undefined className', () => {
-  const match = appSource.match(
+  const mouseControllerSource = fs.readFileSync(path.resolve('src/js/mouse_controller.js'), 'utf-8');
+  const match = mouseControllerSource.match(
     /isDialogOrExcludedTarget\(e\)\s*\{([\s\S]*?)\n  \}/
   );
-  assert.ok(match, 'App must define isDialogOrExcludedTarget');
+  assert.ok(match, 'MouseController must define isDialogOrExcludedTarget');
+  assert.ok(appSource.includes('this.mouse.isDialogOrExcludedTarget(e)'), 'App must delegate isDialogOrExcludedTarget to MouseController');
   const isDialogOrExcludedTarget = new Function('e', match[1]);
 
   assert.equal(isDialogOrExcludedTarget({ target: { className: 'nomouse_command' } }), true);
@@ -2963,16 +2965,17 @@ test('InputHelperModal renders close button on right and aligns send combo butto
     'InputHelperModal.css must define self-contained blink animation for preview text'
   );
 
-  // 5. App defines isDialogOrExcludedTarget to prevent stealing clicks from dialogs
+  // 5. App and MouseController define isDialogOrExcludedTarget to prevent stealing clicks from dialogs
   const appSource = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+  const mouseControllerSource = fs.readFileSync(path.resolve('src/js/mouse_controller.js'), 'utf-8');
   assert.ok(
-    appSource.includes('isDialogOrExcludedTarget(e)'),
-    'App must define isDialogOrExcludedTarget helper'
+    appSource.includes('isDialogOrExcludedTarget(e)') &&
+    mouseControllerSource.includes('isDialogOrExcludedTarget(e)'),
+    'App and MouseController must define isDialogOrExcludedTarget helper'
   );
   assert.ok(
-    appSource.includes('mouse_click(e) {\n  if (this.modalShown || this.contextMenuShown || this.isDialogOrExcludedTarget(e))') ||
-    appSource.includes('this.isDialogOrExcludedTarget(e)'),
-    'App mouse handlers must guard against dialog and modal click interception'
+    mouseControllerSource.includes('app.isDialogOrExcludedTarget(e)'),
+    'MouseController mouse handlers must guard against dialog and modal click interception'
   );
 });
 
@@ -3758,8 +3761,9 @@ test('TermView and App handle DOM selection preservation and fallback', () => {
   assert.ok(currentAppSource.includes('if (this.preserveDomSelection && !force && !this.isSelectionCollapsed())'), 'App setInputAreaFocus must preserve selection');
   assert.ok(currentAppSource.includes('this.view.isSelectionCollapsed()'), 'App isSelectionCollapsed must delegate to view.isSelectionCollapsed()');
   assert.ok(currentTermViewSource.includes('this.hasDomSelectionFallback()'), 'TermView isSelectionCollapsed must check hasDomSelectionFallback()');
-  assert.ok(currentAppSource.includes('this.view?.snapshotDomSelection?.()'), 'App mouse_down must snapshot selection on right-click via view.snapshotDomSelection()');
-  assert.ok(currentAppSource.includes('this.view?.clearDomSelectionIfCollapsed?.()'), 'App mouse_click must clear collapsed selection via view.clearDomSelectionIfCollapsed()');
+  const currentMouseControllerSource = fs.readFileSync(path.resolve('src/js/mouse_controller.js'), 'utf-8');
+  assert.ok(currentMouseControllerSource.includes('app.view?.snapshotDomSelection?.()'), 'MouseController onMouseDown must snapshot selection on right-click via view.snapshotDomSelection()');
+  assert.ok(currentMouseControllerSource.includes('app.view?.clearDomSelectionIfCollapsed?.()'), 'MouseController onClick must clear collapsed selection via view.clearDomSelectionIfCollapsed()');
 });
 
 test('quirks.js detects WebKit IME and Gecko DOM selection quirks via API/engine features', async () => {
