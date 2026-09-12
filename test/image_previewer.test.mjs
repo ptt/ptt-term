@@ -14,7 +14,7 @@ import {
   getSharedImageObserver,
   registerImageIntersection,
   resetSharedImageObserverForTest,
-} from "../src/js/image_preview_util.js";
+} from "../src/plugins/media_previewer/image_preview_util.js";
 
 test("isTrustedImageDomain correctly identifies trusted image domains and subdomains", () => {
   // Direct trusted domains

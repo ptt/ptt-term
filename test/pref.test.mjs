@@ -30,7 +30,7 @@ class MockLocalStorage {
 
 test('getDefaultPrefs returns default preferences with cloned termSize', () => {
   const prefs = getDefaultPrefs();
-  assert.equal(prefs.enablePicPreview, true);
+  assert.equal(prefs.enableMediaPreviewer, true);
   assert.equal(prefs.fontSize, 24);
   assert.equal(prefs.smoothAnsiArt, true);
   assert.deepEqual(prefs.termSize, { cols: 80, rows: 24 });
@@ -77,7 +77,7 @@ test('readValuesWithDefault merges saved values with defaults', () => {
     assert.equal(prefs.useMouseBrowsing, true);
     assert.equal(prefs.antiIdleTime, 60);
     // Unchanged keys keep default values
-    assert.equal(prefs.enablePicPreview, DEFAULT_PREFS.enablePicPreview);
+    assert.equal(prefs.enableMediaPreviewer, DEFAULT_PREFS.enableMediaPreviewer);
     assert.deepEqual(prefs.termSize, DEFAULT_PREFS.termSize);
   } finally {
     globalThis.window = originalWindow;

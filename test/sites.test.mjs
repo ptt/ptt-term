@@ -1967,7 +1967,7 @@ test('src/plugins exports MediaPreviewer and resolves trusted image urls', async
 
   const meta = mediaModule.MediaPreviewer.getMetadata();
   assert.equal(meta.id, 'media_previewer');
-  assert.equal(meta.prefKey, 'enablePicPreview');
+  assert.equal(meta.prefKey, 'enableMediaPreviewer');
 
   const mp = new mediaModule.MediaPreviewer(null, {
     enabled: true,

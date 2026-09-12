@@ -1,7 +1,7 @@
+import React from "react";
 import cx from "classnames";
 import HyperLink from "./HyperLink";
 import ColorSegmentBuilder from "./ColorSegmentBuilder";
-import ImagePreviewer, { resolveSrcToImageUrl } from "../ImagePreviewer";
 
 export class LinkSegmentBuilder {
   constructor(
@@ -13,6 +13,7 @@ export class LinkSegmentBuilder {
     onHyperLinkMouseOut
   ) {
     this.row = row;
+    this.enableLinkInlinePreview = enableLinkInlinePreview;
     this.forceWidth = forceWidth;
     this.highlighted = highlighted;
     this.onHyperLinkMouseOver = onHyperLinkMouseOver;
@@ -40,15 +41,18 @@ export class LinkSegmentBuilder {
           onMouseOut={this.onHyperLinkMouseOut}
         />
       );
-      // TODO: Modularize this.
-      if (this.inlineLinkPreviews) {
-        this.inlineLinkPreviews.push(
-          <ImagePreviewer
-            key={`${this.col}-${this.href}`}
-            request={resolveSrcToImageUrl({ src: this.href })}
-            component={ImagePreviewer.Inline}
-          />
-        );
+      if (this.inlineLinkPreviews && typeof this.enableLinkInlinePreview === "function") {
+        const key = `${this.col}-${this.href}`;
+        const resolved = this.enableLinkInlinePreview(this.href, key);
+        if (resolved) {
+          if (React.isValidElement(resolved)) {
+            this.inlineLinkPreviews.push(
+              resolved.key ? resolved : React.cloneElement(resolved, { key })
+            );
+          } else if (typeof resolved === "object" && typeof resolved.renderInline === "function") {
+            this.inlineLinkPreviews.push(resolved.renderInline(key));
+          }
+        }
       }
     } else {
       this.segs.push(<span key={this.col}>{element}</span>);

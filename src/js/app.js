@@ -1236,10 +1236,6 @@ export class App extends EventEmitter {
         this.view.redraw(true);
       }
       break;
-    case 'enablePicPreview':
-      // TODO: move this to ImagePreview.
-      this.view.enablePicPreview = value;
-      break;
     case 'enableBell':
       setTerminalBellEnabled(value);
       break;

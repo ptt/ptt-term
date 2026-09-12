@@ -1,10 +1,25 @@
 import React from "react";
 import Row from "./index";
-import ImagePreviewer, {
-  initialImagePreviewState,
-  resetImagePreviewState,
-  updateImagePreviewMove,
-} from "../ImagePreviewer";
+
+const initialImagePreviewState = {
+  currentImagePreview: undefined,
+  previewHref: undefined,
+  left: undefined,
+  top: undefined,
+};
+
+const resetImagePreviewState = () => ({ ...initialImagePreviewState });
+
+const updateImagePreviewMove = (state, clientX, clientY) => {
+  if (
+    state &&
+    state.currentImagePreview &&
+    (state.left === undefined || state.top === undefined)
+  ) {
+    return { left: clientX, top: clientY };
+  }
+  return null;
+};
 
 export class DOMScreen extends React.Component {
   state = {
@@ -62,7 +77,8 @@ export class DOMScreen extends React.Component {
 
   componentDidUpdate(prevProps) {
     if (
-      this.props.lines !== prevProps.lines &&
+      (this.props.lines !== prevProps.lines ||
+        (prevProps.enableLinkHoverPreview && !this.props.enableLinkHoverPreview)) &&
       this.state.currentImagePreview
     ) {
       const resetState =
@@ -135,26 +151,16 @@ export class DOMScreen extends React.Component {
   };
 
   renderHyperlinkPreview() {
+    if (typeof this.props.renderHyperlinkPreview !== "function") {
+      return null;
+    }
     const previewState = {
       request: this.state.currentImagePreview,
       href: this.state.previewHref,
       left: this.state.left,
       top: this.state.top,
     };
-    if (typeof this.props.renderHyperlinkPreview === "function") {
-      return this.props.renderHyperlinkPreview(previewState);
-    }
-    if (this.props.renderHyperlinkPreview === false) {
-      return null;
-    }
-    return (
-      <ImagePreviewer.HoverPreview
-        request={this.state.currentImagePreview}
-        href={this.state.previewHref}
-        left={this.state.left}
-        top={this.state.top}
-      />
-    );
+    return this.props.renderHyperlinkPreview(previewState);
   }
 
   render() {

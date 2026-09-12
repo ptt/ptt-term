@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "preact/compat";
 import {
   TRUSTED_IMAGE_DOMAINS,
   isTrustedImageDomain,
@@ -16,6 +16,8 @@ import {
 } from "./image_preview_util.js";
 import { _ } from "../../js/i18n.js";
 
+const h = React.createElement;
+
 export {
   TRUSTED_IMAGE_DOMAINS,
   isTrustedImageDomain,
@@ -31,8 +33,6 @@ export {
   getSharedImageObserver,
   resetSharedImageObserverForTest,
 };
-
-const noop = () => {};
 
 export const of = async (src) => ({ src });
 
@@ -91,36 +91,37 @@ export const clearImagePreviewCache = () => {
   imageCache.clear();
 };
 
-export const LoadingSpinner = ({ style, className = "" }) => (
-  <svg
-    className={`loading-spinner ${className}`}
-    style={{
-      display: "inline-block",
-      verticalAlign: "middle",
-      pointerEvents: "none",
-      ...style,
-    }}
-    viewBox="0 0 24 24"
-    width="16"
-    height="16"
-    fill="none"
-  >
-    <circle
-      cx="12"
-      cy="12"
-      r="9"
-      stroke="currentColor"
-      strokeWidth="3"
-      strokeOpacity="0.25"
-    />
-    <path
-      d="M12 3a9 9 0 0 1 9 9"
-      stroke="currentColor"
-      strokeWidth="3"
-      strokeLinecap="round"
-    />
-  </svg>
-);
+export const LoadingSpinner = ({ style, className = "" }) =>
+  h(
+    "svg",
+    {
+      className: `loading-spinner ${className}`,
+      style: {
+        display: "inline-block",
+        verticalAlign: "middle",
+        pointerEvents: "none",
+        ...style,
+      },
+      viewBox: "0 0 24 24",
+      width: "16",
+      height: "16",
+      fill: "none",
+    },
+    h("circle", {
+      cx: "12",
+      cy: "12",
+      r: "9",
+      stroke: "currentColor",
+      strokeWidth: "3",
+      strokeOpacity: "0.25",
+    }),
+    h("path", {
+      d: "M12 3a9 9 0 0 1 9 9",
+      stroke: "currentColor",
+      strokeWidth: "3",
+      strokeLinecap: "round",
+    })
+  );
 
 export class ImagePreviewer extends React.PureComponent {
   state = {
@@ -130,6 +131,7 @@ export class ImagePreviewer extends React.PureComponent {
   };
 
   componentDidMount() {
+    this._unmounted = false;
     this.handleStart();
   }
 
@@ -137,6 +139,10 @@ export class ImagePreviewer extends React.PureComponent {
     if (this.props.request !== prevProps.request) {
       this.handleStart();
     }
+  }
+
+  componentWillUnmount() {
+    this._unmounted = true;
   }
 
   handleStart(props) {
@@ -152,12 +158,25 @@ export class ImagePreviewer extends React.PureComponent {
 
   async loadRequest(request) {
     try {
-      const value = await request;
-      if (this.state.pending === request) {
+      let value = await request;
+      if (typeof value === "string") {
+        value =
+          this.props.component === ImagePreviewer.OnHover
+            ? await getCachedImageRequest(value)
+            : { src: value };
+      } else if (
+        value &&
+        typeof value.src === "string" &&
+        value.width === undefined &&
+        this.props.component === ImagePreviewer.OnHover
+      ) {
+        value = await getCachedImageRequest(value.src);
+      }
+      if (!this._unmounted && this.state.pending === request) {
         this.setState({ value, error: undefined });
       }
     } catch (error) {
-      if (this.state.pending === request) {
+      if (!this._unmounted && this.state.pending === request) {
         this.setState({ error, value: undefined });
       }
     }
@@ -179,7 +198,8 @@ ImagePreviewer.OnHover = ({ left, top, value, error, href }) => {
   const safeTop = typeof top === "number" && !isNaN(top) ? top : 20;
 
   let hostname = "";
-  const targetUrl = href || (value && value.src);
+  const src = typeof value === "string" ? value : value?.src;
+  const targetUrl = href || src;
   if (targetUrl) {
     try {
       hostname = new URL(targetUrl).hostname;
@@ -189,10 +209,11 @@ ImagePreviewer.OnHover = ({ left, top, value, error, href }) => {
   const popupPos = getPopupPosition(safeLeft, safeTop);
 
   if (error) {
-    return (
-      <div
-        className="image-preview-popup image-preview-error"
-        style={{
+    return h(
+      "div",
+      {
+        className: "image-preview-popup image-preview-error",
+        style: {
           position: "fixed",
           left: popupPos.left,
           top: popupPos.top,
@@ -214,21 +235,21 @@ ImagePreviewer.OnHover = ({ left, top, value, error, href }) => {
             "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
           whiteSpace: "nowrap",
           userSelect: "none",
-        }}
-      >
-        <span style={{ fontSize: "14px" }}>⚠️</span>
-        <span>{_("imagePreview_failed")}</span>
-        {hostname && (
-          <span style={{ opacity: 0.6, fontSize: "11px" }}>({hostname})</span>
-        )}
-      </div>
+        },
+      },
+      h("span", { style: { fontSize: "14px" } }, "⚠️"),
+      h("span", null, _("imagePreview_failed")),
+      hostname
+        ? h("span", { style: { opacity: 0.6, fontSize: "11px" } }, `(${hostname})`)
+        : null
     );
   } else if (value) {
     const renderedSize = getImageRenderedSize(value.width, value.height);
-    return (
-      <div
-        className="image-preview-popup image-preview-loaded"
-        style={{
+    return h(
+      "div",
+      {
+        className: "image-preview-popup image-preview-loaded",
+        style: {
           position: "fixed",
           left: getLeft(safeLeft, renderedSize.width),
           top: getTop(safeTop, renderedSize.height),
@@ -241,28 +262,28 @@ ImagePreviewer.OnHover = ({ left, top, value, error, href }) => {
           border: "1px solid rgba(255, 255, 255, 0.18)",
           backgroundColor: "rgba(0, 0, 0, 0.4)",
           userSelect: "none",
-        }}
-      >
-        <img
-          src={value.src}
-          referrerPolicy="no-referrer"
-          loading="lazy"
-          style={{
-            display: "block",
-            width: renderedSize.width,
-            height: renderedSize.height,
-            maxHeight: "80vh",
-            maxWidth: "90vw",
-            pointerEvents: "none",
-          }}
-        />
-      </div>
+        },
+      },
+      h("img", {
+        src,
+        referrerPolicy: "no-referrer",
+        loading: "lazy",
+        style: {
+          display: "block",
+          width: renderedSize.width,
+          height: renderedSize.height,
+          maxHeight: "80vh",
+          maxWidth: "90vw",
+          pointerEvents: "none",
+        },
+      })
     );
   } else {
-    return (
-      <div
-        className="image-preview-popup image-preview-loading"
-        style={{
+    return h(
+      "div",
+      {
+        className: "image-preview-popup image-preview-loading",
+        style: {
           position: "fixed",
           left: popupPos.left,
           top: popupPos.top,
@@ -284,14 +305,13 @@ ImagePreviewer.OnHover = ({ left, top, value, error, href }) => {
             "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
           whiteSpace: "nowrap",
           userSelect: "none",
-        }}
-      >
-        <LoadingSpinner style={{ width: 14, height: 14, flexShrink: 0 }} />
-        <span>{_("imagePreview_loading")}</span>
-        {hostname && (
-          <span style={{ opacity: 0.6, fontSize: "11px" }}>({hostname})</span>
-        )}
-      </div>
+        },
+      },
+      h(LoadingSpinner, { style: { width: 14, height: 14, flexShrink: 0 } }),
+      h("span", null, _("imagePreview_loading")),
+      hostname
+        ? h("span", { style: { opacity: 0.6, fontSize: "11px" } }, `(${hostname})`)
+        : null
     );
   }
 };
@@ -314,22 +334,22 @@ const LazyInlineImage = ({ src }) => {
     return null;
   }
 
-  return (
-    <div
-      ref={containerRef}
-      className="easyReadingImgContainer"
-      style={{ minHeight: isVisible ? undefined : "24px" }}
-    >
-      {isVisible ? (
-        <img
-          className="easyReadingImg hyperLinkPreview"
-          src={src}
-          referrerPolicy="no-referrer"
-          loading="lazy"
-          onError={() => setHasError(true)}
-        />
-      ) : null}
-    </div>
+  return h(
+    "div",
+    {
+      ref: containerRef,
+      className: "easyReadingImgContainer",
+      style: { minHeight: isVisible ? undefined : "24px" },
+    },
+    isVisible
+      ? h("img", {
+          className: "easyReadingImg hyperLinkPreview",
+          src,
+          referrerPolicy: "no-referrer",
+          loading: "lazy",
+          onError: () => setHasError(true),
+        })
+      : null
   );
 };
 
@@ -337,23 +357,22 @@ ImagePreviewer.Inline = ({ value, error }) => {
   if (error) {
     return false;
   } else if (value) {
-    return <LazyInlineImage src={value.src} />;
+    const src = typeof value === "string" ? value : value.src;
+    return h(LazyInlineImage, { src });
   } else {
-    return <LoadingSpinner />;
+    return h(LoadingSpinner);
   }
 };
 
 ImagePreviewer.HoverPreview = ({ request, href, left, top }) => {
   if (!request) return null;
-  return (
-    <ImagePreviewer
-      request={request}
-      component={ImagePreviewer.OnHover}
-      href={href}
-      left={left}
-      top={top}
-    />
-  );
+  return h(ImagePreviewer, {
+    request,
+    component: ImagePreviewer.OnHover,
+    href,
+    left,
+    top,
+  });
 };
 
 export const createImagePreviewRequest = (href, whitelistOnly = true) => {

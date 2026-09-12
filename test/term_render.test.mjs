@@ -1868,8 +1868,8 @@ test('PrefModal streamlines extensions UI and consolidates options', () => {
     prefModalSource.indexOf('navActiveKey === "bbs"')
   );
   assert.ok(
-    !generalTabSection.includes('name="enablePicPreview"'),
-    'General tab must not contain enablePicPreview (managed by media_previewer extension)'
+    !generalTabSection.includes('name="enableMediaPreviewer"'),
+    'General tab must not contain enableMediaPreviewer (managed by media_previewer extension)'
   );
 
   // 4. Obsolete connection log option is removed from Advanced tab

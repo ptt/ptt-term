@@ -1,18 +1,27 @@
 import React from "preact/compat";
-import { readValuesWithDefault, updatePref } from "../../js/pref.js";
+import { PluginBase } from "../PluginBase.js";
+import { readValuesWithDefault } from "../../js/pref.js";
 import { _ } from "../../js/i18n.js";
+import ImagePreviewer from "./ImagePreviewer.js";
 import {
-  TRUSTED_IMAGE_DOMAINS,
   isTrustedImageDomain,
   resolveImageUrl,
-  getImageRenderedSize,
-  getPopupPosition,
 } from "./image_preview_util.js";
 
-export class MediaPreviewer {
+export class MediaPreviewer extends PluginBase {
   static id = "media_previewer";
   static name = "media_previewer";
-  static prefKey = "enablePicPreview";
+  static prefKey = "enableMediaPreviewer";
+  static group = "ui";
+  static icon = "image";
+
+  static get title() {
+    return _("plugin_media_previewer_title");
+  }
+
+  static get description() {
+    return _("plugin_media_previewer_desc");
+  }
 
   static renderOptions({ values = {}, handleCheckboxChange }) {
     return React.createElement(
@@ -36,109 +45,101 @@ export class MediaPreviewer {
     );
   }
 
-  renderOptions(props) {
-    return MediaPreviewer.renderOptions(props);
-  }
-
-  static id = "media_previewer";
-  static name = "media_previewer";
-  static prefKey = "enablePicPreview";
-  static group = "ui";
-
-  static getMetadata() {
-    return {
-      id: "media_previewer",
-      name: "media_previewer",
-      title: _("plugin_media_previewer_title"),
-      description: _("plugin_media_previewer_desc"),
-      prefKey: "enablePicPreview",
-      icon: "image",
-      group: "ui",
-      renderOptions: MediaPreviewer.renderOptions,
-    };
-  }
-
   constructor(app, options = {}) {
-    this.app = app || null;
-    this.view = options.view || null;
-    this.buf = options.buf || null;
-    this.enabled = options.enabled ?? true;
-    this.whitelistOnly = options.whitelistOnly ?? true;
+    super(app, options);
+    if (this.whitelistOnly === undefined) {
+      this.whitelistOnly = options.whitelistOnly ?? true;
+    }
   }
 
-  get id() {
-    return "media_previewer";
+  _createInlinePreview(href, key) {
+    const resolved = this.resolveImageUrl(href, this.whitelistOnly);
+    if (!resolved) return null;
+    const request =
+      typeof resolved === "string"
+        ? Promise.resolve({ src: resolved })
+        : Promise.resolve(resolved);
+    return React.createElement(ImagePreviewer, {
+      key,
+      request,
+      component: ImagePreviewer.Inline,
+    });
   }
 
-  get name() {
-    return "media_previewer";
-  }
-
-  get prefKey() {
-    return "enablePicPreview";
-  }
-
-  get group() {
-    return "ui";
-  }
-
-  get title() {
-    return _("plugin_media_previewer_title");
-  }
-
-  get description() {
-    return _("plugin_media_previewer_desc");
-  }
-
-  get icon() {
-    return "image";
-  }
-
-  getMetadata() {
-    return {
-      id: this.id,
-      name: this.name,
-      title: this.title,
-      description: this.description,
-      prefKey: this.prefKey,
-      enabled: this.enabled,
-      icon: this.icon,
-      group: this.group,
-      renderOptions: MediaPreviewer.renderOptions,
-    };
-  }
-
-  init({ app, view, buf } = {}) {
-    if (app) {
-      this.app = app;
-      this._onPrefChangeBound = (e) => {
-        const key = e?.key ?? e?.detail?.key;
-        const value = e?.value !== undefined ? e.value : e?.detail?.value;
-        if (key === "enablePicPreview") {
-          this.enabled = Boolean(value);
-        } else if (key === "picPreviewWhitelistOnly") {
-          this.whitelistOnly = Boolean(value);
+  onInit() {
+    if (this.view) {
+      this.view.enableMediaPreviewer = Boolean(this.enabled);
+      this.view.renderHyperlinkPreview = this.enabled
+        ? ImagePreviewer.HoverPreview
+        : false;
+      this.view.renderInlineHyperlinkPreview = this.enabled
+        ? (href, key) => this._createInlinePreview(href, key)
+        : null;
+    }
+    this.listenApp("term:pref-change", (e) => {
+      const key = e?.key ?? e?.detail?.key;
+      const value = e?.value !== undefined ? e.value : e?.detail?.value;
+      if (key === "picPreviewWhitelistOnly") {
+        this.whitelistOnly = Boolean(value);
+        if (this.enabled) {
+          this.view?.redraw?.(true);
         }
-      };
-      this.app.on("term:pref-change", this._onPrefChangeBound);
-      this._onPreviewRequestBound = (detail) => {
-        if (!this.enabled || !detail) return;
-        detail.request = this.resolveImageUrl(detail.href, this.whitelistOnly);
-      };
-      this.app.on("term:hyperlink-preview", this._onPreviewRequestBound);
+      }
+    });
+    this.listenAppWhileEnabled("term:hyperlink-preview", (detail) => {
+      if (!detail) return;
+      detail.request = this.resolveImageUrl(detail.href, this.whitelistOnly);
+      detail.renderInline = (key) => this._createInlinePreview(detail.href, key);
+    });
+  }
+
+  onEnable() {
+    if (this.view) {
+      this.view.enableMediaPreviewer = true;
+      this.view.renderHyperlinkPreview = ImagePreviewer.HoverPreview;
+      this.view.renderInlineHyperlinkPreview = (href, key) =>
+        this._createInlinePreview(href, key);
+      if (!this._initializing) {
+        this.view.redraw?.(true);
+      }
     }
-    const targetView = view || this.app?.view;
-    if (targetView) {
-      this.view = targetView;
+  }
+
+  onDisable() {
+    if (this.view) {
+      this.view.enableMediaPreviewer = false;
+      this.view.renderHyperlinkPreview = false;
+      this.view.renderInlineHyperlinkPreview = null;
+      this.view.redraw?.(true);
     }
-    if (buf) this.buf = buf;
-    this.syncFromPrefs();
+  }
+
+  onDestroy() {
+    if (this.view) {
+      this.view.enableMediaPreviewer = false;
+      this.view.renderHyperlinkPreview = false;
+      this.view.renderInlineHyperlinkPreview = null;
+    }
   }
 
   syncFromPrefs() {
-    const prefs = readValuesWithDefault();
-    this.enabled = Boolean(prefs.enablePicPreview ?? true);
-    this.whitelistOnly = Boolean(prefs.picPreviewWhitelistOnly ?? true);
+    super.syncFromPrefs();
+    const appPrefs = this.app?.prefValues;
+    let prefs = null;
+    if ((!appPrefs || appPrefs.picPreviewWhitelistOnly === undefined) && this.options?.whitelistOnly === undefined) {
+      try {
+        prefs = readValuesWithDefault();
+      } catch {
+        prefs = null;
+      }
+    }
+
+    if (this.options?.whitelistOnly !== undefined) {
+      this.whitelistOnly = Boolean(this.options.whitelistOnly);
+    } else {
+      const rawWhitelist = appPrefs?.picPreviewWhitelistOnly ?? prefs?.picPreviewWhitelistOnly;
+      this.whitelistOnly = Boolean(rawWhitelist ?? true);
+    }
   }
 
   resolveImageUrl(href, whitelistOnly = this.whitelistOnly) {
@@ -149,13 +150,6 @@ export class MediaPreviewer {
   isTrustedDomain(hostname) {
     return isTrustedImageDomain(hostname);
   }
-
-  destroy() {
-    if (this.app) {
-      this.app.off("term:pref-change", this._onPrefChangeBound);
-      if (this._onPreviewRequestBound) {
-        this.app.off("term:hyperlink-preview", this._onPreviewRequestBound);
-      }
-    }
-  }
 }
+
+export default MediaPreviewer;

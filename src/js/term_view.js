@@ -81,7 +81,7 @@ export class TermView extends EventEmitter {
   this.cursorStyle = 'blink';
   this.lineHeight = 1.0;
   this.fontSizePx = 24;
-  this.enablePicPreview = true;
+  this.enableMediaPreviewer = true;
   this.renderHyperlinkPreview = null;
   this.scaleX = 1;
   this.scaleY = 1;
@@ -405,7 +405,7 @@ export class TermView extends EventEmitter {
         /* For Screen#componentDidUpdate */lines.slice(),
         currentFontSize,
         /* showsLinkPreview */false,
-        this.enablePicPreview,
+        this.enableMediaPreviewer,
         this.screenContainer,
         {
           ref: (inst) => {

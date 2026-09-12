@@ -1,5 +1,5 @@
 export const DEFAULT_PREFS = {
-  enablePicPreview: true,
+  enableMediaPreviewer: true,
   picPreviewWhitelistOnly: true,
   enableBell: "always",
   enableVisualBell: false,
