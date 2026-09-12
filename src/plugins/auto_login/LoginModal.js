@@ -15,6 +15,7 @@ export class LoginModal extends React.Component {
     this.passwordInputRef = React.createRef();
     this.submitBtnRef = React.createRef();
     this.formRef = React.createRef();
+    this.focusTimer = null;
   }
 
   componentDidMount() {
@@ -32,8 +33,19 @@ export class LoginModal extends React.Component {
     }
   }
 
+  componentWillUnmount() {
+    if (this.focusTimer) {
+      clearTimeout(this.focusTimer);
+      this.focusTimer = null;
+    }
+  }
+
   focusAppropriateField() {
-    setTimeout(() => {
+    if (this.focusTimer) {
+      clearTimeout(this.focusTimer);
+    }
+    this.focusTimer = setTimeout(() => {
+      this.focusTimer = null;
       const u = (this.state.username || this.usernameInputRef.current?.value || "").trim();
       const p = this.state.password || this.passwordInputRef.current?.value || "";
       if (u && p && this.submitBtnRef.current) {
@@ -172,6 +184,7 @@ export class LoginModal extends React.Component {
 
   render() {
     const { show } = this.props;
+    if (!show) return null;
     const { username, password, submitted } = this.state;
 
     return (
