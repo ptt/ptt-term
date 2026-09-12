@@ -30,181 +30,220 @@ export class App extends EventEmitter {
   constructor() {
     super();
 
-  this._useMouseBrowsing = false;
-  this.preventContextMenuOnMouseUp = false;
-  this.skipMouseClick = false;
+    this._useMouseBrowsing = false;
+    this.preventContextMenuOnMouseUp = false;
+    this.skipMouseClick = false;
 
-  // Browser quirks handling: WebKit IME composition, Gecko DOM selection preservation
-  this.hasWebKitImeQuirk = hasWebKitImeQuirk();
-  this.preserveDomSelection = shouldPreserveDomSelection();
-  this.view = new TermView({
-    hasWebKitImeQuirk: this.hasWebKitImeQuirk,
-    preserveDomSelection: this.preserveDomSelection,
-  });
-  this.buf = new TermBuf(80, 24);
-  this.buf.app = this;
-  this.enableVisualBell = false;
-  this.backspaceKey = 'control-h';
-  this.deleteKey = 'escape-sequence';
-  this.lineHeight = 1.0;
-  this.buf.on('bell', () => {
-    if (this.enableVisualBell) {
-      this.view.triggerVisualBell();
+    // Browser quirks handling: WebKit IME composition, Gecko DOM selection preservation
+    this.hasWebKitImeQuirk = hasWebKitImeQuirk();
+    this.preserveDomSelection = shouldPreserveDomSelection();
+    this.view = new TermView({
+      hasWebKitImeQuirk: this.hasWebKitImeQuirk,
+      preserveDomSelection: this.preserveDomSelection,
+    });
+    this.buf = new TermBuf(80, 24);
+    this.buf.app = this;
+    this.enableVisualBell = false;
+    this.backspaceKey = 'control-h';
+    this.deleteKey = 'escape-sequence';
+    this.lineHeight = 1.0;
+    this.buf.on('bell', () => {
+      if (this.enableVisualBell) {
+        this.view.triggerVisualBell();
+      }
+    });
+    this.site = getSite(process.env.SITE_TYPE || 'auto');
+    this.buf.site = this.site;
+    this.buf.setView(this.view);
+    //this.buf.severNotifyStr=this.getLM('messageNotify');
+    //this.buf.PTTZSTR1=this.getLM('PTTZArea1');
+    //this.buf.PTTZSTR2=this.getLM('PTTZArea2');
+    this.view.setBuf(this.buf);
+    this.view.setCore(this);
+    this.stream = new Stream(null, {
+      charset: this.site ? this.site.charset : 'big5',
+    });
+    this.stream.app = this;
+    this.telnetFilter = new TelnetFilter();
+    this.ansiFilter = new AnsiFilter(this.buf, { stream: this.stream });
+    this.stream.registerFilter(this.telnetFilter);
+    this.stream.registerFilter(this.ansiFilter);
+    this.parser = this.ansiFilter;
+    this.inputArea =
+      typeof document !== 'undefined' ? document.getElementById('t') : null;
+    this.termWin =
+      typeof document !== 'undefined'
+        ? document.getElementById('TermWindow')
+        : null;
+
+    // horizontally center term window
+    if (this.termWin) {
+      this.termWin.setAttribute('align', 'center');
     }
-  });
-  this.site = getSite(process.env.SITE_TYPE || 'auto');
-  this.buf.site = this.site;
-  this.buf.setView(this.view);
-  //this.buf.severNotifyStr=this.getLM('messageNotify');
-  //this.buf.PTTZSTR1=this.getLM('PTTZArea1');
-  //this.buf.PTTZSTR2=this.getLM('PTTZArea2');
-  this.view.setBuf(this.buf);
-  this.view.setCore(this);
-  this.stream = new Stream(null, { charset: this.site ? this.site.charset : 'big5' });
-  this.stream.app = this;
-  this.telnetFilter = new TelnetFilter();
-  this.ansiFilter = new AnsiFilter(this.buf, { stream: this.stream });
-  this.stream.registerFilter(this.telnetFilter);
-  this.stream.registerFilter(this.ansiFilter);
-  this.parser = this.ansiFilter;
-  this.inputArea = typeof document !== 'undefined' ? document.getElementById('t') : null;
-  this.termWin = typeof document !== 'undefined' ? document.getElementById('TermWindow') : null;
-
-  // horizontally center term window
-  if (this.termWin) {
-    this.termWin.setAttribute("align", "center");
-  }
-  if (this.view?.mainDisplay) {
-    this.view.mainDisplay.style.transformOrigin = 'center';
-  }
-
-  this.plugins = [];
-  this.inputInterceptors = new InputInterceptors(this);
-  this.overlays = [];
-  this.contextMenuItems = [];
-  this.on('term:anti-idle', () => this.sendAntiIdle());
-  this.suppressWheelUntil = 0;
-  this.suppressWheelContinuous = false;
-  this.suppressWheelStartedAt = 0;
-  this.wheelDeltaYAccum = 0;
-  this.lastWheelEventTime = 0;
-  this.lastWheelCmdTime = 0;
-
-  this.mouseLeftButtonDown = false;
-  this.mouseRightButtonDown = false;
-
-  this.inputAreaFocusTimer = null;
-  this.modalShown = false;
-  this.activeAlert = null;
-  this.onAlertChange = null;
-
-  this.lastSelection = null;
-
-  this.appFocused = true;
-
-  this.copyOnSelect = false;
-  this.warnBeforeClose = true;
-  this.colorScheme = 'default';
-  this.trimTrailingSpaces = true;
-  this.rightClickAction = 'menu';
-
-  window.addEventListener('click', (e) => {
-    this.mouse_click(e);
-  }, false);
-
-  window.addEventListener('mousedown', (e) => {
-    this.mouse_down(e);
-    const ret = this.middleMouse_down(e);
-    if (ret === false) {
-      e.preventDefault();
+    if (this.view?.mainDisplay) {
+      this.view.mainDisplay.style.transformOrigin = 'center';
     }
-  }, false);
 
-  window.addEventListener('mouseup', (e) => {
-    this.mouse_up(e);
-  }, false);
+    this.plugins = [];
+    this.inputInterceptors = new InputInterceptors(this);
+    this.overlays = [];
+    this.contextMenuItems = [];
+    this.on('term:anti-idle', () => this.sendAntiIdle());
+    this.suppressWheelUntil = 0;
+    this.suppressWheelContinuous = false;
+    this.suppressWheelStartedAt = 0;
+    this.wheelDeltaYAccum = 0;
+    this.lastWheelEventTime = 0;
+    this.lastWheelCmdTime = 0;
 
-  document.addEventListener('mousemove', (e) => {
-    this.mouse_move(e);
-  }, false);
+    this.mouseLeftButtonDown = false;
+    this.mouseRightButtonDown = false;
 
-  document.addEventListener('mouseover', (e) => {
-    this.mouse_over(e);
-  }, false);
+    this.inputAreaFocusTimer = null;
+    this.modalShown = false;
+    this.activeAlert = null;
+    this.onAlertChange = null;
 
-  window.addEventListener('wheel', (e) => {
-    this.mouse_scroll(e);
-  }, { capture: true, passive: false });
+    this.lastSelection = null;
 
-  window.addEventListener('focus', (e) => {
     this.appFocused = true;
-    setWindowFocused(true);
-  }, false);
 
-  window.addEventListener('blur', (e) => {
-    this.appFocused = false;
-    setWindowFocused(false);
-  }, false);
+    this.copyOnSelect = false;
+    this.warnBeforeClose = true;
+    this.colorScheme = 'default';
+    this.trimTrailingSpaces = true;
+    this.rightClickAction = 'menu';
 
-  this.strToCopy = null;
-  document.addEventListener('copy', (e) => {
-    this.onDOMCopy(e);
-  });
-  this.inputArea.addEventListener('paste', (e) => {
-    this.onDOMPaste(e);
-  });
-  this.inputArea.addEventListener('blur', () => {
-    if (this.isMobileDevice()) {
-      this.inputArea.setAttribute('inputmode', 'none');
+    window.addEventListener(
+      'click',
+      (e) => {
+        this.mouse_click(e);
+      },
+      false
+    );
+
+    window.addEventListener(
+      'mousedown',
+      (e) => {
+        this.mouse_down(e);
+        const ret = this.middleMouse_down(e);
+        if (ret === false) {
+          e.preventDefault();
+        }
+      },
+      false
+    );
+
+    window.addEventListener(
+      'mouseup',
+      (e) => {
+        this.mouse_up(e);
+      },
+      false
+    );
+
+    document.addEventListener(
+      'mousemove',
+      (e) => {
+        this.mouse_move(e);
+      },
+      false
+    );
+
+    document.addEventListener(
+      'mouseover',
+      (e) => {
+        this.mouse_over(e);
+      },
+      false
+    );
+
+    window.addEventListener(
+      'wheel',
+      (e) => {
+        this.mouse_scroll(e);
+      },
+      { capture: true, passive: false }
+    );
+
+    window.addEventListener(
+      'focus',
+      (e) => {
+        this.appFocused = true;
+        setWindowFocused(true);
+      },
+      false
+    );
+
+    window.addEventListener(
+      'blur',
+      (e) => {
+        this.appFocused = false;
+        setWindowFocused(false);
+      },
+      false
+    );
+
+    this.strToCopy = null;
+    document.addEventListener('copy', (e) => {
+      this.onDOMCopy(e);
+    });
+    this.inputArea.addEventListener('paste', (e) => {
+      this.onDOMPaste(e);
+    });
+    this.inputArea.addEventListener('blur', () => {
+      if (this.isMobileDevice()) {
+        this.inputArea.setAttribute('inputmode', 'none');
+      }
+    });
+
+    this.view.innerBounds = this.getWindowInnerBounds();
+    this.view.firstGridOffset = this.getFirstGridOffsets();
+    window.onresize = () => {
+      this.onWindowResize();
+    };
+
+    window.addEventListener('beforeunload', (e) => {
+      if (this.warnBeforeClose && this.conn && this.conn.isConnected) {
+        e.preventDefault();
+        e.returnValue = 'You are currently connected. Are you sure?';
+        return e.returnValue;
+      }
+    });
+
+    this.dblclickTimer = null;
+    this.mbTimer = null;
+    this.timerEverySec = null;
+    try {
+      this.prefValues = readValuesWithDefault();
+    } catch {
+      this.prefValues = null;
     }
-  });
-
-  this.view.innerBounds = this.getWindowInnerBounds();
-  this.view.firstGridOffset = this.getFirstGridOffsets();
-  window.onresize = () => {
+    if (this.prefValues && this.buf?.locator) {
+      this.buf.locator.enabled = this.prefValues.supportMouseReporting ?? true;
+    }
     this.onWindowResize();
-  };
+    this.setupOverlay();
+    this.contextMenuShown = false;
 
-  window.addEventListener('beforeunload', (e) => {
-    if (this.warnBeforeClose && this.conn && this.conn.isConnected) {
-      e.preventDefault();
-      e.returnValue = 'You are currently connected. Are you sure?';
-      return e.returnValue;
+    // init touch controller if device supports touch
+    const hasTouch =
+      typeof window !== 'undefined' &&
+      ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    if (hasTouch) {
+      this.touch = new TouchController(this);
     }
-  });
+    if (this.inputArea && this.isMobileDevice()) {
+      this.inputArea.setAttribute('inputmode', 'none');
+      this.inputArea.setAttribute('virtualkeyboardpolicy', 'manual');
+    } else if (this.inputArea && !this.isMobileDevice()) {
+      // Workaround for Safari / Desktop: index.html defines inputmode="none" for mobile touch devices.
+      // On desktop browsers (especially Safari & Chrome), inputmode="none" suppresses native IME composition.
+      this.inputArea.removeAttribute('inputmode');
+      this.inputArea.removeAttribute('virtualkeyboardpolicy');
+    }
 
-  this.dblclickTimer=null;
-  this.mbTimer=null;
-  this.timerEverySec=null;
-  try {
-    this.prefValues = readValuesWithDefault();
-  } catch {
-    this.prefValues = null;
-  }
-  if (this.prefValues && this.buf?.locator) {
-    this.buf.locator.enabled = this.prefValues.supportMouseReporting ?? true;
-  }
-  this.onWindowResize();
-  this.setupOverlay();
-  this.contextMenuShown = false;
-
-  // init touch controller if device supports touch
-  const hasTouch = typeof window !== 'undefined' &&
-    (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
-  if (hasTouch) {
-    this.touch = new TouchController(this);
-  }
-  if (this.inputArea && this.isMobileDevice()) {
-    this.inputArea.setAttribute('inputmode', 'none');
-    this.inputArea.setAttribute('virtualkeyboardpolicy', 'manual');
-  } else if (this.inputArea && !this.isMobileDevice()) {
-    // Workaround for Safari / Desktop: index.html defines inputmode="none" for mobile touch devices.
-    // On desktop browsers (especially Safari & Chrome), inputmode="none" suppresses native IME composition.
-    this.inputArea.removeAttribute('inputmode');
-    this.inputArea.removeAttribute('virtualkeyboardpolicy');
-  }
-
-  this.initPlugins(BUILTIN_PLUGINS);
+    this.initPlugins(BUILTIN_PLUGINS);
   }
 
   registerPlugin(plugin) {
@@ -275,7 +314,10 @@ export class App extends EventEmitter {
     if (!Array.isArray(pluginClasses)) return;
     for (const PluginClass of pluginClasses) {
       if (typeof PluginClass === 'function') {
-        const instance = new PluginClass(this, { view: this.view, buf: this.buf });
+        const instance = new PluginClass(this, {
+          view: this.view,
+          buf: this.buf,
+        });
         this.registerPlugin(instance);
       } else if (PluginClass && typeof PluginClass === 'object') {
         this.registerPlugin(PluginClass);
@@ -289,7 +331,10 @@ export class App extends EventEmitter {
       try {
         plugin.destroy?.();
       } catch (e) {
-        console.error(`Failed to destroy plugin ${plugin?.id || plugin?.name}:`, e);
+        console.error(
+          `Failed to destroy plugin ${plugin?.id || plugin?.name}:`,
+          e
+        );
       }
     }
   }
@@ -330,7 +375,9 @@ export class App extends EventEmitter {
         (typeof p.renderOptions === 'function' &&
           p.renderOptions !== PluginBase.prototype.renderOptions);
       if (hasCustomRenderOptions && !meta.renderOptions) {
-        meta.renderOptions = (p.constructor?.renderOptions || p.renderOptions).bind(p);
+        meta.renderOptions = (
+          p.constructor?.renderOptions || p.renderOptions
+        ).bind(p);
       }
       return meta;
     });
@@ -399,37 +446,37 @@ export class App extends EventEmitter {
   }
 
   connect(url, siteType) {
-  this.dismissAlert('connection');
-  this.connectState = 0;
-  console.log('connect: ' + url + ', siteType: ' + siteType);
+    this.dismissAlert('connection');
+    this.connectState = 0;
+    console.log('connect: ' + url + ', siteType: ' + siteType);
 
-  const parsed = parseConnectUrl(url);
-  if (!parsed) {
-    console.log('failed to parse connect url: ' + url);
-    return;
-  }
-  switch (parsed.protocol) {
-  case 'ws':
-  case 'wss':
-      break;
-  default:
-      console.log('unsupport connect url protocol: ' + parsed.protocol);
+    const parsed = parseConnectUrl(url);
+    if (!parsed) {
+      console.log('failed to parse connect url: ' + url);
       return;
-  }
+    }
+    switch (parsed.protocol) {
+      case 'ws':
+      case 'wss':
+        break;
+      default:
+        console.log('unsupport connect url protocol: ' + parsed.protocol);
+        return;
+    }
 
-  this.site = getSite(siteType || process.env.SITE_TYPE || 'auto');
-  this.buf.site = this.site;
+    this.site = getSite(siteType || process.env.SITE_TYPE || 'auto');
+    this.buf.site = this.site;
 
-  this._setupWebsocketConn(parsed.url);
-  this.connectedUrl = {
-    url: url,
-    hostname: parsed.hostname,
-    host: parsed.host,
-    port: parsed.port,
-    type: this.site.name,
-    siteType: this.site.name,
-    easyReadingSupported: true
-  };
+    this._setupWebsocketConn(parsed.url);
+    this.connectedUrl = {
+      url: url,
+      hostname: parsed.hostname,
+      host: parsed.host,
+      port: parsed.port,
+      type: this.site.name,
+      siteType: this.site.name,
+      easyReadingSupported: true,
+    };
   }
 
   _setupWebsocketConn(url) {
@@ -443,8 +490,10 @@ export class App extends EventEmitter {
     this.conn.site = this.site;
     this.stream.attach(conn);
     this.stream.charset = this.site ? this.site.charset : 'big5';
-    if (!conn.sendNaws) conn.sendNaws = (cols, rows) => this.stream.sendNaws(cols, rows);
-    if (!conn.sendWillNaws) conn.sendWillNaws = (cols, rows) => this.stream.sendWillNaws(cols, rows);
+    if (!conn.sendNaws)
+      conn.sendNaws = (cols, rows) => this.stream.sendNaws(cols, rows);
+    if (!conn.sendWillNaws)
+      conn.sendWillNaws = (cols, rows) => this.stream.sendWillNaws(cols, rows);
     if (!conn.sendNop) conn.sendNop = () => this.stream.sendNop();
     if (!conn.convSend) conn.convSend = (str) => this.stream.send(str);
     this.conn.addEventListener('open', () => this.onConnect());
@@ -475,18 +524,25 @@ export class App extends EventEmitter {
       this.stream.charset = this.site ? this.site.charset : 'big5';
     }
     this.site?.resetLoginPrompt?.();
-    console.info("app onConnect");
+    console.info('app onConnect');
     this.connectState = 1;
     this.updateTabIcon('connect');
-    this.view.buf.setTitle({conn: this.connectedUrl.hostname});
+    this.view.buf.setTitle({ conn: this.connectedUrl.hostname });
     this.emit('term:connect');
     if (this.timerEverySec) {
       this.timerEverySec.cancel();
     }
-    this.timerEverySec = setTimer(true, () => {
-      this.emit('term:tick', { intervalMs: 1000, detail: { intervalMs: 1000 } });
-      this.view.onBlink();
-    }, 1000);
+    this.timerEverySec = setTimer(
+      true,
+      () => {
+        this.emit('term:tick', {
+          intervalMs: 1000,
+          detail: { intervalMs: 1000 },
+        });
+        this.view.onBlink();
+      },
+      1000
+    );
   }
 
   onData(data) {
@@ -500,7 +556,7 @@ export class App extends EventEmitter {
   }
 
   onClose() {
-    console.info("app onClose");
+    console.info('app onClose');
     if (this.timerEverySec) {
       this.timerEverySec.cancel();
       this.timerEverySec = null;
@@ -516,7 +572,7 @@ export class App extends EventEmitter {
     this.showAlert('connection', {
       onDismiss: () => {
         this.connect(this.connectedUrl.url);
-      }
+      },
     });
     this.updateTabIcon('disconnect');
   }
@@ -548,34 +604,42 @@ export class App extends EventEmitter {
   }
 
   cancelMbTimer() {
-  if (this.mbTimer) {
-    this.mbTimer.cancel();
-    this.mbTimer = null;
-  }
+    if (this.mbTimer) {
+      this.mbTimer.cancel();
+      this.mbTimer = null;
+    }
   }
 
   setMbTimer() {
-  this.cancelMbTimer();
-  this.mbTimer = setTimer(false, () => {
-    this.mbTimer.cancel();
-    this.mbTimer = null;
-    this.skipMouseClick = false;
-  }, 100);
+    this.cancelMbTimer();
+    this.mbTimer = setTimer(
+      false,
+      () => {
+        this.mbTimer.cancel();
+        this.mbTimer = null;
+        this.skipMouseClick = false;
+      },
+      100
+    );
   }
 
   cancelDblclickTimer() {
-  if (this.dblclickTimer) {
-    this.dblclickTimer.cancel();
-    this.dblclickTimer = null;
-  }
+    if (this.dblclickTimer) {
+      this.dblclickTimer.cancel();
+      this.dblclickTimer = null;
+    }
   }
 
   setDblclickTimer() {
-  this.cancelDblclickTimer();
-  this.dblclickTimer = setTimer(false, () => {
-    this.dblclickTimer.cancel();
-    this.dblclickTimer = null;
-  }, 350);
+    this.cancelDblclickTimer();
+    this.dblclickTimer = setTimer(
+      false,
+      () => {
+        this.dblclickTimer.cancel();
+        this.dblclickTimer = null;
+      },
+      350
+    );
   }
 
   get debugEmitter() {
@@ -604,23 +668,38 @@ export class App extends EventEmitter {
   setInputAreaFocus(force = false) {
     if (!this.inputArea) return;
     if (this.modalShown || this.contextMenuShown) {
-      this._debugTouchLog('setInputAreaFocus blocked: modal or context menu active');
+      this._debugTouchLog(
+        'setInputAreaFocus blocked: modal or context menu active'
+      );
       return;
     }
     if (this.preserveDomSelection && !force && !this.isSelectionCollapsed()) {
-      this._debugTouchLog('setInputAreaFocus blocked: preserving text selection');
+      this._debugTouchLog(
+        'setInputAreaFocus blocked: preserving text selection'
+      );
       return;
     }
     if (this.isMobileDevice() && !force) {
-      this._debugTouchLog('setInputAreaFocus blocked: mobile device and not force');
+      this._debugTouchLog(
+        'setInputAreaFocus blocked: mobile device and not force'
+      );
       return;
     }
     if (this.isMobileLayout() && !force) {
-      this._debugTouchLog('setInputAreaFocus blocked: mobile layout and not force');
+      this._debugTouchLog(
+        'setInputAreaFocus blocked: mobile layout and not force'
+      );
       return;
     }
-    if (this.touch && (this.touch.touchStarted || (Date.now() - (this.touch.lastTouchTime || 0) < 500)) && !force) {
-      this._debugTouchLog('setInputAreaFocus blocked: recent touch (<500ms) and not force');
+    if (
+      this.touch &&
+      (this.touch.touchStarted ||
+        Date.now() - (this.touch.lastTouchTime || 0) < 500) &&
+      !force
+    ) {
+      this._debugTouchLog(
+        'setInputAreaFocus blocked: recent touch (<500ms) and not force'
+      );
       return;
     }
     if (this.view?.isComposition && document.activeElement === this.inputArea) {
@@ -628,7 +707,9 @@ export class App extends EventEmitter {
       return;
     }
     if (document.activeElement === this.inputArea && !force) {
-      this._debugTouchLog('setInputAreaFocus no-op: inputArea already activeElement');
+      this._debugTouchLog(
+        'setInputAreaFocus no-op: inputArea already activeElement'
+      );
       return;
     }
     if (force && document.activeElement === this.inputArea) {
@@ -639,14 +720,16 @@ export class App extends EventEmitter {
     } catch (e) {
       this.inputArea.focus();
     }
-    if (typeof window !== "undefined") {
+    if (typeof window !== 'undefined') {
       window.scrollTo(0, 0);
     }
   }
 
   isSelectionCollapsed() {
     if (this.hasActiveInputInterceptor()) {
-      return typeof window !== 'undefined' && window.getSelection ? window.getSelection().isCollapsed : true;
+      return typeof window !== 'undefined' && window.getSelection
+        ? window.getSelection().isCollapsed
+        : true;
     }
     if (this.view && this.view.useCanvasEngine) {
       return !this.view.getSelectionColRow();
@@ -654,7 +737,9 @@ export class App extends EventEmitter {
     if (this.preserveDomSelection && this.view?._domSelectedText) {
       return false;
     }
-    return typeof window !== 'undefined' && window.getSelection ? window.getSelection().isCollapsed : true;
+    return typeof window !== 'undefined' && window.getSelection
+      ? window.getSelection().isCollapsed
+      : true;
   }
 
   switchToEasyReadingMode(doSwitch) {
@@ -707,13 +792,19 @@ export class App extends EventEmitter {
   }
 
   doCopyAnsi() {
-    if (!this.lastSelection)
-      return;
+    if (!this.lastSelection) return;
 
     const selection = this.lastSelection;
     let ansiText = '';
     if (selection.start.row == selection.end.row) {
-      ansiText += this.buf.getText(selection.start.row, selection.start.col, selection.end.col, true, true, false);
+      ansiText += this.buf.getText(
+        selection.start.row,
+        selection.start.col,
+        selection.end.col,
+        true,
+        true,
+        false
+      );
     } else {
       for (let i = selection.start.row; i <= selection.end.row; ++i) {
         let scol = 0;
@@ -736,19 +827,22 @@ export class App extends EventEmitter {
   onDOMCopy(e) {
     this.emit('term:user-activity', { type: 'copy', detail: { type: 'copy' } });
     if (this.strToCopy) {
-    e.clipboardData.setData('text', this.strToCopy);
-    e.preventDefault();
-    console.log('copied: ', this.strToCopy);
-  } else {
-    let text = this.view.getSelectedText();
-    if (text) {
-      if (text.indexOf('\x1b') < 0) {
-        text = text.replace(/\r\n/g, '\r').replace(/\n/g, '\r').replace(/ +\r/g, '\r');
-      }
-      e.clipboardData.setData('text', text);
+      e.clipboardData.setData('text', this.strToCopy);
       e.preventDefault();
+      console.log('copied: ', this.strToCopy);
+    } else {
+      let text = this.view.getSelectedText();
+      if (text) {
+        if (text.indexOf('\x1b') < 0) {
+          text = text
+            .replace(/\r\n/g, '\r')
+            .replace(/\n/g, '\r')
+            .replace(/ +\r/g, '\r');
+        }
+        e.clipboardData.setData('text', text);
+        e.preventDefault();
+      }
     }
-  }
   }
 
   async doPaste() {
@@ -769,7 +863,7 @@ export class App extends EventEmitter {
     this.showAlert('pasteShortcut', {
       onDismiss: () => {
         this.modalShown = false;
-      }
+      },
     });
   }
 
@@ -841,13 +935,13 @@ export class App extends EventEmitter {
   }
 
   onSymFont(content) {
-  console.log("using " + (content ? "extension" : "system") + " font");
-  const font_src = content ? 'src: url('+content.data+');' : '';
-  const css = '@font-face { font-family: MingLiUNoGlyph; '+font_src+' }';
-  const style = document.createElement('style');
-  style.type = 'text/css';
-  style.innerHTML = css;
-  document.getElementsByTagName('head')[0].appendChild(style);
+    console.log('using ' + (content ? 'extension' : 'system') + ' font');
+    const font_src = content ? 'src: url(' + content.data + ');' : '';
+    const css = '@font-face { font-family: MingLiUNoGlyph; ' + font_src + ' }';
+    const style = document.createElement('style');
+    style.type = 'text/css';
+    style.innerHTML = css;
+    document.getElementsByTagName('head')[0].appendChild(style);
   }
 
   doSelectAll() {
@@ -857,7 +951,11 @@ export class App extends EventEmitter {
 
   doSearchGoogle(searchTerm) {
     if (!searchTerm) return;
-    window.open('https://www.google.com/search?q=' + encodeURIComponent(searchTerm), '_blank', 'noopener,noreferrer');
+    window.open(
+      'https://www.google.com/search?q=' + encodeURIComponent(searchTerm),
+      '_blank',
+      'noopener,noreferrer'
+    );
   }
 
   doOpenUrlNewTab(a) {
@@ -869,42 +967,44 @@ export class App extends EventEmitter {
   }
 
   onWindowResize() {
-  this.view.innerBounds = this.getWindowInnerBounds();
+    this.view.innerBounds = this.getWindowInnerBounds();
 
-  if (this.resizeTimeout) {
-    clearTimeout(this.resizeTimeout);
-  }
-  if (this.resizer) {
-    this.resizeTimeout = setTimeout(() => {
-      this.resizeTimeout = null;
-      if (this.prefValues) {
-        this.applyTermSizeMode(this.prefValues);
-      } else if (this.resizer) {
-        this.resizer();
-      } else {
-        this.view.fontResize();
-      }
-    }, 500);
-  } else {
-    this.view.fontResize();
-  }
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout);
+    }
+    if (this.resizer) {
+      this.resizeTimeout = setTimeout(() => {
+        this.resizeTimeout = null;
+        if (this.prefValues) {
+          this.applyTermSizeMode(this.prefValues);
+        } else if (this.resizer) {
+          this.resizer();
+        } else {
+          this.view.fontResize();
+        }
+      }, 500);
+    } else {
+      this.view.fontResize();
+    }
   }
 
   setTermSize(cols, rows) {
-  const requestedCols = cols;
-  const requestedRows = rows;
-  const clamped = this.site.clampTermSize(cols, rows);
-  cols = clamped.cols;
-  rows = clamped.rows;
+    const requestedCols = cols;
+    const requestedRows = rows;
+    const clamped = this.site.clampTermSize(cols, rows);
+    cols = clamped.cols;
+    rows = clamped.rows;
 
-  console.debug(`[setTermSize] decided size: ${cols}x${rows} (requested: ${requestedCols}x${requestedRows}, current: ${this.buf.cols}x${this.buf.rows}, site: ${this.site.name})`);
+    console.debug(
+      `[setTermSize] decided size: ${cols}x${rows} (requested: ${requestedCols}x${requestedRows}, current: ${this.buf.cols}x${this.buf.rows}, site: ${this.site.name})`
+    );
 
-  if (this.buf.cols == cols && this.buf.rows == rows) {
-    return;
-  }
+    if (this.buf.cols == cols && this.buf.rows == rows) {
+      return;
+    }
 
-  this.buf.resize(cols, rows);
-  this.stream.sendNaws(cols, rows);
+    this.buf.resize(cols, rows);
+    this.stream.sendNaws(cols, rows);
   }
 
   switchMouseBrowsing() {
@@ -918,80 +1018,77 @@ export class App extends EventEmitter {
   }
 
   updateTabIcon(aStatus) {
-  let icon = iconLogo;
-  switch (aStatus) {
-    case 'connect':
-      icon = iconLogoConnect;
-      this.setInputAreaFocus();
-      break;
-    case 'disconnect':
-      icon = iconLogoDisconnect;
-      break;
-    default:
-      break;
+    let icon = iconLogo;
+    switch (aStatus) {
+      case 'connect':
+        icon = iconLogoConnect;
+        this.setInputAreaFocus();
+        break;
+      case 'disconnect':
+        icon = iconLogoDisconnect;
+        break;
+      default:
+        break;
+    }
+
+    const link = document.querySelector("link[rel~='icon']");
+    if (!link) {
+      const newLink = document.createElement('link');
+      newLink.setAttribute('rel', 'icon');
+      newLink.setAttribute('href', icon);
+      document.head.appendChild(newLink);
+    } else {
+      link.setAttribute('href', icon);
+    }
   }
 
-  const link = document.querySelector("link[rel~='icon']");
-  if (!link) {
-    const newLink = document.createElement('link');
-    newLink.setAttribute('rel', 'icon');
-    newLink.setAttribute('href', icon);
-    document.head.appendChild(newLink);
-  } else {
-    link.setAttribute('href', icon);
-  }
-  }
-
-// use this method to get better window size in case of page zoom != 100%
+  // use this method to get better window size in case of page zoom != 100%
   getWindowInnerBounds() {
-  const width = document.documentElement.clientWidth - (this.view.viewMargin || 0) * 2;
-  const height = document.documentElement.clientHeight - (this.view.viewMargin || 0) * 2;
-  const bounds = {
-    width: width,
-    height: height
-  };
-  return bounds;
+    const width =
+      document.documentElement.clientWidth - (this.view.viewMargin || 0) * 2;
+    const height =
+      document.documentElement.clientHeight - (this.view.viewMargin || 0) * 2;
+    const bounds = {
+      width: width,
+      height: height,
+    };
+    return bounds;
   }
 
   getFirstGridOffsets() {
-  const container = document.querySelector(".main");
-  return {
-    top: container ? container.offsetTop : 0,
-    left: container ? container.offsetLeft : 0
-  };
+    const container = document.querySelector('.main');
+    return {
+      top: container ? container.offsetTop : 0,
+      left: container ? container.offsetLeft : 0,
+    };
   }
 
   clientToPos(cX, cY) {
-  let x;
-  let y;
-  const w = this.view.innerBounds.width;
-  const h = this.view.innerBounds.height;
-  if (this.view.scaleX != 1 || this.view.scaleY != 1) {
-    x = cX - ((w - (this.view.chw * this.buf.cols) * this.view.scaleX) / 2);
-    y = cY - ((h - (this.view.chh * this.buf.rows) * this.view.scaleY) / 2);
-  } else {
-    x = cX - parseFloat(this.view.firstGridOffset.left);
-    y = cY - parseFloat(this.view.firstGridOffset.top);
-  }
-  let col = Math.floor(x / (this.view.chw * this.view.scaleX));
-  let row = Math.floor(y / (this.view.chh * this.view.scaleY));
+    let x;
+    let y;
+    const w = this.view.innerBounds.width;
+    const h = this.view.innerBounds.height;
+    if (this.view.scaleX != 1 || this.view.scaleY != 1) {
+      x = cX - (w - this.view.chw * this.buf.cols * this.view.scaleX) / 2;
+      y = cY - (h - this.view.chh * this.buf.rows * this.view.scaleY) / 2;
+    } else {
+      x = cX - parseFloat(this.view.firstGridOffset.left);
+      y = cY - parseFloat(this.view.firstGridOffset.top);
+    }
+    let col = Math.floor(x / (this.view.chw * this.view.scaleX));
+    let row = Math.floor(y / (this.view.chh * this.view.scaleY));
 
-  if (row < 0)
-    row = 0;
-  else if (row >= this.buf.rows-1)
-    row = this.buf.rows-1;
+    if (row < 0) row = 0;
+    else if (row >= this.buf.rows - 1) row = this.buf.rows - 1;
 
-  if (col < 0)
-    col = 0;
-  else if (col >= this.buf.cols-1)
-    col = this.buf.cols-1;
+    if (col < 0) col = 0;
+    else if (col >= this.buf.cols - 1) col = this.buf.cols - 1;
 
-  return {col: col, row: row};
+    return { col: col, row: row };
   }
 
   onMouse_click(e, force = false) {
-    if (!this.conn || !this.conn.isConnected)
-      return;
+    if (!this.conn || !this.conn.isConnected) return;
 
     if (force && e && typeof e === 'object') {
       e.forceMouseBrowsing = true;
@@ -1009,7 +1106,14 @@ export class App extends EventEmitter {
       clientY: cY,
       refresh,
       force,
-      detail: { col: pos.col, row: pos.row, clientX: cX, clientY: cY, refresh, force }
+      detail: {
+        col: pos.col,
+        row: pos.row,
+        clientX: cX,
+        clientY: cY,
+        refresh,
+        force,
+      },
     });
   }
 
@@ -1017,25 +1121,33 @@ export class App extends EventEmitter {
     this.emit('term:reset-mouse-cursor', {
       clientX: cX,
       clientY: cY,
-      detail: { clientX: cX, clientY: cY }
+      detail: { clientX: cX, clientY: cY },
     });
   }
 
   isMobileLayout() {
     if (typeof window === 'undefined') return false;
-    const hasTouch = ('ontouchstart' in window) || (navigator && navigator.maxTouchPoints > 0);
+    const hasTouch =
+      'ontouchstart' in window || (navigator && navigator.maxTouchPoints > 0);
     if (!hasTouch) return false;
     const isNarrow = window.innerWidth <= 768;
-    const isCompactLandscape = window.innerHeight <= 500 && window.innerWidth <= 1024;
+    const isCompactLandscape =
+      window.innerHeight <= 500 && window.innerWidth <= 1024;
     return isNarrow || isCompactLandscape;
   }
 
   isMobileDevice() {
     if (typeof window === 'undefined') return false;
-    const hasTouch = ('ontouchstart' in window) || (navigator && navigator.maxTouchPoints > 0);
+    const hasTouch =
+      'ontouchstart' in window || (navigator && navigator.maxTouchPoints > 0);
     if (!hasTouch) return false;
-    const isMobileUA = /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test((navigator && navigator.userAgent) || '');
-    const hasCoarseOnly = window.matchMedia && window.matchMedia('(pointer: coarse)').matches && !window.matchMedia('(pointer: fine)').matches;
+    const isMobileUA = /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(
+      (navigator && navigator.userAgent) || ''
+    );
+    const hasCoarseOnly =
+      window.matchMedia &&
+      window.matchMedia('(pointer: coarse)').matches &&
+      !window.matchMedia('(pointer: fine)').matches;
     return isMobileUA || hasCoarseOnly || this.isMobileLayout();
   }
 
@@ -1076,9 +1188,12 @@ export class App extends EventEmitter {
           values.maxFontSize !== undefined
             ? values.maxFontSize
             : values.fontSize || 999;
-        let minSize = {cols: 80, rows: 24};
+        let minSize = { cols: 80, rows: 24 };
         this.resizer = () => {
-          let scaledFontSize = this.view.calcFontSizeFromTerm(minSize.cols, minSize.rows);
+          let scaledFontSize = this.view.calcFontSizeFromTerm(
+            minSize.cols,
+            minSize.rows
+          );
           let fontSize = Math.min(scaledFontSize, maxFontSize);
           let size = this.view.calcTermSizeFromFont(fontSize);
           this.setTermSize(size.cols, size.rows);
@@ -1097,7 +1212,7 @@ export class App extends EventEmitter {
   }
 
   onValuesPrefChange(values) {
-    const prevValues = this._prefsInitialized ? (this.prefValues || {}) : null;
+    const prevValues = this._prefsInitialized ? this.prefValues || {} : null;
     this._prefsInitialized = true;
     this.prefValues = { ...values };
     if (values && values.colorScheme !== undefined) {
@@ -1124,156 +1239,167 @@ export class App extends EventEmitter {
   }
 
   onPrefChange(name, value) {
-  try {
-    this.emit('term:pref-change', { key: name, value, detail: { key: name, value } });
-    switch (name) {
-    case 'uiLocale':
-      setupI18n(value);
-      this.emit('term:i18n:change', { lang: value, detail: { lang: value } });
-      this.emit('term:overlay:update');
-      break;
-    case 'enableMouseBrowsing':
-      this.useMouseBrowsing = !!value;
-      break;
-    case 'mouseLeftFunction':
-      this.view.leftButtonFunction = value;
-      if (typeof(this.view.leftButtonFunction) == 'boolean') {
-        this.view.leftButtonFunction = this.view.leftButtonFunction ? 1:0;
-      }
-      break;
-    case 'mouseMiddleFunction':
-      this.view.middleButtonFunction = value;
-      break;
-    case 'mouseWheelFunction1':
-      this.view.mouseWheelFunction1 = value;
-      break;
-    case 'mouseWheelFunction2':
-      this.view.mouseWheelFunction2 = value;
-      break;
-    case 'mouseWheelFunction3':
-      this.view.mouseWheelFunction3 = value;
-      break;
-    case 'copyOnSelect':
-      this.copyOnSelect = value;
-      break;
-    case 'trimTrailingSpaces':
-      this.trimTrailingSpaces = !!value;
-      break;
-    case 'rightClickAction':
-      this.rightClickAction = value;
-      break;
-    case 'warnBeforeClose':
-      this.warnBeforeClose = !!value;
-      break;
-    case 'colorScheme':
-      this.colorScheme = value;
-      applyColorScheme(
+    try {
+      this.emit('term:pref-change', {
+        key: name,
         value,
-        this.prefValues?.customColors,
-        this.prefValues?.customDefaultBg,
-        this.prefValues?.customDefaultFg,
-        this.prefValues?.customDefaultLink,
-        this.prefValues?.customForcePlainText,
-        this.prefValues?.minimumContrast
-      );
-      if (this.view) {
-        this.view.updateHighlightColor();
-        this.view.redraw(true);
-      }
-      break;
-    case 'customColors':
-    case 'customDefaultBg':
-    case 'customDefaultFg':
-    case 'customDefaultLink':
-    case 'customForcePlainText':
-    case 'minimumContrast':
-      applyColorScheme(
-        this.colorScheme,
-        this.prefValues?.customColors,
-        this.prefValues?.customDefaultBg,
-        this.prefValues?.customDefaultFg,
-        this.prefValues?.customDefaultLink,
-        this.prefValues?.customForcePlainText,
-        this.prefValues?.minimumContrast
-      );
-      if (this.view) {
-        this.view.updateHighlightColor();
-        this.view.redraw(true);
-      }
-      break;
-    case 'enableBell':
-      setTerminalBellEnabled(value);
-      break;
-    case 'enableVisualBell':
-      this.enableVisualBell = !!value;
-      break;
-    case 'backspaceKey':
-      this.backspaceKey = value;
-      if (this.view && this.view._keyboard) {
-        this.view._keyboard.backspaceKey = value;
-      }
-      break;
-    case 'deleteKey':
-      this.deleteKey = value;
-      if (this.view && this.view._keyboard) {
-        this.view._keyboard.deleteKey = value;
-      }
-      break;
-    case 'lineHeight':
-      this.lineHeight = parseFloat(value) || 1.0;
-      if (this.view) {
-        this.view.lineHeight = this.lineHeight;
-      }
-      try {
-        this.applyTermSizeMode(this.prefValues);
-      } catch (e) {}
-      if (this.view) {
-        this.view.redraw(true);
-      }
-      break;
-    case 'dbcsDetect':
-      this.view.dbcsDetect = value;
-      break;
-    case 'fontFace': {
-      let fontFace = value;
-      if (!fontFace) 
-        fontFace='monospace';
-      this.view.setFontFace(fontFace);
-      break;
-    }
-    case 'termMargin': {
-      const margin = value;
-      this.view.viewMargin = margin;
-      this.onWindowResize();
-      break;
-    }
-    case 'cursorStyle':
-      this.view.setCursorStyle(value);
-      break;
-    case 'useCanvasEngine':
-      this.view.useCanvasEngine = !!value;
-      this.view.redraw(true);
-      break;
-    case 'smoothAnsiArt':
-      this.view.smoothAnsiArt = !!value;
-      this.view.redraw(true);
-      break;
-    case 'supportMouseReporting':
-      this.setSupportMouseReporting(!!value, false);
-      break;
+        detail: { key: name, value },
+      });
+      switch (name) {
+        case 'uiLocale':
+          setupI18n(value);
+          this.emit('term:i18n:change', {
+            lang: value,
+            detail: { lang: value },
+          });
+          this.emit('term:overlay:update');
+          break;
+        case 'enableMouseBrowsing':
+          this.useMouseBrowsing = !!value;
+          break;
+        case 'mouseLeftFunction':
+          this.view.leftButtonFunction = value;
+          if (typeof this.view.leftButtonFunction == 'boolean') {
+            this.view.leftButtonFunction = this.view.leftButtonFunction ? 1 : 0;
+          }
+          break;
+        case 'mouseMiddleFunction':
+          this.view.middleButtonFunction = value;
+          break;
+        case 'mouseWheelFunction1':
+          this.view.mouseWheelFunction1 = value;
+          break;
+        case 'mouseWheelFunction2':
+          this.view.mouseWheelFunction2 = value;
+          break;
+        case 'mouseWheelFunction3':
+          this.view.mouseWheelFunction3 = value;
+          break;
+        case 'copyOnSelect':
+          this.copyOnSelect = value;
+          break;
+        case 'trimTrailingSpaces':
+          this.trimTrailingSpaces = !!value;
+          break;
+        case 'rightClickAction':
+          this.rightClickAction = value;
+          break;
+        case 'warnBeforeClose':
+          this.warnBeforeClose = !!value;
+          break;
+        case 'colorScheme':
+          this.colorScheme = value;
+          applyColorScheme(
+            value,
+            this.prefValues?.customColors,
+            this.prefValues?.customDefaultBg,
+            this.prefValues?.customDefaultFg,
+            this.prefValues?.customDefaultLink,
+            this.prefValues?.customForcePlainText,
+            this.prefValues?.minimumContrast
+          );
+          if (this.view) {
+            this.view.updateHighlightColor();
+            this.view.redraw(true);
+          }
+          break;
+        case 'customColors':
+        case 'customDefaultBg':
+        case 'customDefaultFg':
+        case 'customDefaultLink':
+        case 'customForcePlainText':
+        case 'minimumContrast':
+          applyColorScheme(
+            this.colorScheme,
+            this.prefValues?.customColors,
+            this.prefValues?.customDefaultBg,
+            this.prefValues?.customDefaultFg,
+            this.prefValues?.customDefaultLink,
+            this.prefValues?.customForcePlainText,
+            this.prefValues?.minimumContrast
+          );
+          if (this.view) {
+            this.view.updateHighlightColor();
+            this.view.redraw(true);
+          }
+          break;
+        case 'enableBell':
+          setTerminalBellEnabled(value);
+          break;
+        case 'enableVisualBell':
+          this.enableVisualBell = !!value;
+          break;
+        case 'backspaceKey':
+          this.backspaceKey = value;
+          if (this.view && this.view._keyboard) {
+            this.view._keyboard.backspaceKey = value;
+          }
+          break;
+        case 'deleteKey':
+          this.deleteKey = value;
+          if (this.view && this.view._keyboard) {
+            this.view._keyboard.deleteKey = value;
+          }
+          break;
+        case 'lineHeight':
+          this.lineHeight = parseFloat(value) || 1.0;
+          if (this.view) {
+            this.view.lineHeight = this.lineHeight;
+          }
+          try {
+            this.applyTermSizeMode(this.prefValues);
+          } catch (e) {}
+          if (this.view) {
+            this.view.redraw(true);
+          }
+          break;
+        case 'dbcsDetect':
+          this.view.dbcsDetect = value;
+          break;
+        case 'fontFace': {
+          let fontFace = value;
+          if (!fontFace) fontFace = 'monospace';
+          this.view.setFontFace(fontFace);
+          break;
+        }
+        case 'termMargin': {
+          const margin = value;
+          this.view.viewMargin = margin;
+          this.onWindowResize();
+          break;
+        }
+        case 'cursorStyle':
+          this.view.setCursorStyle(value);
+          break;
+        case 'useCanvasEngine':
+          this.view.useCanvasEngine = !!value;
+          this.view.redraw(true);
+          break;
+        case 'smoothAnsiArt':
+          this.view.smoothAnsiArt = !!value;
+          this.view.redraw(true);
+          break;
+        case 'supportMouseReporting':
+          this.setSupportMouseReporting(!!value, false);
+          break;
 
-    default:
-      break;
+        default:
+          break;
+      }
+    } catch (e) {
+      // eats all errors
+      return;
     }
-  } catch(e) {
-    // eats all errors
-    return;
-  }
   }
 
   checkClass(cn) {
     if (!cn) return false;
-    const str = typeof cn === 'string' ? cn : (typeof cn.baseVal === 'string' ? cn.baseVal : '');
+    const str =
+      typeof cn === 'string'
+        ? cn
+        : typeof cn.baseVal === 'string'
+          ? cn.baseVal
+          : '';
     return str.indexOf('nomouse_command') >= 0;
   }
 
@@ -1292,176 +1418,233 @@ export class App extends EventEmitter {
     if (e.target.className && this.checkClass(e.target.className)) {
       return true;
     }
-    if (e.target.tagName && String(e.target.tagName).toLowerCase().indexOf('menuitem') >= 0) {
+    if (
+      e.target.tagName &&
+      String(e.target.tagName).toLowerCase().indexOf('menuitem') >= 0
+    ) {
       return true;
     }
     return false;
   }
 
   mouse_click(e) {
-  if (this.modalShown || this.contextMenuShown || this.isDialogOrExcludedTarget(e))
-    return;
-  const skipMouseClick = this.skipMouseClick;
-  this.skipMouseClick = false;
-
-  if (e.button == 2) { //right button
-  } else if (e.button === 0) { //left button
-    if (this.preserveDomSelection && this.view?._domSelectedText) {
-      const sel = typeof window !== 'undefined' && window.getSelection ? window.getSelection() : null;
-      if (!sel || sel.isCollapsed) {
-        this.view._domSelectedText = '';
-        this.view._domSelectionColRow = null;
-        this.lastSelection = null;
-      }
-    }
-    const a = e.target && e.target.closest('a');
-    if (a) {
-      if (this.site.handleCustomLink(a.href, this)) {
-        e.preventDefault();
-      }
+    if (
+      this.modalShown ||
+      this.contextMenuShown ||
+      this.isDialogOrExcludedTarget(e)
+    )
       return;
-    }
-    if (this.isSelectionCollapsed()) { //no anything be select
-      const forceFocus = Boolean(this.view?.useCanvasEngine);
-      if (!skipMouseClick && this.site.handlePassScreenClick(this.buf, this.conn)) {
-        e.preventDefault();
-        this.setInputAreaFocus(forceFocus);
+    const skipMouseClick = this.skipMouseClick;
+    this.skipMouseClick = false;
+
+    if (e.button == 2) {
+      //right button
+    } else if (e.button === 0) {
+      //left button
+      if (this.preserveDomSelection && this.view?._domSelectedText) {
+        const sel =
+          typeof window !== 'undefined' && window.getSelection
+            ? window.getSelection()
+            : null;
+        if (!sel || sel.isCollapsed) {
+          this.view._domSelectedText = '';
+          this.view._domSelectionColRow = null;
+          this.lastSelection = null;
+        }
+      }
+      const a = e.target && e.target.closest('a');
+      if (a) {
+        if (this.site.handleCustomLink(a.href, this)) {
+          e.preventDefault();
+        }
         return;
       }
-      if (!skipMouseClick && this.buf?.locator?.isActive?.()) {
-        const pos = this.clientToPos(e.clientX, e.clientY);
-        const report = this.buf.locator.handleMouseClick(e, pos);
-        if (report) {
-          this.send(report);
+      if (this.isSelectionCollapsed()) {
+        //no anything be select
+        const forceFocus = Boolean(this.view?.useCanvasEngine);
+        if (
+          !skipMouseClick &&
+          this.site.handlePassScreenClick(this.buf, this.conn)
+        ) {
           e.preventDefault();
           this.setInputAreaFocus(forceFocus);
           return;
         }
-      }
-      if (this.useMouseBrowsing) {
-        if (skipMouseClick) {
-          this.onMouse_move(e.clientX, e.clientY, true);
-        } else {
-          this.onMouse_click(e);
-          this.setDblclickTimer();
-          e.preventDefault();
-          this.setInputAreaFocus(forceFocus);
+        if (!skipMouseClick && this.buf?.locator?.isActive?.()) {
+          const pos = this.clientToPos(e.clientX, e.clientY);
+          const report = this.buf.locator.handleMouseClick(e, pos);
+          if (report) {
+            this.send(report);
+            e.preventDefault();
+            this.setInputAreaFocus(forceFocus);
+            return;
+          }
         }
-      } else if (!skipMouseClick && this.view.leftButtonFunction) {
-        if (this.view.leftButtonFunction == 1) {
-          this.setNavCmd('doEnter');
-          e.preventDefault();
-          this.setInputAreaFocus(forceFocus);
-        } else if (this.view.leftButtonFunction == 2) {
-          this.setNavCmd('doRight');
-          e.preventDefault();
-          this.setInputAreaFocus(forceFocus);
+        if (this.useMouseBrowsing) {
+          if (skipMouseClick) {
+            this.onMouse_move(e.clientX, e.clientY, true);
+          } else {
+            this.onMouse_click(e);
+            this.setDblclickTimer();
+            e.preventDefault();
+            this.setInputAreaFocus(forceFocus);
+          }
+        } else if (!skipMouseClick && this.view.leftButtonFunction) {
+          if (this.view.leftButtonFunction == 1) {
+            this.setNavCmd('doEnter');
+            e.preventDefault();
+            this.setInputAreaFocus(forceFocus);
+          } else if (this.view.leftButtonFunction == 2) {
+            this.setNavCmd('doRight');
+            e.preventDefault();
+            this.setInputAreaFocus(forceFocus);
+          }
         }
       }
+    } else if (e.button == 1) {
+      //middle button
+    } else {
     }
-  } else if (e.button == 1) { //middle button
-  } else {
-  }
   }
 
   middleMouse_down(e) {
-  if (this.modalShown || this.contextMenuShown || this.isDialogOrExcludedTarget(e))
-    return;
-  if (e.button == 1) {
-    if (e.target && e.target.closest('a')) {
+    if (
+      this.modalShown ||
+      this.contextMenuShown ||
+      this.isDialogOrExcludedTarget(e)
+    )
       return;
+    if (e.button == 1) {
+      if (e.target && e.target.closest('a')) {
+        return;
+      }
+      if (this.view.middleButtonFunction == 1) {
+        this.send('\r');
+        return false;
+      } else if (this.view.middleButtonFunction == 2) {
+        this.send('\x1b[D');
+        return false;
+      } else if (this.view.middleButtonFunction == 3) {
+        this.doPaste();
+        return false;
+      }
     }
-    if (this.view.middleButtonFunction == 1) {
-      this.send('\r');
-      return false;
-    } else if (this.view.middleButtonFunction == 2) {
-      this.send('\x1b[D');
-      return false;
-    } else if (this.view.middleButtonFunction == 3) {
-      this.doPaste();
-      return false;
-    }
-  }
   }
 
   mouse_down(e) {
-  if (this.modalShown || this.contextMenuShown || this.isDialogOrExcludedTarget(e))
-    return;
-  //0=left button, 1=middle button, 2=right button
-  if (e.button === 0) {
-    if (this.useMouseBrowsing) {
-      if (this.dblclickTimer) { //skip
-        e.preventDefault();
-        e.stopPropagation();
-        e.cancelBubble = true;
+    if (
+      this.modalShown ||
+      this.contextMenuShown ||
+      this.isDialogOrExcludedTarget(e)
+    )
+      return;
+    //0=left button, 1=middle button, 2=right button
+    if (e.button === 0) {
+      if (this.useMouseBrowsing) {
+        if (this.dblclickTimer) {
+          //skip
+          e.preventDefault();
+          e.stopPropagation();
+          e.cancelBubble = true;
+        }
+        this.setDblclickTimer();
       }
-      this.setDblclickTimer();
-    }
-    this.mouseLeftButtonDown = true;
-    //this.setInputAreaFocus();
-    if (!this.isSelectionCollapsed())
-      this.skipMouseClick = true;
-  } else if(e.button == 2) {
-    this.mouseRightButtonDown = true;
-    if (this.preserveDomSelection && this.view && !this.view.useCanvasEngine) {
-      const selText = this.view.getSelectedText();
-      if (selText) {
-        this.view._domSelectedText = selText;
-        const colRow = this.view.getSelectionColRow();
-        if (colRow) {
-          this.view._domSelectionColRow = colRow;
-          this.lastSelection = colRow;
+      this.mouseLeftButtonDown = true;
+      //this.setInputAreaFocus();
+      if (!this.isSelectionCollapsed()) this.skipMouseClick = true;
+    } else if (e.button == 2) {
+      this.mouseRightButtonDown = true;
+      if (
+        this.preserveDomSelection &&
+        this.view &&
+        !this.view.useCanvasEngine
+      ) {
+        const selText = this.view.getSelectedText();
+        if (selText) {
+          this.view._domSelectedText = selText;
+          const colRow = this.view.getSelectionColRow();
+          if (colRow) {
+            this.view._domSelectionColRow = colRow;
+            this.lastSelection = colRow;
+          }
         }
       }
     }
   }
-  }
 
   mouse_up(e) {
-  if (this.modalShown || this.contextMenuShown || this.isDialogOrExcludedTarget(e))
-    return;
-  //0=left button, 1=middle button, 2=right button
-  if (e.button === 0) {
-    this.setMbTimer();
-    this.mouseLeftButtonDown = false;
-  } else if (e.button == 2) {
-    this.mouseRightButtonDown = false;
-  }
+    if (
+      this.modalShown ||
+      this.contextMenuShown ||
+      this.isDialogOrExcludedTarget(e)
+    )
+      return;
+    //0=left button, 1=middle button, 2=right button
+    if (e.button === 0) {
+      this.setMbTimer();
+      this.mouseLeftButtonDown = false;
+    } else if (e.button == 2) {
+      this.mouseRightButtonDown = false;
+    }
 
-  if (e.button === 0) { //left button
-    const forceFocus = Boolean(this.view?.useCanvasEngine);
-    if (this.isSelectionCollapsed()) { //no anything be select
-      if (this.useMouseBrowsing)
-        this.onMouse_move(e.clientX, e.clientY);
+    if (e.button === 0) {
+      //left button
+      const forceFocus = Boolean(this.view?.useCanvasEngine);
+      if (this.isSelectionCollapsed()) {
+        //no anything be select
+        if (this.useMouseBrowsing) this.onMouse_move(e.clientX, e.clientY);
 
-      this.setInputAreaFocus(forceFocus);
-      e.preventDefault();
-    } else { //something has be select
-      if (this.copyOnSelect && (this.hasActiveInputInterceptor() || !this.view || !this.view.useCanvasEngine)) {
-        this.doCopy(this.view ? this.view.getSelectedText() : (typeof window !== 'undefined' && window.getSelection ? window.getSelection().toString().replace(/\u00a0/g, " ") : ""));
+        this.setInputAreaFocus(forceFocus);
+        e.preventDefault();
+      } else {
+        //something has be select
+        if (
+          this.copyOnSelect &&
+          (this.hasActiveInputInterceptor() ||
+            !this.view ||
+            !this.view.useCanvasEngine)
+        ) {
+          this.doCopy(
+            this.view
+              ? this.view.getSelectedText()
+              : typeof window !== 'undefined' && window.getSelection
+                ? window
+                    .getSelection()
+                    .toString()
+                    .replace(/\u00a0/g, ' ')
+                : ''
+          );
+        }
       }
-    }
-    if (this.inputAreaFocusTimer) {
-      this.inputAreaFocusTimer.cancel();
-    }
-    this.inputAreaFocusTimer = setTimer(false, () => {
       if (this.inputAreaFocusTimer) {
         this.inputAreaFocusTimer.cancel();
-        this.inputAreaFocusTimer = null;
       }
-      if (!this.contextMenuShown && this.isSelectionCollapsed())
-        this.setInputAreaFocus(forceFocus);
-    }, 10);
-  } else if (e.button == 2) {
-    // right button: opens context menu, do not steal focus or set focus timer
-  } else {
-    this.setInputAreaFocus();
-    e.preventDefault();
-  }
+      this.inputAreaFocusTimer = setTimer(
+        false,
+        () => {
+          if (this.inputAreaFocusTimer) {
+            this.inputAreaFocusTimer.cancel();
+            this.inputAreaFocusTimer = null;
+          }
+          if (!this.contextMenuShown && this.isSelectionCollapsed())
+            this.setInputAreaFocus(forceFocus);
+        },
+        10
+      );
+    } else if (e.button == 2) {
+      // right button: opens context menu, do not steal focus or set focus timer
+    } else {
+      this.setInputAreaFocus();
+      e.preventDefault();
+    }
   }
 
   mouse_move(e) {
-    if (this.modalShown || this.contextMenuShown || this.isDialogOrExcludedTarget(e))
+    if (
+      this.modalShown ||
+      this.contextMenuShown ||
+      this.isDialogOrExcludedTarget(e)
+    )
       return;
     if (this.buf?.locator?.isActive?.()) {
       if (this.termWin?.style) {
@@ -1478,33 +1661,37 @@ export class App extends EventEmitter {
     }
     if (this.useMouseBrowsing) {
       if (this.isSelectionCollapsed()) {
-        if (!this.mouseLeftButtonDown)
-          this.onMouse_move(e.clientX, e.clientY);
-      } else
-        this.resetMouseCursor();
+        if (!this.mouseLeftButtonDown) this.onMouse_move(e.clientX, e.clientY);
+      } else this.resetMouseCursor();
     }
   }
 
   mouse_over(e) {
-  if (this.modalShown || this.contextMenuShown || this.isDialogOrExcludedTarget(e))
-    return;
+    if (
+      this.modalShown ||
+      this.contextMenuShown ||
+      this.isDialogOrExcludedTarget(e)
+    )
+      return;
 
-  if (this.isSelectionCollapsed() && !this.mouseLeftButtonDown)
-    this.setInputAreaFocus();
+    if (this.isSelectionCollapsed() && !this.mouseLeftButtonDown)
+      this.setInputAreaFocus();
   }
 
   suppressInertialWheel(durationMs) {
     const now = Date.now();
     const duration = durationMs || 300;
-    this.suppressWheelUntil = Math.max(this.suppressWheelUntil || 0, now + duration);
+    this.suppressWheelUntil = Math.max(
+      this.suppressWheelUntil || 0,
+      now + duration
+    );
     this.suppressWheelContinuous = true;
     this.suppressWheelStartedAt = now;
     this.wheelDeltaYAccum = 0;
   }
 
   mouse_scroll(e) {
-    if (this.modalShown || this.isDialogOrExcludedTarget(e)) 
-      return;
+    if (this.modalShown || this.isDialogOrExcludedTarget(e)) return;
 
     if (this.buf?.locator?.isActive?.()) {
       const pos = this.clientToPos(e.clientX, e.clientY);
@@ -1523,18 +1710,22 @@ export class App extends EventEmitter {
     }
 
     const now = Date.now();
-    const isSuppressed = (interceptorHandled === 'suppress') ||
-                       (this.suppressWheelUntil && now < this.suppressWheelUntil);
+    const isSuppressed =
+      interceptorHandled === 'suppress' ||
+      (this.suppressWheelUntil && now < this.suppressWheelUntil);
 
     if (isSuppressed) {
       // If events are continuing continuously (< 200ms between events),
       // inertia is still coasting. Extend suppression window (capped at 2500ms total).
-      if (this.lastWheelEventTime && (now - this.lastWheelEventTime < 200)) {
+      if (this.lastWheelEventTime && now - this.lastWheelEventTime < 200) {
         if (!this.suppressWheelStartedAt) {
           this.suppressWheelStartedAt = now;
         }
         if (now - this.suppressWheelStartedAt < 2500) {
-          this.suppressWheelUntil = Math.max(this.suppressWheelUntil || 0, now + 350);
+          this.suppressWheelUntil = Math.max(
+            this.suppressWheelUntil || 0,
+            now + 350
+          );
         }
       }
       this.lastWheelEventTime = now;
@@ -1549,91 +1740,107 @@ export class App extends EventEmitter {
     this.suppressWheelContinuous = false;
     this.suppressWheelStartedAt = 0;
 
-  // 4. Normal Terminal Wheel Handling with Pixel Accumulation & Throttling
-  let deltaY = e.deltaY;
-  if (e.deltaMode === 1) { // DOM_DELTA_LINE
-    deltaY *= 30;
-  } else if (e.deltaMode === 2) { // DOM_DELTA_PAGE
-    deltaY *= 300;
-  }
+    // 4. Normal Terminal Wheel Handling with Pixel Accumulation & Throttling
+    let deltaY = e.deltaY;
+    if (e.deltaMode === 1) {
+      // DOM_DELTA_LINE
+      deltaY *= 30;
+    } else if (e.deltaMode === 2) {
+      // DOM_DELTA_PAGE
+      deltaY *= 300;
+    }
 
-  // Reset accumulation if scrolling paused > 200ms or reversed direction
-  if (this.lastWheelEventTime && (now - this.lastWheelEventTime > 200)) {
-    this.wheelDeltaYAccum = 0;
-  }
-  if ((this.wheelDeltaYAccum > 0 && deltaY < 0) || (this.wheelDeltaYAccum < 0 && deltaY > 0)) {
-    this.wheelDeltaYAccum = 0;
-  }
+    // Reset accumulation if scrolling paused > 200ms or reversed direction
+    if (this.lastWheelEventTime && now - this.lastWheelEventTime > 200) {
+      this.wheelDeltaYAccum = 0;
+    }
+    if (
+      (this.wheelDeltaYAccum > 0 && deltaY < 0) ||
+      (this.wheelDeltaYAccum < 0 && deltaY > 0)
+    ) {
+      this.wheelDeltaYAccum = 0;
+    }
 
-  this.lastWheelEventTime = now;
-  this.wheelDeltaYAccum = (this.wheelDeltaYAccum || 0) + deltaY;
+    this.lastWheelEventTime = now;
+    this.wheelDeltaYAccum = (this.wheelDeltaYAccum || 0) + deltaY;
 
-  // Threshold in pixels before triggering 1 terminal step
-  const threshold = Math.max(35, this.view.chh || 35);
+    // Threshold in pixels before triggering 1 terminal step
+    const threshold = Math.max(35, this.view.chh || 35);
 
-  if (Math.abs(this.wheelDeltaYAccum) < threshold) {
+    if (Math.abs(this.wheelDeltaYAccum) < threshold) {
+      e.stopPropagation();
+      e.preventDefault();
+      return;
+    }
+
+    // Rate limit terminal commands: at least 60ms between commands to avoid telnet buffer queueing
+    if (this.lastWheelCmdTime && now - this.lastWheelCmdTime < 60) {
+      e.stopPropagation();
+      e.preventDefault();
+      return;
+    }
+
+    const isScrollUp = this.wheelDeltaYAccum < 0;
+
+    // Reset accumulation for discrete mouse clicks (|deltaY| >= 100), or consume threshold
+    if (Math.abs(deltaY) >= 100) {
+      this.wheelDeltaYAccum = 0;
+    } else {
+      this.wheelDeltaYAccum -= isScrollUp ? -threshold : threshold;
+    }
+    this.lastWheelCmdTime = now;
+
+    // scroll = up/down
+    // hold right mouse key + scroll = page up/down
+    // hold left mouse key + scroll = thread prev/next
+    const mouseWheelActionsUp = [
+      'none',
+      'doArrowUp',
+      'doPageUp',
+      'previousThread',
+    ];
+    const mouseWheelActionsDown = [
+      'none',
+      'doArrowDown',
+      'doPageDown',
+      'nextThread',
+    ];
+
+    if (isScrollUp) {
+      if (this.mouseRightButtonDown) {
+        const action = mouseWheelActionsUp[this.view.mouseWheelFunction2];
+        this.setNavCmd(action);
+      } else if (this.mouseLeftButtonDown) {
+        const action = mouseWheelActionsUp[this.view.mouseWheelFunction3];
+        this.setNavCmd(action);
+      } else {
+        const action = mouseWheelActionsUp[this.view.mouseWheelFunction1];
+        this.setNavCmd(action);
+      }
+    } else {
+      if (this.mouseRightButtonDown) {
+        const action = mouseWheelActionsDown[this.view.mouseWheelFunction2];
+        this.setNavCmd(action);
+      } else if (this.mouseLeftButtonDown) {
+        const action = mouseWheelActionsDown[this.view.mouseWheelFunction3];
+        this.setNavCmd(action);
+      } else {
+        const action = mouseWheelActionsDown[this.view.mouseWheelFunction1];
+        this.setNavCmd(action);
+      }
+    }
+
     e.stopPropagation();
     e.preventDefault();
-    return;
-  }
 
-  // Rate limit terminal commands: at least 60ms between commands to avoid telnet buffer queueing
-  if (this.lastWheelCmdTime && (now - this.lastWheelCmdTime < 60)) {
-    e.stopPropagation();
-    e.preventDefault();
-    return;
-  }
-
-  const isScrollUp = this.wheelDeltaYAccum < 0;
-
-  // Reset accumulation for discrete mouse clicks (|deltaY| >= 100), or consume threshold
-  if (Math.abs(deltaY) >= 100) {
-    this.wheelDeltaYAccum = 0;
-  } else {
-    this.wheelDeltaYAccum -= (isScrollUp ? -threshold : threshold);
-  }
-  this.lastWheelCmdTime = now;
-
-  // scroll = up/down
-  // hold right mouse key + scroll = page up/down
-  // hold left mouse key + scroll = thread prev/next
-  const mouseWheelActionsUp = [ 'none', 'doArrowUp', 'doPageUp', 'previousThread' ];
-  const mouseWheelActionsDown = [ 'none', 'doArrowDown', 'doPageDown', 'nextThread' ];
-
-  if (isScrollUp) {
-    if (this.mouseRightButtonDown) {
-      const action = mouseWheelActionsUp[this.view.mouseWheelFunction2];
-      this.setNavCmd(action);
-    } else if (this.mouseLeftButtonDown) {
-      const action = mouseWheelActionsUp[this.view.mouseWheelFunction3];
-      this.setNavCmd(action);
-    } else {
-      const action = mouseWheelActionsUp[this.view.mouseWheelFunction1];
-      this.setNavCmd(action);
+    if (this.mouseRightButtonDown)
+      //prevent context menu popup
+      this.preventContextMenuOnMouseUp = true;
+    if (this.mouseLeftButtonDown) {
+      if (this.useMouseBrowsing) {
+        this.skipMouseClick = true;
+      }
     }
-  } else {
-    if (this.mouseRightButtonDown) {
-      const action = mouseWheelActionsDown[this.view.mouseWheelFunction2];
-      this.setNavCmd(action);
-    } else if (this.mouseLeftButtonDown) {
-      const action = mouseWheelActionsDown[this.view.mouseWheelFunction3];
-      this.setNavCmd(action);
-    } else {
-      const action = mouseWheelActionsDown[this.view.mouseWheelFunction1];
-      this.setNavCmd(action);
-    }
-  }
-
-  e.stopPropagation();
-  e.preventDefault();
-
-  if (this.mouseRightButtonDown) //prevent context menu popup
-    this.preventContextMenuOnMouseUp = true;
-  if (this.mouseLeftButtonDown) {
-    if (this.useMouseBrowsing) {
-      this.skipMouseClick = true;
-    }
-  }
   }
 
   setNavCmd(cmd) {
@@ -1641,38 +1848,48 @@ export class App extends EventEmitter {
       return;
     }
     switch (cmd) {
-      case "doArrowUp":
+      case 'doArrowUp':
         this.send('\x1b[A');
         break;
-      case "doArrowDown":
+      case 'doArrowDown':
         this.send('\x1b[B');
         break;
-      case "doPageUp":
+      case 'doPageUp':
         this.send('\x1b[5~');
         break;
-      case "doPageDown":
+      case 'doPageDown':
         this.send('\x1b[6~');
         break;
-      case "previousThread": {
-        const cmd = this.site?.getThreadCommand("prevThread");
+      case 'previousThread': {
+        const cmd = this.site?.getThreadCommand('prevThread');
         const pageState = this.site?.pageState;
-        if (cmd && (pageState === PAGE_STATE.LIST || pageState === PAGE_STATE.READING || pageState === PAGE_STATE.MAPLE_LIST)) {
+        if (
+          cmd &&
+          (pageState === PAGE_STATE.LIST ||
+            pageState === PAGE_STATE.READING ||
+            pageState === PAGE_STATE.MAPLE_LIST)
+        ) {
           this.send(cmd);
         }
         break;
       }
-      case "nextThread": {
-        const cmd = this.site?.getThreadCommand("nextThread");
+      case 'nextThread': {
+        const cmd = this.site?.getThreadCommand('nextThread');
         const pageState = this.site?.pageState;
-        if (cmd && (pageState === PAGE_STATE.LIST || pageState === PAGE_STATE.READING || pageState === PAGE_STATE.MAPLE_LIST)) {
+        if (
+          cmd &&
+          (pageState === PAGE_STATE.LIST ||
+            pageState === PAGE_STATE.READING ||
+            pageState === PAGE_STATE.MAPLE_LIST)
+        ) {
           this.send(cmd);
         }
         break;
       }
-      case "doEnter":
+      case 'doEnter':
         this.send('\r');
         break;
-      case "doRight":
+      case 'doRight':
         this.send('\x1b[C');
         break;
       default:
@@ -1706,7 +1923,7 @@ export class App extends EventEmitter {
     const currentPrefs = readValuesWithDefault();
     const nextPrefs = {
       ...currentPrefs,
-      fontSize: newSize
+      fontSize: newSize,
     };
     writeValues(nextPrefs);
     this.onValuesPrefChange(nextPrefs);
@@ -1716,11 +1933,6 @@ export class App extends EventEmitter {
   }
 
   setupOverlay() {
-    render(
-      <AppOverlay
-        app={this}
-      />,
-      document.getElementById('cmenuReact')
-    );
+    render(<AppOverlay app={this} />, document.getElementById('cmenuReact'));
   }
 }
