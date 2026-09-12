@@ -27,7 +27,6 @@ export class App extends EventEmitter {
   constructor() {
     super();
 
-    this._useMouseBrowsing = false;
     this.preventContextMenuOnMouseUp = false;
     this.skipMouseClick = false;
 
@@ -89,12 +88,6 @@ export class App extends EventEmitter {
     this.overlays = [];
     this.contextMenuItems = [];
     this.on('term:anti-idle', () => this.sendAntiIdle());
-    this.wheelDeltaYAccum = 0;
-    this.lastWheelEventTime = 0;
-    this.lastWheelCmdTime = 0;
-
-    this.mouseLeftButtonDown = false;
-    this.mouseRightButtonDown = false;
 
     this.inputAreaFocusTimer = null;
     this.modalShown = false;
@@ -191,8 +184,6 @@ export class App extends EventEmitter {
       }
     });
 
-    this.dblclickTimer = null;
-    this.mbTimer = null;
     this.timerEverySec = null;
     try {
       this.prefValues = readValuesWithDefault();
@@ -346,14 +337,6 @@ export class App extends EventEmitter {
     });
   }
 
-  get useMouseBrowsing() {
-    return Boolean(this._useMouseBrowsing);
-  }
-
-  set useMouseBrowsing(val) {
-    this._useMouseBrowsing = Boolean(val);
-  }
-
   dispatchKeyDown(e) {
     return this.inputInterceptors.dispatchKeyDown(e);
   }
@@ -459,11 +442,6 @@ export class App extends EventEmitter {
     this.conn.isConnected = false;
     this.site?.resetLoginPrompt?.();
 
-    if (this.mbTimer) {
-      this.mbTimer.cancel();
-      this.mbTimer = null;
-    }
-
     this.connectState = 2;
     this.emit('term:disconnect');
 
@@ -492,19 +470,6 @@ export class App extends EventEmitter {
       return true;
     }
     return false;
-  }
-
-  setDblclickTimer() {
-    if (this.dblclickTimer) {
-      this.dblclickTimer.cancel();
-    }
-    this.dblclickTimer = setTimer(
-      false,
-      () => {
-        this.dblclickTimer = null;
-      },
-      350
-    );
   }
 
   setInputAreaFocus(force = false) {
@@ -889,32 +854,40 @@ export class App extends EventEmitter {
   }
 
   onMouse_click(e, force = false) {
-    if (!this.conn || !this.conn.isConnected) return;
+    if (!this.conn || !this.conn.isConnected) return false;
 
     if (force && e && typeof e === 'object') {
-      e.forceMouseBrowsing = true;
+      e.force = true;
     }
-    this.emit('term:click', { event: e });
-    this.inputInterceptors?.dispatchMouseClick(e);
+    const clickEvent = { event: e, force, handled: false };
+    this.emit('term:click', clickEvent);
+    if (this.inputInterceptors?.dispatchMouseClick(e)) {
+      return true;
+    }
+    return Boolean(clickEvent.handled);
   }
 
   onMouse_move(cX, cY, refresh = false, force = false) {
+    const eventName = force ? 'term:mouse-move:force' : 'term:mouse-move';
+    if (
+      !this.listenerCount(eventName) &&
+      !this.listenerCount('term:mouse-move')
+    )
+      return;
     const pos = this.clientToPos(cX, cY);
-    this.emit('term:mouse-move', {
+    const payload = {
       col: pos.col,
       row: pos.row,
       clientX: cX,
       clientY: cY,
       refresh,
       force,
-    });
-  }
-
-  resetMouseCursor(cX, cY) {
-    this.emit('term:reset-mouse-cursor', {
-      clientX: cX,
-      clientY: cY,
-    });
+    };
+    if (force && this.listenerCount('term:mouse-move:force')) {
+      this.emit('term:mouse-move:force', payload);
+    } else {
+      this.emit('term:mouse-move', payload);
+    }
   }
 
   isMobileLayout() {
@@ -1069,27 +1042,6 @@ export class App extends EventEmitter {
             lang: value,
           });
           this.emit('term:overlay:update');
-          break;
-        case 'enableMouseBrowsing':
-          this.useMouseBrowsing = !!value;
-          break;
-        case 'mouseLeftFunction':
-          this.view.leftButtonFunction = value;
-          if (typeof this.view.leftButtonFunction == 'boolean') {
-            this.view.leftButtonFunction = this.view.leftButtonFunction ? 1 : 0;
-          }
-          break;
-        case 'mouseMiddleFunction':
-          this.view.middleButtonFunction = value;
-          break;
-        case 'mouseWheelFunction1':
-          this.view.mouseWheelFunction1 = value;
-          break;
-        case 'mouseWheelFunction2':
-          this.view.mouseWheelFunction2 = value;
-          break;
-        case 'mouseWheelFunction3':
-          this.view.mouseWheelFunction3 = value;
           break;
         case 'copyOnSelect':
           this.copyOnSelect = value;
@@ -1274,24 +1226,11 @@ export class App extends EventEmitter {
           return;
         }
       }
-      if (this.useMouseBrowsing) {
-        if (skipMouseClick) {
-          this.onMouse_move(e.clientX, e.clientY, true);
-        } else {
-          this.onMouse_click(e);
-          e.preventDefault();
-          this.setInputAreaFocus(forceFocus);
-        }
-      } else if (!skipMouseClick && this.view.leftButtonFunction) {
-        if (this.view.leftButtonFunction == 1) {
-          this.setNavCmd('doEnter');
-          e.preventDefault();
-          this.setInputAreaFocus(forceFocus);
-        } else if (this.view.leftButtonFunction == 2) {
-          this.setNavCmd('doRight');
-          e.preventDefault();
-          this.setInputAreaFocus(forceFocus);
-        }
+      if (skipMouseClick) {
+        this.onMouse_move(e.clientX, e.clientY, true);
+      } else if (this.onMouse_click(e)) {
+        e.preventDefault();
+        this.setInputAreaFocus(forceFocus);
       }
     }
   }
@@ -1303,35 +1242,13 @@ export class App extends EventEmitter {
       this.isDialogOrExcludedTarget(e)
     )
       return;
+    if (this.inputInterceptors?.dispatchMouseDown(e)) {
+      return;
+    }
     //0=left button, 1=middle button, 2=right button
     if (e.button === 0) {
-      if (this.useMouseBrowsing) {
-        if (this.dblclickTimer) {
-          //skip
-          e.preventDefault();
-          e.stopPropagation();
-          e.cancelBubble = true;
-        }
-        this.setDblclickTimer();
-      }
-      this.mouseLeftButtonDown = true;
       if (!this.isSelectionCollapsed()) this.skipMouseClick = true;
-    } else if (e.button === 1) {
-      if (e.target && e.target.closest('a')) {
-        return;
-      }
-      if (this.view.middleButtonFunction == 1) {
-        this.send('\r');
-        e.preventDefault();
-      } else if (this.view.middleButtonFunction == 2) {
-        this.send('\x1b[D');
-        e.preventDefault();
-      } else if (this.view.middleButtonFunction == 3) {
-        this.doPaste();
-        e.preventDefault();
-      }
     } else if (e.button == 2) {
-      this.mouseRightButtonDown = true;
       if (
         this.preserveDomSelection &&
         this.view &&
@@ -1357,26 +1274,12 @@ export class App extends EventEmitter {
       this.isDialogOrExcludedTarget(e)
     )
       return;
+    this.inputInterceptors?.dispatchMouseUp(e);
     //0=left button, 1=middle button, 2=right button
     if (e.button === 0) {
-      if (this.mbTimer) {
-        this.mbTimer.cancel();
-      }
-      this.mbTimer = setTimer(
-        false,
-        () => {
-          this.mbTimer = null;
-          this.skipMouseClick = false;
-        },
-        100
-      );
-      this.mouseLeftButtonDown = false;
-
       const forceFocus = Boolean(this.view?.useCanvasEngine);
       if (this.isSelectionCollapsed()) {
         //no anything be select
-        if (this.useMouseBrowsing) this.onMouse_move(e.clientX, e.clientY);
-
         this.setInputAreaFocus(forceFocus);
         e.preventDefault();
       } else {
@@ -1412,7 +1315,7 @@ export class App extends EventEmitter {
         );
       }
     } else if (e.button == 2) {
-      this.mouseRightButtonDown = false;
+      // right button: do not preventDefault so contextmenu can open
     } else {
       this.setInputAreaFocus();
       e.preventDefault();
@@ -1439,11 +1342,7 @@ export class App extends EventEmitter {
       }
       return;
     }
-    if (this.useMouseBrowsing) {
-      if (this.isSelectionCollapsed()) {
-        if (!this.mouseLeftButtonDown) this.onMouse_move(e.clientX, e.clientY);
-      } else this.resetMouseCursor();
-    }
+    this.onMouse_move(e.clientX, e.clientY);
   }
 
   mouse_scroll(e) {
@@ -1462,100 +1361,8 @@ export class App extends EventEmitter {
 
     const interceptorHandled = this.inputInterceptors?.dispatchWheel(e);
     if (interceptorHandled) {
-      if (interceptorHandled === 'suppress') {
-        this.wheelDeltaYAccum = 0;
-        e.stopPropagation();
-        e.preventDefault();
-      }
-      return;
-    }
-
-    const now = Date.now();
-
-    // 4. Normal Terminal Wheel Handling with Pixel Accumulation & Throttling
-    let deltaY = e.deltaY;
-    if (e.deltaMode === 1) {
-      // DOM_DELTA_LINE
-      deltaY *= 30;
-    } else if (e.deltaMode === 2) {
-      // DOM_DELTA_PAGE
-      deltaY *= 300;
-    }
-
-    // Reset accumulation if scrolling paused > 200ms or reversed direction
-    if (this.lastWheelEventTime && now - this.lastWheelEventTime > 200) {
-      this.wheelDeltaYAccum = 0;
-    }
-    if (
-      (this.wheelDeltaYAccum > 0 && deltaY < 0) ||
-      (this.wheelDeltaYAccum < 0 && deltaY > 0)
-    ) {
-      this.wheelDeltaYAccum = 0;
-    }
-
-    this.lastWheelEventTime = now;
-    this.wheelDeltaYAccum = (this.wheelDeltaYAccum || 0) + deltaY;
-
-    // Threshold in pixels before triggering 1 terminal step
-    const threshold = Math.max(35, this.view.chh || 35);
-
-    if (Math.abs(this.wheelDeltaYAccum) < threshold) {
       e.stopPropagation();
       e.preventDefault();
-      return;
-    }
-
-    // Rate limit terminal commands: at least 60ms between commands to avoid telnet buffer queueing
-    if (this.lastWheelCmdTime && now - this.lastWheelCmdTime < 60) {
-      e.stopPropagation();
-      e.preventDefault();
-      return;
-    }
-
-    const isScrollUp = this.wheelDeltaYAccum < 0;
-
-    // Reset accumulation for discrete mouse clicks (|deltaY| >= 100), or consume threshold
-    if (Math.abs(deltaY) >= 100) {
-      this.wheelDeltaYAccum = 0;
-    } else {
-      this.wheelDeltaYAccum -= isScrollUp ? -threshold : threshold;
-    }
-    this.lastWheelCmdTime = now;
-
-    // scroll = up/down
-    // hold right mouse key + scroll = page up/down
-    // hold left mouse key + scroll = thread prev/next
-    const mouseWheelActionsUp = [
-      'none',
-      'doArrowUp',
-      'doPageUp',
-      'previousThread',
-    ];
-    const mouseWheelActionsDown = [
-      'none',
-      'doArrowDown',
-      'doPageDown',
-      'nextThread',
-    ];
-    const actions = isScrollUp ? mouseWheelActionsUp : mouseWheelActionsDown;
-    const fnIdx = this.mouseRightButtonDown
-      ? this.view.mouseWheelFunction2
-      : this.mouseLeftButtonDown
-        ? this.view.mouseWheelFunction3
-        : this.view.mouseWheelFunction1;
-    const action = actions[fnIdx];
-    this.setNavCmd(action);
-
-    e.stopPropagation();
-    e.preventDefault();
-
-    if (this.mouseRightButtonDown)
-      //prevent context menu popup
-      this.preventContextMenuOnMouseUp = true;
-    if (this.mouseLeftButtonDown) {
-      if (this.useMouseBrowsing) {
-        this.skipMouseClick = true;
-      }
     }
   }
 

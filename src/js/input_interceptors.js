@@ -67,6 +67,16 @@ export class InputInterceptors extends EventEmitter {
     return Boolean(e && (e.defaultPrevented || e.handled));
   }
 
+  dispatchMouseDown(e) {
+    this.emit('mouseDown', e);
+    return Boolean(e && (e.defaultPrevented || e.handled));
+  }
+
+  dispatchMouseUp(e) {
+    this.emit('mouseUp', e);
+    return Boolean(e && (e.defaultPrevented || e.handled));
+  }
+
   dispatchKeyDown(e) {
     this.emit('keyDown', e);
     return Boolean(e && (e.defaultPrevented || e.handled));
@@ -147,6 +157,36 @@ export class InputInterceptors extends EventEmitter {
       };
       this.on('mouseClick', fn);
       handlers.push(['mouseClick', fn]);
+    }
+
+    if (typeof interceptor.handleMouseDown === 'function') {
+      const fn = (e) => {
+        if (e?.handled || e?.defaultPrevented) return;
+        if (interceptor.handleMouseDown(e)) {
+          if (e) {
+            e.defaultPrevented = true;
+            e.handled = true;
+            e.preventDefault?.();
+          }
+        }
+      };
+      this.on('mouseDown', fn);
+      handlers.push(['mouseDown', fn]);
+    }
+
+    if (typeof interceptor.handleMouseUp === 'function') {
+      const fn = (e) => {
+        if (e?.handled || e?.defaultPrevented) return;
+        if (interceptor.handleMouseUp(e)) {
+          if (e) {
+            e.defaultPrevented = true;
+            e.handled = true;
+            e.preventDefault?.();
+          }
+        }
+      };
+      this.on('mouseUp', fn);
+      handlers.push(['mouseUp', fn]);
     }
 
     if (typeof interceptor.handleKeyDown === 'function') {

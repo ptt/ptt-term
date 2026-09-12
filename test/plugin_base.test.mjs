@@ -1215,7 +1215,6 @@ test('App dispatches wheel and motion reports to active locator even when MouseB
   app.modalShown = false;
   app.contextMenuShown = false;
   app.isDialogOrExcludedTarget = () => false;
-  app.useMouseBrowsing = false;
   app.termWin = { style: { cursor: 'pointer' } };
   app.send = (str) => sent.push(str);
   app.clientToPos = () => ({ col: 5, row: 10 });
@@ -1276,7 +1275,6 @@ test('App dispatches mouse click reports to active locator even when MouseBrowsi
   app.contextMenuShown = false;
   app.isDialogOrExcludedTarget = () => false;
   app.isSelectionCollapsed = () => true;
-  app.useMouseBrowsing = false;
   app.view = { useCanvasEngine: false };
   app.site = {
     handleCustomLink: () => false,

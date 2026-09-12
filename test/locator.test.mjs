@@ -225,7 +225,8 @@ test('MouseBrowsing is cleanly decoupled from VT Mouse Reporting (Locator)', () 
 
   mb.destroy();
   assert.equal(interceptors.length, 0, 'MouseBrowsing should unregister input interceptor on destroy');
-  assert.equal(mockApp._useMouseBrowsing, false, 'MouseBrowsing destroy should reset app._useMouseBrowsing');
+  assert.equal(mockApp._useMouseBrowsing, undefined, 'MouseBrowsing must not touch app._useMouseBrowsing');
+  assert.equal(mockApp.useMouseBrowsing, undefined, 'MouseBrowsing must not touch app.useMouseBrowsing');
 });
 
 test('Preferences defaults supportMouseReporting to true', () => {
@@ -275,7 +276,6 @@ test('App handles VT Mouse Reporting (Locator) click, move, and wheel when Mouse
     contextMenuShown: false,
     isDialogOrExcludedTarget: () => false,
     isSelectionCollapsed: () => true,
-    useMouseBrowsing: false,
     buf,
     view: { useCanvasEngine: false },
     site: {
@@ -288,6 +288,7 @@ test('App handles VT Mouse Reporting (Locator) click, move, and wheel when Mouse
     setInputAreaFocus: () => {},
     inputInterceptors: { dispatchWheel: () => false },
     emit: () => {},
+    onMouse_move: () => {},
     prefValues: { supportMouseReporting: true },
   };
 
@@ -332,5 +333,145 @@ test('App handles VT Mouse Reporting (Locator) click, move, and wheel when Mouse
   onPrefChange.call(mockApp, 'supportMouseReporting', false);
   assert.equal(buf.locator.enabled, false);
 });
+
+test('App and TermView are completely decoupled from MouseBrowsing and MouseBrowsing owns all mouse gesture, wheel, and button state', () => {
+  const appSrc = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+  const termViewSrc = fs.readFileSync(path.resolve('src/js/term_view.js'), 'utf-8');
+
+  const forbiddenInAppAndView = [
+    'useMouseBrowsing',
+    '_useMouseBrowsing',
+    'mouseBrowsing',
+    'MouseBrowsing',
+    'dblclickTimer',
+    'setDblclickTimer',
+    'leftButtonFunction',
+    'middleButtonFunction',
+    'mouseWheelFunction1',
+    'mouseWheelFunction2',
+    'mouseWheelFunction3',
+    'mouseLeftButtonDown',
+    'mouseRightButtonDown',
+    'mbTimer',
+    'wheelDeltaYAccum',
+    'lastWheelEventTime',
+    'lastWheelCmdTime',
+    'mouseWheelActionsUp',
+    'mouseWheelActionsDown',
+    'resetMouseCursor',
+  ];
+
+  for (const token of forbiddenInAppAndView) {
+    assert.ok(!appSrc.includes(token), `App must not reference ${token}`);
+    assert.ok(!termViewSrc.includes(token), `TermView must not reference ${token}`);
+  }
+
+  const sent = [];
+  const navCmds = [];
+  const listeners = new Map();
+  let selectionCollapsed = true;
+  const mockApp = {
+    conn: { isConnected: true },
+    buf: new MockTermBuf(80, 24),
+    view: { chh: 24 },
+    site: { pageState: 2 }, // PAGE_STATE.LIST
+    termWin: { style: { cursor: 'pointer' } },
+    isSelectionCollapsed: () => selectionCollapsed,
+    clientToPos: () => ({ col: 5, row: 5 }),
+    send: (str) => sent.push(str),
+    setNavCmd: (cmd) => navCmds.push(cmd),
+    on(evt, fn) {
+      if (!listeners.has(evt)) listeners.set(evt, []);
+      listeners.get(evt).push(fn);
+    },
+    off(evt, fn) {
+      const arr = listeners.get(evt) || [];
+      const idx = arr.indexOf(fn);
+      if (idx !== -1) arr.splice(idx, 1);
+    },
+    emit(evt, payload) {
+      for (const fn of listeners.get(evt) || []) {
+        fn(payload);
+      }
+    },
+    registerInputInterceptor() {},
+    unregisterInputInterceptor() {},
+  };
+
+  const mb = new MouseBrowsing(mockApp, { enabled: true });
+  mb.init({ app: mockApp, buf: mockApp.buf });
+
+  // Double-click suppression via handleMouseDown
+  let prevented1 = false;
+  let prevented2 = false;
+  mb.handleMouseDown({ button: 0, preventDefault: () => { prevented1 = true; } });
+  assert.equal(prevented1, false, 'First mousedown must not prevent default');
+  assert.equal(mb.mouseLeftButtonDown, true, 'Left mousedown sets mouseLeftButtonDown');
+
+  mb.handleMouseDown({ button: 0, preventDefault: () => { prevented2 = true; } });
+  assert.equal(prevented2, true, 'Rapid second mousedown within 350ms must prevent default');
+
+  // Middle button functions via handleMouseDown
+  mb.mouseMiddleFunction = 1;
+  mb.handleMouseDown({ button: 1, preventDefault: () => {} });
+  assert.equal(sent[sent.length - 1], '\r');
+
+  mb.mouseMiddleFunction = 2;
+  mb.handleMouseDown({ button: 1, preventDefault: () => {} });
+  assert.equal(sent[sent.length - 1], '\x1b[D');
+
+  // Wheel gesture handling with right/left button chords
+  mb.mouseRightButtonDown = true;
+  mb.lastWheelCmdTime = 0;
+  mb.handleWheel({ deltaY: -120, stopPropagation: () => {}, preventDefault: () => {} });
+  assert.equal(navCmds[navCmds.length - 1], 'doPageUp');
+  assert.equal(mockApp.preventContextMenuOnMouseUp, true);
+  mb.mouseRightButtonDown = false;
+
+  mb.mouseLeftButtonDown = true;
+  mb.lastWheelCmdTime = 0;
+  mb.handleWheel({ deltaY: 120, stopPropagation: () => {}, preventDefault: () => {} });
+  assert.equal(navCmds[navCmds.length - 1], 'nextThread');
+  assert.equal(mockApp.skipMouseClick, true);
+
+  // MouseUp sets _mbTimer and clears mouseLeftButtonDown
+  mb.handleMouseUp({ button: 0, clientX: 50, clientY: 50 });
+  assert.equal(mb.mouseLeftButtonDown, false);
+  assert.ok(mb._mbTimer !== null, 'MouseUp sets _mbTimer to reset skipMouseClick');
+
+  // Selection check in onMouseMove resets cursor when selection is active
+  selectionCollapsed = false;
+  mb.onMouseMove(10, 10, false, false);
+  assert.equal(mb.mouseCursor, 11, 'Non-collapsed selection must reset mouse cursor to 11');
+  assert.equal(mockApp.termWin.style.cursor, 'auto');
+  selectionCollapsed = true;
+
+  // Left click function on cursor 0
+  mb.setMouseCursor(0);
+  mb.mouseLeftFunction = 1;
+  mb.handleMouseClick({ clientX: 50, clientY: 50 });
+  assert.equal(navCmds[navCmds.length - 1], 'doEnter');
+
+  mb.mouseLeftFunction = 2;
+  mb.handleMouseClick({ clientX: 50, clientY: 50 });
+  assert.equal(navCmds[navCmds.length - 1], 'doRight');
+
+  // When disabled, forced touch events still work via term:mouse-move:force and term:click
+  mb.disable();
+  assert.equal(mb.enabled, false);
+  assert.equal(mb._dblclickTimer, null, 'Disabling MouseBrowsing must cancel dblclickTimer');
+  assert.equal(mb._mbTimer, null, 'Disabling MouseBrowsing must cancel _mbTimer');
+
+  mockApp.emit('term:mouse-move:force', { col: 1, row: 5, refresh: false, force: true });
+  assert.equal(mb.mouseCursor, 1, 'Forced mouse move must calculate cursor even when disabled');
+
+  const clickPayload = { event: { clientX: 10, clientY: 10, force: true }, force: true, handled: false };
+  mockApp.emit('term:click', clickPayload);
+  assert.equal(clickPayload.handled, true, 'Forced click must be handled even when disabled');
+  assert.equal(sent[sent.length - 1], '\x1b[D');
+
+  mb.destroy();
+});
+
 
 

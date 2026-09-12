@@ -465,7 +465,6 @@ test('TermBuf defers rendering during synchronized update and aligns with V-Sync
       timerUpdate: null,
       changed: false,
       posChanged: false,
-      useMouseBrowsing: false,
       updateCharAttr() {},
       setPageState() {},
       clearHighlight() {},

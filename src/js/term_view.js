@@ -33,11 +33,6 @@ export class TermView extends EventEmitter {
   this.dbcsDetect = true;
   this.highlightBG = 2;
   this._charset = 'big5';
-  this.middleButtonFunction = 0;
-  this.leftButtonFunction = false;
-  this.mouseWheelFunction1 = 1;
-  this.mouseWheelFunction2 = 2;
-  this.mouseWheelFunction3 = 3;
   //this.highlightFG = 7;
   this.fontFitWindowWidth = false;
   this.useCanvasEngine = true;

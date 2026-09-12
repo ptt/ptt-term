@@ -2,6 +2,7 @@ import React from "preact/compat";
 import { PluginBase } from "../PluginBase.js";
 import { parseOptionText } from "../../js/pref.js";
 import { _ } from "../../js/i18n.js";
+import { setTimer } from "../../js/util.js";
 import { PAGE_STATE } from "../../js/sites/index.js";
 const cursorBack = new URL("../../cursor/back.png", import.meta.url).href;
 const cursorPageup = new URL("../../cursor/pageup.png", import.meta.url).href;
@@ -50,6 +51,20 @@ const MOUSE_WHEEL_OPTIONS = [
   "options_upDown",
   "options_pageUpDown",
   "options_threadLastNext",
+];
+
+const MOUSE_WHEEL_ACTIONS_UP = [
+  "none",
+  "doArrowUp",
+  "doPageUp",
+  "previousThread",
+];
+
+const MOUSE_WHEEL_ACTIONS_DOWN = [
+  "none",
+  "doArrowDown",
+  "doPageDown",
+  "nextThread",
 ];
 
 function renderOptionDesc(rawText) {
@@ -214,6 +229,18 @@ export class MouseBrowsing extends PluginBase {
     this.tempMouseRow = 0;
     this.mouseCursor = 0;
     this.nowHighlight = -1;
+    this._dblclickTimer = null;
+    this._mbTimer = null;
+    this.mouseLeftButtonDown = false;
+    this.mouseRightButtonDown = false;
+    this.wheelDeltaYAccum = 0;
+    this.lastWheelEventTime = 0;
+    this.lastWheelCmdTime = 0;
+    this.mouseLeftFunction = 0;
+    this.mouseMiddleFunction = 0;
+    this.mouseWheelFunction1 = 1;
+    this.mouseWheelFunction2 = 2;
+    this.mouseWheelFunction3 = 3;
   }
 
   getContextMenuItems() {
@@ -231,26 +258,65 @@ export class MouseBrowsing extends PluginBase {
     ];
   }
 
-  onInit() {
-    if (this.app) {
-      this.app._useMouseBrowsing = Boolean(this.enabled);
+  _syncPrefs(prefs) {
+    if (!prefs) return;
+    if (prefs.mouseBrowsingHighlight !== undefined) {
+      const buf = this.buf || this.app?.buf;
+      if (buf) buf.highlightCursor = Boolean(prefs.mouseBrowsingHighlight);
     }
+    if (prefs.mouseBrowsingHighlightColor !== undefined) {
+      const view = this.view || this.app?.view;
+      if (view) {
+        view.highlightBG = prefs.mouseBrowsingHighlightColor;
+        view.updateHighlightColor?.();
+      }
+    }
+    if (prefs.mouseLeftFunction !== undefined) {
+      this.mouseLeftFunction =
+        typeof prefs.mouseLeftFunction === "boolean"
+          ? prefs.mouseLeftFunction
+            ? 1
+            : 0
+          : Number(prefs.mouseLeftFunction) || 0;
+    }
+    if (prefs.mouseMiddleFunction !== undefined) {
+      this.mouseMiddleFunction = Number(prefs.mouseMiddleFunction) || 0;
+    }
+    if (prefs.mouseWheelFunction1 !== undefined) {
+      this.mouseWheelFunction1 = Number(prefs.mouseWheelFunction1) ?? 1;
+    }
+    if (prefs.mouseWheelFunction2 !== undefined) {
+      this.mouseWheelFunction2 = Number(prefs.mouseWheelFunction2) ?? 2;
+    }
+    if (prefs.mouseWheelFunction3 !== undefined) {
+      this.mouseWheelFunction3 = Number(prefs.mouseWheelFunction3) ?? 3;
+    }
+  }
+
+  _clearTimers() {
+    if (this._dblclickTimer) {
+      this._dblclickTimer.cancel();
+      this._dblclickTimer = null;
+    }
+    if (this._mbTimer) {
+      this._mbTimer.cancel();
+      this._mbTimer = null;
+    }
+  }
+
+  onInit() {
+    this._syncPrefs(this.app?.prefValues);
     this.registerInputInterceptorWhileEnabled(this);
     this.listenApp("term:pref-change", (e) => {
       const key = e?.key ?? e?.detail?.key;
       const value = e?.value !== undefined ? e.value : e?.detail?.value;
-      if (key === "mouseBrowsingHighlight") {
-        const buf = this.buf || this.app?.buf;
-        if (buf) buf.highlightCursor = Boolean(value);
+      this._syncPrefs({ [key]: value });
+      if (
+        key === "mouseBrowsingHighlight" ||
+        key === "mouseBrowsingHighlightColor"
+      ) {
         this.view?.redraw?.(true);
         this.view?.updateCursorPos?.();
-      } else if (key === "mouseBrowsingHighlightColor") {
-        const view = this.view || this.app?.view;
-        if (view) {
-          view.highlightBG = value;
-          view.updateHighlightColor?.();
-          view.updateCursorPos?.();
-        }
       }
     });
     this.listenAppWhileEnabled("term:mouse-move", (e) => {
@@ -260,15 +326,28 @@ export class MouseBrowsing extends PluginBase {
       const force = e?.force ?? e?.detail?.force;
       this.onMouseMove(col, row, !!refresh, !!force);
     });
-    this.listenAppWhileEnabled("term:reset-mouse-cursor", () => {
-      this.resetMouseCursor();
+    this.listenApp("term:mouse-move:force", (e) => {
+      const col = e?.col ?? e?.detail?.col;
+      const row = e?.row ?? e?.detail?.row;
+      const refresh = e?.refresh ?? e?.detail?.refresh;
+      this.onMouseMove(col, row, !!refresh, true);
+    });
+    this.listenApp("term:click", (evt) => {
+      if (!this.enabled && (evt?.force || evt?.event?.force)) {
+        if (this.handleMouseClick(evt.event, true)) {
+          evt.handled = true;
+        }
+      }
+    });
+    this.listenApp("term:disconnect", () => {
+      this._clearTimers();
+      this.mouseLeftButtonDown = false;
+      this.mouseRightButtonDown = false;
+      this.wheelDeltaYAccum = 0;
     });
   }
 
   onEnable() {
-    if (this.app) {
-      this.app._useMouseBrowsing = true;
-    }
     this.resetMousePos();
     if (!this._initializing) {
       this.view?.redraw?.(true);
@@ -277,9 +356,10 @@ export class MouseBrowsing extends PluginBase {
   }
 
   onDisable() {
-    if (this.app) {
-      this.app._useMouseBrowsing = false;
-    }
+    this._clearTimers();
+    this.mouseLeftButtonDown = false;
+    this.mouseRightButtonDown = false;
+    this.wheelDeltaYAccum = 0;
     const buf = this.buf || this.app?.buf;
     const termWin = this.app?.termWin || buf?.termWin;
     if (termWin && termWin.style) termWin.style.cursor = "auto";
@@ -292,13 +372,161 @@ export class MouseBrowsing extends PluginBase {
   }
 
   onDestroy() {
-    if (this.app) {
-      this.app._useMouseBrowsing = false;
-    }
+    this._clearTimers();
     const buf = this.buf || this.app?.buf;
     const termWin = this.app?.termWin || buf?.termWin;
     if (termWin && termWin.style) termWin.style.cursor = "auto";
     this.clearHighlight();
+  }
+
+  handleMouseDown(e) {
+    if (!this.enabled || !e) return false;
+    if (e.button === 0) {
+      this.mouseLeftButtonDown = true;
+      if (this._dblclickTimer) {
+        e.preventDefault?.();
+        e.stopPropagation?.();
+        e.cancelBubble = true;
+        this._setDblclickTimer();
+        return true;
+      }
+      this._setDblclickTimer();
+      return false;
+    }
+    if (e.button === 1) {
+      if (e.target && e.target.closest?.("a")) {
+        return false;
+      }
+      if (this.mouseMiddleFunction === 1) {
+        this.app?.send("\r");
+        e.preventDefault?.();
+        return true;
+      }
+      if (this.mouseMiddleFunction === 2) {
+        this.app?.send("\x1b[D");
+        e.preventDefault?.();
+        return true;
+      }
+      if (this.mouseMiddleFunction === 3) {
+        this.app?.doPaste?.();
+        e.preventDefault?.();
+        return true;
+      }
+      return false;
+    }
+    if (e.button === 2) {
+      this.mouseRightButtonDown = true;
+      return false;
+    }
+    return false;
+  }
+
+  handleMouseUp(e) {
+    if (!this.enabled || !e) return false;
+    if (e.button === 0) {
+      if (this._mbTimer) {
+        this._mbTimer.cancel();
+      }
+      this._mbTimer = setTimer(
+        false,
+        () => {
+          this._mbTimer = null;
+          if (this.app) this.app.skipMouseClick = false;
+        },
+        100
+      );
+      this.mouseLeftButtonDown = false;
+      if (this.app?.isSelectionCollapsed?.()) {
+        const pos = this.app.clientToPos?.(e.clientX, e.clientY);
+        if (pos) this.onMouseMove(pos.col, pos.row);
+      }
+      return false;
+    }
+    if (e.button === 2) {
+      this.mouseRightButtonDown = false;
+      return false;
+    }
+    return false;
+  }
+
+  handleWheel(e) {
+    if (!this.enabled || !this.app || !e) return false;
+    const now = Date.now();
+    let deltaY = e.deltaY;
+    if (e.deltaMode === 1) {
+      deltaY *= 30;
+    } else if (e.deltaMode === 2) {
+      deltaY *= 300;
+    }
+
+    if (this.lastWheelEventTime && now - this.lastWheelEventTime > 200) {
+      this.wheelDeltaYAccum = 0;
+    }
+    if (
+      (this.wheelDeltaYAccum > 0 && deltaY < 0) ||
+      (this.wheelDeltaYAccum < 0 && deltaY > 0)
+    ) {
+      this.wheelDeltaYAccum = 0;
+    }
+
+    this.lastWheelEventTime = now;
+    this.wheelDeltaYAccum = (this.wheelDeltaYAccum || 0) + deltaY;
+
+    const threshold = Math.max(35, this.app.view?.chh || 35);
+    if (Math.abs(this.wheelDeltaYAccum) < threshold) {
+      e.stopPropagation?.();
+      e.preventDefault?.();
+      return true;
+    }
+
+    if (this.lastWheelCmdTime && now - this.lastWheelCmdTime < 60) {
+      e.stopPropagation?.();
+      e.preventDefault?.();
+      return true;
+    }
+
+    const isScrollUp = this.wheelDeltaYAccum < 0;
+    if (Math.abs(deltaY) >= 100) {
+      this.wheelDeltaYAccum = 0;
+    } else {
+      this.wheelDeltaYAccum -= isScrollUp ? -threshold : threshold;
+    }
+    this.lastWheelCmdTime = now;
+
+    const actions = isScrollUp
+      ? MOUSE_WHEEL_ACTIONS_UP
+      : MOUSE_WHEEL_ACTIONS_DOWN;
+    const fnIdx = this.mouseRightButtonDown
+      ? this.mouseWheelFunction2
+      : this.mouseLeftButtonDown
+        ? this.mouseWheelFunction3
+        : this.mouseWheelFunction1;
+    const action = actions[fnIdx];
+    this.app.setNavCmd(action);
+
+    if (this.mouseRightButtonDown) {
+      this.app.preventContextMenuOnMouseUp = true;
+    }
+    if (this.mouseLeftButtonDown) {
+      this.app.skipMouseClick = true;
+    }
+
+    e.stopPropagation?.();
+    e.preventDefault?.();
+    return true;
+  }
+
+  _setDblclickTimer() {
+    if (this._dblclickTimer) {
+      this._dblclickTimer.cancel();
+    }
+    this._dblclickTimer = setTimer(
+      false,
+      () => {
+        this._dblclickTimer = null;
+      },
+      350
+    );
   }
 
   switchMouseBrowsing() {
@@ -378,6 +606,19 @@ export class MouseBrowsing extends PluginBase {
     this.tempMouseRow = trow;
 
     if (!this.enabled && !force) return;
+
+    if (!force && this.app) {
+      if (
+        typeof this.app.isSelectionCollapsed === "function" &&
+        !this.app.isSelectionCollapsed()
+      ) {
+        this.resetMouseCursor();
+        return;
+      }
+      if (this.mouseLeftButtonDown) {
+        return;
+      }
+    }
 
     if ((this.nowHighlight !== trow && buf.nowHighlight !== trow) || doRefresh) {
       this.clearHighlight();
@@ -481,7 +722,7 @@ export class MouseBrowsing extends PluginBase {
       return false;
     }
 
-    const isForced = force || Boolean(e?.forceMouseBrowsing);
+    const isForced = force || Boolean(e?.force || e?.forceMouseBrowsing);
     if (!this.enabled && !isForced) return false;
 
     const cX = e.clientX;
@@ -522,6 +763,14 @@ export class MouseBrowsing extends PluginBase {
         break;
       }
       case 0:
+        if (this.mouseLeftFunction === 1) {
+          app.setNavCmd("doEnter");
+          return true;
+        }
+        if (this.mouseLeftFunction === 2) {
+          app.setNavCmd("doRight");
+          return true;
+        }
         app.send("\x1b[D"); // Arrow Left
         return true;
       case 8: {
@@ -573,9 +822,17 @@ export class MouseBrowsing extends PluginBase {
         break;
       }
       default:
+        if (this.mouseLeftFunction === 1) {
+          app.setNavCmd("doEnter");
+          return true;
+        }
+        if (this.mouseLeftFunction === 2) {
+          app.setNavCmd("doRight");
+          return true;
+        }
         break;
     }
 
-    return false;
+    return true;
   }
 }
