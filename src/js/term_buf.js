@@ -4,7 +4,6 @@ import { EventEmitter } from './event.js';
 import { ColorState, termColors, termInvColors, termDefaultBg, termDefaultFg, termDefaultLink, getContrastColor } from './color_schemes.js';
 import { getSite } from './sites';
 import { isFullWidth } from './wcwidth.js';
-import { playTerminalBell } from './bell.js';
 import { Locator } from './locator.js';
 
 export { ColorState, termColors, termInvColors, termDefaultBg, termDefaultFg, termDefaultLink, getContrastColor };
@@ -238,12 +237,14 @@ export class TermBuf extends EventEmitter {
       this.lines[r] = line;
       //this.keyWordLine[rows]=false;
     }
-    this.termWin = document.getElementById('TermWindow');
     this.titleBase = process.env.APP_TITLE;
     this.titleSite = null;
     this.titleConn = null;
     this.dynamicTitle = (process.env.DYNAMIC_TITLE !== false);
-    document.title = this.title = this.titleBase;
+    this.title = this.titleBase;
+    if (typeof document !== 'undefined') {
+      document.title = this.title;
+    }
   }
 
   /**
@@ -354,7 +355,6 @@ export class TermBuf extends EventEmitter {
       switch (ch) {
       case '\x07':
         this.bellOccurred = true;
-        playTerminalBell();
         this.emit('bell');
         continue;
       case '\b':
@@ -1082,24 +1082,19 @@ export class TermBuf extends EventEmitter {
 
       this.emit('change');
 
-      this.view.update();
+      this.view?.update();
       this.changed = false;
 
       this.emit('viewUpdate');
     }
 
     if (this.posChanged) { // cursor pos changed
-      this.view.updateCursorPos();
+      this.view?.updateCursorPos();
       this.posChanged=false;
     }
 
-    if (this.view.blinkOn) {
+    if (this.view?.blinkOn) {
       this.view.blinkOn = false;
-
-      document.body.classList.toggle('blink--active');
-      if (typeof document !== 'undefined') {
-        document.dispatchEvent(new CustomEvent('term-blink'));
-      }
       this.view.onBlinkToggle();
     }
   }
@@ -1141,8 +1136,6 @@ export class TermBuf extends EventEmitter {
     }
 
     if (start >= end) return '';
-
-    if (!this.view) return '';
 
     // generate texts with ansi color
     if (color) {

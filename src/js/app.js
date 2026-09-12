@@ -12,7 +12,7 @@ import { TouchController } from '../touch/TouchController.js';
 import { setupI18n } from './i18n';
 import { setTimer, parseConnectUrl } from './util';
 import { hasWebKitImeQuirk, shouldPreserveDomSelection } from './quirks';
-import { setTerminalBellEnabled, setWindowFocused } from './bell.js';
+import { setTerminalBellEnabled, setWindowFocused, playTerminalBell } from './bell.js';
 import { readValuesWithDefault, writeValues } from './pref.js';
 import { applyColorScheme } from './color_schemes.js';
 import AppOverlay from '../components/AppOverlay';
@@ -44,6 +44,7 @@ export class App extends EventEmitter {
     this.deleteKey = 'escape-sequence';
     this.lineHeight = 1.0;
     this.buf.on('bell', () => {
+      playTerminalBell();
       if (this.enableVisualBell) {
         this.view.triggerVisualBell();
       }

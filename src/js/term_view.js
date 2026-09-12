@@ -256,6 +256,10 @@ export class TermView extends EventEmitter {
   }
 
   onBlinkToggle() {
+    if (typeof document !== 'undefined') {
+      document.body?.classList?.toggle('blink--active');
+      document.dispatchEvent(new CustomEvent('term-blink'));
+    }
     if (this.useCanvasEngine && this.componentScreen) {
       this.componentScreen.onBlink();
     }

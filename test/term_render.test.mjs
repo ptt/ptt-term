@@ -562,17 +562,13 @@ test('pref parseCaretStyle and serializeCaretStyle support 4 shapes and blink to
   assert.equal(serializeCaretStyle(CARET_SHAPES.IBEAM, false), 'ibeam');
 });
 
-test('TermBuf puts handles bell (\\x07), setting bellOccurred and dispatching bell event', () => {
+test('TermBuf puts handles bell (\\x07), setting bellOccurred and dispatching bell event while App plays audio bell', () => {
   const putsMatch = termBufSource.match(
     /puts\s*\([^)]*\)\s*\{([\s\S]*?\n    this\.queueUpdate\(\);)\n  \}/
   );
   assert.ok(putsMatch);
   const putsBody = putsMatch[1];
   let bellDispatched = 0;
-  let bellSoundPlayed = 0;
-  const playTerminalBell = () => {
-    bellSoundPlayed++;
-  };
   const mockTerm = {
     bellOccurred: false,
     cols: 80,
@@ -594,16 +590,19 @@ test('TermBuf puts handles bell (\\x07), setting bellOccurred and dispatching be
     }
   };
   mockTerm.puts = new Function(
-    'playTerminalBell',
     'isFullWidth',
     'return function(str, attr = null) { ' + putsBody + ' }'
-  )(playTerminalBell, isFullWidth).bind(mockTerm);
+  )(isFullWidth).bind(mockTerm);
 
   assert.equal(mockTerm.bellOccurred, false);
   mockTerm.puts('hello\x07world');
   assert.equal(mockTerm.bellOccurred, true);
   assert.equal(bellDispatched, 1);
-  assert.equal(bellSoundPlayed, 1);
+
+  assert.ok(
+    appSource.includes("playTerminalBell()"),
+    'App must invoke playTerminalBell() when handling buf bell event'
+  );
 });
 
 test('TermView _send, _convSend and conn getter delegate to app.send and app.conn', () => {
