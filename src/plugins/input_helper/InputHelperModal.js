@@ -593,6 +593,7 @@ export class InputHelperModal extends React.Component {
     ) {
       return;
     }
+    this.handleMouseUp();
     this.dragActive = true;
     this.dragStartX = e.clientX;
     this.dragStartY = e.clientY;
@@ -627,9 +628,14 @@ export class InputHelperModal extends React.Component {
     window.addEventListener("click", this.handleDocumentClick);
   }
 
+  componentDidUpdate(prevProps) {
+    if (prevProps.show && !this.props.show) {
+      this.handleMouseUp();
+    }
+  }
+
   componentWillUnmount() {
-    window.removeEventListener("mousemove", this.handleMouseMove);
-    window.removeEventListener("mouseup", this.handleMouseUp);
+    this.handleMouseUp();
     window.removeEventListener("click", this.handleDocumentClick);
   }
 
@@ -731,6 +737,7 @@ export class InputHelperModal extends React.Component {
 
   render() {
     const { show, onHide } = this.props;
+    if (!show) return null;
     const { fg, bg, isBlink, activeTab, symbolDropdownOpen, emoDropdownOpen, sendDropdownOpen } = this.state;
 
     return (

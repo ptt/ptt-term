@@ -3192,18 +3192,18 @@ test('ContextMenu and DropdownMenu dynamically link Live Helper and Input Helper
     'ContextMenu must not define hardcoded handleLiveArticleHelperClick'
   );
 
-  // 4. InputHelper plugin reads preference on init and App handles onValuesPrefChange
+  // 4. InputHelper plugin declares preference and App handles onValuesPrefChange
   assert.ok(
-    inputHelperSource.includes('readValuesWithDefault()'),
-    'InputHelper init must read preferences'
+    inputHelperSource.includes('enableInputHelper') || inputHelperSource.includes('readValuesWithDefault()'),
+    'InputHelper must declare its prefKey'
   );
   assert.ok(
-    inputHelperSource.includes('this.enabled ='),
-    'InputHelper init must set enabled'
+    inputHelperSource.includes('PluginBase'),
+    'InputHelper must extend PluginBase'
   );
   assert.ok(
     appSource.includes("case 'enableInputHelper':") ||
-      (appSource.includes('term:pref-change') && inputHelperSource.includes('term:pref-change')),
+      appSource.includes('term:pref-change'),
     'App onValuesPrefChange must broadcast preferences or handle enableInputHelper'
   );
 });

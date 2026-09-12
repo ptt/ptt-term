@@ -1,99 +1,59 @@
 import React from "preact/compat";
-import { readValuesWithDefault, updatePref } from "../../js/pref.js";
+import { PluginBase } from "../PluginBase.js";
 import { _ } from "../../js/i18n.js";
 import { isBrowser } from "../../js/util.js";
 
 let _InputHelperModal = null;
 
-class InputHelperOverlay extends (React?.Component || class {}) {
+class InputHelperOverlay extends React.Component {
   constructor(props) {
     super(props);
     this.state = { Component: _InputHelperModal };
   }
 
   componentDidMount() {
+    this._unmounted = false;
     if (!this.state.Component && isBrowser()) {
       import("./InputHelperModal.js")
         .then((mod) => {
           _InputHelperModal = mod.default || mod.InputHelperModal;
-          this.setState({ Component: _InputHelperModal });
+          if (!this._unmounted) {
+            this.setState({ Component: _InputHelperModal });
+          }
         })
         .catch(() => {});
     }
   }
 
+  componentWillUnmount() {
+    this._unmounted = true;
+  }
+
   render() {
-    const Component = this.state.Component;
+    const Component = this.state.Component || _InputHelperModal;
     if (!Component) return null;
     return React.createElement(Component, this.props);
   }
 }
 
-export class InputHelper {
+export class InputHelper extends PluginBase {
   static id = "input_helper";
   static name = "input_helper";
   static prefKey = "enableInputHelper";
   static group = "ui";
+  static icon = "palette";
 
-  static getMetadata() {
-    return {
-      id: "input_helper",
-      name: "input_helper",
-      title: _("plugin_input_helper_title"),
-      description: _("plugin_input_helper_desc"),
-      prefKey: "enableInputHelper",
-      icon: "palette",
-      group: "ui",
-    };
-  }
-
-  constructor(app, options = {}) {
-    this.app = app || null;
-    this.view = options.view || null;
-    this.buf = options.buf || null;
-    this.enabled = options.enabled ?? true;
-    this.showsModal = false;
-  }
-
-  get id() {
-    return "input_helper";
-  }
-
-  get name() {
-    return "input_helper";
-  }
-
-  get prefKey() {
-    return "enableInputHelper";
-  }
-
-  get group() {
-    return "ui";
-  }
-
-  get title() {
+  static get title() {
     return _("plugin_input_helper_title");
   }
 
-  get description() {
+  static get description() {
     return _("plugin_input_helper_desc");
   }
 
-  get icon() {
-    return "palette";
-  }
-
-  getMetadata() {
-    return {
-      id: this.id,
-      name: this.name,
-      title: this.title,
-      description: this.description,
-      prefKey: this.prefKey,
-      enabled: this.enabled,
-      icon: this.icon,
-      group: this.group,
-    };
+  constructor(app, options = {}) {
+    super(app, options);
+    this.showsModal = false;
   }
 
   getContextMenuItems() {
@@ -102,7 +62,8 @@ export class InputHelper {
         id: "input_helper",
         order: 10,
         label: () => _("cmenu_showInputHelper"),
-        visible: (app, { normalEnabled }) => normalEnabled && Boolean(this.enabled),
+        visible: (app, { normalEnabled } = {}) =>
+          Boolean(normalEnabled !== false && this.enabled),
         onClick: () => {
           this.show();
         },
@@ -110,28 +71,9 @@ export class InputHelper {
     ];
   }
 
-  init({ app, view, buf } = {}) {
-    if (app) {
-      this.app = app;
-      this._onPrefChangeBound = (e) => {
-        const key = e?.key ?? e?.detail?.key;
-        const value = e?.value !== undefined ? e.value : e?.detail?.value;
-        if (key === "enableInputHelper") {
-          this.enabled = Boolean(value);
-        }
-      };
-      app.on("term:pref-change", this._onPrefChangeBound);
-      app.registerContextMenuItem?.(this.getContextMenuItems()[0]);
-    }
-    if (view) this.view = view;
-    if (buf) this.buf = buf;
-    const prefs = readValuesWithDefault();
-    this.enabled =
-      prefs.enableInputHelper !== undefined
-        ? Boolean(prefs.enableInputHelper)
-        : true;
-
-    if (isBrowser()) {
+  onInit() {
+    // Preference change ('term:pref-change') is handled by PluginBase for enableInputHelper
+    if (isBrowser() && !_InputHelperModal) {
       import("./InputHelperModal.js")
         .then((mod) => {
           _InputHelperModal = mod.default || mod.InputHelperModal;
@@ -140,27 +82,36 @@ export class InputHelper {
     }
   }
 
-  destroy() {
-    this.showsModal = false;
-    if (this.app) {
-      this.app.off("term:pref-change", this._onPrefChangeBound);
-      this.app.unregisterContextMenuItem?.("input_helper");
+  onDisable() {
+    if (this.showsModal) {
+      this.showsModal = false;
+      this.app?.setInputAreaFocus?.();
     }
   }
 
+  onDestroy() {
+    this.showsModal = false;
+  }
+
   show() {
+    if (this.showsModal) return;
     this.showsModal = true;
     this.app?.emit('term:overlay:update');
   }
 
   hide() {
+    if (!this.showsModal) return;
     this.showsModal = false;
     this.app?.emit('term:overlay:update');
+    this.app?.setInputAreaFocus?.();
   }
 
   toggle() {
-    this.showsModal = !this.showsModal;
-    this.app?.emit('term:overlay:update');
+    if (this.showsModal) {
+      this.hide();
+    } else {
+      this.show();
+    }
     return this.showsModal;
   }
 
@@ -180,7 +131,7 @@ export class InputHelper {
   };
 
   renderOverlay({ app } = {}) {
-    if (!this.showsModal && !_InputHelperModal) return null;
+    if (!this.enabled || !this.showsModal) return null;
     const targetApp = app || this.app;
     return React.createElement(InputHelperOverlay, {
       show: this.showsModal,
