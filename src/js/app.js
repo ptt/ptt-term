@@ -13,7 +13,7 @@ import { setupI18n } from './i18n';
 import { setTimer, parseConnectUrl } from './util';
 import { hasWebKitImeQuirk, shouldPreserveDomSelection } from './quirks';
 import { setTerminalBellEnabled, setWindowFocused, playTerminalBell } from './bell.js';
-import { readValuesWithDefault, writeValues } from './pref.js';
+import { readValuesWithDefault, writeValues, registerPluginPrefs } from './pref.js';
 import { applyColorScheme } from './color_schemes.js';
 import AppOverlay from '../components/AppOverlay';
 import { getSite } from './sites';
@@ -258,6 +258,7 @@ export class App extends EventEmitter {
 
   registerPlugin(plugin) {
     if (!plugin || this.plugins.includes(plugin)) return;
+    registerPluginPrefs([plugin.constructor || plugin]);
     this.plugins.push(plugin);
     if (typeof plugin.init === 'function') {
       plugin.init({ app: this, view: this.view, buf: this.buf });
@@ -366,6 +367,15 @@ export class App extends EventEmitter {
         meta.renderOptions = (
           p.constructor?.renderOptions || p.renderOptions
         ).bind(p);
+      }
+      const hasCustomOnTogglePref =
+        typeof p.constructor?.onTogglePref === 'function' ||
+        (typeof p.onTogglePref === 'function' &&
+          p.onTogglePref !== PluginBase.prototype.onTogglePref);
+      if (hasCustomOnTogglePref && !meta.onTogglePref) {
+        meta.onTogglePref = (
+          p.constructor?.onTogglePref || p.onTogglePref
+        ).bind(p.constructor?.onTogglePref ? p.constructor : p);
       }
       return meta;
     });

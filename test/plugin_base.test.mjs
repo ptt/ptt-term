@@ -1454,5 +1454,41 @@ test('TermView setHyperlinkPreviewProvider decouples MediaPreviewer and EasyRead
   assert.equal(app.view.enableLinkHoverPreview, false);
 });
 
+test('Plugins declare defaultPrefs and onTogglePref hooks, decoupling PrefModal from hardcoded plugin names', async () => {
+  const { BUILTIN_PLUGINS, LiveUpdate, AntiIdle, AutoWrap } = await import('../src/plugins/index.js');
+
+  for (const PluginClass of BUILTIN_PLUGINS) {
+    const meta = PluginClass.getMetadata();
+    assert.equal(typeof meta.defaultPrefs, 'object', `${PluginClass.name} must expose defaultPrefs in metadata`);
+    assert.ok(meta.prefKey in meta.defaultPrefs, `${PluginClass.name}.defaultPrefs must include its prefKey (${meta.prefKey})`);
+  }
+
+  // LiveUpdate onTogglePref
+  const liveUpdated = LiveUpdate.onTogglePref(true, {});
+  assert.equal(liveUpdated.endTurnsOnLiveUpdate, true);
+  assert.equal(liveUpdated.showLiveUpdateToolbar, true);
+  assert.equal(liveUpdated.liveUpdateInterval, 1);
+
+  // AntiIdle onTogglePref
+  const antiIdleUpdated = AntiIdle.onTogglePref(true, { antiIdleTime: 0 });
+  assert.equal(antiIdleUpdated.antiIdleTime, 180);
+
+  // AutoWrap onTogglePref
+  const autoWrapUpdated = AutoWrap.onTogglePref(true, { lineWrap: 0 });
+  assert.equal(autoWrapUpdated.lineWrap, 78);
+
+  // Verify PrefModal source does not hardcode enableLiveUpdate/enableAntiIdle/enableAutoWrap in handleCheckboxChange
+  const prefModalSrc = fs.readFileSync(path.resolve('src/components/Settings/PrefModal.js'), 'utf-8');
+  assert.ok(
+    prefModalSrc.includes('matchedPlugin.onTogglePref'),
+    'PrefModal.handleCheckboxChange must delegate to matchedPlugin.onTogglePref'
+  );
+  assert.ok(
+    !prefModalSrc.includes('if (name === "enableLiveUpdate"'),
+    'PrefModal must not hardcode enableLiveUpdate check in handleCheckboxChange'
+  );
+});
+
+
 
 

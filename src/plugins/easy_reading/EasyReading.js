@@ -11,6 +11,9 @@ export class EasyReading extends PluginBase {
   static prefKey = 'enableEasyReading';
   static group = 'bbs';
   static icon = 'book';
+  static defaultPrefs = {
+    enableEasyReading: false,
+  };
 
   static get title() {
     return _('plugin_easy_reading_title');

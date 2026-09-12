@@ -10,6 +10,17 @@ export class AutoWrap extends PluginBase {
   static prefKey = "enableAutoWrap";
   static group = "bbs";
   static icon = "wrap_text";
+  static defaultPrefs = {
+    enableAutoWrap: true,
+    lineWrap: 78,
+  };
+
+  static onTogglePref(checked, nextValues) {
+    if (checked && (!nextValues.lineWrap || nextValues.lineWrap <= 0)) {
+      return { ...nextValues, lineWrap: 78 };
+    }
+    return nextValues;
+  }
 
   static get title() {
     return _("plugin_auto_wrap_title");

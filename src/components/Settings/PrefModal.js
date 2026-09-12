@@ -677,26 +677,10 @@ export class PrefModal extends React.Component {
   handleCheckboxChange = ({ target: { name, checked } }) => {
     this.setState((prevState) => {
       let nextValues = changeNestedValue(prevState.values, name, !!checked);
-      if (name === "enableLiveUpdate" && checked) {
-        if (nextValues.endTurnsOnLiveUpdate === undefined) {
-          nextValues = changeNestedValue(nextValues, "endTurnsOnLiveUpdate", true);
-        }
-        if (nextValues.showLiveUpdateToolbar === undefined) {
-          nextValues = changeNestedValue(nextValues, "showLiveUpdateToolbar", true);
-        }
-        if (!nextValues.liveUpdateInterval) {
-          nextValues = changeNestedValue(nextValues, "liveUpdateInterval", 1);
-        }
-      }
-      if (name === "enableAntiIdle") {
-        if (checked && (!nextValues.antiIdleTime || nextValues.antiIdleTime <= 0)) {
-          nextValues = changeNestedValue(nextValues, "antiIdleTime", 180);
-        }
-      }
-      if (name === "enableAutoWrap") {
-        if (checked && (!nextValues.lineWrap || nextValues.lineWrap <= 0)) {
-          nextValues = changeNestedValue(nextValues, "lineWrap", 78);
-        }
+      const plugins = this.getPlugins();
+      const matchedPlugin = plugins.find((p) => p.prefKey === name);
+      if (matchedPlugin && typeof matchedPlugin.onTogglePref === "function") {
+        nextValues = matchedPlugin.onTogglePref(!!checked, nextValues) || nextValues;
       }
       return { values: nextValues };
     });

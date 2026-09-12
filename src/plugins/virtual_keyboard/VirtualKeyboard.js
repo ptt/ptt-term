@@ -42,6 +42,21 @@ export class VirtualKeyboardPlugin extends PluginBase {
   static prefKey = "enableVirtualKeyboard";
   static group = "ui";
   static icon = "keyboard";
+  static defaultPrefs = {
+    enableVirtualKeyboard: false,
+  };
+
+  static getDefaultPrefs() {
+    if (typeof window === "undefined" || typeof navigator === "undefined") {
+      return { enableVirtualKeyboard: false };
+    }
+    const ua = navigator.userAgent || "";
+    const platform = navigator.platform || "";
+    const maxTouchPoints = navigator.maxTouchPoints || 0;
+    const isIPadOS = platform === "MacIntel" && maxTouchPoints > 1 && !/Chrome\//.test(ua);
+    const isMobile = /iPad|iPhone|iPod|Android|Mobile/i.test(ua) || isIPadOS;
+    return { enableVirtualKeyboard: isMobile };
+  }
 
   static get title() {
     return _("plugin_virtual_keyboard_title");

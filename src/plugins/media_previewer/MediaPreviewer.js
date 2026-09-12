@@ -14,6 +14,10 @@ export class MediaPreviewer extends PluginBase {
   static prefKey = "enableMediaPreviewer";
   static group = "ui";
   static icon = "image";
+  static defaultPrefs = {
+    enableMediaPreviewer: true,
+    picPreviewWhitelistOnly: true,
+  };
 
   static get title() {
     return _("plugin_media_previewer_title");

@@ -8,6 +8,9 @@ export class FpsMeter extends PluginBase {
   static prefKey = "enableFpsMeter";
   static group = "debug";
   static icon = "speed";
+  static defaultPrefs = {
+    enableFpsMeter: false,
+  };
 
   static get title() {
     return _("plugin_fps_meter_title");

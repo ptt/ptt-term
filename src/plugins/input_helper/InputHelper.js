@@ -42,6 +42,9 @@ export class InputHelper extends PluginBase {
   static prefKey = "enableInputHelper";
   static group = "ui";
   static icon = "palette";
+  static defaultPrefs = {
+    enableInputHelper: true,
+  };
 
   static get title() {
     return _("plugin_input_helper_title");

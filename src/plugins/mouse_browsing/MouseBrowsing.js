@@ -125,6 +125,16 @@ export class MouseBrowsing extends PluginBase {
   static prefKey = "enableMouseBrowsing";
   static group = "bbs";
   static icon = "mouse";
+  static defaultPrefs = {
+    enableMouseBrowsing: false,
+    mouseBrowsingHighlight: true,
+    mouseBrowsingHighlightColor: 2,
+    mouseLeftFunction: 0,
+    mouseMiddleFunction: 0,
+    mouseWheelFunction1: 1,
+    mouseWheelFunction2: 2,
+    mouseWheelFunction3: 3,
+  };
 
   static get title() {
     return _("plugin_mouse_browsing_title");

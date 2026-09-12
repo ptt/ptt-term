@@ -19,6 +19,7 @@ export class PluginBase {
   static prefKey = '';
   static group = 'other';
   static icon = 'extension';
+  static defaultPrefs = {};
 
   static getMetadata() {
     return {
@@ -27,9 +28,17 @@ export class PluginBase {
       title: typeof this.getTitle === 'function' ? this.getTitle() : this.title || this.name,
       description: typeof this.getDescription === 'function' ? this.getDescription() : this.description || '',
       prefKey: this.prefKey,
+      defaultPrefs:
+        typeof this.getDefaultPrefs === 'function'
+          ? this.getDefaultPrefs()
+          : (this.defaultPrefs || {}),
       icon: this.icon || 'extension',
       group: this.group || 'other',
       renderOptions: this.renderOptions,
+      onTogglePref:
+        typeof this.onTogglePref === 'function'
+          ? this.onTogglePref.bind(this)
+          : undefined,
     };
   }
 
@@ -105,19 +114,38 @@ export class PluginBase {
       typeof this.constructor.renderOptions === 'function' ||
       (typeof this.renderOptions === 'function' &&
         this.renderOptions !== PluginBase.prototype.renderOptions);
+    const hasCustomOnTogglePref =
+      typeof this.constructor.onTogglePref === 'function' ||
+      (typeof this.onTogglePref === 'function' &&
+        this.onTogglePref !== PluginBase.prototype.onTogglePref);
     return {
       id: this.id,
       name: this.name,
       title: this.title,
       description: this.description,
       prefKey: this.prefKey,
+      defaultPrefs:
+        typeof this.constructor.getDefaultPrefs === 'function'
+          ? this.constructor.getDefaultPrefs()
+          : (this.constructor.defaultPrefs || {}),
       enabled: this.enabled,
       icon: this.icon,
       group: this.group,
       renderOptions:
         this.constructor.renderOptions ||
         (hasCustomRenderOptions ? this.renderOptions.bind(this) : undefined),
+      onTogglePref:
+        this.constructor.onTogglePref
+          ? this.constructor.onTogglePref.bind(this.constructor)
+          : (hasCustomOnTogglePref ? this.onTogglePref.bind(this) : undefined),
     };
+  }
+
+  onTogglePref(checked, nextValues) {
+    if (typeof this.constructor.onTogglePref === 'function') {
+      return this.constructor.onTogglePref(checked, nextValues);
+    }
+    return nextValues;
   }
 
   renderOptions(props) {

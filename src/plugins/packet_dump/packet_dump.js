@@ -22,6 +22,9 @@ export class PacketDump extends PluginBase {
   static prefKey = "enablePacketDump";
   static group = "debug";
   static icon = "terminal";
+  static defaultPrefs = {
+    enablePacketDump: false,
+  };
 
   static get title() {
     return _("plugin_packet_dump_title");

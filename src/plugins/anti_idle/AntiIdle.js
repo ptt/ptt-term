@@ -10,6 +10,17 @@ export class AntiIdle extends PluginBase {
   static group = "bbs";
   static icon = "timer";
   static DEFAULT_INTERVAL_SEC = 180;
+  static defaultPrefs = {
+    enableAntiIdle: false,
+    antiIdleTime: 180,
+  };
+
+  static onTogglePref(checked, nextValues) {
+    if (checked && (!nextValues.antiIdleTime || nextValues.antiIdleTime <= 0)) {
+      return { ...nextValues, antiIdleTime: AntiIdle.DEFAULT_INTERVAL_SEC };
+    }
+    return nextValues;
+  }
 
   static get title() {
     return _("plugin_anti_idle_title");

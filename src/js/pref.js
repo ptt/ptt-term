@@ -106,6 +106,25 @@ export const PLUGIN_PREF_KEY_MAP = {
   virtual_keyboard: "enableVirtualKeyboard",
 };
 
+export const registerPluginPrefs = (pluginClasses = []) => {
+  if (!Array.isArray(pluginClasses)) return;
+  for (const PluginClass of pluginClasses) {
+    if (!PluginClass) continue;
+    const id = PluginClass.id || PluginClass.name;
+    const prefKey = PluginClass.prefKey;
+    if (id && prefKey) {
+      PLUGIN_PREF_KEY_MAP[id] = prefKey;
+    }
+    const defaults =
+      typeof PluginClass.getDefaultPrefs === "function"
+        ? PluginClass.getDefaultPrefs()
+        : PluginClass.defaultPrefs;
+    if (defaults && typeof defaults === "object") {
+      Object.assign(DEFAULT_PREFS, defaults);
+    }
+  }
+};
+
 const resolvePluginPrefKey = (key) => {
   if (!key) return null;
   const trimmed = String(key).trim();

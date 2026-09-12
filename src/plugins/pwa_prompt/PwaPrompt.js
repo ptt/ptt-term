@@ -109,6 +109,15 @@ export class PwaPromptPlugin extends PluginBase {
   static prefKey = 'enablePwaPrompt';
   static group = 'ui';
   static icon = 'smartphone';
+  static defaultPrefs = {
+    enablePwaPrompt: false,
+  };
+
+  static getDefaultPrefs() {
+    if (isStandalone()) return { enablePwaPrompt: false };
+    const platform = getPlatform();
+    return { enablePwaPrompt: platform === 'ios' || platform === 'android' };
+  }
 
   static get title() {
     return _('plugin_pwa_prompt_title');

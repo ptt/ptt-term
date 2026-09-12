@@ -44,6 +44,27 @@ export class LiveUpdate extends PluginBase {
   static prefKey = 'enableLiveUpdate';
   static group = 'bbs';
   static icon = 'sync';
+  static defaultPrefs = {
+    enableLiveUpdate: false,
+    endTurnsOnLiveUpdate: true,
+    liveUpdateInterval: 1,
+    showLiveUpdateToolbar: true,
+  };
+
+  static onTogglePref(checked, nextValues) {
+    if (!checked) return nextValues;
+    const updated = { ...nextValues };
+    if (updated.endTurnsOnLiveUpdate === undefined) {
+      updated.endTurnsOnLiveUpdate = true;
+    }
+    if (updated.showLiveUpdateToolbar === undefined) {
+      updated.showLiveUpdateToolbar = true;
+    }
+    if (!updated.liveUpdateInterval) {
+      updated.liveUpdateInterval = 1;
+    }
+    return updated;
+  }
 
   static get title() {
     return _('plugin_live_update_title');

@@ -42,6 +42,9 @@ export class AutoLogin extends PluginBase {
   static prefKey = "enableAutoLogin";
   static group = "bbs";
   static icon = "key";
+  static defaultPrefs = {
+    enableAutoLogin: true,
+  };
 
   static get title() {
     return _("plugin_auto_login_title");

@@ -10,6 +10,9 @@ export class TouchDebugHUDPlugin extends PluginBase {
   static prefKey = "enableTouchDebugHUD";
   static group = "debug";
   static icon = "debug";
+  static defaultPrefs = {
+    enableTouchDebugHUD: false,
+  };
 
   static get title() {
     return _("plugin_touch_debug_hud_title");

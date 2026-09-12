@@ -1,3 +1,4 @@
+import { registerPluginPrefs } from '../js/pref.js';
 import {
   EasyReading,
   EasyReadingPlugin,
@@ -194,6 +195,8 @@ export const BUILTIN_PLUGINS = [
   PwaPromptPlugin,
 ];
 
+registerPluginPrefs(BUILTIN_PLUGINS);
+
 export function getAvailablePlugins(app) {
   let list = [];
   if (app && app.getPluginList) {
@@ -207,6 +210,9 @@ export function getAvailablePlugins(app) {
       const meta = { ...PluginClass.getMetadata() };
       if (PluginClass.renderOptions && !meta.renderOptions) {
         meta.renderOptions = PluginClass.renderOptions;
+      }
+      if (PluginClass.onTogglePref && !meta.onTogglePref) {
+        meta.onTogglePref = PluginClass.onTogglePref.bind(PluginClass);
       }
       return meta;
     });
