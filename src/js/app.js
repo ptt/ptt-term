@@ -41,7 +41,14 @@ export class App extends EventEmitter {
       this.lastSelection = selection;
     });
     this.buf = new TermBuf(80, 24);
-    this.buf.app = this;
+    this.titleBase = process.env.APP_TITLE;
+    this.titleSite = null;
+    this.titleConn = null;
+    this.dynamicTitle = process.env.DYNAMIC_TITLE !== false;
+    this.title = this.titleBase;
+    if (typeof document !== 'undefined') {
+      document.title = this.title;
+    }
     this.enableVisualBell = false;
     this.backspaceKey = 'control-h';
     this.deleteKey = 'escape-sequence';
@@ -52,9 +59,32 @@ export class App extends EventEmitter {
         this.view.triggerVisualBell();
       }
     });
+    this.buf.on('title', (part) => {
+      this.setTitle(part);
+    });
+    this.buf.on('term:login-prompt', (detail) => {
+      this.emit('term:login-prompt', detail);
+    });
+    this.buf.on('site-change', ({ site, clampRows }) => {
+      this.site = site;
+      if (this.conn) {
+        this.conn.site = site;
+      }
+      if (this.stream) {
+        this.stream.charset = site.charset;
+      }
+      if (clampRows && this.buf.rows > clampRows) {
+        if (this.resizer) {
+          this.resizer();
+        } else {
+          this.setTermSize(this.buf.cols, clampRows);
+          this.view.fontResize();
+          this.view.redraw(true);
+        }
+      }
+    });
     this.site = getSite(process.env.SITE_TYPE || 'auto');
     this.buf.site = this.site;
-    this.buf.setView(this.view);
     this.view.setBuf(this.buf);
     this.view.setCore(this);
     this.stream = new Stream(null, {
@@ -467,8 +497,9 @@ export class App extends EventEmitter {
     console.info('app onConnect');
     this.connectState = 1;
     this.updateTabIcon('connect');
-    this.view.buf.setTitle({ conn: this.connectedUrl.hostname });
+    this.setTitle({ conn: this.connectedUrl.hostname });
     this.emit('term:connect');
+    this.buf?.emit?.('term:connect');
     if (this.timerEverySec) {
       this.timerEverySec.cancel();
     }
@@ -493,6 +524,7 @@ export class App extends EventEmitter {
 
     this.connectState = 2;
     this.emit('term:disconnect');
+    this.buf?.emit?.('term:disconnect');
 
     this.showAlert('connection', {
       onDismiss: () => {
@@ -500,6 +532,30 @@ export class App extends EventEmitter {
       },
     });
     this.updateTabIcon('disconnect');
+  }
+
+  setTitle(part) {
+    if (part && typeof part === 'object') {
+      if (typeof part.site === 'string') {
+        this.titleSite = part.site;
+      }
+      if (typeof part.conn === 'string') {
+        this.titleConn = part.conn;
+      }
+    }
+    let title = this.titleBase;
+    if (this.dynamicTitle) {
+      if (this.titleSite) {
+        title += ' - ' + this.titleSite;
+      }
+      if (this.titleConn) {
+        title += ' - ' + this.titleConn;
+      }
+    }
+    this.title = title;
+    if (typeof document !== 'undefined') {
+      document.title = title;
+    }
   }
 
   send(data) {

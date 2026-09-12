@@ -198,7 +198,6 @@ export class TermBuf extends EventEmitter {
     const validRows = (typeof rows === 'number' && Number.isFinite(rows) && rows > 0) ? Math.floor(rows) : 24;
     this.cols = validCols;
     this.rows = validRows;
-    this.view = null;
     this.cur_x = 0;
     this.cur_y = 0;
     this.cur_x_sav = -1;
@@ -213,6 +212,7 @@ export class TermBuf extends EventEmitter {
     this.altScreen = '';
     this.changed = false;
     this.posChanged = false;
+    this.blinkPending = false;
     this.bellOccurred = false;
     this.inSyncUpdate = false;
     this.hasFrameSync = false;
@@ -236,14 +236,6 @@ export class TermBuf extends EventEmitter {
       }
       this.lines[r] = line;
       //this.keyWordLine[rows]=false;
-    }
-    this.titleBase = process.env.APP_TITLE;
-    this.titleSite = null;
-    this.titleConn = null;
-    this.dynamicTitle = (process.env.DYNAMIC_TITLE !== false);
-    this.title = this.titleBase;
-    if (typeof document !== 'undefined') {
-      document.title = this.title;
     }
   }
 
@@ -280,13 +272,6 @@ export class TermBuf extends EventEmitter {
     if (this.cur_y >= rows) this.cur_y = rows - 1;
   }
 
-  /**
-   * @param {any} view
-   */
-  setView(view) {
-    this.view = view;
-  }
-
   get site() {
     return this._site;
   }
@@ -299,10 +284,6 @@ export class TermBuf extends EventEmitter {
     if (val) {
       val.attach(this);
     }
-  }
-
-  sendKey(key) {
-    return this.view ? this.view.sendKey(key) : false;
   }
 
   checkLeftDBCS() {
@@ -1040,6 +1021,11 @@ export class TermBuf extends EventEmitter {
     this.locator?.handleDECRST(mode);
   }
 
+  queueBlink() {
+    this.blinkPending = true;
+    this.queueUpdate(true);
+  }
+
   queueUpdate(directupdate) {
     if (this.inSyncUpdate) {
       return;
@@ -1080,22 +1066,19 @@ export class TermBuf extends EventEmitter {
 
       this.setPageState();
 
-      this.emit('change');
-
-      this.view?.update();
       this.changed = false;
-
+      this.emit('change');
       this.emit('viewUpdate');
     }
 
     if (this.posChanged) { // cursor pos changed
-      this.view?.updateCursorPos();
-      this.posChanged=false;
+      this.posChanged = false;
+      this.emit('cursor-move');
     }
 
-    if (this.view?.blinkOn) {
-      this.view.blinkOn = false;
-      this.view.onBlinkToggle();
+    if (this.blinkPending) {
+      this.blinkPending = false;
+      this.emit('blink');
     }
   }
 
@@ -1265,26 +1248,6 @@ export class TermBuf extends EventEmitter {
    * @param {{ site?: string, conn?: string }} [part]
    */
   setTitle(part) {
-    if (part && typeof part === 'object') {
-      if (typeof part.site === 'string') {
-        this.titleSite = part.site;
-      }
-      if (typeof part.conn === 'string') {
-        this.titleConn = part.conn;
-      }
-    }
-    let title = this.titleBase;
-    if (this.dynamicTitle) {
-      if (this.titleSite) {
-        title += ' - ' + this.titleSite;
-      }
-      if (this.titleConn) {
-        title += ' - ' + this.titleConn;
-      }
-    }
-    this.title = title;
-    if (typeof document !== 'undefined') {
-      document.title = title;
-    }
+    this.emit('title', part);
   }
 }

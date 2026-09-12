@@ -341,12 +341,12 @@ test('TermKeyboard bypasses Bopomofo pre-edit keys and delegates printable keys 
   assert.equal(enterEvt.isDefaultPrevented, true);
 });
 
-test('TermView and TermBuf delegate sendKey to TermKeyboard for BaseSite DBCS cursor handling', () => {
+test('TermView delegates sendKey to TermKeyboard for BaseSite DBCS cursor handling without TermBuf holding view/sendKey', () => {
   const sent = [];
   const kb = new TermKeyboard((data) => sent.push(data));
   const maple3Site = new Maple3Site();
 
-  // Simulate TermView instance with _keyboard and TermBuf instance delegating sendKey to view
+  // Simulate TermView instance with _keyboard and pure TermBuf instance without view or sendKey
   const mockView = {
     _keyboard: kb,
     checkLeftDBCS: () => true,
@@ -356,12 +356,8 @@ test('TermView and TermBuf delegate sendKey to TermKeyboard for BaseSite DBCS cu
     },
   };
   const mockBuf = Object.assign(new EventEmitter(), {
-    view: mockView,
     checkLeftDBCS: () => true,
     checkCurrentDBCS: () => false,
-    sendKey(key) {
-      return this.view ? this.view.sendKey(key) : false;
-    },
   });
 
   maple3Site.attach(mockBuf);
@@ -371,7 +367,7 @@ test('TermView and TermBuf delegate sendKey to TermKeyboard for BaseSite DBCS cu
   });
 
   kb.onKeyDown(mockKeyEvent({ key: 'Backspace' }));
-  assert.equal(sent.join(''), '\b\b', 'Should send double Backspace via mockBuf.sendKey -> mockView.sendKey -> kb.sendKey');
+  assert.equal(sent.join(''), '\b\b', 'Should send double Backspace via mockView.sendKey -> kb.sendKey');
 });
 
 

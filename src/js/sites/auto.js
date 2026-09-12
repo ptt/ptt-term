@@ -90,19 +90,6 @@ export class AutoSite extends BaseSite {
       this.name = 'maple3';
       this.charset = this.maple3Site.charset;
       this.isLocked = true;
-      if (termBuf && termBuf.rows > 24) {
-        console.log(`[AutoSite] Clamping terminal rows from ${termBuf.rows} to 24`);
-        const app = termBuf.view?.app;
-        if (app?.resizer) {
-          app.resizer();
-        } else if (termBuf.resize) {
-          termBuf.resize(termBuf.cols, 24);
-          if (termBuf.view) {
-            termBuf.view.fontResize();
-            termBuf.view.redraw(true);
-          }
-        }
-      }
     } else if (siteName === 'ptt') {
       console.log('[AutoSite] Confirmed and locked PTT site');
       this.detectedSite = this.pttSite;
@@ -113,7 +100,16 @@ export class AutoSite extends BaseSite {
 
     if (termBuf) {
       termBuf.site = this.detectedSite;
-      const app = termBuf.view?.app;
+      const clampRows = siteName === 'maple3' ? 24 : null;
+      if (clampRows && termBuf.rows > clampRows && termBuf.resize) {
+        termBuf.resize(termBuf.cols, clampRows);
+      }
+      termBuf.emit?.('site-change', {
+        site: this.detectedSite,
+        siteName,
+        clampRows,
+      });
+      const app = termBuf.app || termBuf.view?.app;
       if (app) {
         app.site = this.detectedSite;
         if (app.conn) {
@@ -121,6 +117,9 @@ export class AutoSite extends BaseSite {
         }
         if (app.stream) {
           app.stream.charset = this.detectedSite.charset;
+        }
+        if (clampRows && app.resizer) {
+          app.resizer();
         }
       }
     }

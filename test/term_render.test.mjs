@@ -47,20 +47,12 @@ function createHarness() {
     clearHighlight() {},
     emit(type) {
       this.events.push(type);
+      if (type === 'change') this.viewUpdates++;
+      if (type === 'cursor-move') this.cursorUpdates++;
     },
     dispatchEvent(evt) {
       this.events.push(evt.type);
     },
-    view: {
-      blinkOn: false,
-      update() {
-        harness.viewUpdates++;
-      },
-      updateCursorPos() {
-        harness.cursorUpdates++;
-      },
-      onBlinkToggle() {}
-    }
   };
 
   const queueUpdateBody = termBufSource.match(

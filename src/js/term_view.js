@@ -249,13 +249,16 @@ export class TermView extends EventEmitter {
 
 
   onBlink() {
-    this.blinkOn=true;
-    //   if(this.buf && this.buf.changed)
-    this.buf.queueUpdate(true);
-    //   else this.update();
+    this.blinkOn = true;
+    if (this.buf) {
+      this.buf.queueBlink();
+    } else {
+      this.onBlinkToggle();
+    }
   }
 
   onBlinkToggle() {
+    this.blinkOn = false;
     if (typeof document !== 'undefined') {
       document.body?.classList?.toggle('blink--active');
       document.dispatchEvent(new CustomEvent('term-blink'));
@@ -266,7 +269,22 @@ export class TermView extends EventEmitter {
   }
 
   setBuf(buf) {
-    this.buf=buf;
+    if (this.buf && this._bufListeners) {
+      this.buf.off('change', this._bufListeners.change);
+      this.buf.off('cursor-move', this._bufListeners.cursorMove);
+      this.buf.off('blink', this._bufListeners.blink);
+    }
+    this.buf = buf;
+    if (buf) {
+      this._bufListeners = {
+        change: () => this.update(),
+        cursorMove: () => this.updateCursorPos(),
+        blink: () => this.onBlinkToggle(),
+      };
+      buf.on('change', this._bufListeners.change);
+      buf.on('cursor-move', this._bufListeners.cursorMove);
+      buf.on('blink', this._bufListeners.blink);
+    }
   }
 
   setCore(core) {

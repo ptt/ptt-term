@@ -468,14 +468,11 @@ test('TermBuf defers rendering during synchronized update and aligns with V-Sync
       updateCharAttr() {},
       setPageState() {},
       clearHighlight() {},
-      emit(type) { events.push(type); },
+      emit(type) {
+        events.push(type);
+        if (type === 'change') viewUpdates++;
+      },
       dispatchEvent(e) { events.push(e.type); },
-      view: {
-        update() { viewUpdates++; },
-        updateCursorPos() {},
-        blinkOn: false,
-        onBlinkToggle() {}
-      }
     };
     buf.beginSyncUpdate = beginSyncUpdate.bind(buf);
     buf.endSyncUpdate = endSyncUpdate.bind(buf);

@@ -209,7 +209,6 @@ test('Site onData with PTT and Maple login strings triggers AutoLogin plugin mod
     app.modalShown = false;
     app.registerContextMenuItem = () => {};
     const buf = new EventEmitter();
-    buf.app = app;
     buf.rows = 24;
     buf.cols = 80;
     buf.getRowText = () => '';
