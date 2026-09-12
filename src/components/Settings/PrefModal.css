@@ -80,23 +80,64 @@ dialog.PrefModal .NativeDialog__content {
   box-shadow: 0 1px 2px rgba(0, 122, 255, 0.25);
 }
 
-.PrefModal__Grid__Col--left__Reset {
+.PrefModal__Grid__Col--left__Footer {
   margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   margin-bottom: 12px;
   margin-left: 2px;
   margin-right: 2px;
-  width: calc(100% - 4px);
+}
+
+.PrefModal__Grid__Col--left__BuildInfo {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10.5px;
+  color: #8e8e93;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 2px;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.PrefModal__Grid__Col--left__BugReport,
+.PrefModal__Grid__Col--left__Reset {
+  width: 100%;
   padding: 5px 4px;
   font-size: 11.5px;
   font-weight: 500;
   text-align: center;
-  color: #1d1d1f;
+  color: #1d1d1f !important;
   background-color: #ffffff;
   border: 1px solid #d2d2d7;
   border-radius: 6px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   transition: all 0.15s ease;
   white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.PrefModal__Grid__Col--left__BugReport {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  text-decoration: none !important;
+}
+
+.PrefModal__Grid__Col--left__BugReport:hover,
+.PrefModal__Grid__Col--left__BugReport:focus {
+  background-color: #fff5f5;
+  border-color: #f1aeb5;
+  color: #cf222e !important;
+  text-decoration: none !important;
+}
+
+.PrefModal__Grid__Col--left__BugReport:active {
+  background-color: #ffe3e3;
 }
 
 .PrefModal__Grid__Col--left__Reset:hover {
@@ -1011,9 +1052,16 @@ dialog.PrefModal .NativeDialog__content {
     line-height: 1.25;
   }
 
-  .PrefModal__Grid__Col--left__Reset {
+  .PrefModal__Grid__Col--left__Footer {
     margin-top: auto;
     margin-bottom: 12px;
+    margin-left: 0;
+    margin-right: 0;
+    gap: 6px;
+  }
+
+  .PrefModal__Grid__Col--left__BugReport,
+  .PrefModal__Grid__Col--left__Reset {
     padding: 6px 2px;
     font-size: 12px;
     width: 100%;
@@ -1130,9 +1178,18 @@ dialog.PrefModal .NativeDialog__content {
     font-size: 12px;
   }
 
-  .PrefModal__Grid__Col--left__Reset {
+  .PrefModal__Grid__Col--left__Footer {
     margin-top: 6px;
     margin-bottom: 6px;
+    gap: 4px;
+  }
+
+  .PrefModal__Grid__Col--left__BuildInfo {
+    font-size: 9.5px;
+  }
+
+  .PrefModal__Grid__Col--left__BugReport,
+  .PrefModal__Grid__Col--left__Reset {
     padding: 4px 2px;
     font-size: 11px;
   }

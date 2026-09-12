@@ -207,18 +207,35 @@ export function detectExtraSettings(values) {
   return indices;
 }
 
+export function getDefaultAppInfo() {
+  try {
+    return {
+      NAME: APP.NAME,
+      VERSION: APP.VERSION,
+      COMMIT_HASH: APP.COMMIT_HASH,
+      BUILD_DATE: APP.BUILD_DATE,
+      GITHUB_REPOSITORY_OWNER: APP.GITHUB_REPOSITORY_OWNER,
+      GITHUB_REPOSITORY: APP.GITHUB_REPOSITORY,
+    };
+  } catch {
+    return typeof APP !== "undefined" ? APP : undefined;
+  }
+}
+
 export function buildBugReportUrl({
   app,
   isTouch,
   values,
   win = typeof window !== "undefined" ? window : undefined,
   nav = typeof navigator !== "undefined" ? navigator : undefined,
-  appInfo = typeof APP !== "undefined" ? APP : undefined,
+  appInfo = getDefaultAppInfo(),
 } = {}) {
+  const defaultAppInfo = getDefaultAppInfo();
   const today = new Date().toISOString().slice(0, 10);
-  const commitHash = appInfo?.COMMIT_HASH || "";
-  const buildDate = appInfo?.BUILD_DATE || "";
-  const buildText = `Build: ${commitHash} ${buildDate}`.trim();
+  const commitHash = appInfo?.COMMIT_HASH || defaultAppInfo?.COMMIT_HASH || "";
+  const buildDate = appInfo?.BUILD_DATE || defaultAppInfo?.BUILD_DATE || "";
+  const buildDetails = [commitHash, buildDate].filter(Boolean).join(" ");
+  const buildText = buildDetails ? `Build: ${buildDetails}` : "";
   const params = new URLSearchParams({
     template: "bug_report.yml",
     "occurrence-date": today,
@@ -244,6 +261,9 @@ export function buildBugReportUrl({
   const termSizeMode = values?.termSizeMode || "max-font-size";
 
   const envLines = [];
+  if (buildText) {
+    envLines.push(buildText);
+  }
   if (win) {
     const siteUrl = win.location?.origin || win.location?.href || "";
     if (siteUrl) {
@@ -326,6 +346,9 @@ export function buildBugReportUrl({
     params.set("env-info", envLines.join("\n"));
   }
 
-  const repo = appInfo?.GITHUB_REPOSITORY || "ptt/ptt-term";
+  const repo =
+    appInfo?.GITHUB_REPOSITORY ||
+    defaultAppInfo?.GITHUB_REPOSITORY ||
+    "ptt/ptt-term";
   return `https://github.com/${repo}/issues/new?${params.toString()}`;
 }

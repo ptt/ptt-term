@@ -23,6 +23,7 @@ import {
 
 import {
   buildBugReportUrl,
+  getDefaultAppInfo,
   detectSite,
   detectClientType,
   detectClientMode,
@@ -597,7 +598,7 @@ export class PrefModal extends React.Component {
       values: this.state.values,
       win: typeof window !== "undefined" ? window : undefined,
       nav: typeof navigator !== "undefined" ? navigator : undefined,
-      appInfo: typeof APP !== "undefined" ? APP : undefined,
+      appInfo: getDefaultAppInfo(),
     });
   };
 
@@ -957,13 +958,42 @@ export class PrefModal extends React.Component {
                 </a>
               </li>
             </ul>
-            <button
-              type="button"
-              className="btn btn-default PrefModal__Grid__Col--left__Reset"
-              onClick={this.handleResetClick}
-            >
-              {_("options_reset")}
-            </button>
+            <div className="PrefModal__Grid__Col--left__Footer">
+              {(APP.VERSION || APP.COMMIT_HASH) && (
+                <div
+                  className="PrefModal__Grid__Col--left__BuildInfo"
+                  title={
+                    [
+                      APP.NAME ? `${APP.NAME} v${APP.VERSION}` : "",
+                      APP.COMMIT_HASH ? `Build: ${APP.COMMIT_HASH}` : "",
+                      APP.BUILD_DATE || "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")
+                  }
+                >
+                  v{APP.VERSION}
+                  {APP.COMMIT_HASH ? ` (${APP.COMMIT_HASH})` : ""}
+                </div>
+              )}
+              <a
+                href={this.getBugReportUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                role="button"
+                className="btn btn-default PrefModal__Grid__Col--left__BugReport"
+              >
+                {renderBugIcon()}
+                <span>{_("about_bug_report")}</span>
+              </a>
+              <button
+                type="button"
+                className="btn btn-default PrefModal__Grid__Col--left__Reset"
+                onClick={this.handleResetClick}
+              >
+                {_("options_reset")}
+              </button>
+            </div>
           </div>
           <div className="PrefModal__Grid__Col--right">
             {navActiveKey === "general" && (

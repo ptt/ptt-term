@@ -24,7 +24,7 @@ export default defineConfig(({ mode, command }) => {
 
   const getCommitHash = () => {
     if (process.env.COMMIT_HASH) return process.env.COMMIT_HASH;
-    if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA.slice(0, 7);
+    if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA.slice(0, 8);
     try {
       return execSync('git rev-parse --short HEAD', {
         encoding: 'utf8',
@@ -207,12 +207,25 @@ export default defineConfig(({ mode, command }) => {
       ),
       'process.env.DEVELOPER_MODE': JSON.stringify(isDevelopment),
       'process.env.SITE_TYPE': JSON.stringify(process.env.SITE_TYPE || 'auto'),
-      'APP.NAME': JSON.stringify(process.env.npm_package_name || pkg.name),
-      'APP.VERSION': JSON.stringify(process.env.npm_package_version || pkg.version),
-      'APP.COMMIT_HASH': JSON.stringify(getCommitHash()),
-      'APP.BUILD_DATE': JSON.stringify(getBuildDate()),
-      'APP.GITHUB_REPOSITORY_OWNER': JSON.stringify(process.env.GITHUB_REPOSITORY_OWNER || 'ptt'),
-      'APP.GITHUB_REPOSITORY': JSON.stringify(process.env.GITHUB_REPOSITORY || 'ptt/ptt-term'),
+      ...(() => {
+        const appInfo = {
+          NAME: process.env.npm_package_name || pkg.name,
+          VERSION: process.env.npm_package_version || pkg.version,
+          COMMIT_HASH: getCommitHash(),
+          BUILD_DATE: getBuildDate(),
+          GITHUB_REPOSITORY_OWNER: process.env.GITHUB_REPOSITORY_OWNER || 'ptt',
+          GITHUB_REPOSITORY: process.env.GITHUB_REPOSITORY || 'ptt/ptt-term',
+        };
+        return {
+          APP: JSON.stringify(appInfo),
+          'APP.NAME': JSON.stringify(appInfo.NAME),
+          'APP.VERSION': JSON.stringify(appInfo.VERSION),
+          'APP.COMMIT_HASH': JSON.stringify(appInfo.COMMIT_HASH),
+          'APP.BUILD_DATE': JSON.stringify(appInfo.BUILD_DATE),
+          'APP.GITHUB_REPOSITORY_OWNER': JSON.stringify(appInfo.GITHUB_REPOSITORY_OWNER),
+          'APP.GITHUB_REPOSITORY': JSON.stringify(appInfo.GITHUB_REPOSITORY),
+        };
+      })(),
     },
     server: {
       port: 8080,

@@ -42,6 +42,9 @@
   "cmenu_settings": {
     "message": "Settings"
   },
+  "cmenu_bug_report": {
+    "message": "Bug Report"
+  },
   "options_general": {
     "message": "General"
   },

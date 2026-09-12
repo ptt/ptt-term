@@ -1068,9 +1068,27 @@ test('Bug report helper detects site, client, OS, browser, settings, and builds 
   assert.equal(parsedUrl.searchParams.has('render-engine-type'), false);
   assert.equal(parsedUrl.searchParams.has('term-size-mode'), false);
   assert.equal(parsedUrl.searchParams.has('extra-settings'), false);
+  assert.ok(parsedUrl.searchParams.get('env-info').includes('Build: abcdef12 2026-09-11'));
   assert.ok(parsedUrl.searchParams.get('env-info').includes('Site: https://term.ptt.cc'));
   assert.ok(parsedUrl.searchParams.get('env-info').includes('Render Engine Type: Canvas Engine'));
   assert.ok(parsedUrl.searchParams.get('env-info').includes('fontFitWindowWidth=true'));
+
+  // Verify default APP fallback when appInfo is not explicitly provided
+  const prevApp = globalThis.APP;
+  try {
+    globalThis.APP = {
+      NAME: 'ptt-term',
+      VERSION: '2.0.1',
+      COMMIT_HASH: 'c3ca2f60',
+      BUILD_DATE: '2026-09-12',
+      GITHUB_REPOSITORY: 'ptt/ptt-term',
+    };
+    const defaultUrl = new URL(buildBugReportUrl({ nav: chromeNav }));
+    assert.equal(defaultUrl.searchParams.get('build-info'), 'Build: c3ca2f60 2026-09-12');
+    assert.ok(defaultUrl.searchParams.get('env-info').includes('Build: c3ca2f60 2026-09-12'));
+  } finally {
+    globalThis.APP = prevApp;
+  }
 });
 
 test('applyColorScheme updates .main element and meta theme-color', () => {
@@ -1152,3 +1170,51 @@ test('main.css and easy reading use dynamic default background variables', () =>
     'TermView must pass defaultBg to renderScreen'
   );
 });
+
+test('Bug Report button is placed in Settings sidebar footer and About tab with preserved build info, not in ContextMenu', () => {
+  const dropdownMenuSrc = fs.readFileSync(
+    path.resolve('src/components/ContextMenu/DropdownMenu.js'),
+    'utf-8'
+  );
+  const prefModalSrc = fs.readFileSync(
+    path.resolve('src/components/Settings/PrefModal.js'),
+    'utf-8'
+  );
+  const bugReportSrc = fs.readFileSync(
+    path.resolve('src/js/bug_report.js'),
+    'utf-8'
+  );
+
+  // 1. DropdownMenu keeps Settings as the last item and does not include Bug Report
+  assert.ok(dropdownMenuSrc.includes('onClick={onSettingsClick}'), 'DropdownMenu must include Settings item');
+  assert.ok(!dropdownMenuSrc.includes('onBugReportClick'), 'DropdownMenu must not include Bug Report item');
+
+  // 2. PrefModal left sidebar footer includes BuildInfo caption and Bug Report button above Reset button
+  assert.ok(
+    prefModalSrc.includes('PrefModal__Grid__Col--left__Footer'),
+    'PrefModal left sidebar must include a footer container'
+  );
+  assert.ok(
+    prefModalSrc.includes('PrefModal__Grid__Col--left__BuildInfo'),
+    'PrefModal left sidebar footer must display version/build info when outside About tab'
+  );
+  const sidebarBugReportIdx = prefModalSrc.indexOf('PrefModal__Grid__Col--left__BugReport');
+  const sidebarResetIdx = prefModalSrc.indexOf('PrefModal__Grid__Col--left__Reset');
+  assert.ok(
+    sidebarBugReportIdx !== -1 && sidebarResetIdx !== -1 && sidebarBugReportIdx < sidebarResetIdx,
+    'PrefModal left sidebar must render Bug Report button above Reset button'
+  );
+
+  // 3. PrefModal getBugReportUrl passes getDefaultAppInfo() and bug_report.js preserves build-info
+  assert.ok(
+    prefModalSrc.includes('appInfo: getDefaultAppInfo()'),
+    'PrefModal getBugReportUrl must pass getDefaultAppInfo() so build info is never dropped outside About tab'
+  );
+  assert.ok(
+    bugReportSrc.includes('appInfo?.COMMIT_HASH || defaultAppInfo?.COMMIT_HASH') &&
+      bugReportSrc.includes('appInfo?.BUILD_DATE || defaultAppInfo?.BUILD_DATE'),
+    'buildBugReportUrl must fall back to defaultAppInfo for commit hash and build date'
+  );
+});
+
+
