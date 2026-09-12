@@ -239,7 +239,7 @@ export const PwaPromptModal = ({
 
   return (
     <div
-      className="PwaPrompt-overlay"
+      className="PwaPrompt-overlay nomouse_command"
       role="dialog"
       aria-modal="true"
       aria-label={getTitle()}

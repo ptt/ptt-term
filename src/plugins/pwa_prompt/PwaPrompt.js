@@ -1,5 +1,5 @@
 import React from 'preact/compat';
-import { readValuesWithDefault, updatePref } from '../../js/pref.js';
+import { PluginBase } from '../PluginBase.js';
 import { _ } from '../../js/i18n.js';
 import { isBrowser } from '../../js/util.js';
 
@@ -70,56 +70,56 @@ export function isIOSChrome() {
 
 let _PwaPromptModal = null;
 
-export class PwaPromptOverlay extends (React?.Component || class {}) {
+export class PwaPromptOverlay extends React.Component {
   constructor(props) {
     super(props);
     this.state = { Component: _PwaPromptModal };
   }
 
   componentDidMount() {
+    this._unmounted = false;
     if (!this.state.Component && isBrowser()) {
       import('./PwaPromptModal.js')
         .then((mod) => {
           _PwaPromptModal = mod.default || mod.PwaPromptModal;
-          this.setState({ Component: _PwaPromptModal });
+          if (!this._unmounted) {
+            this.setState({ Component: _PwaPromptModal });
+          }
         })
         .catch(() => {});
     }
   }
 
+  componentWillUnmount() {
+    this._unmounted = true;
+  }
+
   render() {
     const Component = this.state.Component || _PwaPromptModal;
     if (!Component) {
-      if (typeof React?.createElement === 'function') {
-        return React.createElement('div', { className: 'PwaPrompt-placeholder' });
-      }
-      return null;
+      return React.createElement('div', { className: 'PwaPrompt-placeholder' });
     }
     return React.createElement(Component, this.props);
   }
 }
 
-export class PwaPromptPlugin {
+export class PwaPromptPlugin extends PluginBase {
   static id = 'pwa_prompt';
   static name = 'pwa_prompt';
   static prefKey = 'enablePwaPrompt';
   static group = 'ui';
+  static icon = 'smartphone';
 
-  static getMetadata() {
-    return {
-      id: 'pwa_prompt',
-      name: 'pwa_prompt',
-      title: _('plugin_pwa_prompt_title'),
-      description: _('plugin_pwa_prompt_desc'),
-      prefKey: 'enablePwaPrompt',
-      icon: 'smartphone',
-      group: 'ui',
-    };
+  static get title() {
+    return _('plugin_pwa_prompt_title');
+  }
+
+  static get description() {
+    return _('plugin_pwa_prompt_desc');
   }
 
   constructor(app, options = {}) {
-    this.app = app || null;
-    this.enabled = options.enabled ?? false;
+    super(app, options);
     this.showsModal = false;
     this.isInstalled = false;
     this._autoPromptTimer = null;
@@ -131,30 +131,6 @@ export class PwaPromptPlugin {
       this.isInstalled = true;
       this.disablePlugin();
     };
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('term:pwa:installable', this._onInstallable);
-      window.addEventListener('term:pwa:installed', this._onInstalled);
-    }
-  }
-
-  get id() {
-    return PwaPromptPlugin.id;
-  }
-  get name() {
-    return PwaPromptPlugin.name;
-  }
-  get prefKey() {
-    return PwaPromptPlugin.prefKey;
-  }
-  get group() {
-    return PwaPromptPlugin.group;
-  }
-  get title() {
-    return PwaPromptPlugin.getMetadata().title;
-  }
-  get description() {
-    return PwaPromptPlugin.getMetadata().description;
   }
 
   getContextMenuItems() {
@@ -169,7 +145,13 @@ export class PwaPromptPlugin {
             ? _('cmenu_pwa_install_mobile')
             : _('cmenu_pwa_install_desktop');
         },
-        visible: () => Boolean(this.enabled && !this.isStandalone() && !this.isInstalled),
+        visible: (app, { normalEnabled } = {}) =>
+          Boolean(
+            normalEnabled !== false &&
+              this.enabled &&
+              !this.isStandalone() &&
+              !this.isInstalled
+          ),
         onClick: () => {
           this.showModal();
         },
@@ -177,47 +159,44 @@ export class PwaPromptPlugin {
     ];
   }
 
-  init({ app } = {}) {
-    if (app) {
-      this.app = app;
-      this._onPrefChangeBound = (e) => {
-        const key = e?.key ?? e?.detail?.key;
-        const value = e?.value !== undefined ? e.value : e?.detail?.value;
-        if (key === PwaPromptPlugin.prefKey) {
-          this.enabled = Boolean(value);
-          if (!this.enabled && this.showsModal) {
-            this.showsModal = false;
-          }
-          this.notifyUpdate();
-        }
-      };
-      if (typeof app.on === 'function') {
-        app.on('term:pref-change', this._onPrefChangeBound);
-      } else {
-        app.addEventListener?.('term:pref-change', this._onPrefChangeBound);
-      }
+  onInit() {
+    if (typeof window !== 'undefined') {
+      this.listenWhileEnabled(window, 'term:pwa:installable', this._onInstallable);
+      this.listen(window, 'term:pwa:installed', this._onInstalled);
     }
 
     // If already running as PWA standalone, turn off the plugin immediately!
     if (this.isStandalone()) {
       this.disablePlugin();
-      return;
-    }
-
-    this.syncFromPrefs();
-
-    if (this.enabled) {
-      this.checkAutoPrompt();
     }
   }
 
-  syncFromPrefs() {
-    try {
-      const prefs = readValuesWithDefault();
-      this.enabled = Boolean(prefs?.enablePwaPrompt);
-    } catch (e) {
-      this.enabled = false;
+  onEnable() {
+    this.checkAutoPrompt();
+  }
+
+  _cleanupModal(restoreFocus = true) {
+    const wasShowing = this.showsModal;
+    this.showsModal = false;
+    if (this._autoPromptTimer) {
+      this.clearTimeout(this._autoPromptTimer);
+      this._autoPromptTimer = null;
     }
+    if (wasShowing && this.app) {
+      this.app.modalShown = false;
+      if (restoreFocus) {
+        this.app.setInputAreaFocus?.();
+      }
+    }
+    return wasShowing;
+  }
+
+  onDisable() {
+    this._cleanupModal(true);
+  }
+
+  onDestroy() {
+    this._cleanupModal(false);
   }
 
   isStandalone() {
@@ -229,22 +208,12 @@ export class PwaPromptPlugin {
   }
 
   disablePlugin() {
-    this.enabled = false;
-    this.showsModal = false;
-    if (this._autoPromptTimer) {
-      clearTimeout(this._autoPromptTimer);
-      this._autoPromptTimer = null;
+    const wasShowing = this._cleanupModal(true);
+    const wasEnabled = this.enabled || this._enabledActive;
+    this.setEnabled(false);
+    if (!wasEnabled && wasShowing) {
+      this.notifyUpdate();
     }
-    updatePref(PwaPromptPlugin.prefKey, false);
-    if (this.app) {
-      if (typeof this.app.onValuesPrefChange === 'function' && this.app.prefValues) {
-        this.app.onValuesPrefChange({
-          ...this.app.prefValues,
-          [PwaPromptPlugin.prefKey]: false,
-        });
-      }
-    }
-    this.notifyUpdate();
   }
 
   async promptNativeInstall() {
@@ -273,9 +242,9 @@ export class PwaPromptPlugin {
     const delay = platform === 'desktop' ? 3000 : 2500;
 
     if (this._autoPromptTimer) {
-      clearTimeout(this._autoPromptTimer);
+      this.clearTimeout(this._autoPromptTimer);
     }
-    this._autoPromptTimer = setTimeout(() => {
+    this._autoPromptTimer = this.setTimeout(() => {
       if (this.enabled && !this.isStandalone() && !this.isInstalled) {
         this.showModal();
       }
@@ -283,43 +252,21 @@ export class PwaPromptPlugin {
   }
 
   showModal() {
+    if (this.showsModal) return;
     this.showsModal = true;
+    if (this.app) {
+      this.app.modalShown = true;
+    }
     this.notifyUpdate();
   }
 
   dismissModal() {
-    this.showsModal = false;
-    if (this._autoPromptTimer) {
-      clearTimeout(this._autoPromptTimer);
-      this._autoPromptTimer = null;
-    }
+    this._cleanupModal(true);
     this.notifyUpdate();
   }
 
   hideModal() {
     this.disablePlugin();
-  }
-
-  destroy() {
-    this.showsModal = false;
-    this.enabled = false;
-    if (this._autoPromptTimer) {
-      clearTimeout(this._autoPromptTimer);
-      this._autoPromptTimer = null;
-    }
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('term:pwa:installable', this._onInstallable);
-      window.removeEventListener('term:pwa:installed', this._onInstalled);
-    }
-    if (this.app && this._onPrefChangeBound) {
-      if (typeof this.app.off === 'function') {
-        this.app.off('term:pref-change', this._onPrefChangeBound);
-      } else {
-        this.app.removeEventListener?.('term:pref-change', this._onPrefChangeBound);
-      }
-      this._onPrefChangeBound = null;
-    }
-    this.notifyUpdate();
   }
 
   notifyUpdate() {
