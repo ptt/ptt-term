@@ -19,6 +19,7 @@ import AppOverlay from '../components/AppOverlay';
 import { getSite } from './sites';
 import { EventEmitter } from './event';
 import { InputInterceptors } from './input_interceptors.js';
+import { ClipboardManager } from './clipboard.js';
 import iconLogo from 'Icon/logo.png';
 import iconLogoConnect from 'Icon/logo_connect.png';
 import iconLogoDisconnect from 'Icon/logo_disconnect.png';
@@ -178,7 +179,7 @@ export class App extends EventEmitter {
       false
     );
 
-    this.strToCopy = null;
+    this.clipboard = new ClipboardManager();
     document.addEventListener('copy', (e) => {
       this.onDOMCopy(e);
     });
@@ -652,59 +653,13 @@ export class App extends EventEmitter {
         ? window.getSelection().isCollapsed
         : true;
     }
-    if (this.view?.isSelectionCollapsed) {
-      return this.view.isSelectionCollapsed();
-    }
-    return !(
-      this.view?.selection?.hasSelection() ||
-      this.view?.hasDomSelectionFallback?.()
-    );
-  }
-
-  _formatCopyText(str) {
-    if (typeof str !== 'string' || str.indexOf('\x1b') >= 0) return str;
-    if (this.trimTrailingSpaces !== false) {
-      return str
-        .split(/\r\n|\r|\n/)
-        .map((line) => line.replace(/[ \t]+$/, ''))
-        .join('\r')
-        .replace(/[ \t\r]+$/, '');
-    }
-    return str.replace(/\r\n|\n/g, '\r');
+    return this.view.isSelectionCollapsed();
   }
 
   async doCopy(str) {
-    if (typeof str !== 'string') return;
-    str = this._formatCopyText(str);
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      try {
-        await navigator.clipboard.writeText(str);
-        return;
-      } catch (err) {
-        // Fall back to execCommand if permission denied or unsupported context
-      }
-    }
-    this.strToCopy = str;
-    let textarea = null;
-    try {
-      if (typeof document !== 'undefined' && document.body) {
-        textarea = document.createElement('textarea');
-        textarea.value = str;
-        textarea.setAttribute('readonly', '');
-        textarea.style.position = 'fixed';
-        textarea.style.top = '-9999px';
-        textarea.style.left = '-9999px';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        textarea.setSelectionRange(0, str.length);
-      }
-      document.execCommand('copy');
-    } catch (err) {}
-    if (textarea && textarea.parentNode) {
-      textarea.parentNode.removeChild(textarea);
-    }
-    this.strToCopy = null;
+    await this.clipboard.copyText(str, {
+      trimTrailingSpaces: this.trimTrailingSpaces,
+    });
   }
 
   doCopyAnsi() {
@@ -717,27 +672,18 @@ export class App extends EventEmitter {
 
   onDOMCopy(e) {
     this.emit('term:user-activity', { type: 'copy' });
-    if (this.strToCopy) {
-      e.clipboardData.setData('text', this.strToCopy);
-      e.preventDefault();
-      console.log('copied: ', this.strToCopy);
-    } else {
-      const text = this._formatCopyText(this.view.getSelectedText());
-      if (text) {
-        e.clipboardData.setData('text', text);
-        e.preventDefault();
-      }
-    }
+    this.clipboard.handleDOMCopy(e, {
+      getSelectedText: () => this.view?.getSelectedText(),
+      trimTrailingSpaces: this.trimTrailingSpaces,
+    });
   }
 
   async doPaste() {
-    if (navigator.clipboard?.readText) {
-      try {
-        const text = await navigator.clipboard.readText();
-        this.dispatchPaste(text);
-        return;
-      } catch {}
-    }
+    try {
+      const text = await this.clipboard.readText();
+      this.dispatchPaste(text);
+      return;
+    } catch {}
     this.modalShown = true;
     this.showAlert('pasteShortcut', {
       onDismiss: () => {
@@ -747,53 +693,17 @@ export class App extends EventEmitter {
   }
 
   dispatchPaste(content, originalEvent = null) {
-    if (typeof content !== 'string') {
+    const event = this.clipboard.createPasteEvent(content, originalEvent);
+    if (!event) {
       return false;
     }
-
-    const detail = {
-      data: content,
-      text: content,
-      originalEvent,
-    };
-    const event = {
-      type: 'term:paste',
-      detail,
-      defaultPrevented: false,
-      preventDefault() {
-        this.defaultPrevented = true;
-      },
-      get data() {
-        return detail.data;
-      },
-      set data(val) {
-        detail.data = val;
-        detail.text = val;
-      },
-    };
-
     this.emit('term:paste', event);
-    if (event.defaultPrevented) {
-      return false;
-    }
-
-    const result = detail.data ?? detail.text;
-    if (typeof result !== 'string') {
-      return false;
-    }
-
-    if (this.view?.paste) {
-      this.view.paste(result);
-    } else if (this.view?.onTextInput) {
-      this.view.onTextInput(result, true);
-    }
-    return true;
+    return this.clipboard.completePaste(this.view, event);
   }
 
   onDOMPaste(e) {
-    let str = e.clipboardData ? e.clipboardData.getData('text') : '';
+    const str = this.clipboard.handleDOMPaste(e);
     if (str) {
-      e.preventDefault();
       this.dispatchPaste(str, e);
     }
   }

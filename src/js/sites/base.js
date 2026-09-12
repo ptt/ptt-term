@@ -595,6 +595,21 @@ export class BaseSite extends EventEmitter {
   }
 
   /**
+   * Handle paste event and transform ANSI escape codes for site editor.
+   * @param {object} event - Paste event object (with .data or .text property)
+   */
+  onPaste(event) {
+    if (!event || typeof event !== 'object') return;
+    const text = event.data ?? event.text;
+    if (typeof text !== 'string') return;
+    // FIXME: stop user from pasting DBCS words with 2-color
+    const escChar = this.getEditorEscapeChar();
+    const transformed = text.replace(/\x1b/g, escChar);
+    if ('data' in event) event.data = transformed;
+    if ('text' in event) event.text = transformed;
+  }
+
+  /**
    * Get reset command for article editor ANSI coloring (e.g. '\x15[m' for PTT).
    * @returns {string}
    */

@@ -9,7 +9,6 @@ import { setTimer } from './util';
 import { hasWebKitImeQuirk, shouldPreserveDomSelection } from './quirks';
 import { stringWidth } from './string_util';
 
-const ENTER_CHAR = '\r';
 const DEFINE_INPUT_BUFFER_SIZE = 12;
 
 export class TermView extends EventEmitter {
@@ -576,14 +575,6 @@ export class TermView extends EventEmitter {
     if (typeof text !== 'string') {
       return;
     }
-    text = text.replace(/\r\n/g, '\r');
-    text = text.replace(/\n/g, '\r');
-    text = text.replace(/\r/g, ENTER_CHAR);
-
-    //FIXME: stop user from pasting DBCS words with 2-color
-    const escChar = this.buf?.site?.getEditorEscapeChar?.() ?? '\x15';
-    text = text.replace(/\x1b/g, escChar);
-
     this._send(text);
   }
 

@@ -2301,3 +2301,61 @@ test('Site.getThreadCommand enforces pageState filtering and App is fully decoup
   assert.ok(!appSrc.includes('PAGE_STATE'), 'App must not import or use PAGE_STATE');
 });
 
+test('ClipboardManager normalizes CRLF/LF and BaseSite.onPaste transforms ESC char', async () => {
+  const { ClipboardManager } = await import('../src/js/clipboard.js');
+  const clipboard = new ClipboardManager();
+
+  assert.equal(clipboard.formatPasteText('line1\r\nline2\nline3'), 'line1\rline2\rline3');
+
+  let prevented = false;
+  const domPasteText = clipboard.handleDOMPaste({
+    clipboardData: {
+      getData: (type) => (type === 'text/plain' ? 'a\r\nb\nc' : ''),
+    },
+    preventDefault: () => {
+      prevented = true;
+    },
+  });
+  assert.equal(domPasteText, 'a\rb\rc');
+  assert.equal(prevented, true);
+
+  const pasteEvent = clipboard.createPasteEvent('foo\r\nbar\nbaz');
+  assert.equal(pasteEvent.data, 'foo\rbar\rbaz');
+
+  const ptt = new PttSite();
+  const maple = new Maple3Site();
+  const auto = new AutoSite();
+
+  // PTT replaces \x1b with \x15 (Ctrl-U) via event handler
+  const pttEvt = clipboard.createPasteEvent('line1\r\nline2\n\x1b[1;31mred\x1b[m');
+  ptt.onPaste(pttEvt);
+  assert.equal(pttEvt.data, 'line1\rline2\r\x15[1;31mred\x15[m');
+
+  // Maple3 replaces \x1b with \x03 (Ctrl-C) via event handler
+  const mapleEvt = { text: 'line1\rline2\r\x1b[1;31mred\x1b[m' };
+  maple.onPaste(mapleEvt);
+  assert.equal(mapleEvt.text, 'line1\rline2\r\x03[1;31mred\x03[m');
+
+  // AutoSite delegates onPaste to active site (defaults to PTT, switches when locked to Maple3)
+  const autoEvt1 = { data: 'a\rb\x1b[m' };
+  auto.onPaste(autoEvt1);
+  assert.equal(autoEvt1.data, 'a\rb\x15[m');
+
+  auto.lockSite('maple3');
+  const autoEvt2 = { data: 'a\rb\x1b[m' };
+  auto.onPaste(autoEvt2);
+  assert.equal(autoEvt2.data, 'a\rb\x03[m');
+
+  // ClipboardManager.completePaste invokes view.buf.site.onPaste(event) before sending to view.paste
+  let finalPasted = null;
+  const mockView = {
+    buf: { site: ptt },
+    paste: (str) => {
+      finalPasted = str;
+    },
+  };
+  const completeEvt = clipboard.createPasteEvent('hello\r\n\x1b[1;33myellow\x1b[m');
+  assert.equal(clipboard.completePaste(mockView, completeEvt), true);
+  assert.equal(finalPasted, 'hello\r\x15[1;33myellow\x15[m');
+});
+

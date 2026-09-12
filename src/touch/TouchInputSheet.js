@@ -204,11 +204,9 @@ export class TouchInputSheet extends React.Component {
     const { text, autoWrap, appendEnter } = this.state;
     if (!text && !appendEnter) return;
 
-    let payload = text;
+    let payload = text ? text.replace(/\r\n|\n/g, "\r") : "";
     if (autoWrap && payload) {
       payload = wrapText(payload, 78, "\r");
-    } else if (payload) {
-      payload = payload.replace(/\r\n|\n/g, "\r");
     }
 
     if (appendEnter) {
