@@ -66,7 +66,7 @@ export class TermView extends EventEmitter {
   this.cursorStyle = 'blink';
   this.lineHeight = 1.0;
   this.fontSizePx = 24;
-  this.enableMediaPreviewer = true;
+  this.enableLinkHoverPreview = true;
   this.renderHyperlinkPreview = null;
   this.scaleX = 1;
   this.scaleY = 1;
@@ -427,6 +427,30 @@ export class TermView extends EventEmitter {
     return detail.request;
   }
 
+  get enableMediaPreviewer() {
+    return this.enableLinkHoverPreview;
+  }
+
+  set enableMediaPreviewer(val) {
+    this.enableLinkHoverPreview = Boolean(val);
+  }
+
+  isHyperlinkPreviewEnabled() {
+    return Boolean(this.enableLinkHoverPreview && this.resolveHyperlinkPreview);
+  }
+
+  setHyperlinkPreviewProvider(provider) {
+    if (!provider) {
+      this.enableLinkHoverPreview = false;
+      this.renderHyperlinkPreview = false;
+      this.renderInlineHyperlinkPreview = null;
+    } else {
+      this.enableLinkHoverPreview = Boolean(provider.enabled !== false);
+      this.renderHyperlinkPreview = provider.renderHover || false;
+      this.renderInlineHyperlinkPreview = provider.renderInline || null;
+    }
+  }
+
   update() {
     this.redraw(false);
   }
@@ -457,7 +481,7 @@ export class TermView extends EventEmitter {
         /* For Screen#componentDidUpdate */lines.slice(),
         currentFontSize,
         /* showsLinkPreview */false,
-        this.enableMediaPreviewer,
+        this.enableLinkHoverPreview,
         this.screenContainer,
         {
           ref: (inst) => {

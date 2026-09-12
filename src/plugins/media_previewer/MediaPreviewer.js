@@ -66,16 +66,28 @@ export class MediaPreviewer extends PluginBase {
     });
   }
 
-  onInit() {
-    if (this.view) {
-      this.view.enableMediaPreviewer = Boolean(this.enabled);
-      this.view.renderHyperlinkPreview = this.enabled
-        ? ImagePreviewer.HoverPreview
-        : false;
-      this.view.renderInlineHyperlinkPreview = this.enabled
+  _updateViewHooks(enabled) {
+    if (!this.view) return;
+    const provider = enabled
+      ? {
+          enabled: true,
+          renderHover: ImagePreviewer.HoverPreview,
+          renderInline: (href, key) => this._createInlinePreview(href, key),
+        }
+      : null;
+    if (typeof this.view.setHyperlinkPreviewProvider === "function") {
+      this.view.setHyperlinkPreviewProvider(provider);
+    } else {
+      this.view.enableLinkHoverPreview = Boolean(enabled);
+      this.view.renderHyperlinkPreview = enabled ? ImagePreviewer.HoverPreview : false;
+      this.view.renderInlineHyperlinkPreview = enabled
         ? (href, key) => this._createInlinePreview(href, key)
         : null;
     }
+  }
+
+  onInit() {
+    this._updateViewHooks(this.enabled);
     this.listenApp("term:pref-change", (e) => {
       const key = e?.key ?? e?.detail?.key;
       const value = e?.value !== undefined ? e.value : e?.detail?.value;
@@ -94,32 +106,21 @@ export class MediaPreviewer extends PluginBase {
   }
 
   onEnable() {
-    if (this.view) {
-      this.view.enableMediaPreviewer = true;
-      this.view.renderHyperlinkPreview = ImagePreviewer.HoverPreview;
-      this.view.renderInlineHyperlinkPreview = (href, key) =>
-        this._createInlinePreview(href, key);
-      if (!this._initializing) {
-        this.view.redraw?.(true);
-      }
+    this._updateViewHooks(true);
+    if (this.view && !this._initializing) {
+      this.view.redraw?.(true);
     }
   }
 
   onDisable() {
+    this._updateViewHooks(false);
     if (this.view) {
-      this.view.enableMediaPreviewer = false;
-      this.view.renderHyperlinkPreview = false;
-      this.view.renderInlineHyperlinkPreview = null;
       this.view.redraw?.(true);
     }
   }
 
   onDestroy() {
-    if (this.view) {
-      this.view.enableMediaPreviewer = false;
-      this.view.renderHyperlinkPreview = false;
-      this.view.renderInlineHyperlinkPreview = null;
-    }
+    this._updateViewHooks(false);
   }
 
   syncFromPrefs() {

@@ -1411,4 +1411,48 @@ test('TouchDebugHUD.setHudEnabled avoids re-entrant double execution of startTim
   assert.equal(plugin.enabled, true);
 });
 
+test('TermView setHyperlinkPreviewProvider decouples MediaPreviewer and EasyReading from enableMediaPreviewer', async () => {
+  const { MediaPreviewer } = await import('../src/plugins/media_previewer/MediaPreviewer.js');
+  const app = new MockApp();
+  let providerSet = null;
+  app.view = {
+    enableLinkHoverPreview: false,
+    renderHyperlinkPreview: false,
+    renderInlineHyperlinkPreview: null,
+    resolveHyperlinkPreview: (href) => href,
+    isHyperlinkPreviewEnabled() {
+      return Boolean(this.enableLinkHoverPreview && this.resolveHyperlinkPreview);
+    },
+    setHyperlinkPreviewProvider(provider) {
+      providerSet = provider;
+      if (!provider) {
+        this.enableLinkHoverPreview = false;
+        this.renderHyperlinkPreview = false;
+        this.renderInlineHyperlinkPreview = null;
+      } else {
+        this.enableLinkHoverPreview = Boolean(provider.enabled !== false);
+        this.renderHyperlinkPreview = provider.renderHover || false;
+        this.renderInlineHyperlinkPreview = provider.renderInline || null;
+      }
+    },
+  };
+
+  const mp = new MediaPreviewer(app, { enabled: true });
+  mp.init({ app, view: app.view });
+  assert.ok(providerSet, 'MediaPreviewer should register hyperlink preview provider on init');
+  assert.equal(app.view.enableLinkHoverPreview, true);
+  assert.equal(app.view.isHyperlinkPreviewEnabled(), true);
+
+  mp.disable();
+  assert.equal(providerSet, null, 'Disabling MediaPreviewer should clear hyperlink preview provider');
+  assert.equal(app.view.enableLinkHoverPreview, false);
+  assert.equal(app.view.isHyperlinkPreviewEnabled(), false);
+
+  mp.enable();
+  assert.equal(app.view.enableLinkHoverPreview, true);
+  mp.destroy();
+  assert.equal(app.view.enableLinkHoverPreview, false);
+});
+
+
 

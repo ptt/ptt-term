@@ -415,15 +415,18 @@ export class EasyReading extends PluginBase {
   populatePage() {
     const site = this.site;
     if (!site) return;
-    const showsLinkPreview =
-      this.view?.enableMediaPreviewer !== false && this.view?.resolveHyperlinkPreview
-        ? (href, key) => {
-            if (typeof this.view.renderInlineHyperlinkPreview === 'function') {
-              return this.view.renderInlineHyperlinkPreview(href, key);
-            }
-            return this.view.resolveHyperlinkPreview(href);
+    const isPreviewEnabled =
+      typeof this.view?.isHyperlinkPreviewEnabled === 'function'
+        ? this.view.isHyperlinkPreviewEnabled()
+        : this.view?.enableLinkHoverPreview !== false && this.view?.resolveHyperlinkPreview;
+    const showsLinkPreview = isPreviewEnabled
+      ? (href, key) => {
+          if (typeof this.view.renderInlineHyperlinkPreview === 'function') {
+            return this.view.renderInlineHyperlinkPreview(href, key);
           }
-        : false;
+          return this.view.resolveHyperlinkPreview(href);
+        }
+      : false;
     let lastRowNum = site.getLastRowNum(this.buf);
     if (site.pageState === PAGE_STATE.READING && site.prevPageState === PAGE_STATE.READING) {
       this.show();
