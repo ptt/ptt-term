@@ -35,7 +35,7 @@ export const DEFAULT_PREFS = {
   deleteKey: "escape-sequence",
 
   // mouse browsing
-  useMouseBrowsing: false,
+  enableMouseBrowsing: false,
   mouseBrowsingHighlight: true,
   mouseBrowsingHighlightColor: 2,
   mouseLeftFunction: 0,

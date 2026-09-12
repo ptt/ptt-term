@@ -1,5 +1,6 @@
 import React from "preact/compat";
-import { readValuesWithDefault, updatePref, parseOptionText } from "../../js/pref.js";
+import { PluginBase } from "../PluginBase.js";
+import { parseOptionText } from "../../js/pref.js";
 import { _ } from "../../js/i18n.js";
 import { PAGE_STATE } from "../../js/sites/index.js";
 const cursorBack = new URL("../../cursor/back.png", import.meta.url).href;
@@ -103,10 +104,20 @@ function renderSelectOptionGroup({
   );
 }
 
-export class MouseBrowsing {
+export class MouseBrowsing extends PluginBase {
   static id = "mouse_browsing";
   static name = "mouse_browsing";
-  static prefKey = "useMouseBrowsing";
+  static prefKey = "enableMouseBrowsing";
+  static group = "bbs";
+  static icon = "mouse";
+
+  static get title() {
+    return _("plugin_mouse_browsing_title");
+  }
+
+  static get description() {
+    return _("plugin_mouse_browsing_desc");
+  }
 
   static renderOptions({ values = {}, handleCheckboxChange, handleNumberInputChange }) {
     return React.createElement(
@@ -197,82 +208,12 @@ export class MouseBrowsing {
     );
   }
 
-  renderOptions(props) {
-    return MouseBrowsing.renderOptions(props);
-  }
-
-  static id = "mouse_browsing";
-  static name = "mouse_browsing";
-  static prefKey = "useMouseBrowsing";
-  static group = "bbs";
-
-  static getMetadata() {
-    return {
-      id: "mouse_browsing",
-      name: "mouse_browsing",
-      title: _("plugin_mouse_browsing_title"),
-      description: _("plugin_mouse_browsing_desc"),
-      prefKey: "useMouseBrowsing",
-      icon: "mouse",
-      group: "bbs",
-      renderOptions: MouseBrowsing.renderOptions,
-    };
-  }
-
   constructor(app, options = {}) {
-    this.app = app || null;
-    this.view = options.view || null;
-    this.buf = options.buf || null;
-    const prefs = readValuesWithDefault();
-    this.enabled = options.enabled ?? (prefs.useMouseBrowsing ?? false);
-    this.supportMouseReporting = options.supportMouseReporting ?? (prefs.supportMouseReporting ?? true);
+    super(app, options);
     this.tempMouseCol = 0;
     this.tempMouseRow = 0;
     this.mouseCursor = 0;
     this.nowHighlight = -1;
-  }
-
-  get id() {
-    return "mouse_browsing";
-  }
-
-  get name() {
-    return "mouse_browsing";
-  }
-
-  get prefKey() {
-    return "useMouseBrowsing";
-  }
-
-  get group() {
-    return "bbs";
-  }
-
-  get title() {
-    return _("plugin_mouse_browsing_title");
-  }
-
-  get description() {
-    return _("plugin_mouse_browsing_desc");
-  }
-
-  get icon() {
-    return "mouse";
-  }
-
-  getMetadata() {
-    return {
-      id: this.id,
-      name: this.name,
-      title: this.title,
-      description: this.description,
-      prefKey: this.prefKey,
-      enabled: this.enabled,
-      icon: this.icon,
-      group: this.group,
-      supportMouseReporting: this.supportMouseReporting,
-      renderOptions: MouseBrowsing.renderOptions,
-    };
   }
 
   getContextMenuItems() {
@@ -282,7 +223,7 @@ export class MouseBrowsing {
         order: 5,
         label: () => _("cmenu_mouseBrowsing"),
         checked: () => Boolean(this.enabled),
-        visible: (app, { normalEnabled }) => normalEnabled,
+        visible: (app, { normalEnabled } = {}) => Boolean(normalEnabled !== false),
         onClick: () => {
           this.switchMouseBrowsing();
         },
@@ -290,48 +231,79 @@ export class MouseBrowsing {
     ];
   }
 
-  init({ app, view, buf } = {}) {
-    if (app) {
-      this.app = app;
-      this._onPrefChangeBound = (e) => {
-        const key = e?.key ?? e?.detail?.key;
-        const value = e?.value !== undefined ? e.value : e?.detail?.value;
-        if (key === "useMouseBrowsing") {
-          this.setEnabled(Boolean(value));
-        } else if (key === "supportMouseReporting") {
-          this.setSupportMouseReporting(Boolean(value));
-        }
-      };
-      this._onMouseMoveBound = (e) => {
-        const col = e?.col ?? e?.detail?.col;
-        const row = e?.row ?? e?.detail?.row;
-        const refresh = e?.refresh ?? e?.detail?.refresh;
-        this.onMouseMove(col, row, !!refresh);
-      };
-      this._onResetMouseCursorBound = () => {
-        this.resetMouseCursor();
-      };
-      app.on("term:pref-change", this._onPrefChangeBound);
-      app.on("term:mouse-move", this._onMouseMoveBound);
-      app.on("term:reset-mouse-cursor", this._onResetMouseCursorBound);
-      app.registerContextMenuItem?.(this.getContextMenuItems()[0]);
+  onInit() {
+    if (this.app) {
+      this.app._useMouseBrowsing = Boolean(this.enabled);
     }
-    if (view) this.view = view;
-    if (buf) this.buf = buf;
-    if (this.buf) {
-      if (this.buf.locator) {
-        this.buf.locator.enabled = this.supportMouseReporting;
+    this.registerInputInterceptorWhileEnabled(this);
+    this.listenApp("term:pref-change", (e) => {
+      const key = e?.key ?? e?.detail?.key;
+      const value = e?.value !== undefined ? e.value : e?.detail?.value;
+      if (key === "mouseBrowsingHighlight") {
+        const buf = this.buf || this.app?.buf;
+        if (buf) buf.highlightCursor = Boolean(value);
+        this.view?.redraw?.(true);
+        this.view?.updateCursorPos?.();
+      } else if (key === "mouseBrowsingHighlightColor") {
+        const view = this.view || this.app?.view;
+        if (view) {
+          view.highlightBG = value;
+          view.updateHighlightColor?.();
+          view.updateCursorPos?.();
+        }
       }
+    });
+    this.listenAppWhileEnabled("term:mouse-move", (e) => {
+      const col = e?.col ?? e?.detail?.col;
+      const row = e?.row ?? e?.detail?.row;
+      const refresh = e?.refresh ?? e?.detail?.refresh;
+      const force = e?.force ?? e?.detail?.force;
+      this.onMouseMove(col, row, !!refresh, !!force);
+    });
+    this.listenAppWhileEnabled("term:reset-mouse-cursor", () => {
+      this.resetMouseCursor();
+    });
+  }
+
+  onEnable() {
+    if (this.app) {
+      this.app._useMouseBrowsing = true;
+    }
+    this.resetMousePos();
+    if (!this._initializing) {
+      this.view?.redraw?.(true);
+      this.view?.updateCursorPos?.();
     }
   }
 
-  setSupportMouseReporting(enabled) {
-    this.supportMouseReporting = !!enabled;
-    const buf = this.buf || this.app?.buf;
-    if (buf?.locator) {
-      buf.locator.enabled = this.supportMouseReporting;
+  onDisable() {
+    if (this.app) {
+      this.app._useMouseBrowsing = false;
     }
-    updatePref("supportMouseReporting", this.supportMouseReporting);
+    const buf = this.buf || this.app?.buf;
+    const termWin = this.app?.termWin || buf?.termWin;
+    if (termWin && termWin.style) termWin.style.cursor = "auto";
+    this.clearHighlight();
+    this.setMouseCursor(0);
+    this.tempMouseCol = 0;
+    this.tempMouseRow = 0;
+    this.view?.redraw?.(true);
+    this.view?.updateCursorPos?.();
+  }
+
+  onDestroy() {
+    if (this.app) {
+      this.app._useMouseBrowsing = false;
+    }
+    const buf = this.buf || this.app?.buf;
+    const termWin = this.app?.termWin || buf?.termWin;
+    if (termWin && termWin.style) termWin.style.cursor = "auto";
+    this.clearHighlight();
+  }
+
+  switchMouseBrowsing() {
+    this.setEnabled(!this.enabled, true);
+    return this.enabled;
   }
 
   setMouseCursor(cursor) {
@@ -366,41 +338,6 @@ export class MouseBrowsing {
     }
   }
 
-  destroy() {
-    if (this.app) {
-      this.app.off("term:pref-change", this._onPrefChangeBound);
-      this.app.off("term:mouse-move", this._onMouseMoveBound);
-      this.app.off("term:reset-mouse-cursor", this._onResetMouseCursorBound);
-      this.app.unregisterContextMenuItem?.("mouse_browsing");
-    }
-    this.clearHighlight();
-  }
-
-  setEnabled(val) {
-    this.enabled = !!val;
-    const buf = this.buf || this.app?.buf;
-    if (buf) {
-      if (!this.enabled) {
-        const termWin = this.app?.termWin || buf.termWin;
-        if (termWin && termWin.style) termWin.style.cursor = "auto";
-        this.clearHighlight();
-        this.setMouseCursor(0);
-        this.tempMouseCol = 0;
-        this.tempMouseRow = 0;
-      } else {
-        this.resetMousePos();
-        this.view?.redraw?.(true);
-        this.view?.updateCursorPos?.();
-      }
-    }
-    updatePref("useMouseBrowsing", this.enabled);
-  }
-
-  switchMouseBrowsing() {
-    this.setEnabled(!this.enabled);
-    return this.enabled;
-  }
-
   navigateRowAndEnter(targetRow) {
     const buf = this.buf || this.app?.buf;
     if (!buf || !this.app) return;
@@ -430,8 +367,7 @@ export class MouseBrowsing {
     }
   }
 
-  onMouseMove(tcol, trow, doRefresh) {
-    if (!this.enabled) return;
+  onMouseMove(tcol, trow, doRefresh, force = false) {
     const buf = this.buf || this.app?.buf;
     if (!buf) return;
     tcol =
@@ -441,22 +377,7 @@ export class MouseBrowsing {
     this.tempMouseCol = tcol;
     this.tempMouseRow = trow;
 
-    // If mouse reporting is active, suppress heuristic icon switches
-    const locator = buf.locator;
-    if (locator?.isActive?.()) {
-      this.clearHighlight();
-      const termWin = this.app?.termWin || buf.termWin;
-      if (termWin && termWin.style) {
-        termWin.style.cursor = "default";
-      }
-      if (locator.requiresMotionReports?.()) {
-        const report = locator.handleMouseMove(null, { col: tcol, row: trow });
-        if (report && this.app?.send) {
-          this.app.send(report);
-        }
-      }
-      return;
-    }
+    if (!this.enabled && !force) return;
 
     if ((this.nowHighlight !== trow && buf.nowHighlight !== trow) || doRefresh) {
       this.clearHighlight();
@@ -533,7 +454,7 @@ export class MouseBrowsing {
     }
 
     const termWin = this.app?.termWin || buf.termWin;
-    if (termWin && termWin.style) {
+    if (termWin && termWin.style && this.enabled) {
       termWin.style.cursor = MOUSE_CURSOR_MAP[this.mouseCursor] || "auto";
     }
   }
@@ -553,27 +474,15 @@ export class MouseBrowsing {
     }
   }
 
-  handleMouseClick(e) {
-    if (!this.enabled) return false;
+  handleMouseClick(e, force = false) {
     const app = this.app;
     const buf = this.buf || app?.buf;
-    if (!app || !app.conn || !app.conn.isConnected || !buf) {
+    if (!app || (app.conn && !app.conn.isConnected) || !buf) {
       return false;
     }
 
-    const locator = buf.locator;
-    if (locator?.isActive?.()) {
-      const cX = e?.clientX ?? 0;
-      const cY = e?.clientY ?? 0;
-      const pos = app.clientToPos
-        ? app.clientToPos(cX, cY)
-        : { col: this.tempMouseCol || 0, row: this.tempMouseRow || 0 };
-      const report = locator.handleMouseClick(e, pos);
-      if (report) {
-        app.send(report);
-        return true;
-      }
-    }
+    const isForced = force || Boolean(e?.forceMouseBrowsing);
+    if (!this.enabled && !isForced) return false;
 
     const cX = e.clientX;
     const cY = e.clientY;
@@ -667,24 +576,6 @@ export class MouseBrowsing {
         break;
     }
 
-    return false;
-  }
-
-  handleWheel(e) {
-    if (!this.enabled) return false;
-    const buf = this.buf || this.app?.buf;
-    const locator = buf?.locator;
-    if (locator?.isActive?.()) {
-      const pos = this.app?.clientToPos
-        ? this.app.clientToPos(e?.clientX ?? 0, e?.clientY ?? 0)
-        : { col: this.tempMouseCol || 0, row: this.tempMouseRow || 0 };
-      const report = locator.handleWheel(e, pos);
-      if (report && this.app?.send) {
-        this.app.send(report);
-        e?.preventDefault?.();
-        return true;
-      }
-    }
     return false;
   }
 }

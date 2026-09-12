@@ -66,7 +66,7 @@ test('readValuesWithDefault merges saved values with defaults', () => {
       JSON.stringify({
         values: {
           fontSize: 28,
-          useMouseBrowsing: true,
+          enableMouseBrowsing: true,
           antiIdleTime: 60,
         },
       })
@@ -74,7 +74,7 @@ test('readValuesWithDefault merges saved values with defaults', () => {
 
     const prefs = readValuesWithDefault();
     assert.equal(prefs.fontSize, 28);
-    assert.equal(prefs.useMouseBrowsing, true);
+    assert.equal(prefs.enableMouseBrowsing, true);
     assert.equal(prefs.antiIdleTime, 60);
     // Unchanged keys keep default values
     assert.equal(prefs.enableMediaPreviewer, DEFAULT_PREFS.enableMediaPreviewer);

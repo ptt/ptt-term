@@ -167,67 +167,63 @@ test('TermBuf integrates with Locator and routes DECSET/DECRST', () => {
   assert.equal(buf.locator.isActive(), false);
 });
 
-test('MouseBrowsing delegates to SGR Locator reporting when host activates it', () => {
-  const sent = [];
+test('Locator handleMouseClick sends SGR sequence when host activates it', () => {
   const buf = new MockTermBuf(80, 24);
-  const mockApp = {
-    conn: { isConnected: true },
-    buf,
-    send: (data) => sent.push(data),
-    clientToPos: () => ({ col: 15, row: 8 }),
-    on: () => {},
-    off: () => {},
-  };
-
-  const mb = new MouseBrowsing(mockApp, { enabled: true, supportMouseReporting: true });
-  mb.init({ app: mockApp, buf });
 
   // Host activates mouse mode
   buf.handleDECSET(1000);
   assert.equal(buf.locator.isActive(), true);
 
-  // Clicking should send SGR sequence instead of simulated navigation keys
-  const handled = mb.handleMouseClick({ clientX: 100, clientY: 100, button: 0 });
-  assert.equal(handled, true);
-  assert.equal(sent[0], '\x1b[<0;16;9M\x1b[<0;16;9m');
+  const report = buf.locator.handleMouseClick({ button: 0 }, { col: 15, row: 8 });
+  assert.equal(report, '\x1b[<0;16;9M\x1b[<0;16;9m');
 });
 
-test('MouseBrowsing handleWheel sends SGR wheel sequence when active', () => {
-  const sent = [];
+test('Locator handleWheel sends SGR wheel sequence when active', () => {
   const buf = new MockTermBuf(80, 24);
+  buf.handleDECSET(1000);
+
+  const report = buf.locator.handleWheel({ deltaY: -100 }, { col: 20, row: 10 });
+  assert.equal(report, '\x1b[<64;21;11M');
+});
+
+test('Locator enabled property toggles mouse reporting active state', () => {
+  const buf = new MockTermBuf(80, 24);
+  buf.handleDECSET(1000);
+  assert.equal(buf.locator.isActive(), true);
+
+  buf.locator.enabled = false;
+  assert.equal(buf.locator.isActive(), false);
+
+  buf.locator.enabled = true;
+  assert.equal(buf.locator.isActive(), true);
+});
+
+test('MouseBrowsing is cleanly decoupled from VT Mouse Reporting (Locator)', () => {
+  const buf = new MockTermBuf(80, 24);
+  const interceptors = [];
   const mockApp = {
     conn: { isConnected: true },
     buf,
-    send: (data) => sent.push(data),
-    clientToPos: () => ({ col: 20, row: 10 }),
     on: () => {},
     off: () => {},
+    registerInputInterceptor: (i) => interceptors.push(i),
+    unregisterInputInterceptor: (i) => {
+      const idx = interceptors.indexOf(i);
+      if (idx !== -1) interceptors.splice(idx, 1);
+    },
   };
 
-  const mb = new MouseBrowsing(mockApp, { enabled: true, supportMouseReporting: true });
+  const mb = new MouseBrowsing(mockApp, { enabled: false });
   mb.init({ app: mockApp, buf });
+  assert.equal(interceptors.length, 0, 'MouseBrowsing should not register input interceptor while disabled');
+  assert.equal(mb.supportMouseReporting, undefined, 'MouseBrowsing should not own supportMouseReporting');
 
-  buf.handleDECSET(1000);
+  mb.enable();
+  assert.equal(interceptors.length, 1, 'MouseBrowsing should register input interceptor when enabled');
 
-  const handled = mb.handleWheel({ clientX: 150, clientY: 150, deltaY: -100 });
-  assert.equal(handled, true);
-  assert.equal(sent[0], '\x1b[<64;21;11M');
-});
-
-test('MouseBrowsing setSupportMouseReporting toggles locator', () => {
-  const buf = new MockTermBuf(80, 24);
-  const mockApp = { conn: { isConnected: true }, buf, on: () => {}, off: () => {} };
-  const mb = new MouseBrowsing(mockApp, { enabled: true, supportMouseReporting: true });
-  mb.init({ app: mockApp, buf });
-
-  buf.handleDECSET(1000);
-  assert.equal(buf.locator.isActive(), true);
-
-  mb.setSupportMouseReporting(false);
-  assert.equal(buf.locator.isActive(), false);
-
-  mb.setSupportMouseReporting(true);
-  assert.equal(buf.locator.isActive(), true);
+  mb.destroy();
+  assert.equal(interceptors.length, 0, 'MouseBrowsing should unregister input interceptor on destroy');
+  assert.equal(mockApp._useMouseBrowsing, false, 'MouseBrowsing destroy should reset app._useMouseBrowsing');
 });
 
 test('Preferences defaults supportMouseReporting to true', () => {

@@ -1644,7 +1644,7 @@ test('src/plugins exports MouseBrowsing and handles mouse click navigation', asy
 
   const meta = mouseBrowsingModule.MouseBrowsing.getMetadata();
   assert.equal(meta.id, 'mouse_browsing');
-  assert.equal(meta.prefKey, 'useMouseBrowsing');
+  assert.equal(meta.prefKey, 'enableMouseBrowsing');
 
   const sent = [];
   const mockApp = {
