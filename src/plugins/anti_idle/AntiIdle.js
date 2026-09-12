@@ -1,12 +1,23 @@
 import React from "preact/compat";
-import { readValuesWithDefault, updatePref } from "../../js/pref.js";
+import { PluginBase } from "../PluginBase.js";
+import { readValuesWithDefault } from "../../js/pref.js";
 import { _ } from "../../js/i18n.js";
 
-export class AntiIdle {
+export class AntiIdle extends PluginBase {
   static id = "anti_idle";
   static name = "anti_idle";
   static prefKey = "enableAntiIdle";
   static group = "bbs";
+  static icon = "timer";
+  static DEFAULT_INTERVAL_SEC = 180;
+
+  static get title() {
+    return _("plugin_anti_idle_title");
+  }
+
+  static get description() {
+    return _("plugin_anti_idle_desc");
+  }
 
   static renderOptions({ values = {}, handleNumberInputChange }) {
     return React.createElement(
@@ -25,7 +36,7 @@ export class AntiIdle {
           type: "number",
           name: "antiIdleTime",
           min: "1",
-          value: values.antiIdleTime || 60,
+          value: values.antiIdleTime || AntiIdle.DEFAULT_INTERVAL_SEC,
           onChange: handleNumberInputChange,
         }),
         React.createElement(
@@ -37,117 +48,69 @@ export class AntiIdle {
     );
   }
 
-  renderOptions(props) {
-    return AntiIdle.renderOptions(props);
-  }
-
-  static getMetadata() {
-    return {
-      id: "anti_idle",
-      name: "anti_idle",
-      title: _("plugin_anti_idle_title"),
-      description: _("plugin_anti_idle_desc"),
-      prefKey: "enableAntiIdle",
-      icon: "timer",
-      group: "bbs",
-      renderOptions: AntiIdle.renderOptions,
-    };
-  }
-
   constructor(app, options = {}) {
-    this.app = app || null;
-    this.view = options.view || null;
-    this.buf = options.buf || null;
+    super(app, options);
     this.idleTime = 0;
-    this.interval = options.interval ?? 60000;
-    this.enabled = options.enabled ?? false;
-  }
-
-  get id() {
-    return "anti_idle";
-  }
-
-  get name() {
-    return "anti_idle";
-  }
-
-  get prefKey() {
-    return "enableAntiIdle";
-  }
-
-  get group() {
-    return "bbs";
-  }
-
-  get title() {
-    return _("plugin_anti_idle_title");
-  }
-
-  get description() {
-    return _("plugin_anti_idle_desc");
-  }
-
-  get icon() {
-    return "timer";
-  }
-
-  getMetadata() {
-    return {
-      id: this.id,
-      name: this.name,
-      title: this.title,
-      description: this.description,
-      prefKey: this.prefKey,
-      enabled: this.enabled,
-      icon: this.icon,
-      group: this.group,
-      renderOptions: AntiIdle.renderOptions,
-    };
-  }
-
-  init({ app, view, buf } = {}) {
-    if (app) {
-      this.app = app;
-      this._onTickBound = (e) =>
-        this.tick(e?.intervalMs ?? e?.detail?.intervalMs ?? 1000);
-      this._onActivityBound = () => this.resetIdle();
-      this._onPrefChangeBound = (e) => {
-        const key = e?.key ?? e?.detail?.key;
-        const value = e?.value !== undefined ? e.value : e?.detail?.value;
-        if (key === "antiIdleTime") {
-          this.setInterval(value);
-        } else if (key === "enableAntiIdle") {
-          this.enabled = Boolean(value);
-        }
-      };
-      this.app.on("term:tick", this._onTickBound);
-      this.app.on("term:send", this._onActivityBound);
-      this.app.on("term:user-activity", this._onActivityBound);
-      this.app.on("term:connect", this._onActivityBound);
-      this.app.on("term:pref-change", this._onPrefChangeBound);
+    if (this.interval === undefined) {
+      this.interval = options.interval ?? AntiIdle.DEFAULT_INTERVAL_SEC * 1000;
     }
-    if (view) this.view = view;
-    if (buf) this.buf = buf;
-    this.syncFromPrefs();
+  }
+
+  onInit() {
+    this.listenApp("term:pref-change", (e) => {
+      const key = e?.key ?? e?.detail?.key;
+      const value = e?.value !== undefined ? e.value : e?.detail?.value;
+      if (key === "antiIdleTime") {
+        this.setIdleInterval(value);
+      }
+    });
+
+    this.listenAppWhileEnabled("term:tick", (e) => {
+      this.tick(e?.intervalMs ?? e?.detail?.intervalMs ?? 1000);
+    });
+    this.listenAppWhileEnabled("term:send", () => this.resetIdle());
+    this.listenAppWhileEnabled("term:user-activity", () => this.resetIdle());
+    this.listenAppWhileEnabled("term:connect", () => this.resetIdle());
   }
 
   syncFromPrefs() {
-    const prefs = readValuesWithDefault();
-    const timeSec = Number(prefs.antiIdleTime) || 0;
-    this.enabled = Boolean(prefs.enableAntiIdle ?? (timeSec > 0));
-    this.interval = (timeSec > 0 ? timeSec : 60) * 1000;
+    super.syncFromPrefs();
+    const appPrefs = this.app?.prefValues;
+    let prefs = null;
+    if ((!appPrefs || appPrefs.antiIdleTime === undefined) && this.options?.interval === undefined) {
+      try {
+        prefs = readValuesWithDefault();
+      } catch {
+        prefs = null;
+      }
+    }
+    const rawAntiIdleTime = appPrefs?.antiIdleTime ?? prefs?.antiIdleTime;
+    const timeSec = Number(rawAntiIdleTime) || 0;
+
+    if (this.options?.interval !== undefined) {
+      this.interval = this.options.interval;
+    } else {
+      this.interval = (timeSec > 0 ? timeSec : AntiIdle.DEFAULT_INTERVAL_SEC) * 1000;
+    }
   }
 
-  setInterval(seconds) {
-    const sec = Math.max(0, Number(seconds) || 0);
-    this.interval = sec * 1000;
-    if (sec > 0) {
-      this.enabled = true;
-    }
+  setIdleInterval(seconds) {
+    const sec = Number(seconds);
+    const validSec = sec > 0 ? sec : AntiIdle.DEFAULT_INTERVAL_SEC;
+    this.interval = validSec * 1000;
+    this.resetIdle();
   }
 
   resetIdle() {
     this.idleTime = 0;
+  }
+
+  onEnable() {
+    this.resetIdle();
+  }
+
+  onDisable() {
+    this.resetIdle();
   }
 
   tick(deltaMs = 1000) {
@@ -161,14 +124,7 @@ export class AntiIdle {
     }
   }
 
-  destroy() {
-    this.idleTime = 0;
-    if (this.app) {
-      this.app.off("term:tick", this._onTickBound);
-      this.app.off("term:send", this._onActivityBound);
-      this.app.off("term:user-activity", this._onActivityBound);
-      this.app.off("term:connect", this._onActivityBound);
-      this.app.off("term:pref-change", this._onPrefChangeBound);
-    }
+  onDestroy() {
+    this.resetIdle();
   }
 }

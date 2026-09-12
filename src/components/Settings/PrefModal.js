@@ -690,9 +690,7 @@ export class PrefModal extends React.Component {
       }
       if (name === "enableAntiIdle") {
         if (checked && (!nextValues.antiIdleTime || nextValues.antiIdleTime <= 0)) {
-          nextValues = changeNestedValue(nextValues, "antiIdleTime", 60);
-        } else if (!checked) {
-          nextValues = changeNestedValue(nextValues, "antiIdleTime", 0);
+          nextValues = changeNestedValue(nextValues, "antiIdleTime", 180);
         }
       }
       if (name === "enableAutoWrap") {
@@ -725,12 +723,6 @@ export class PrefModal extends React.Component {
     this.setState((prevState) => {
       const numVal = name === "lineHeight" ? parseFloat(value) : parseInt(value, 10);
       let nextValues = changeNestedValue(prevState.values, name, numVal);
-      if (name === "antiIdleTime") {
-        nextValues = changeNestedValue(nextValues, "enableAntiIdle", numVal > 0);
-      }
-      if (name === "lineWrap") {
-        nextValues = changeNestedValue(nextValues, "enableAutoWrap", numVal > 0);
-      }
       if (name === "minimumContrast") {
         this.applyLiveColorScheme(nextValues);
       }

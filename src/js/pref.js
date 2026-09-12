@@ -14,7 +14,7 @@ export const DEFAULT_PREFS = {
   rightClickAction: "menu",
   supportMouseReporting: true,
   enableAntiIdle: false,
-  antiIdleTime: 0,
+  antiIdleTime: 180,
   enableAutoWrap: true,
   lineWrap: 78,
   useCanvasEngine: true,
@@ -149,9 +149,6 @@ export const readValuesWithDefault = () => {
       prefs.enablePwaPrompt = false;
     }
     if (saved) {
-      if (saved.enableAntiIdle === undefined && saved.antiIdleTime !== undefined) {
-        prefs.enableAntiIdle = Boolean(saved.antiIdleTime > 0);
-      }
       if (saved.enableAutoWrap === undefined && saved.lineWrap !== undefined) {
         prefs.enableAutoWrap = Boolean(saved.lineWrap > 0);
       }

@@ -1764,6 +1764,7 @@ test('src/plugins exports AntiIdle and delegates keepalive to site', async () =>
     enabled: true,
     interval: 2000,
   });
+  antiIdle.init({ app: mockApp });
 
   // Tick 1s: should not trigger yet
   antiIdle.tick(1000);
@@ -1803,6 +1804,7 @@ test('src/plugins exports AntiIdle and delegates keepalive to site', async () =>
     enabled: true,
     interval: 1000,
   });
+  eventAntiIdle.init({ app: eventApp });
   eventAntiIdle.tick(1000);
   assert.ok(eventApp.events.includes('term:anti-idle'));
   assert.equal(appAntiIdleSent, true);
