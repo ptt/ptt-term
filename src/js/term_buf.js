@@ -206,8 +206,6 @@ export class TermBuf extends EventEmitter {
     this.cur_y_sav = -1;
     this.scrollStart = 0;
     this.scrollEnd = validRows - 1;
-    this._nowHighlight = -1;
-    this.highlightCursor = true;
     this.locator = new Locator(this);
     //this.scrollingTop=0;
     //this.scrollingBottom=23;
@@ -246,14 +244,6 @@ export class TermBuf extends EventEmitter {
     this.titleConn = null;
     this.dynamicTitle = (process.env.DYNAMIC_TITLE !== false);
     document.title = this.title = this.titleBase;
-  }
-
-  get nowHighlight() {
-    return this._nowHighlight;
-  }
-
-  set nowHighlight(val) {
-    this.setHighlight(val);
   }
 
   /**
@@ -1089,7 +1079,6 @@ export class TermBuf extends EventEmitter {
       this.updateCharAttr();
 
       this.setPageState();
-      this.clearHighlight();
 
       this.emit('change');
 
@@ -1277,23 +1266,6 @@ export class TermBuf extends EventEmitter {
         return false;
     }
     return true;
-  }
-
-
-
-  /**
-   * @param {number} row
-   */
-  setHighlight(row) {
-    const validRow = (typeof row === 'number' && Number.isFinite(row)) ? Math.floor(row) : -1;
-    this._nowHighlight = validRow;
-    if (this.view) {
-      this.view.setHighlightedRow(validRow);
-    }
-  }
-
-  clearHighlight() {
-    this.nowHighlight = -1;
   }
 
   /**

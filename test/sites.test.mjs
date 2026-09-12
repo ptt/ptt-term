@@ -1659,8 +1659,14 @@ test('src/plugins exports MouseBrowsing and handles mouse click navigation', asy
 
   mb.setHighlight(7);
   assert.equal(mb.nowHighlight, 7);
-  assert.equal(mockApp.buf.nowHighlight, 7);
   assert.equal(highlightedRows[highlightedRows.length - 1], 7);
+
+  // When highlightCursor is false, visual highlight on view is -1 while logical nowHighlight is preserved
+  mb.highlightCursor = false;
+  mb.setHighlight(9);
+  assert.equal(mb.nowHighlight, 9);
+  assert.equal(highlightedRows[highlightedRows.length - 1], -1);
+  mb.highlightCursor = true;
 
   mb.clearHighlight();
   assert.equal(mb.nowHighlight, -1);

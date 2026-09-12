@@ -334,9 +334,10 @@ test('App handles VT Mouse Reporting (Locator) click, move, and wheel when Mouse
   assert.equal(buf.locator.enabled, false);
 });
 
-test('App and TermView are completely decoupled from MouseBrowsing and MouseBrowsing owns all mouse gesture, wheel, and button state', () => {
+test('App, TermView, and TermBuf are completely decoupled from MouseBrowsing and MouseBrowsing owns all mouse gesture, wheel, button, and highlight state', () => {
   const appSrc = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
   const termViewSrc = fs.readFileSync(path.resolve('src/js/term_view.js'), 'utf-8');
+  const termBufSrc = fs.readFileSync(path.resolve('src/js/term_buf.js'), 'utf-8');
 
   const forbiddenInAppAndView = [
     'useMouseBrowsing',
@@ -359,11 +360,24 @@ test('App and TermView are completely decoupled from MouseBrowsing and MouseBrow
     'mouseWheelActionsUp',
     'mouseWheelActionsDown',
     'resetMouseCursor',
+    'highlightCursor',
   ];
 
   for (const token of forbiddenInAppAndView) {
     assert.ok(!appSrc.includes(token), `App must not reference ${token}`);
     assert.ok(!termViewSrc.includes(token), `TermView must not reference ${token}`);
+  }
+
+  const forbiddenInBuf = [
+    'highlightCursor',
+    'nowHighlight',
+    '_nowHighlight',
+    'setHighlight',
+    'clearHighlight',
+    'mouseCursor',
+  ];
+  for (const token of forbiddenInBuf) {
+    assert.ok(!termBufSrc.includes(token), `TermBuf must not reference ${token}`);
   }
 
   const sent = [];

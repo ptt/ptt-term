@@ -7,7 +7,6 @@ const PINCH_STEP_PX = 28;
 export class TouchController {
   constructor(app) {
     this.app = app;
-    this.highlightCopy = false;
     this.touchStarted = false;
     this.touchedCenter = { x: 0, y: 0 };
     this.startX = 0;
@@ -87,7 +86,6 @@ export class TouchController {
         this.lastX = e.clientX;
         this.lastY = e.clientY;
         this.touchedCenter = { x: e.clientX, y: e.clientY };
-        this.highlightCopy = app.buf.highlightCursor;
 
         if (app.inputArea) {
           app.inputArea.setAttribute("inputmode", "none");
@@ -182,11 +180,7 @@ export class TouchController {
 
       if (this.panDirection === "list_scroll") {
         e.preventDefault();
-        if (this.highlightCopy === undefined) {
-          this.highlightCopy = app.buf.highlightCursor;
-        }
-        app.buf.highlightCursor = true;
-        app.onMouse_move(e.clientX, e.clientY, false, true);
+        app.onMouse_move(e.clientX, e.clientY, false, true, { highlight: true });
         this.touchedCenter.x = e.clientX;
         this.touchedCenter.y = e.clientY;
       } else if (this.panDirection === "select" && this.isSelecting) {
@@ -246,7 +240,11 @@ export class TouchController {
           site?.pageState === PAGE_STATE.LIST &&
           app.buf
         ) {
-          if (app.buf.highlightCursor && app.buf.nowHighlight !== -1) {
+          const isHighlighted =
+            app.view &&
+            typeof app.view.highlightedRow === "number" &&
+            app.view.highlightedRow !== -1;
+          if (isHighlighted) {
             app.onMouse_click(
               {
                 clientX: this.touchedCenter.x,
@@ -255,12 +253,8 @@ export class TouchController {
               true
             );
           }
-          app.buf.nowHighlight = -1;
+          app.emit?.("term:clear-highlight");
           app.view?.clearHighlight?.();
-          if (this.highlightCopy !== undefined) {
-            app.buf.highlightCursor = this.highlightCopy;
-            this.highlightCopy = undefined;
-          }
           if (target && target.style) target.style.cursor = "auto";
         }
       } else {
@@ -269,21 +263,10 @@ export class TouchController {
         if (app.view) {
           app.view.clearSelection();
         }
-        const savedHighlight =
-          this.highlightCopy !== undefined
-            ? this.highlightCopy
-            : app.buf?.highlightCursor;
-        if (app.buf) {
-          app.buf.highlightCursor = false;
-        }
-        app.onMouse_move(e.clientX, e.clientY, false, true);
+        app.onMouse_move(e.clientX, e.clientY, false, true, { highlight: false });
         app.onMouse_click(e, true);
-        if (app.buf) {
-          app.buf.nowHighlight = -1;
-          app.buf.highlightCursor = savedHighlight;
-        }
+        app.emit?.("term:clear-highlight");
         app.view?.clearHighlight?.();
-        this.highlightCopy = undefined;
         if (target && target.style) target.style.cursor = "auto";
         console.debug("pointer tap (touch)");
       }
@@ -316,15 +299,9 @@ export class TouchController {
         app.view.clearSelection();
       }
 
-      if (app.buf) {
-        app.buf.nowHighlight = -1;
-        app.view?.clearHighlight?.();
-        if (this.highlightCopy !== undefined) {
-          app.buf.highlightCursor = this.highlightCopy;
-          this.highlightCopy = undefined;
-        }
-        if (target && target.style) target.style.cursor = "auto";
-      }
+      app.emit?.("term:clear-highlight");
+      app.view?.clearHighlight?.();
+      if (target && target.style) target.style.cursor = "auto";
 
       if (this.pointers.size === 0) {
         this.touchStarted = false;

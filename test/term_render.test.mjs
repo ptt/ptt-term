@@ -197,22 +197,24 @@ test('TermView setHighlightedRow safely guards when componentScreen is undefined
 
   // 1. componentScreen is undefined (reproducing the reported runtime crash)
   const ctxUndefined = {
-    buf: { highlightCursor: true },
+    highlightedRow: -1,
     componentScreen: undefined
   };
   assert.doesNotThrow(() => fn.call(ctxUndefined, 5));
+  assert.equal(ctxUndefined.highlightedRow, 5);
 
   // 2. componentScreen is null
   const ctxNull = {
-    buf: { highlightCursor: true },
+    highlightedRow: -1,
     componentScreen: null
   };
   assert.doesNotThrow(() => fn.call(ctxNull, 5));
+  assert.equal(ctxNull.highlightedRow, 5);
 
-  // 3. componentScreen is dummy initial object
+  // 3. componentScreen is valid
   let calledWith = null;
   const ctxValid = {
-    buf: { highlightCursor: true },
+    highlightedRow: -1,
     componentScreen: {
       setCurrentHighlighted(row) {
         calledWith = row;
@@ -221,19 +223,7 @@ test('TermView setHighlightedRow safely guards when componentScreen is undefined
   };
   fn.call(ctxValid, 12);
   assert.equal(calledWith, 12);
-
-  // 4. highlightCursor is false
-  calledWith = null;
-  const ctxDisabled = {
-    buf: { highlightCursor: false },
-    componentScreen: {
-      setCurrentHighlighted(row) {
-        calledWith = row;
-      }
-    }
-  };
-  fn.call(ctxDisabled, 12);
-  assert.equal(calledWith, null);
+  assert.equal(ctxValid.highlightedRow, 12);
 });
 
 test('renderScreen captures and returns component instance via ref in Preact', () => {

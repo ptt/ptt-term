@@ -867,7 +867,7 @@ export class App extends EventEmitter {
     return Boolean(clickEvent.handled);
   }
 
-  onMouse_move(cX, cY, refresh = false, force = false) {
+  onMouse_move(cX, cY, refresh = false, force = false, options = {}) {
     const eventName = force ? 'term:mouse-move:force' : 'term:mouse-move';
     if (
       !this.listenerCount(eventName) &&
@@ -882,6 +882,7 @@ export class App extends EventEmitter {
       clientY: cY,
       refresh,
       force,
+      highlight: options?.highlight,
     };
     if (force && this.listenerCount('term:mouse-move:force')) {
       this.emit('term:mouse-move:force', payload);

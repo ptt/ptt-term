@@ -31,6 +31,7 @@ export class TermView extends EventEmitter {
   this.termWidth = 0;
   this.termHeight = 0;
   this.dbcsDetect = true;
+  this.highlightedRow = -1;
   this.highlightBG = 2;
   this._charset = 'big5';
   //this.highlightFG = 7;
@@ -411,7 +412,7 @@ export class TermView extends EventEmitter {
           fontSize: currentFontSize,
           fontFace: this.fontFace,
           highlightBG: this.highlightBG,
-          nowHighlight: this.buf.highlightCursor ? this.buf.nowHighlight : -1,
+          nowHighlight: this.highlightedRow,
           buf: this.buf,
           charset: this.charset,
           copyOnSelect: this.app.copyOnSelect,
@@ -438,7 +439,7 @@ export class TermView extends EventEmitter {
       if (screenInst) {
         this.componentScreen = screenInst;
       }
-      this.setHighlightedRow(this.buf.nowHighlight);
+      this.setHighlightedRow(this.highlightedRow);
       if (t0 > 0 && !this.useCanvasEngine) {
         this.handleRenderFrame(performance.now() - t0, false);
       }
@@ -448,9 +449,11 @@ export class TermView extends EventEmitter {
   }
 
   setHighlightedRow(row) {
-    console.debug(`setHighlightedRow: ${row}, this.buf.highlightCursor:${ this.buf.highlightCursor}`);
-    if ((this.buf.highlightCursor || row === -1) && this.componentScreen) {
-      this.componentScreen.setCurrentHighlighted(row);
+    const validRow =
+      typeof row === 'number' && Number.isFinite(row) ? Math.floor(row) : -1;
+    this.highlightedRow = validRow;
+    if (this.componentScreen) {
+      this.componentScreen.setCurrentHighlighted(validRow);
     }
   }
 

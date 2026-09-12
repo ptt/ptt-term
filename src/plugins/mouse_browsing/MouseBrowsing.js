@@ -229,6 +229,7 @@ export class MouseBrowsing extends PluginBase {
     this.tempMouseRow = 0;
     this.mouseCursor = 0;
     this.nowHighlight = -1;
+    this.highlightCursor = true;
     this._dblclickTimer = null;
     this._mbTimer = null;
     this.mouseLeftButtonDown = false;
@@ -261,8 +262,10 @@ export class MouseBrowsing extends PluginBase {
   _syncPrefs(prefs) {
     if (!prefs) return;
     if (prefs.mouseBrowsingHighlight !== undefined) {
-      const buf = this.buf || this.app?.buf;
-      if (buf) buf.highlightCursor = Boolean(prefs.mouseBrowsingHighlight);
+      this.highlightCursor = Boolean(prefs.mouseBrowsingHighlight);
+      if (this.nowHighlight !== -1) {
+        this.setHighlight(this.nowHighlight);
+      }
     }
     if (prefs.mouseBrowsingHighlightColor !== undefined) {
       const view = this.view || this.app?.view;
@@ -330,8 +333,18 @@ export class MouseBrowsing extends PluginBase {
       const col = e?.col ?? e?.detail?.col;
       const row = e?.row ?? e?.detail?.row;
       const refresh = e?.refresh ?? e?.detail?.refresh;
-      this.onMouseMove(col, row, !!refresh, true);
+      const highlight = e?.highlight ?? e?.detail?.highlight;
+      this.onMouseMove(col, row, !!refresh, true, { highlight });
     });
+    this.listenApp("term:clear-highlight", () => {
+      this.clearHighlight();
+    });
+    const buf = this.buf || this.app?.buf;
+    if (buf) {
+      this.listen(buf, "change", () => {
+        this.clearHighlight();
+      });
+    }
     this.listenApp("term:click", (evt) => {
       if (!this.enabled && (evt?.force || evt?.event?.force)) {
         if (this.handleMouseClick(evt.event, true)) {
@@ -536,30 +549,20 @@ export class MouseBrowsing extends PluginBase {
 
   setMouseCursor(cursor) {
     this.mouseCursor = cursor;
-    const buf = this.buf || this.app?.buf;
-    if (buf) {
-      buf.mouseCursor = cursor;
-    }
   }
 
-  setHighlight(row) {
+  setHighlight(row, visualOverride = undefined) {
     this.nowHighlight = row;
-    const buf = this.buf || this.app?.buf;
-    if (buf) {
-      buf.nowHighlight = row;
-    }
+    const showVisual =
+      visualOverride !== undefined ? Boolean(visualOverride) : this.highlightCursor;
     const view = this.view || this.app?.view;
     if (view?.setHighlightedRow) {
-      view.setHighlightedRow(row);
+      view.setHighlightedRow(showVisual ? row : -1);
     }
   }
 
   clearHighlight() {
     this.nowHighlight = -1;
-    const buf = this.buf || this.app?.buf;
-    if (buf?.clearHighlight) {
-      buf.clearHighlight();
-    }
     const view = this.view || this.app?.view;
     if (view?.clearHighlight) {
       view.clearHighlight();
@@ -575,7 +578,7 @@ export class MouseBrowsing extends PluginBase {
     this.app.send(sendstr);
   }
 
-  _calcListRowMouseCursor(trow, tcol, lastRowNum, cols) {
+  _calcListRowMouseCursor(trow, tcol, lastRowNum, cols, visualOverride = undefined) {
     const buf = this.buf || this.app?.buf;
     if (!buf) return;
     if (tcol <= 6) {
@@ -588,14 +591,14 @@ export class MouseBrowsing extends PluginBase {
     } else {
       if (!buf.isLineEmpty(trow)) {
         this.setMouseCursor(6);
-        this.setHighlight(trow);
+        this.setHighlight(trow, visualOverride);
       } else {
         this.setMouseCursor(11);
       }
     }
   }
 
-  onMouseMove(tcol, trow, doRefresh, force = false) {
+  onMouseMove(tcol, trow, doRefresh, force = false, options = {}) {
     const buf = this.buf || this.app?.buf;
     if (!buf) return;
     tcol =
@@ -620,7 +623,7 @@ export class MouseBrowsing extends PluginBase {
       }
     }
 
-    if ((this.nowHighlight !== trow && buf.nowHighlight !== trow) || doRefresh) {
+    if (this.nowHighlight !== trow || doRefresh) {
       this.clearHighlight();
     }
 
@@ -637,7 +640,7 @@ export class MouseBrowsing extends PluginBase {
 
       case PAGE_STATE.MAPLE_LIST:
         if (trow > 1 && trow < lastRowNum - 1) {
-          this._calcListRowMouseCursor(trow, tcol, lastRowNum, cols);
+          this._calcListRowMouseCursor(trow, tcol, lastRowNum, cols, options?.highlight);
         } else if (trow == 1 || trow == 2) {
           this.setMouseCursor(2);
         } else if (trow === 0) {
@@ -649,7 +652,7 @@ export class MouseBrowsing extends PluginBase {
 
       case PAGE_STATE.LIST:
         if (trow > 2 && trow < lastRowNum) {
-          this._calcListRowMouseCursor(trow, tcol, lastRowNum, cols);
+          this._calcListRowMouseCursor(trow, tcol, lastRowNum, cols, options?.highlight);
         } else if (trow == 1 || trow == 2) {
           if (tcol < 2) this.setMouseCursor(8);
           else if (tcol > cols - 5) this.setMouseCursor(9);
@@ -709,8 +712,8 @@ export class MouseBrowsing extends PluginBase {
 
   resetMousePos() {
     if (this.enabled) {
-      const col = this.tempMouseCol ?? this.buf?.tempMouseCol ?? 0;
-      const row = this.tempMouseRow ?? this.buf?.tempMouseRow ?? 0;
+      const col = this.tempMouseCol ?? 0;
+      const row = this.tempMouseRow ?? 0;
       this.onMouseMove(col, row, true);
     }
   }
@@ -746,10 +749,8 @@ export class MouseBrowsing extends PluginBase {
         app.send("\x1b[4~"); // End
         return true;
       case 6: {
-        const highlightRow =
-          this.nowHighlight !== -1 ? this.nowHighlight : buf.nowHighlight;
-        if (highlightRow !== -1) {
-          this.navigateRowAndEnter(highlightRow);
+        if (this.nowHighlight !== -1) {
+          this.navigateRowAndEnter(this.nowHighlight);
           return true;
         }
         break;
