@@ -1,6 +1,7 @@
 // Terminal View
 
 import { EventEmitter } from './event.js';
+import { TermBuf } from './term_buf.js';
 import { TermKeyboard } from './term_keyboard';
 import { termColors, termInvColors, termDefaultBg, termDefaultFg, termDefaultLink, getContrastColor } from './color_schemes.js';
 import { renderRowHtml, renderScreen } from './term_ui';
@@ -41,8 +42,12 @@ export class TermView extends EventEmitter {
 
   this.viewMargin = 0;
 
-  this.buf = null;
-  this.app = null;
+  this.app = options.app || null;
+  this.buf = options.buf || new TermBuf(80, 24);
+  this.buf.view = this;
+  this.buf.on('change', () => this.update());
+  this.buf.on('cursor-move', () => this.updateCursorPos());
+  this.buf.on('blink', () => this.onBlinkToggle());
 
   this.blinkOn = false;
 
@@ -102,7 +107,7 @@ export class TermView extends EventEmitter {
   this._keyboard.on('term:key', (detail) => {
     const termDetail = { ...detail, term: this, view: this, buf: this.buf };
     this.emit('term:key', termDetail);
-    this.buf?.emit?.('term:key', termDetail);
+    this.buf.emit('term:key', termDetail);
   });
 
   this.input.addEventListener('compositionstart', (e) => {
@@ -264,11 +269,7 @@ export class TermView extends EventEmitter {
 
   onBlink() {
     this.blinkOn = true;
-    if (this.buf) {
-      this.buf.queueBlink();
-    } else {
-      this.onBlinkToggle();
-    }
+    this.buf.queueBlink();
   }
 
   onBlinkToggle() {
@@ -282,35 +283,12 @@ export class TermView extends EventEmitter {
     }
   }
 
-  setBuf(buf) {
-    if (this.buf && this._bufListeners) {
-      this.buf.off('change', this._bufListeners.change);
-      this.buf.off('cursor-move', this._bufListeners.cursorMove);
-      this.buf.off('blink', this._bufListeners.blink);
-    }
-    this.buf = buf;
-    if (buf) {
-      this._bufListeners = {
-        change: () => this.update(),
-        cursorMove: () => this.updateCursorPos(),
-        blink: () => this.onBlinkToggle(),
-      };
-      buf.on('change', this._bufListeners.change);
-      buf.on('cursor-move', this._bufListeners.cursorMove);
-      buf.on('blink', this._bufListeners.blink);
-    }
-  }
-
-  setCore(core) {
-    this.app=core;
-  }
-
   get conn() {
     return this.app?.conn || null;
   }
 
   get charset() {
-    return this.app?.stream?.charset || this.app?.site?.charset || this._charset || 'big5';
+    return this.app?.stream?.charset || this.app?.site?.charset || this._charset;
   }
 
   set charset(val) {
@@ -583,6 +561,7 @@ export class TermView extends EventEmitter {
       this.paste(text);
       return;
     }
+
     this._send(text);
   }
 
@@ -676,7 +655,7 @@ export class TermView extends EventEmitter {
   }
 
   getAvailableScrollWidth() {
-    const cols = this.buf ? this.buf.cols : 80;
+    const cols = this.buf.cols;
     const totalWidth = this.chw * cols + 10;
     const viewportWidth =
       (this.innerBounds && this.innerBounds.width) ||
@@ -685,7 +664,7 @@ export class TermView extends EventEmitter {
   }
 
   getAvailableScrollHeight() {
-    const rows = this.buf ? this.buf.rows : 24;
+    const rows = this.buf.rows;
     const totalHeight = this.chh * rows + 10;
     const viewportHeight =
       (this.innerBounds && this.innerBounds.height) ||
@@ -696,7 +675,7 @@ export class TermView extends EventEmitter {
   updateMainDisplayMargin() {
     if (!this.mainDisplay) return;
     const innerBounds = this.innerBounds || { width: 0, height: 0 };
-    const totalHeight = this.chh * (this.buf ? this.buf.rows : 24);
+    const totalHeight = this.chh * this.buf.rows;
     let baseMarginTop = this.viewMargin || 0;
     if (totalHeight < innerBounds.height) {
       baseMarginTop =
@@ -744,8 +723,8 @@ export class TermView extends EventEmitter {
   _getGridOrigin() {
     const w = this.innerBounds.width;
     const h = this.innerBounds.height;
-    const cols = this.buf ? this.buf.cols : 80;
-    const rows = this.buf ? this.buf.rows : 24;
+    const cols = this.buf.cols;
+    const rows = this.buf.rows;
     if (this.scaleX != 1 || this.scaleY != 1) {
       return [
         (w - (this.chw * cols + 10) * this.scaleX) / 2 + (this.viewMargin || 0),
@@ -769,8 +748,8 @@ export class TermView extends EventEmitter {
     const origin = this._getGridOrigin();
     const x = cX - origin[0];
     const y = cY - origin[1];
-    const cols = this.buf ? this.buf.cols : 80;
-    const rows = this.buf ? this.buf.rows : 24;
+    const cols = this.buf.cols;
+    const rows = this.buf.rows;
     let col = Math.floor(x / (this.chw * this.scaleX));
     let row = Math.floor(y / (this.chh * this.scaleY));
 
@@ -784,12 +763,12 @@ export class TermView extends EventEmitter {
   }
 
   checkLeftDBCS() {
-    if (!this.dbcsDetect || !this.buf) return false;
+    if (!this.dbcsDetect) return false;
     return this.buf.checkLeftDBCS();
   }
 
   checkCurrentDBCS() {
-    if (!this.dbcsDetect || !this.buf) return false;
+    if (!this.dbcsDetect) return false;
     return this.buf.checkCurrentDBCS();
   }
 
@@ -927,7 +906,7 @@ export class TermView extends EventEmitter {
   }
 
   updateInputBufferPos() {
-    if (!this.input || !this.buf) return;
+    if (!this.input) return;
     const pos = this.convertMN2XYEx(this.buf.cur_x, this.buf.cur_y);
     if (this.input.getAttribute('bshow') == '1') {
       const lines = this.buf.lines;
@@ -1116,8 +1095,8 @@ export class TermView extends EventEmitter {
   }
 
   fontResize() {
-    const cols = this.buf ? this.buf.cols : 80;
-    const rows = this.buf ? this.buf.rows : 24;
+    const cols = this.buf.cols;
+    const rows = this.buf.rows;
 
     {
       let width = this.termWidth ? this.termWidth : this.innerBounds.width;
@@ -1342,7 +1321,7 @@ export class TermView extends EventEmitter {
       return;
     }
     if (this.useCanvasEngine) {
-      if (!this.componentScreen?.implRef && this.buf) {
+      if (!this.componentScreen?.implRef) {
         this.redraw(true);
       }
       if (this.componentScreen) {

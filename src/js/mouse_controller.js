@@ -1,23 +1,29 @@
 import { setTimer } from './util.js';
 
 export class MouseController {
-  constructor(app) {
+  constructor(app, options = {}) {
     this.app = app;
+    this._domListenersAttached = false;
+    if (options.attachDOM !== false) {
+      this.attachDOMListeners();
+    }
   }
 
   attachDOMListeners() {
-    if (typeof window !== 'undefined') {
-      window.addEventListener('click', (e) => this.app.mouse_click(e), false);
-      window.addEventListener('mousedown', (e) => this.app.mouse_down(e), false);
-      window.addEventListener('mouseup', (e) => this.app.mouse_up(e), false);
+    if (this._domListenersAttached) return;
+    this._domListenersAttached = true;
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('click', (e) => this.onClick(e), false);
+      window.addEventListener('mousedown', (e) => this.onMouseDown(e), false);
+      window.addEventListener('mouseup', (e) => this.onMouseUp(e), false);
       window.addEventListener(
         'wheel',
-        (e) => this.app.mouse_scroll(e),
+        (e) => this.onWheel(e),
         { capture: true, passive: false }
       );
     }
-    if (typeof document !== 'undefined') {
-      document.addEventListener('mousemove', (e) => this.app.mouse_move(e), false);
+    if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+      document.addEventListener('mousemove', (e) => this.onMouseMove(e), false);
     }
   }
 

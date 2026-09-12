@@ -112,9 +112,6 @@ export class AutoSite extends BaseSite {
       const app = termBuf.app || termBuf.view?.app;
       if (app) {
         app.site = this.detectedSite;
-        if (app.conn) {
-          app.conn.site = this.detectedSite;
-        }
         if (app.stream) {
           app.stream.charset = this.detectedSite.charset;
         }

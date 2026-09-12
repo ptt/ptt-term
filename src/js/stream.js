@@ -12,6 +12,16 @@ export class Stream extends EventEmitter {
    */
   constructor(conn = null, options = {}) {
     super();
+    if (
+      conn &&
+      typeof conn === 'object' &&
+      typeof conn.on !== 'function' &&
+      typeof conn.addEventListener !== 'function'
+    ) {
+      options = conn;
+      conn = options.conn || null;
+    }
+    this.app = options.app || null;
     /** @type {any} */
     this.conn = null;
     /** @type {Conv} */
@@ -22,6 +32,12 @@ export class Stream extends EventEmitter {
     this.telnetFilter = null;
     /** @type {any | null} */
     this.ansiFilter = null;
+
+    if (Array.isArray(options.filters)) {
+      for (const filter of options.filters) {
+        this.registerFilter(filter);
+      }
+    }
 
     if (conn) {
       this.attach(conn);

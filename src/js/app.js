@@ -3,7 +3,6 @@ import React from 'react';
 import { render } from 'preact';
 import { AnsiFilter } from './ansi_parser';
 import { TermView } from './term_view';
-import { TermBuf } from './term_buf';
 import { TelnetFilter } from './telnet';
 import { Stream } from './stream';
 import { Websocket } from './websocket';
@@ -37,13 +36,14 @@ export class App extends EventEmitter {
     this.hasWebKitImeQuirk = hasWebKitImeQuirk();
     this.preserveDomSelection = shouldPreserveDomSelection();
     this.view = new TermView({
+      app: this,
       hasWebKitImeQuirk: this.hasWebKitImeQuirk,
       preserveDomSelection: this.preserveDomSelection,
     });
     this.view.on('term:selection-change', ({ selection }) => {
       this.lastSelection = selection;
     });
-    this.buf = new TermBuf(80, 24);
+    this.buf = this.view.buf;
     this.titleBase = process.env.APP_TITLE;
     this.titleSite = null;
     this.titleConn = null;
@@ -70,9 +70,6 @@ export class App extends EventEmitter {
     });
     this.buf.on('site-change', ({ site, clampRows }) => {
       this.site = site;
-      if (this.conn) {
-        this.conn.site = site;
-      }
       if (this.stream) {
         this.stream.charset = site.charset;
       }
@@ -86,18 +83,14 @@ export class App extends EventEmitter {
         }
       }
     });
-    this.site = getSite(process.env.SITE_TYPE || 'auto');
-    this.buf.site = this.site;
-    this.view.setBuf(this.buf);
-    this.view.setCore(this);
-    this.stream = new Stream(null, {
-      charset: this.site ? this.site.charset : 'big5',
-    });
-    this.stream.app = this;
+    this.site = this.buf.site;
     this.telnetFilter = new TelnetFilter();
-    this.ansiFilter = new AnsiFilter(this.buf, { stream: this.stream });
-    this.stream.registerFilter(this.telnetFilter);
-    this.stream.registerFilter(this.ansiFilter);
+    this.ansiFilter = new AnsiFilter(this.buf);
+    this.stream = new Stream({
+      app: this,
+      charset: this.site ? this.site.charset : 'big5',
+      filters: [this.telnetFilter, this.ansiFilter],
+    });
     this.stream.addEventListener('telopt', (e) => {
       this.site?.onTelopt?.(e.cmd, e.opt, this.buf);
     });
@@ -124,7 +117,6 @@ export class App extends EventEmitter {
     this.rightClickAction = 'menu';
 
     this.mouse = new MouseController(this);
-    this.mouse.attachDOMListeners();
 
     window.addEventListener(
       'focus',
@@ -147,7 +139,6 @@ export class App extends EventEmitter {
       this.onDOMCopy(e);
     });
 
-    this.view.firstGridOffset = this.getFirstGridOffsets();
     window.onresize = () => {
       this.onWindowResize();
     };
@@ -166,7 +157,7 @@ export class App extends EventEmitter {
     } catch {
       this.prefValues = null;
     }
-    if (this.prefValues && this.buf?.locator) {
+    if (this.prefValues && this.buf.locator) {
       this.buf.locator.enabled = this.prefValues.supportMouseReporting ?? true;
     }
     if (typeof document !== 'undefined') {
@@ -426,7 +417,6 @@ export class App extends EventEmitter {
     const wsConn = new Websocket(parsed.url);
     this.emit('term:socket', { socket: wsConn });
     this.conn = wsConn;
-    this.conn.site = this.site;
     this.stream.attach(wsConn);
     this.stream.charset = this.site ? this.site.charset : 'big5';
     this.conn.addEventListener('open', () => this.onConnect());
@@ -456,7 +446,7 @@ export class App extends EventEmitter {
     this.updateTabIcon('connect');
     this.setTitle({ conn: this.connectedUrl.hostname });
     this.emit('term:connect');
-    this.buf?.emit?.('term:connect');
+    this.buf.emit('term:connect');
     if (this.timerEverySec) {
       this.timerEverySec.cancel();
     }
@@ -481,7 +471,7 @@ export class App extends EventEmitter {
 
     this.connectState = 2;
     this.emit('term:disconnect');
-    this.buf?.emit?.('term:disconnect');
+    this.buf.emit('term:disconnect');
 
     this.showAlert('connection', {
       onDismiss: () => {
@@ -619,7 +609,7 @@ export class App extends EventEmitter {
   }
 
   doCopyAnsi() {
-    if (!this.lastSelection || !this.buf) return;
+    if (!this.lastSelection) return;
     const ansiText = this.buf.getSelectionText(this.lastSelection, {
       color: true,
     });
@@ -754,21 +744,15 @@ export class App extends EventEmitter {
 
   // use this method to get better window size in case of page zoom != 100%
   getWindowInnerBounds() {
-    return this.view
-      ? this.view.getWindowInnerBounds()
-      : { width: 0, height: 0 };
+    return this.view.getWindowInnerBounds();
   }
 
   getFirstGridOffsets() {
-    return this.view
-      ? this.view.getFirstGridOffsets()
-      : { top: 0, left: 0 };
+    return this.view.getFirstGridOffsets();
   }
 
   clientToPos(cX, cY) {
-    return this.view
-      ? this.view.clientToPos(cX, cY)
-      : { col: 0, row: 0 };
+    return this.view.clientToPos(cX, cY);
   }
 
   onMouse_click(e, force = false) {
@@ -806,23 +790,15 @@ export class App extends EventEmitter {
   }
 
   get resizer() {
-    return this._resizer !== undefined
-      ? this._resizer
-      : this.view
-        ? this.view.resizer
-        : null;
+    return this.view.resizer;
   }
 
   set resizer(val) {
-    this._resizer = val;
-    if (this.view) {
-      this.view.resizer = val;
-    }
+    this.view.resizer = val;
   }
 
   applyTermSizeMode(values) {
-    if (!values || !this.view) return;
-    this._resizer = undefined;
+    if (!values) return;
     this.view.applyTermSizeMode(values, {
       isMobile: this.isMobileLayout(),
       onResizeTerm: (cols, rows) => this.setTermSize(cols, rows),
@@ -979,7 +955,7 @@ export class App extends EventEmitter {
           }
           break;
         case 'supportMouseReporting':
-          if (this.buf?.locator) {
+          if (this.buf.locator) {
             this.buf.locator.enabled = !!value;
           }
           break;
