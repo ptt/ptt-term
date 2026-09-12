@@ -3,20 +3,7 @@ import { render } from 'preact';
 import Row from "../components/Row";
 import Screen from "../components/Screen";
 
-export class ColorState {
-  constructor(fg, bg, blink) {
-    this.fg = fg;
-    this.bg = bg;
-    this.blink = blink;
-  }
-
-  equals(oth) {
-    if (oth instanceof ColorState) {
-      return this.fg == oth.fg && this.bg == oth.bg && this.blink == oth.blink;
-    }
-    return false;
-  }
-}
+export { ColorState } from './color_schemes.js';
 
 export function renderRowHtml(chars, row, forceWidth, enableLinkInlinePreview, cont) {
   let instance = null;

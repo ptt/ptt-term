@@ -1,13 +1,13 @@
 // Terminal Screen Buffer, displayed by TermView
 
 import { EventEmitter } from './event.js';
-import { ColorState } from './term_ui';
+import { ColorState, termColors, termInvColors, termDefaultBg, termDefaultFg, termDefaultLink, getContrastColor } from './color_schemes.js';
 import { getSite } from './sites';
 import { isFullWidth } from './wcwidth.js';
 import { playTerminalBell } from './bell.js';
 import { Locator } from './locator.js';
 
-export { termColors, termInvColors, termDefaultBg, termDefaultFg, termDefaultLink, getContrastColor } from './color_schemes.js';
+export { ColorState, termColors, termInvColors, termDefaultBg, termDefaultFg, termDefaultLink, getContrastColor };
 
 export class TermChar {
   static defaultFg = 7;

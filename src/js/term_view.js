@@ -2,7 +2,7 @@
 
 import { EventEmitter } from './event.js';
 import { TermKeyboard } from './term_keyboard';
-import { termColors, termInvColors, termDefaultBg, termDefaultFg, termDefaultLink, getContrastColor } from './term_buf';
+import { termColors, termInvColors, termDefaultBg, termDefaultFg, termDefaultLink, getContrastColor } from './color_schemes.js';
 import { renderRowHtml, renderScreen } from './term_ui';
 import { _ } from './i18n';
 import { setTimer } from './util';
