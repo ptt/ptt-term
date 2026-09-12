@@ -30,6 +30,7 @@ export class LiveHelperModal extends Component {
     const dialog = e.currentTarget.closest('dialog');
     if (!dialog) return;
 
+    this.handleMouseUp();
     this.dragActive = true;
     this.dragStartX = e.clientX;
     this.dragStartY = e.clientY;
@@ -62,6 +63,12 @@ export class LiveHelperModal extends Component {
       this._onMouseUp = null;
     }
   };
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.show && !this.props.show) {
+      this.handleMouseUp();
+    }
+  }
 
   componentWillUnmount() {
     this.handleMouseUp();

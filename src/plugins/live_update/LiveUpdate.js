@@ -1,4 +1,5 @@
 import React from "preact/compat";
+import { PluginBase } from '../PluginBase.js';
 import { readValuesWithDefault, updatePref } from '../../js/pref.js';
 import { _ } from '../../js/i18n.js';
 import { isBrowser } from '../../js/util.js';
@@ -6,35 +7,51 @@ import { PAGE_STATE } from '../../js/sites/index.js';
 
 let _LiveHelperModal = null;
 
-class LiveUpdateOverlay extends (React?.Component || class {}) {
+class LiveUpdateOverlay extends React.Component {
   constructor(props) {
     super(props);
     this.state = { Component: _LiveHelperModal };
   }
 
   componentDidMount() {
+    this._unmounted = false;
     if (!this.state.Component && isBrowser()) {
       import("./LiveHelperModal.js")
         .then((mod) => {
           _LiveHelperModal = mod.default || mod.LiveHelperModal;
-          this.setState({ Component: _LiveHelperModal });
+          if (!this._unmounted) {
+            this.setState({ Component: _LiveHelperModal });
+          }
         })
         .catch(() => {});
     }
   }
 
+  componentWillUnmount() {
+    this._unmounted = true;
+  }
+
   render() {
-    const Component = this.state.Component;
+    const Component = this.state.Component || _LiveHelperModal;
     if (!Component) return null;
     return React.createElement(Component, this.props);
   }
 }
 
-export class LiveUpdate {
+export class LiveUpdate extends PluginBase {
   static id = 'live_update';
   static name = 'live_update';
   static prefKey = 'enableLiveUpdate';
   static group = 'bbs';
+  static icon = 'sync';
+
+  static get title() {
+    return _('plugin_live_update_title');
+  }
+
+  static get description() {
+    return _('plugin_live_update_desc');
+  }
 
   static renderOptions({ values = {}, handleCheckboxChange, handleNumberInputChange }) {
     return React.createElement(
@@ -107,77 +124,14 @@ export class LiveUpdate {
     );
   }
 
-  renderOptions(props) {
-    return LiveUpdate.renderOptions(props);
-  }
-
-  static getMetadata() {
-    return {
-      id: 'live_update',
-      name: 'live_update',
-      title: _('plugin_live_update_title'),
-      description: _('plugin_live_update_desc'),
-      prefKey: 'enableLiveUpdate',
-      icon: 'sync',
-      group: 'bbs',
-      renderOptions: LiveUpdate.renderOptions,
-    };
-  }
-
   constructor(app, options = {}) {
-    this.app = app || null;
-    this.view = options.view || null;
-    this.buf = options.buf || null;
-    this.enabled = options.enabled ?? false;
-    this.endTurnsOn = options.endTurnsOn ?? true;
-    this.intervalSec = options.intervalSec ?? 1;
-    this.showToolbar = options.showToolbar ?? true;
-    this.active = false;
-    this.showsModal = false;
-    this.timer = null;
-    this.ui = null;
-  }
-
-  get id() {
-    return 'live_update';
-  }
-
-  get name() {
-    return 'live_update';
-  }
-
-  get prefKey() {
-    return 'enableLiveUpdate';
-  }
-
-  get group() {
-    return 'bbs';
-  }
-
-  get title() {
-    return _('plugin_live_update_title');
-  }
-
-  get description() {
-    return _('plugin_live_update_desc');
-  }
-
-  get icon() {
-    return 'sync';
-  }
-
-  getMetadata() {
-    return {
-      id: this.id,
-      name: this.name,
-      title: this.title,
-      description: this.description,
-      prefKey: this.prefKey,
-      enabled: this.enabled,
-      icon: this.icon,
-      group: this.group,
-      renderOptions: LiveUpdate.renderOptions,
-    };
+    super(app, options);
+    if (this.endTurnsOn === undefined) this.endTurnsOn = options.endTurnsOn ?? true;
+    if (this.intervalSec === undefined) this.intervalSec = options.intervalSec ?? 1;
+    if (this.showToolbar === undefined) this.showToolbar = options.showToolbar ?? true;
+    if (this.active === undefined) this.active = false;
+    if (this.showsModal === undefined) this.showsModal = Boolean(this.enabled && this.showToolbar);
+    if (this.timer === undefined) this.timer = null;
   }
 
   getContextMenuItems() {
@@ -186,7 +140,8 @@ export class LiveUpdate {
         id: 'live_update',
         order: 20,
         label: () => _('cmenu_showLiveArticleHelper'),
-        visible: (app, { normalEnabled }) => normalEnabled && Boolean(this.enabled),
+        visible: (app, { normalEnabled } = {}) =>
+          Boolean(normalEnabled !== false && this.enabled),
         onClick: () => {
           this.showModal(true);
         },
@@ -194,92 +149,110 @@ export class LiveUpdate {
     ];
   }
 
-  init({ app, view, buf } = {}) {
-    if (app) this.app = app;
-    if (view) this.view = view;
-    if (buf) this.buf = buf;
-
-    if (this.app) {
-      this._onPrefChangeBound = (e) => {
-        const key = e?.key ?? e?.detail?.key;
-        const value = e?.value !== undefined ? e.value : e?.detail?.value;
-        switch (key) {
-          case 'enableLiveUpdate':
-            this.setEnabled(Boolean(value));
-            break;
-          case 'endTurnsOnLiveUpdate':
-            this.setEndTurnsOn(Boolean(value));
-            break;
-          case 'liveUpdateInterval':
-            this.setIntervalSec(value);
-            break;
-          case 'showLiveUpdateToolbar':
-            this.setShowToolbar(Boolean(value));
-            break;
-        }
-      };
-      this._onScreenUpdateBound = () => {
-        if (!this.active) return;
-        const pageState = this.app?.site?.pageState;
-        if (pageState !== PAGE_STATE.LIST && pageState !== PAGE_STATE.READING) {
-          this.stop();
-        }
-      };
-      this._onDisconnectBound = () => {
-        if (this.active) {
-          this.stop();
-        }
-      };
-      this._onEasyReadingSwitchBound = (e) => {
-        const doSwitch = e?.doSwitch ?? e?.detail?.doSwitch;
-        if (doSwitch && this.active) {
-          this.stop();
-        }
-      };
-      this._onClickBound = () => {
-        if (this.active) {
-          this.stop();
-        }
-      };
-      this.app.on('term:pref-change', this._onPrefChangeBound);
-      this.app.on('term:screen-update', this._onScreenUpdateBound);
-      this.app.on('term:disconnect', this._onDisconnectBound);
-      this.app.on('term:easy-reading:switch', this._onEasyReadingSwitchBound);
-      this.app.on('term:click', this._onClickBound);
-      this.app.registerContextMenuItem?.(this.getContextMenuItems()[0]);
+  onInit() {
+    if (isBrowser() && !_LiveHelperModal) {
+      import("./LiveHelperModal.js")
+        .then((mod) => {
+          _LiveHelperModal = mod.default || mod.LiveHelperModal;
+        })
+        .catch(() => {});
     }
-
-    const prefs = readValuesWithDefault();
-    this.enabled = Boolean(
-      prefs.enableLiveUpdate !== undefined
-        ? prefs.enableLiveUpdate
-        : prefs.endTurnsOnLiveUpdate
-    );
-    this.endTurnsOn =
-      prefs.endTurnsOnLiveUpdate !== undefined
-        ? Boolean(prefs.endTurnsOnLiveUpdate)
-        : true;
-    this.intervalSec = Math.max(1, parseInt(prefs.liveUpdateInterval, 10) || 1);
-    this.showToolbar =
-      prefs.showLiveUpdateToolbar !== undefined
-        ? Boolean(prefs.showLiveUpdateToolbar)
-        : true;
-
-    this.showsModal = Boolean(this.enabled && this.showToolbar);
-    this.renderUI();
+    this.listenApp('term:pref-change', (e) => {
+      const key = e?.key ?? e?.detail?.key;
+      const value = e?.value !== undefined ? e.value : e?.detail?.value;
+      switch (key) {
+        case 'endTurnsOnLiveUpdate':
+          this.setEndTurnsOn(Boolean(value));
+          break;
+        case 'liveUpdateInterval':
+          this.setIntervalSec(value);
+          break;
+        case 'showLiveUpdateToolbar':
+          this.setShowToolbar(Boolean(value));
+          break;
+      }
+    });
+    this.listenAppWhileEnabled('term:screen-update', () => {
+      if (!this.active) return;
+      const pageState = this.app?.site?.pageState;
+      if (pageState !== PAGE_STATE.LIST && pageState !== PAGE_STATE.READING) {
+        this.stop();
+      }
+    });
+    this.listenAppWhileEnabled('term:disconnect', () => {
+      if (this.active) {
+        this.stop();
+      }
+    });
+    this.listenAppWhileEnabled('term:easy-reading:switch', (e) => {
+      const doSwitch = e?.doSwitch ?? e?.detail?.doSwitch;
+      if (doSwitch && this.active) {
+        this.stop();
+      }
+    });
+    this.listenAppWhileEnabled('term:click', () => {
+      if (this.active) {
+        this.stop();
+      }
+    });
+    this.registerInputInterceptorWhileEnabled(this);
   }
 
-  destroy() {
-    this.stop();
-    this.hideModal();
-    if (this.app) {
-      this.app.off('term:pref-change', this._onPrefChangeBound);
-      this.app.off('term:screen-update', this._onScreenUpdateBound);
-      this.app.off('term:disconnect', this._onDisconnectBound);
-      this.app.off('term:easy-reading:switch', this._onEasyReadingSwitchBound);
-      this.app.off('term:click', this._onClickBound);
-      this.app.unregisterContextMenuItem?.('live_update');
+  syncFromPrefs() {
+    super.syncFromPrefs();
+    let prefs = null;
+    try {
+      prefs = this.app?.prefValues || readValuesWithDefault();
+    } catch {
+      prefs = null;
     }
+
+    if (this.options?.endTurnsOn !== undefined) {
+      this.endTurnsOn = Boolean(this.options.endTurnsOn);
+    } else {
+      this.endTurnsOn =
+        prefs?.endTurnsOnLiveUpdate !== undefined
+          ? Boolean(prefs.endTurnsOnLiveUpdate)
+          : true;
+    }
+
+    if (this.options?.intervalSec !== undefined) {
+      this.intervalSec = Math.max(1, parseInt(this.options.intervalSec, 10) || 1);
+    } else {
+      this.intervalSec = Math.max(1, parseInt(prefs?.liveUpdateInterval, 10) || 1);
+    }
+
+    if (this.options?.showToolbar !== undefined) {
+      this.showToolbar = Boolean(this.options.showToolbar);
+    } else {
+      this.showToolbar =
+        prefs?.showLiveUpdateToolbar !== undefined
+          ? Boolean(prefs.showLiveUpdateToolbar)
+          : true;
+    }
+
+    this.showsModal = Boolean(this.enabled && this.showToolbar);
+    if (this._initialized) {
+      this.renderUI();
+    }
+  }
+
+  onEnable() {
+    if (this.showToolbar) {
+      this.showsModal = true;
+    }
+  }
+
+  onDisable() {
+    this.stopTimer();
+    this.active = false;
+    this.showsModal = false;
+  }
+
+  onDestroy() {
+    this.stopTimer();
+    this.active = false;
+    this.showsModal = false;
   }
 
   renderUI() {
@@ -298,18 +271,6 @@ export class LiveUpdate {
     });
   }
 
-  setEnabled(enabled) {
-    this.enabled = !!enabled;
-    if (this.enabled) {
-      if (this.showToolbar) {
-        this.showModal();
-      }
-    } else {
-      this.stop();
-      this.hideModal();
-    }
-  }
-
   setShowToolbar(show, savePref = false) {
     this.showToolbar = !!show;
     if (this.showToolbar && this.enabled) {
@@ -322,19 +283,28 @@ export class LiveUpdate {
   setEndTurnsOn(val, savePref = false) {
     this.endTurnsOn = !!val;
     if (savePref) {
+      if (this.app?.prefValues) {
+        this.app.prefValues.endTurnsOnLiveUpdate = this.endTurnsOn;
+      }
       updatePref('endTurnsOnLiveUpdate', this.endTurnsOn);
     }
   }
 
   setIntervalSec(sec, savePref = false) {
     const parsed = parseInt(sec, 10);
-    this.intervalSec = parsed > 1 ? parsed : 1;
+    const nextSec = parsed > 1 ? parsed : 1;
+    const changed = this.intervalSec !== nextSec;
+    this.intervalSec = nextSec;
     if (savePref) {
+      if (this.app?.prefValues) {
+        this.app.prefValues.liveUpdateInterval = this.intervalSec;
+      }
       updatePref('liveUpdateInterval', this.intervalSec);
     }
+    if (!this.enabled) return;
     if (this.active) {
       this.start();
-    } else {
+    } else if (changed || savePref) {
       this.renderUI();
     }
   }
@@ -343,7 +313,7 @@ export class LiveUpdate {
     this.stopTimer();
     this.active = true;
     const intervalMs = (this.intervalSec || 1) * 1000;
-    this.timer = setInterval(() => {
+    this.timer = this.setInterval(() => {
       const site = this.app?.site;
       const pageState = site?.pageState;
       if (pageState === PAGE_STATE.READING || pageState === PAGE_STATE.LIST) {
@@ -358,15 +328,17 @@ export class LiveUpdate {
 
   stopTimer() {
     if (this.timer) {
-      clearInterval(this.timer);
+      this.clearInterval(this.timer);
       this.timer = null;
     }
   }
 
   stop() {
     this.stopTimer();
-    this.active = false;
-    this.renderUI();
+    if (this.active) {
+      this.active = false;
+      this.renderUI();
+    }
   }
 
   toggle() {
@@ -378,21 +350,33 @@ export class LiveUpdate {
   }
 
   showModal(savePref = false) {
+    const changed = !this.showsModal || !this.showToolbar;
     this.showsModal = true;
     this.showToolbar = true;
     if (savePref) {
+      if (this.app?.prefValues) {
+        this.app.prefValues.showLiveUpdateToolbar = true;
+      }
       updatePref('showLiveUpdateToolbar', true);
     }
-    this.renderUI();
+    if (changed) {
+      this.renderUI();
+    }
   }
 
   hideModal(savePref = false) {
+    const changed = this.showsModal || (savePref && this.showToolbar);
     this.showsModal = false;
     if (savePref) {
       this.showToolbar = false;
+      if (this.app?.prefValues) {
+        this.app.prefValues.showLiveUpdateToolbar = false;
+      }
       updatePref('showLiveUpdateToolbar', false);
     }
-    this.renderUI();
+    if (changed) {
+      this.renderUI();
+    }
   }
 
   toggleModal() {
@@ -432,11 +416,13 @@ export class LiveUpdate {
     }
 
     // Auto-disable auto-refresh if any regular command key is pressed without Alt
-    if (!e.altKey && this.active) {
+    if (!e.altKey && !e.metaKey && this.active) {
       if (
         e.key !== 'Shift' &&
         e.key !== 'Control' &&
         e.key !== 'Alt' &&
+        e.key !== 'Meta' &&
+        e.key !== 'CapsLock' &&
         !(e.keyCode > 15 && e.keyCode < 19)
       ) {
         this.stop();

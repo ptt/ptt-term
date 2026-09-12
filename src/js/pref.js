@@ -149,9 +149,6 @@ export const readValuesWithDefault = () => {
       prefs.enablePwaPrompt = false;
     }
     if (saved) {
-      if (saved.enableLiveUpdate === undefined && saved.endTurnsOnLiveUpdate !== undefined) {
-        prefs.enableLiveUpdate = Boolean(saved.endTurnsOnLiveUpdate);
-      }
       if (saved.liveUpdateInterval !== undefined) {
         const parsedInterval = parseInt(saved.liveUpdateInterval, 10);
         prefs.liveUpdateInterval = parsedInterval > 0 ? parsedInterval : 1;
