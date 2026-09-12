@@ -79,7 +79,6 @@ export class LinkSegmentBuilder {
     if (this.colorSegBuilder !== null) {
       this.saveSegment();
     }
-    // TODO: Detect userid and apply class "blu_$userid".
     return (
       <div>
         <span

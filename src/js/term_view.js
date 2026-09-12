@@ -136,9 +136,6 @@ export class TermView extends EventEmitter {
     if (e.isComposing || e.key === 'Process' || e.keyCode == 229)
       return false;
 
-    // TODO: Since the app is almost useless on mobile devices, we might want
-    // to revisit if we want this code.
-
     // iOS sends the keydown that starts composition as key code 0 or Unidentified. Ignore it.
     if (e.key === 'Unidentified' || e.keyCode == 0)
       return false;
@@ -515,44 +512,7 @@ export class TermView extends EventEmitter {
       return;
     }
 
-    // TODO: Move this. Make a key event mapper.
-    let stop = false;
     const isModifierOnly = (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey;
-    const isShiftModifier = (e.ctrlKey || e.metaKey) && !e.altKey && e.shiftKey;
-    if (isModifierOnly) {
-      switch (e.key.toLowerCase()) {
-        case 'c': {
-          const selectedText = this.getSelectedText();
-          if (selectedText) { //^C / Cmd+C , do copy
-            this.app.doCopy(selectedText);
-            stop = true;
-          }
-          break;
-        }
-        case 'a':
-          this.app.doSelectAll();
-          stop = true;
-          break;
-        case 'v':
-          if (e.metaKey) {
-            this.app.doPaste();
-            stop = true;
-          }
-          break;
-      }
-    } else if (isShiftModifier) {
-      switch (e.key.toLowerCase()) {
-        case 'v':
-          this.app.doPaste();
-          stop = true;
-          break;
-      }
-    }
-    if (stop) {
-      e.preventDefault();
-      return;
-    }
-
     if (this.preserveDomSelection && this._domSelectedText && !isModifierOnly) {
       this._domSelectedText = '';
       this._domSelectionColRow = null;

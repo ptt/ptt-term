@@ -338,7 +338,53 @@ export class App extends EventEmitter {
   }
 
   dispatchKeyDown(e) {
-    return this.inputInterceptors.dispatchKeyDown(e);
+    if (this.inputInterceptors.dispatchKeyDown(e)) {
+      return true;
+    }
+    return this.handleShortcutKeyDown(e);
+  }
+
+  handleShortcutKeyDown(e) {
+    if (!e || !e.key) return false;
+    const isModifierOnly = (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey;
+    const isShiftModifier = (e.ctrlKey || e.metaKey) && !e.altKey && e.shiftKey;
+    let stop = false;
+
+    if (isModifierOnly) {
+      switch (e.key.toLowerCase()) {
+        case 'c': {
+          const selectedText = this.view?.getSelectedText?.();
+          if (selectedText) {
+            this.doCopy(selectedText);
+            stop = true;
+          }
+          break;
+        }
+        case 'a':
+          this.doSelectAll();
+          stop = true;
+          break;
+        case 'v':
+          if (e.metaKey) {
+            this.doPaste();
+            stop = true;
+          }
+          break;
+      }
+    } else if (isShiftModifier) {
+      switch (e.key.toLowerCase()) {
+        case 'v':
+          this.doPaste();
+          stop = true;
+          break;
+      }
+    }
+
+    if (stop) {
+      e.preventDefault?.();
+      return true;
+    }
+    return false;
   }
 
   dispatchTextInput(e) {

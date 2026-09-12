@@ -3085,16 +3085,23 @@ test('CanvasScreen and TermView handle Select All, lastSelection, and Mac/PC hot
     end: { col: 79, row: 23 }
   });
 
-  // 3. TermView allows Mac metaKey for Cmd+A, Cmd+C, Cmd+V and mounts CanvasScreen if needed
+  // 3. TermView allows Mac metaKey for Cmd+A, Cmd+C, Cmd+V and App handles shortcut keydowns
   assert.ok(
     termViewSource.includes('e.metaKey') &&
     termViewSource.includes("k === 'a' || k === 'c' || k === 'v'"),
     'TermView keyEventFilter must allow metaKey for A, C, and V'
   );
   assert.ok(
-    termViewSource.includes('(e.ctrlKey || e.metaKey)') ||
-    termViewSource.includes('isModifierOnly'),
-    'TermView keyboard handler must accept both Ctrl and Meta (Cmd) keys'
+    appSource.includes('handleShortcutKeyDown(e)') &&
+    appSource.includes('isModifierOnly') &&
+    appSource.includes('isShiftModifier'),
+    'App must handle Ctrl/Cmd+C, A, V shortcuts in handleShortcutKeyDown'
+  );
+  assert.ok(
+    !termViewSource.includes('doSelectAll') &&
+    !termViewSource.includes('doPaste') &&
+    !termViewSource.includes('Make a key event mapper'),
+    'TermView must not contain App clipboard/select-all shortcut handlers or legacy TODO'
   );
   assert.ok(
     termViewSource.includes('this.redraw(true);') &&
