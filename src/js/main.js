@@ -22,6 +22,7 @@ async function startApp() {
   }
 
   console.log("load pref from storage");
+  document.getElementById('TermWindow').style.display = '';
   app.onValuesPrefChange(app.prefValues || readValuesWithDefault());
 
   // connect.
@@ -32,8 +33,6 @@ async function startApp() {
     || process.env.SITE_TYPE
     || 'auto';
   app.connect(siteUrl, siteType);
-  document.getElementById('TermWindow').style.display = '';
-  app.onWindowResize();
   app.setInputAreaFocus();
 }
 

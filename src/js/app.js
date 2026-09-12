@@ -197,7 +197,6 @@ export class App extends EventEmitter {
     if (this.prefValues && this.buf?.locator) {
       this.buf.locator.enabled = this.prefValues.supportMouseReporting ?? true;
     }
-    this.onWindowResize();
     if (typeof document !== 'undefined') {
       const cmenuEl = document.getElementById('cmenuReact');
       if (cmenuEl) {
@@ -943,6 +942,9 @@ export class App extends EventEmitter {
 
   applyTermSizeMode(values) {
     if (!values) return;
+    if (this.view) {
+      this.view.innerBounds = this.getWindowInnerBounds();
+    }
     this.resizer = null;
     const isMobile = this.isMobileLayout();
     const effectiveMode = isMobile ? 'fixed-font-size' : values.termSizeMode;
