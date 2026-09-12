@@ -280,31 +280,31 @@
     "message": "Color Scheme"
   },
   "options_colorScheme_default": {
-    "message": "Classic Default"
+    "message": "Classic Default (1987 IBM VGA standard 16-color palette)"
   },
-  "options_colorScheme_monochrome": {
-    "message": "Monochrome (Grayscale)"
+  "options_colorScheme_pureBw": {
+    "message": "Pure Black & White (Accessibility monochrome mode, ignores all ANSI colors and background bars)"
   },
   "options_colorScheme_solarizedDark": {
-    "message": "Solarized Dark"
+    "message": "Solarized Dark (Ethan Schoonover's precision lightness-balanced palette, ideal for long reading)"
   },
   "options_colorScheme_nord": {
-    "message": "Nord"
+    "message": "Nord (Arctic-inspired cool-toned pastel palette with modern minimalist aesthetics)"
   },
   "options_colorScheme_monokai": {
-    "message": "Monokai"
+    "message": "Monokai (Classic Sublime Text theme with warm charcoal background and vibrant contrast)"
   },
   "options_colorScheme_dracula": {
-    "message": "Dracula"
+    "message": "Dracula (Iconic dark purple theme with high-contrast pastel highlights)"
   },
   "options_colorScheme_retroAmber": {
-    "message": "Amber CRT"
+    "message": "Amber CRT (1970s-80s P3 amber phosphor monochrome CRT monitor, zero blue light for night reading)"
   },
   "options_colorScheme_retroGreen": {
-    "message": "Green CRT"
+    "message": "Green CRT (Classic IBM 5151 / Apple II P1 green phosphor monochrome CRT monitor)"
   },
   "options_colorScheme_custom": {
-    "message": "Custom Colors"
+    "message": "Custom Colors (Customize default background, foreground, hyperlink, and 16-color ANSI palette)"
   },
   "options_colorScheme_customHint": {
     "message": "Click swatches above to pick custom ANSI colors"
@@ -315,11 +315,26 @@
   "options_colorScheme_customizeThis": {
     "message": "Customize colors based on this theme"
   },
+  "options_colorScheme_defaultColors": {
+    "message": "Default Colors"
+  },
   "options_colorScheme_defaultBg": {
-    "message": "Default Background"
+    "message": "Background"
   },
   "options_colorScheme_defaultFg": {
-    "message": "Default Foreground"
+    "message": "Foreground"
+  },
+  "options_colorScheme_defaultLink": {
+    "message": "Hyperlink"
+  },
+  "options_minimumContrast": {
+    "message": "Minimum Contrast"
+  },
+  "options_minimumContrast_desc": {
+    "message": "Automatically adjust foreground brightness to ensure text readability against background (iTerm2 style)"
+  },
+  "options_minimumContrast_off": {
+    "message": "Off"
   },
   "options_cursorStyle": {
     "message": "Caret style"

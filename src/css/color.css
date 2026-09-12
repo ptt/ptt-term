@@ -1,29 +1,29 @@
 .y:not(.o), .y::before, .y::after,
 .aid-action:not(.o), .aid-action::before, .aid-action::after
 {
-  text-decoration: underline #ff6600 !important;
+  text-decoration: underline var(--term-link, #ff6600) !important;
   text-underline-offset: 2px;
 }
 
 .blink--active .qq, .blink--active .qq::before, .blink--active .rqq::after{color:RGBA(0,0,0,0);}
-.q0, .q0::before, .rq0::after{color:var(--term-color-0, #000000);}
-.q1, .q1::before, .rq1::after{color:var(--term-color-1, #800000);}
-.q2, .q2::before, .rq2::after{color:var(--term-color-2, #008000);}
-.q3, .q3::before, .rq3::after{color:var(--term-color-3, #808000);}
-.q4, .q4::before, .rq4::after{color:var(--term-color-4, #000080);}
-.q5, .q5::before, .rq5::after{color:var(--term-color-5, #800080);}
-.q6, .q6::before, .rq6::after{color:var(--term-color-6, #008080);}
+.q0, .q0::before, .rq0::after{color:var(--term-fg-0, var(--term-color-0, #000000));}
+.q1, .q1::before, .rq1::after{color:var(--term-fg-1, var(--term-color-1, #800000));}
+.q2, .q2::before, .rq2::after{color:var(--term-fg-2, var(--term-color-2, #008000));}
+.q3, .q3::before, .rq3::after{color:var(--term-fg-3, var(--term-color-3, #808000));}
+.q4, .q4::before, .rq4::after{color:var(--term-fg-4, var(--term-color-4, #000080));}
+.q5, .q5::before, .rq5::after{color:var(--term-fg-5, var(--term-color-5, #800080));}
+.q6, .q6::before, .rq6::after{color:var(--term-fg-6, var(--term-color-6, #008080));}
 .y:not(.o):hover, .y:hover::before, .y:hover::after,
 .aid-action:not(.o):hover, .aid-action:hover::before, .aid-action:hover::after,
-.q7, .q7::before, .rq7::after{color:var(--term-fg, var(--term-color-7, #c0c0c0));}
-.q8, .q8::before, .rq8::after{color:var(--term-color-8, #808080);}
-.q9, .q9::before, .rq9::after{color:var(--term-color-9, #ff0000);}
-.q10, .q10::before, .rq10::after{color:var(--term-color-10, #00ff00);}
-.q11, .q11::before, .rq11::after{color:var(--term-color-11, #ffff00);}
-.q12, .q12::before, .rq12::after{color:var(--term-color-12, #0000ff);}
-.q13, .q13::before, .rq13::after{color:var(--term-color-13, #ff00ff);}
-.q14, .q14::before, .rq14::after{color:var(--term-color-14, #00ffff);}
-.q15, .q15::before, .rq15::after{color:var(--term-color-15, #ffffff);}
+.q7, .q7::before, .rq7::after{color:var(--term-fg-7, var(--term-fg, var(--term-color-7, #c0c0c0)));}
+.q8, .q8::before, .rq8::after{color:var(--term-fg-8, var(--term-color-8, #808080));}
+.q9, .q9::before, .rq9::after{color:var(--term-fg-9, var(--term-color-9, #ff0000));}
+.q10, .q10::before, .rq10::after{color:var(--term-fg-10, var(--term-color-10, #00ff00));}
+.q11, .q11::before, .rq11::after{color:var(--term-fg-11, var(--term-color-11, #ffff00));}
+.q12, .q12::before, .rq12::after{color:var(--term-fg-12, var(--term-color-12, #0000ff));}
+.q13, .q13::before, .rq13::after{color:var(--term-fg-13, var(--term-color-13, #ff00ff));}
+.q14, .q14::before, .rq14::after{color:var(--term-fg-14, var(--term-color-14, #00ffff));}
+.q15, .q15::before, .rq15::after{color:var(--term-fg-15, var(--term-color-15, #ffffff));}
 .b0, .b0::before, .rb0::after{background-color:transparent;}
 .b1, .b1::before, .rb1::after{background-color:var(--term-color-1, #800000);}
 .b2, .b2::before, .rb2::after{background-color:var(--term-color-2, #008000);}
@@ -59,3 +59,25 @@
 .trans-fix .b13, .trans-fix .b13::before, .trans-fix .rb13::after { box-shadow:0 0 5px 5px var(--term-color-13, #ff00ff) inset; }
 .trans-fix .b14, .trans-fix .b14::before, .trans-fix .rb14::after { box-shadow:0 0 5px 5px var(--term-color-14, #00ffff) inset; }
 .trans-fix .b15, .trans-fix .b15::before, .trans-fix .rb15::after { box-shadow:0 0 5px 5px var(--term-color-15, #ffffff) inset; }
+
+.scheme-pure-bw .q0, .scheme-pure-bw .q0::before, .scheme-pure-bw .rq0::after {
+  color: var(--term-fg, #c0c0c0) !important;
+}
+.scheme-pure-bw .b1, .scheme-pure-bw .b1::before, .scheme-pure-bw .rb1::after,
+.scheme-pure-bw .b2, .scheme-pure-bw .b2::before, .scheme-pure-bw .rb2::after,
+.scheme-pure-bw .b3, .scheme-pure-bw .b3::before, .scheme-pure-bw .rb3::after,
+.scheme-pure-bw .b4, .scheme-pure-bw .b4::before, .scheme-pure-bw .rb4::after,
+.scheme-pure-bw .b5, .scheme-pure-bw .b5::before, .scheme-pure-bw .rb5::after,
+.scheme-pure-bw .b6, .scheme-pure-bw .b6::before, .scheme-pure-bw .rb6::after,
+.scheme-pure-bw .b7, .scheme-pure-bw .b7::before, .scheme-pure-bw .rb7::after,
+.scheme-pure-bw .b8, .scheme-pure-bw .b8::before, .scheme-pure-bw .rb8::after,
+.scheme-pure-bw .b9, .scheme-pure-bw .b9::before, .scheme-pure-bw .rb9::after,
+.scheme-pure-bw .b10, .scheme-pure-bw .b10::before, .scheme-pure-bw .rb10::after,
+.scheme-pure-bw .b11, .scheme-pure-bw .b11::before, .scheme-pure-bw .rb11::after,
+.scheme-pure-bw .b12, .scheme-pure-bw .b12::before, .scheme-pure-bw .rb12::after,
+.scheme-pure-bw .b13, .scheme-pure-bw .b13::before, .scheme-pure-bw .rb13::after,
+.scheme-pure-bw .b14, .scheme-pure-bw .b14::before, .scheme-pure-bw .rb14::after,
+.scheme-pure-bw .b15, .scheme-pure-bw .b15::before, .scheme-pure-bw .rb15::after {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}

@@ -1,4 +1,5 @@
-import { termColors, termDefaultBg, termDefaultFg } from "../../js/term_buf";
+import { termColors, termDefaultBg, termDefaultFg, termDefaultLink } from "../../js/term_buf";
+import { getContrastColor } from "../../js/color_schemes";
 import { SmoothAnsiArt, ANSI_BLOCK_SET, hasAnsiArt } from "./SmoothAnsiArt";
 import { CanvasSelection } from "./CanvasSelection";
 
@@ -39,10 +40,10 @@ export class CanvasRenderer {
     this.markDirty();
   }
 
-  getTextItem(text, x, y, isDBCS, clip = null) {
+  getTextItem(text, x, y, isDBCS, clip = null, bgIndex = 0) {
     let item = this.textPool[this.textPoolIndex];
     if (!item) {
-      item = { text, x, y, isDBCS, clip };
+      item = { text, x, y, isDBCS, clip, bgIndex };
       this.textPool[this.textPoolIndex] = item;
     } else {
       item.text = text;
@@ -50,15 +51,16 @@ export class CanvasRenderer {
       item.y = y;
       item.isDBCS = isDBCS;
       item.clip = clip;
+      item.bgIndex = bgIndex;
     }
     this.textPoolIndex++;
     return item;
   }
 
-  getBlockItem(type, r, c, x, y, w, h, fgIndex) {
+  getBlockItem(type, r, c, x, y, w, h, fgIndex, bgIndex = 0) {
     let item = this.blockPool[this.blockPoolIndex];
     if (!item) {
-      item = { type, r, c, x, y, w, h, fgIndex };
+      item = { type, r, c, x, y, w, h, fgIndex, bgIndex };
       this.blockPool[this.blockPoolIndex] = item;
     } else {
       item.type = type;
@@ -69,6 +71,7 @@ export class CanvasRenderer {
       item.w = w;
       item.h = h;
       item.fgIndex = fgIndex;
+      item.bgIndex = bgIndex;
     }
     this.blockPoolIndex++;
     return item;
@@ -164,7 +167,8 @@ export class CanvasRenderer {
         y,
         width,
         chh,
-        fgIndex
+        fgIndex,
+        bgIndex
       );
       ansiBlockBuckets[fgIndex].push(blockItem);
       blockGrid[r * cols + c] = blockItem;
@@ -174,7 +178,7 @@ export class CanvasRenderer {
     } else {
       const textX = isWide ? c * chw + chw : c * chw + chw / 2;
       textBuckets[fgIndex].push(
-        this.getTextItem(charStr, textX, y + chh / 2, isWide)
+        this.getTextItem(charStr, textX, y + chh / 2, isWide, null, bgIndex)
       );
     }
   }
@@ -457,9 +461,11 @@ export class CanvasRenderer {
               const leadFgIndex = ch.getFg() !== undefined ? ch.getFg() : 7;
               const trailFgIndex =
                 trailCh.getFg() !== undefined ? trailCh.getFg() : 7;
-              const leadBgIndex = ch.getBg() !== undefined ? ch.getBg() : 0;
-              const trailBgIndex =
+              const rawLeadBg = ch.getBg() !== undefined ? ch.getBg() : 0;
+              const rawTrailBg =
                 trailCh.getBg() !== undefined ? trailCh.getBg() : 0;
+              const leadBgIndex = isLineHighlighted && rawLeadBg === 0 ? 16 : rawLeadBg;
+              const trailBgIndex = isLineHighlighted && rawTrailBg === 0 ? 16 : rawTrailBg;
 
               if (leadFgIndex === trailFgIndex && !isLeadHidden && !isTrailHidden) {
                 this.registerAnsiOrText({
@@ -487,7 +493,7 @@ export class CanvasRenderer {
                       y,
                       w: chw,
                       h: chh,
-                    })
+                    }, leadBgIndex)
                   );
                 }
                 if (!isTrailHidden) {
@@ -497,7 +503,7 @@ export class CanvasRenderer {
                       y,
                       w: chw,
                       h: chh,
-                    })
+                    }, trailBgIndex)
                   );
                 }
               }
@@ -533,7 +539,8 @@ export class CanvasRenderer {
           if (ch.blink && isBlinkHidden) continue;
           const charStr = ch.ch;
           const fgIndex = ch.getFg() !== undefined ? ch.getFg() : 7;
-          const bgIndex = ch.getBg() !== undefined ? ch.getBg() : 0;
+          const rawBg = ch.getBg() !== undefined ? ch.getBg() : 0;
+          const bgIndex = isLineHighlighted && rawBg === 0 ? 16 : rawBg;
 
           this.registerAnsiOrText({
             charStr,
@@ -590,7 +597,16 @@ export class CanvasRenderer {
       ctx.fillRect(0, 0, width, height);
     }
 
+    const isPlain = !!termColors.forcePlainText;
+    const minContrast = isPlain ? 0 : (termColors.minimumContrast || 0);
+    const getBgHex = (bgIdx) => {
+      if (bgIdx === 16) return hlColor;
+      if (bgIdx === 0) return defaultBg;
+      return termColors[bgIdx] || defaultBg;
+    };
+
     for (let bgIdx = 1; bgIdx < 17; ++bgIdx) {
+      if (isPlain && bgIdx < 16) continue;
       const runs = bgBuckets[bgIdx];
       if (runs.length === 0) continue;
       ctx.fillStyle = bgIdx === 16 ? hlColor : termColors[bgIdx];
@@ -603,21 +619,54 @@ export class CanvasRenderer {
       for (let cIdx = 0; cIdx < 16; ++cIdx) {
         const bucket = ansiBlockBuckets[cIdx];
         if (bucket.length === 0) continue;
-        ctx.fillStyle = cIdx === 7 ? defaultFg : termColors[cIdx];
-        ctx.beginPath();
-        for (let i = 0; i < bucket.length; ++i) {
-          SmoothAnsiArt.drawBlock(ctx, bucket[i], blockGrid, cols, rows, chw, chh);
+        const baseFg = (isPlain || cIdx === 7) ? defaultFg : termColors[cIdx];
+        if (minContrast <= 0) {
+          ctx.fillStyle = baseFg;
+          ctx.beginPath();
+          for (let i = 0; i < bucket.length; ++i) {
+            SmoothAnsiArt.drawBlock(ctx, bucket[i], blockGrid, cols, rows, chw, chh);
+          }
+          ctx.fill();
+        } else {
+          let currentFill = null;
+          ctx.beginPath();
+          for (let i = 0; i < bucket.length; ++i) {
+            const item = bucket[i];
+            const color = getContrastColor(baseFg, getBgHex(item.bgIndex || 0), minContrast);
+            if (color !== currentFill) {
+              if (currentFill !== null) {
+                ctx.fill();
+                ctx.beginPath();
+              }
+              currentFill = color;
+              ctx.fillStyle = currentFill;
+            }
+            SmoothAnsiArt.drawBlock(ctx, item, blockGrid, cols, rows, chw, chh);
+          }
+          if (currentFill !== null) {
+            ctx.fill();
+          }
         }
-        ctx.fill();
       }
     }
 
     for (let cIdx = 0; cIdx < 16; ++cIdx) {
       const bucket = textBuckets[cIdx];
       if (bucket.length === 0) continue;
-      ctx.fillStyle = cIdx === 7 ? defaultFg : termColors[cIdx];
+      const baseFg = (isPlain || cIdx === 7) ? defaultFg : termColors[cIdx];
+      let currentFill = minContrast > 0
+        ? getContrastColor(baseFg, defaultBg, minContrast)
+        : baseFg;
+      ctx.fillStyle = currentFill;
       for (let i = 0; i < bucket.length; ++i) {
         const item = bucket[i];
+        if (minContrast > 0) {
+          const itemColor = getContrastColor(baseFg, getBgHex(item.bgIndex || 0), minContrast);
+          if (itemColor !== currentFill) {
+            currentFill = itemColor;
+            ctx.fillStyle = currentFill;
+          }
+        }
         if (item.clip) {
           ctx.save();
           ctx.beginPath();
@@ -641,14 +690,18 @@ export class CanvasRenderer {
     for (let uIdx = 0; uIdx < 16; ++uIdx) {
       const uRuns = underlineBuckets[uIdx];
       if (uRuns.length === 0) continue;
-      ctx.fillStyle = uIdx === 7 ? defaultFg : termColors[uIdx];
+      const baseFg = (isPlain || uIdx === 7) ? defaultFg : termColors[uIdx];
+      ctx.fillStyle = minContrast > 0
+        ? getContrastColor(baseFg, defaultBg, minContrast)
+        : baseFg;
       for (let i = 0; i < uRuns.length; i += 4) {
         ctx.fillRect(uRuns[i], uRuns[i + 1], uRuns[i + 2], uRuns[i + 3]);
       }
     }
 
     if (urlUnderlineRuns.length > 0) {
-      ctx.fillStyle = URL_UNDERLINE_COLOR;
+      ctx.fillStyle =
+        termColors.defaultLink || termDefaultLink || URL_UNDERLINE_COLOR;
       for (let i = 0; i < urlUnderlineRuns.length; i += 4) {
         ctx.fillRect(
           urlUnderlineRuns[i],

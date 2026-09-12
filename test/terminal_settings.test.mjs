@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { COLOR_SCHEMES, applyColorScheme } from '../src/js/color_schemes.js';
+import { COLOR_SCHEMES, applyColorScheme, getContrastColor } from '../src/js/color_schemes.js';
 import { termColors } from '../src/js/color_schemes.js';
 import { DEFAULT_PREFS, readValuesWithDefault, parseOptionText } from '../src/js/pref.js';
 import { TermKeyboard } from '../src/js/term_keyboard.js';
@@ -29,7 +29,7 @@ const PREF_MODAL_CSS_PATH = fs.existsSync(path.resolve('src/components/Settings/
 test('COLOR_SCHEMES defines all standard terminal color palettes with 16 colors each', () => {
   const expectedSchemes = [
     'default',
-    'monochrome',
+    'pure-bw',
     'solarized-dark',
     'nord',
     'monokai',
@@ -45,6 +45,7 @@ test('COLOR_SCHEMES defines all standard terminal color palettes with 16 colors 
     assert.equal(scheme.colors.length, 16, `Scheme ${name} must have 16 colors`);
     assert.match(scheme.defaultBg, /^#[0-9a-fA-F]{6}$/, `defaultBg in ${name} must be hex`);
     assert.match(scheme.defaultFg, /^#[0-9a-fA-F]{6}$/, `defaultFg in ${name} must be hex`);
+    assert.match(scheme.defaultLink, /^#[0-9a-fA-F]{6}$/, `defaultLink in ${name} must be hex`);
     for (let i = 0; i < 16; i++) {
       assert.match(scheme.colors[i], /^#[0-9a-fA-F]{6}$/, `Color ${i} in ${name} must be hex`);
     }
@@ -75,6 +76,7 @@ test('applyColorScheme updates termColors in-place and sets CSS variables', () =
     assert.equal(cssVars['--term-color-0'], '#002b36');
     assert.equal(cssVars['--term-bg'], '#002b36');
     assert.equal(cssVars['--term-fg'], '#839496');
+    assert.equal(cssVars['--term-link'], '#cb4b16');
     assert.equal(mockElement.style.backgroundColor, '#002b36');
 
     // 2. Apply nord
@@ -83,16 +85,55 @@ test('applyColorScheme updates termColors in-place and sets CSS variables', () =
     assert.equal(cssVars['--term-color-0'], '#2e3440');
     assert.equal(cssVars['--term-bg'], '#2e3440');
     assert.equal(cssVars['--term-fg'], '#d8dee9');
+    assert.equal(cssVars['--term-link'], '#d08770');
 
-    // 3. Restore default
+    // 3. Apply pure-bw (forcePlainText)
+    let toggledClass = null;
+    mockElement.classList = {
+      toggle: (cls, state) => {
+        toggledClass = { cls, state };
+      },
+    };
+    applyColorScheme('pure-bw');
+    assert.equal(termColors.forcePlainText, true);
+    assert.equal(termColors[0], '#000000');
+    assert.equal(cssVars['--term-fg-0'], '#c0c0c0');
+    for (let i = 1; i < 16; i++) {
+      assert.equal(termColors[i], '#c0c0c0');
+      assert.equal(cssVars[`--term-fg-${i}`], '#c0c0c0');
+    }
+    assert.deepEqual(toggledClass, { cls: 'scheme-pure-bw', state: true });
+
+    // 4. Restore default
     applyColorScheme('default');
+    assert.equal(termColors.forcePlainText, false);
     assert.equal(termColors[0], '#000000');
     assert.equal(termColors[15], '#ffffff');
     assert.equal(cssVars['--term-color-0'], '#000000');
     assert.equal(cssVars['--term-bg'], '#000000');
     assert.equal(cssVars['--term-fg'], '#c0c0c0');
+    assert.equal(cssVars['--term-link'], '#ff6600');
   } finally {
     globalThis.document = originalDoc;
+  }
+});
+
+test('color.css scheme-pure-bw targets specific terminal background classes without clobbering .btn UI elements', () => {
+  const colorCss = fs.readFileSync(
+    path.resolve('src/css/color.css'),
+    'utf-8'
+  );
+  assert.ok(
+    !colorCss.includes('[class^="b"]') && !colorCss.includes('[class*=" b"]'),
+    'color.css must not use broad [class^="b"] or [class*=" b"] selectors that clobber .btn background colors'
+  );
+  for (let i = 1; i <= 15; i++) {
+    assert.ok(
+      colorCss.includes(`.scheme-pure-bw .b${i}`) &&
+        colorCss.includes(`.scheme-pure-bw .b${i}::before`) &&
+        colorCss.includes(`.scheme-pure-bw .rb${i}::after`),
+      `color.css must explicitly reset .b${i}, .b${i}::before, and .rb${i}::after in .scheme-pure-bw`
+    );
   }
 });
 
@@ -119,18 +160,37 @@ test('applyColorScheme supports custom scheme with customColors array', () => {
       '#999999', '#aaaaaa', '#bbbbbb', '#cccccc', '#dddddd', '#eeeeee', '#f5f5f5', '#ffffff'
     ];
 
-    applyColorScheme('custom', myCustomColors, '#050505', '#e0e0e0');
+    applyColorScheme('custom', myCustomColors, '#050505', '#e0e0e0', '#123456', false, 50);
     assert.equal(termColors[0], '#111111');
     assert.equal(termColors[7], '#888888');
     assert.equal(termColors[15], '#ffffff');
+    assert.equal(termColors.minimumContrast, 50);
     assert.equal(cssVars['--term-color-0'], '#111111');
     assert.equal(cssVars['--term-color-7'], '#888888');
     assert.equal(cssVars['--term-bg'], '#050505');
     assert.equal(cssVars['--term-fg'], '#e0e0e0');
+    assert.equal(cssVars['--term-link'], '#123456');
+    // Dark colors on dark bg (#050505) should be brightened in --term-fg-*
+    assert.notEqual(cssVars['--term-fg-0'], '#111111');
   } finally {
     globalThis.document = originalDoc;
     applyColorScheme('default');
   }
+});
+
+test('getContrastColor adjusts foreground brightness to meet iTerm2-style minimum contrast', () => {
+  // 0% contrast does nothing
+  assert.equal(getContrastColor('#000080', '#000000', 0), '#000080');
+  // High contrast already met does nothing
+  assert.equal(getContrastColor('#ffffff', '#000000', 50), '#ffffff');
+  // Dark blue (#000080) on black (#000000) with 45% contrast should brighten
+  const brightenedBlue = getContrastColor('#000080', '#000000', 45);
+  assert.notEqual(brightenedBlue, '#000080');
+  assert.match(brightenedBlue, /^#[0-9a-f]{6}$/);
+  // Yellow (#ffff00) on light gray (#c0c0c0) with 45% contrast should darken
+  const darkenedYellow = getContrastColor('#ffff00', '#c0c0c0', 45);
+  assert.notEqual(darkenedYellow, '#ffff00');
+  assert.match(darkenedYellow, /^#[0-9a-f]{6}$/);
 });
 
 test('DEFAULT_PREFS includes new terminal settings with sensible defaults', () => {
@@ -139,6 +199,8 @@ test('DEFAULT_PREFS includes new terminal settings with sensible defaults', () =
   assert.equal(DEFAULT_PREFS.colorScheme, 'default');
   assert.equal(DEFAULT_PREFS.customDefaultBg, '#000000');
   assert.equal(DEFAULT_PREFS.customDefaultFg, '#c0c0c0');
+  assert.equal(DEFAULT_PREFS.customDefaultLink, '#ff6600');
+  assert.equal(DEFAULT_PREFS.minimumContrast, 0);
   assert.ok(Array.isArray(DEFAULT_PREFS.customColors));
   assert.equal(DEFAULT_PREFS.customColors.length, 16);
   assert.equal(DEFAULT_PREFS.trimTrailingSpaces, true);
@@ -251,6 +313,11 @@ test('PrefModal source code includes Mouse tab, colorScheme, visualBell, lineHei
     'ColorSchemePreview must display 8 colors per row in 2 rows'
   );
   assert.ok(
+    prefModalCss.indexOf('.PrefModal__ColorDefaultSwatch') >
+      prefModalCss.indexOf('.PrefModal__ColorSwatch {'),
+    '.PrefModal__ColorDefaultSwatch must be defined after .PrefModal__ColorSwatch so height: 22px overrides height: 100%'
+  );
+  assert.ok(
     prefModalSrc.includes('name="lineHeight"'),
     'Appearance tab must contain lineHeight selector'
   );
@@ -306,14 +373,20 @@ test('i18n files define all required translations for new settings', () => {
     'options_warnBeforeClose',
     'options_colorScheme',
     'options_colorScheme_default',
+    'options_colorScheme_pureBw',
     'options_colorScheme_solarizedDark',
     'options_colorScheme_nord',
     'options_colorScheme_monokai',
     'options_colorScheme_dracula',
     'options_colorScheme_retroAmber',
     'options_colorScheme_retroGreen',
+    'options_colorScheme_defaultColors',
     'options_colorScheme_defaultBg',
     'options_colorScheme_defaultFg',
+    'options_colorScheme_defaultLink',
+    'options_minimumContrast',
+    'options_minimumContrast_desc',
+    'options_minimumContrast_off',
     'options_trimTrailingSpaces',
     'options_rightClickAction',
     'options_rightClickAction_menu',

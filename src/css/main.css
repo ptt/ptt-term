@@ -85,7 +85,7 @@ img.hyperLinkPreview {
 
 .linkurl {
   text-decoration: underline;
-  color: #ff00ff;
+  color: var(--term-link, #ff00ff);
 }
 
 a:link,

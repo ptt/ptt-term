@@ -48,6 +48,9 @@ export const DEFAULT_PREFS = {
   colorScheme: 'default',
   customDefaultBg: '#000000',
   customDefaultFg: '#c0c0c0',
+  customDefaultLink: '#ff6600',
+  customForcePlainText: false,
+  minimumContrast: 0,
   customColors: [
     '#000000', '#800000', '#008000', '#808000', '#000080', '#800080', '#008080', '#c0c0c0',
     '#808080', '#ff0000', '#00ff00', '#ffff00', '#0000ff', '#ff00ff', '#00ffff', '#ffffff'
@@ -104,6 +107,9 @@ export const getDefaultPrefs = () => ({
   customColors: [...DEFAULT_PREFS.customColors],
   customDefaultBg: DEFAULT_PREFS.customDefaultBg,
   customDefaultFg: DEFAULT_PREFS.customDefaultFg,
+  customDefaultLink: DEFAULT_PREFS.customDefaultLink,
+  customForcePlainText: DEFAULT_PREFS.customForcePlainText,
+  minimumContrast: DEFAULT_PREFS.minimumContrast,
 });
 
 export const readValuesWithDefault = () => {
@@ -129,6 +135,15 @@ export const readValuesWithDefault = () => {
     }
     if (saved && typeof saved.customDefaultFg === 'string' && /^#[0-9a-fA-F]{6}$/.test(saved.customDefaultFg)) {
       prefs.customDefaultFg = saved.customDefaultFg;
+    }
+    if (saved && typeof saved.customDefaultLink === 'string' && /^#[0-9a-fA-F]{6}$/.test(saved.customDefaultLink)) {
+      prefs.customDefaultLink = saved.customDefaultLink;
+    }
+    if (saved && typeof saved.customForcePlainText === 'boolean') {
+      prefs.customForcePlainText = saved.customForcePlainText;
+    }
+    if (saved && typeof saved.minimumContrast === 'number') {
+      prefs.minimumContrast = Math.max(0, Math.min(100, Math.round(saved.minimumContrast)));
     }
     if (isStandaloneMode()) {
       prefs.enablePwaPrompt = false;

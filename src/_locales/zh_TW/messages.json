@@ -280,31 +280,31 @@
     "message": "配色主題"
   },
   "options_colorScheme_default": {
-    "message": "經典黑底 (Classic Default)"
+    "message": "經典黑底 (1987 年 IBM VGA 硬體標準 16 色)"
   },
-  "options_colorScheme_monochrome": {
-    "message": "黑底灰階 (Monochrome)"
+  "options_colorScheme_pureBw": {
+    "message": "純黑白 (無障礙單色模式，忽略所有 ANSI 色彩與狀態列底色)"
   },
   "options_colorScheme_solarizedDark": {
-    "message": "日光暗色 (Solarized Dark)"
+    "message": "日光暗色 (Solarized Dark - Ethan Schoonover 設計之科學精密護眼低對比配色，適合長時間閱讀)"
   },
   "options_colorScheme_nord": {
-    "message": "北歐極光 (Nord)"
+    "message": "北歐極光 (Nord - 源自北極冰川與極光之現代冷調極簡美學配色)"
   },
   "options_colorScheme_monokai": {
-    "message": "摩諾開 (Monokai)"
+    "message": "摩諾開 (Monokai - Sublime Text 經典預設主題，深暖炭灰底搭配高彩度鮮明對比)"
   },
   "options_colorScheme_dracula": {
-    "message": "德古拉 (Dracula)"
+    "message": "德古拉 (Dracula - 當代最熱門跨平台暗黑主題，深紫灰底搭配高辨識度粉紫亮彩)"
   },
   "options_colorScheme_retroAmber": {
-    "message": "懷舊琥珀 (Amber CRT)"
+    "message": "懷舊琥珀 (Amber CRT - 致敬 1970-80 年代 P3 琥珀磷光單色終端機，零藍光適合深夜暗室護眼)"
   },
   "options_colorScheme_retroGreen": {
-    "message": "復古綠 (Green CRT)"
+    "message": "復古綠 (Green CRT - 致敬早期 IBM 5151 / Apple II 經典 P1 綠磷光單色顯像管螢幕)"
   },
   "options_colorScheme_custom": {
-    "message": "自訂顏色 (Custom)"
+    "message": "自訂顏色 (自由調配專屬預設底色、文字、超連結與 16 色 ANSI 色盤)"
   },
   "options_colorScheme_customHint": {
     "message": "點擊色塊可自訂各 ANSI 顏色"
@@ -315,11 +315,26 @@
   "options_colorScheme_customizeThis": {
     "message": "以目前主題為基底自訂顏色"
   },
+  "options_colorScheme_defaultColors": {
+    "message": "預設顏色"
+  },
   "options_colorScheme_defaultBg": {
-    "message": "預設底色"
+    "message": "底色"
   },
   "options_colorScheme_defaultFg": {
-    "message": "預設文字"
+    "message": "文字"
+  },
+  "options_colorScheme_defaultLink": {
+    "message": "超連結"
+  },
+  "options_minimumContrast": {
+    "message": "最低對比度保證 (Minimum Contrast)"
+  },
+  "options_minimumContrast_desc": {
+    "message": "當文字與背景顏色過於接近時，自動調整文字明暗度以確保清晰可讀 (致敬 iTerm2)"
+  },
+  "options_minimumContrast_off": {
+    "message": "關閉"
   },
   "options_cursorStyle": {
     "message": "文字游標 (Caret) 樣式"

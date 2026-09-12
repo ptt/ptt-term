@@ -1136,7 +1136,10 @@ export class App extends EventEmitter {
         value,
         this.prefValues?.customColors,
         this.prefValues?.customDefaultBg,
-        this.prefValues?.customDefaultFg
+        this.prefValues?.customDefaultFg,
+        this.prefValues?.customDefaultLink,
+        this.prefValues?.customForcePlainText,
+        this.prefValues?.minimumContrast
       );
       if (this.view) {
         this.view.updateHighlightColor();
@@ -1146,17 +1149,21 @@ export class App extends EventEmitter {
     case 'customColors':
     case 'customDefaultBg':
     case 'customDefaultFg':
-      if (this.colorScheme === 'custom') {
-        applyColorScheme(
-          'custom',
-          this.prefValues?.customColors,
-          this.prefValues?.customDefaultBg,
-          this.prefValues?.customDefaultFg
-        );
-        if (this.view) {
-          this.view.updateHighlightColor();
-          this.view.redraw(true);
-        }
+    case 'customDefaultLink':
+    case 'customForcePlainText':
+    case 'minimumContrast':
+      applyColorScheme(
+        this.colorScheme,
+        this.prefValues?.customColors,
+        this.prefValues?.customDefaultBg,
+        this.prefValues?.customDefaultFg,
+        this.prefValues?.customDefaultLink,
+        this.prefValues?.customForcePlainText,
+        this.prefValues?.minimumContrast
+      );
+      if (this.view) {
+        this.view.updateHighlightColor();
+        this.view.redraw(true);
       }
       break;
     case 'enablePicPreview':
