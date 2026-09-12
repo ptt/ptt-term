@@ -1,82 +1,34 @@
-import { readValuesWithDefault } from '../../js/pref.js';
+import { PluginBase } from '../PluginBase.js';
 import { _ } from '../../js/i18n.js';
 import { PAGE_STATE } from '../../js/sites/index.js';
 
 export const INFLIGHT_WATCHDOG_MS = 1500;
 export const MAX_INFLIGHT_RETRIES = 2;
 
-export class EasyReading {
+export class EasyReading extends PluginBase {
   static id = 'easy_reading';
   static name = 'easy_reading';
   static prefKey = 'enableEasyReading';
   static group = 'bbs';
+  static icon = 'book';
 
-  static getMetadata() {
-    return {
-      id: 'easy_reading',
-      name: 'easy_reading',
-      title: _('plugin_easy_reading_title'),
-      description: _('plugin_easy_reading_desc'),
-      prefKey: 'enableEasyReading',
-      icon: 'book',
-      group: 'bbs',
-    };
-  }
-
-  get id() {
-    return 'easy_reading';
-  }
-
-  get name() {
-    return 'easy_reading';
-  }
-
-  get prefKey() {
-    return 'enableEasyReading';
-  }
-
-  get group() {
-    return 'bbs';
-  }
-
-  get title() {
+  static get title() {
     return _('plugin_easy_reading_title');
   }
 
-  get description() {
+  static get description() {
     return _('plugin_easy_reading_desc');
   }
 
-  get icon() {
-    return 'book';
+  get site() {
+    return this.app?.site;
   }
 
-  getMetadata() {
-    return {
-      id: this.id,
-      name: this.name,
-      title: this.title,
-      description: this.description,
-      prefKey: this.prefKey,
-      enabled: this.enabled,
-      icon: this.icon,
-      group: this.group,
-    };
-  }
+  constructor(app, options = {}) {
+    super(app, options);
 
-  get _site() {
-    return this._core?.site;
-  }
-
-  constructor(core, viewOrOptions, termBuf) {
-    this._core = null;
-    this._view = null;
-    this._termBuf = null;
-    this._initialized = false;
-    this._bufListenersAttached = false;
     this._uiInitialized = false;
 
-    this.enabled = false;
     this.started = false;
     this.showReplyText = false;
     this.showPushInitText = false;
@@ -113,99 +65,95 @@ export class EasyReading {
 
     this._onBufChanged = (e) => this._onChanged(e);
     this._onBufViewUpdated = (e) => this._onViewUpdated(e);
-
-    let view = viewOrOptions;
-    let buf = termBuf;
-    if (termBuf === undefined && viewOrOptions && typeof viewOrOptions === 'object' && ('view' in viewOrOptions || 'buf' in viewOrOptions)) {
-      view = viewOrOptions.view || null;
-      buf = viewOrOptions.buf || null;
-    }
-
-    if (core || view || buf) {
-      this.init({ core, app: core, view, buf });
-    }
   }
 
-  init({ core, app, view, buf } = {}) {
-    const targetCore = core || app || this._core;
-    const targetView = view || this._view;
-    const targetBuf = buf || this._termBuf;
-
-    this._core = targetCore;
-    this._view = targetView;
-    this._termBuf = targetBuf;
-
-    if (targetCore) {
-      this._attachInputInterceptors(targetCore.inputInterceptors);
-      this._onPrefChangeBound = (e) => {
-        const key = e?.key ?? e?.detail?.key;
-        const value = e?.value !== undefined ? e.value : e?.detail?.value;
-        if (key === 'enableEasyReading') {
-          this.enabled = Boolean(value);
-          if (!this.enabled && this.isActive()) {
-            this.hide();
-          }
+  onInit() {
+    this.registerInputInterceptorWhileEnabled(this);
+    this.listenApp('term:easy-reading:switch', (e) => {
+      const doSwitch = e?.doSwitch !== undefined ? e.doSwitch : e?.detail?.doSwitch;
+      if (Boolean(doSwitch) !== this.enabled) {
+        this._handlingSwitchEvent = true;
+        try {
+          this.setEnabled(Boolean(doSwitch), false);
+        } finally {
+          this._handlingSwitchEvent = false;
         }
-      };
-      this._onEasyReadingSwitchBound = (e) => {
-        this.leaveCurrentPost();
-        const doSwitch = e?.doSwitch !== undefined ? e.doSwitch : e?.detail?.doSwitch;
-        if (doSwitch) {
-          this.clearRows();
-          if (this._site?.pageState === PAGE_STATE.READING && this._core?.send) {
-            const cmd = this._site?.getReenterArticleCommand?.(this._termBuf);
-            if (cmd) this._core.send(cmd);
-          }
-        } else {
-          this.hide();
-        }
-      };
-      this._onScreenUpdateBound = (e) => {
-        const changedLineHtmlStrs = e?.changedLineHtmlStrs !== undefined ? e.changedLineHtmlStrs : e?.detail?.changedLineHtmlStrs;
-        this.onScreenUpdate(changedLineHtmlStrs);
-      };
-      targetCore.on?.('term:pref-change', this._onPrefChangeBound);
-      targetCore.on?.('term:easy-reading:switch', this._onEasyReadingSwitchBound);
-      targetCore.on?.('term:screen-update', this._onScreenUpdateBound);
-    }
-    if (targetBuf) {
-      if (targetBuf.on && !this._bufListenersAttached) {
-        targetBuf.on('change', this._onBufChanged);
-        targetBuf.on('viewUpdate', this._onBufViewUpdated);
-        this._bufListenersAttached = true;
       }
-    }
-    if (targetView) {
-      if ('useEasyReadingMode' in targetView) {
-        this.enabled = !!targetView.useEasyReadingMode;
-      }
+    });
+    this.listenAppWhileEnabled('term:screen-update', (e) => {
+      const changedLineHtmlStrs = e?.changedLineHtmlStrs !== undefined ? e.changedLineHtmlStrs : e?.detail?.changedLineHtmlStrs;
+      this.onScreenUpdate(changedLineHtmlStrs);
+    });
+    this.listenAppWhileEnabled('term:font-update', (e) => {
+      this.onFontUpdate(e?.detail || e);
+    });
+
+    const buf = this.buf || this.app?.buf;
+    if (buf) {
+      this.buf = buf;
+      this.listenWhileEnabled(buf, 'change', this._onBufChanged);
+      this.listenWhileEnabled(buf, 'viewUpdate', this._onBufViewUpdated);
     }
 
-    if (typeof document !== 'undefined' && !this._uiInitialized) {
-      const container = this._view?.termWin || document.getElementById('TermWindow');
+    if (this.enabled && typeof document !== 'undefined' && !this._uiInitialized) {
+      const container = this.view?.termWin || document.getElementById('TermWindow');
       if (container) {
         this._initUI(container);
-        this._uiInitialized = true;
       }
     }
-    this._initialized = true;
-    return this;
   }
 
-  destroy() {
+  _enterEasyReadingIfReading() {
+    this.leaveCurrentPost();
+    this.clearRows();
+    if (!this._initializing && this.site?.pageState === PAGE_STATE.READING && this.app?.send) {
+      const cmd = this.site.getReenterArticleCommand?.(this.buf);
+      if (cmd) this.app.send(cmd);
+    }
+  }
+
+  onEnable() {
+    if (typeof document !== 'undefined' && !this._uiInitialized) {
+      const container = this.view?.termWin || document.getElementById('TermWindow');
+      if (container) {
+        this._initUI(container);
+      }
+    }
+    if (this._overlay && this.view) {
+      if (this.view.fontFace) {
+        this._overlay.style.setProperty('--font-face', this.view.fontFace);
+      }
+      if (this.view.mainDisplay?.style?.fontSize) {
+        this._overlay.style.fontSize = this.view.mainDisplay.style.fontSize;
+        this._overlay.style.lineHeight = this.view.mainDisplay.style.lineHeight;
+      }
+    }
+    if (!this._initializing) {
+      if (!this._handlingSwitchEvent) {
+        this.app?.emit?.('term:easy-reading:switch', {
+          doSwitch: true,
+          detail: { doSwitch: true },
+        });
+      }
+      this._enterEasyReadingIfReading();
+    }
+  }
+
+  onDisable() {
+    if (!this._initializing && !this._handlingSwitchEvent) {
+      this.app?.emit?.('term:easy-reading:switch', {
+        doSwitch: false,
+        detail: { doSwitch: false },
+      });
+    }
+    this.leaveCurrentPost();
+    this._resetInFlight();
+    this.hide();
+  }
+
+  onDestroy() {
     this.hide();
     this._resetInFlight();
-    if (this._termBuf && this._bufListenersAttached) {
-      this._termBuf.off?.('change', this._onBufChanged);
-      this._termBuf.off?.('viewUpdate', this._onBufViewUpdated);
-      this._bufListenersAttached = false;
-    }
-    if (this._core) {
-      this._core.off?.('term:pref-change', this._onPrefChangeBound);
-      this._core.off?.('term:easy-reading:switch', this._onEasyReadingSwitchBound);
-      this._core.off?.('term:screen-update', this._onScreenUpdateBound);
-      this._detachInputInterceptors(this._core.inputInterceptors);
-    }
     if (this._overlay && this._overlay.parentNode) {
       this._overlay.parentNode.removeChild(this._overlay);
     }
@@ -215,10 +163,7 @@ export class EasyReading {
     this._lastRowDiv = null;
     this._replyRowDiv = null;
     this._uiInitialized = false;
-    this._initialized = false;
   }
-
-
 
   isStarted() {
     return this.started;
@@ -263,24 +208,41 @@ export class EasyReading {
   _initUI(container) {
     if (this._overlay && this._overlay.parentNode) return;
     if (!container && typeof document !== 'undefined') {
-      container = this._view?.termWin || document.getElementById('TermWindow');
+      container = this.view?.termWin || document.getElementById('TermWindow');
     }
     if (!container || typeof document === 'undefined') return;
+
+    if (this._overlay) {
+      if (this._onOverlayMouseDown) this.unlisten(this._overlay, 'mousedown', this._onOverlayMouseDown);
+      if (this._onOverlayWheel) this.unlisten(this._overlay, 'wheel', this._onOverlayWheel);
+    }
+    if (this._content && this._onContentScroll) {
+      this.unlisten(this._content, 'scroll', this._onContentScroll);
+    }
+
+    const existing =
+      container.querySelector?.('#easyReadingOverlay') ||
+      (typeof document !== 'undefined' ? document.getElementById('easyReadingOverlay') : null);
+    if (existing && existing.parentNode) {
+      existing.parentNode.removeChild(existing);
+    }
 
     const easyReadingOverlay = document.createElement('div');
     easyReadingOverlay.setAttribute('id', 'easyReadingOverlay');
     easyReadingOverlay.style.display = 'none';
-    easyReadingOverlay.addEventListener('mousedown', (e) => {
-      if (e.target && e.target.tagName !== 'A' && this._core?.setInputAreaFocus) {
-        this._core.setInputAreaFocus();
+    this._onOverlayMouseDown = (e) => {
+      if (e.target && e.target.tagName !== 'A' && this.app?.setInputAreaFocus) {
+        this.app.setInputAreaFocus();
       }
-    });
-    easyReadingOverlay.addEventListener('wheel', (e) => {
+    };
+    this.listenWhileEnabled(easyReadingOverlay, 'mousedown', this._onOverlayMouseDown);
+    this._onOverlayWheel = (e) => {
       const cont = this.content;
       if (cont && e.target !== cont && !cont.contains(e.target)) {
         cont.scrollTop += e.deltaY;
       }
-    }, { passive: true });
+    };
+    this.listenWhileEnabled(easyReadingOverlay, 'wheel', this._onOverlayWheel, { passive: true });
     container.appendChild(easyReadingOverlay);
     this._overlay = easyReadingOverlay;
 
@@ -288,9 +250,10 @@ export class EasyReading {
     easyReadingContent.setAttribute('id', 'easyReadingContent');
     easyReadingOverlay.appendChild(easyReadingContent);
     this._content = easyReadingContent;
-    easyReadingContent.addEventListener('scroll', () => {
+    this._onContentScroll = () => {
       this.updateProgress();
-    });
+    };
+    this.listenWhileEnabled(easyReadingContent, 'scroll', this._onContentScroll);
 
     const easyReadingFooter = document.createElement('div');
     easyReadingFooter.setAttribute('id', 'easyReadingFooter');
@@ -312,22 +275,28 @@ export class EasyReading {
     this._replyRowDiv = replyRowDiv;
     easyReadingFooter.appendChild(replyRowDiv);
 
-    if (this._view?.fontFace) {
-      this._overlay.style.setProperty('--font-face', this._view.fontFace);
+    if (this.view?.fontFace) {
+      this._overlay.style.setProperty('--font-face', this.view.fontFace);
     }
-    if (this._view?.mainDisplay?.style?.fontSize) {
-      this._overlay.style.fontSize = this._view.mainDisplay.style.fontSize;
-      this._overlay.style.lineHeight = this._view.mainDisplay.style.lineHeight;
+    if (this.view?.mainDisplay?.style?.fontSize) {
+      this._overlay.style.fontSize = this.view.mainDisplay.style.fontSize;
+      this._overlay.style.lineHeight = this.view.mainDisplay.style.lineHeight;
     }
+    this._uiInitialized = true;
   }
 
   isActive() {
     return !!(this.overlay && this.overlay.style.display !== 'none');
   }
 
-
-
   show() {
+    if (!this._overlay && typeof document !== 'undefined') {
+      const container = this.view?.termWin || document.getElementById('TermWindow');
+      if (container) {
+        this._initUI(container);
+        this._uiInitialized = true;
+      }
+    }
     if (this.overlay) {
       this.overlay.style.display = 'block';
     }
@@ -335,17 +304,14 @@ export class EasyReading {
     this.lastHideTime = 0;
   }
 
-  showEasyReading() {
-    this.show();
-  }
-
   hide() {
+    this._resetInFlight();
     if (this.overlay) {
       this.overlay.style.display = 'none';
     }
     this.lastHideTime = Date.now();
-    if (this._core) {
-      this._core.suppressInertialWheel?.(600);
+    if (this.app) {
+      this.app.suppressInertialWheel?.(600);
     }
     this.clearRows();
     if (this.lastRowDiv) {
@@ -358,8 +324,6 @@ export class EasyReading {
     this.pageLines = [];
     this.pageWrappedLines = [];
   }
-
-
 
   clearRows() {
     if (this.content) {
@@ -377,12 +341,12 @@ export class EasyReading {
     if (this._rowRenderer) {
       return this._rowRenderer(line, row, chh, showsLinkPreview, el);
     }
-    return this._view?.renderRow?.(line, row, chh, showsLinkPreview, el) ?? null;
+    return this.view?.renderRow?.(line, row, chh, showsLinkPreview, el) ?? null;
   }
 
   appendRows(lines, showsLinkPreview) {
     if (!this.content) return;
-    const chh = this._view?.chh || 16;
+    const chh = this.view?.chh || 16;
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const el = document.createElement('span');
@@ -397,14 +361,14 @@ export class EasyReading {
   }
 
   renderSingleRow(target, row) {
-    if (this._view?.renderSingleRow) {
-      return this._view.renderSingleRow(target, row);
+    if (this.view?.renderSingleRow) {
+      return this.view.renderSingleRow(target, row);
     }
     const el = document.createElement('span');
     el.setAttribute('type', 'termrow');
     el.setAttribute('srow', '0');
     target.appendChild(el);
-    const chh = this._view?.chh || 16;
+    const chh = this.view?.chh || 16;
     return this.renderRow(row, 0, chh, false, el);
   }
 
@@ -422,14 +386,10 @@ export class EasyReading {
       const scrollBottom = cont.scrollTop + cont.clientHeight;
       percent = Math.min(100, Math.max(0, Math.round((scrollBottom / cont.scrollHeight) * 100)));
     }
-    const site = this._site;
+    const site = this.site;
     if (site) {
       this.lastRowDiv.innerHTML = site.getEasyReadingPrompt(' ', percent);
     }
-  }
-
-  updateEasyReadingProgress() {
-    this.updateProgress();
   }
 
   updateReplyRow(row) {
@@ -439,10 +399,6 @@ export class EasyReading {
     this.renderSingleRow(el, row);
     this.setSingleChild(this.replyRowDiv.childNodes[0] || this.replyRowDiv, el);
     this.replyRowDiv.style.display = 'block';
-  }
-
-  updateEasyReadingReplyRow(row) {
-    this.updateReplyRow(row);
   }
 
   updatePushInitRow(row) {
@@ -455,20 +411,25 @@ export class EasyReading {
     this.lastRowDiv.style.display = 'block';
   }
 
-  updateEasyReadingPushInitRow(row) {
-    this.updatePushInitRow(row);
-  }
-
   populatePage() {
-    const site = this._site;
+    const site = this.site;
     if (!site) return;
-    let lastRowNum = site.getLastRowNum(this._termBuf);
+    const showsLinkPreview =
+      this.view?.enableMediaPreviewer !== false && this.view?.resolveHyperlinkPreview
+        ? (href, key) => {
+            if (typeof this.view.renderInlineHyperlinkPreview === 'function') {
+              return this.view.renderInlineHyperlinkPreview(href, key);
+            }
+            return this.view.resolveHyperlinkPreview(href);
+          }
+        : false;
+    let lastRowNum = site.getLastRowNum(this.buf);
     if (site.pageState === PAGE_STATE.READING && site.prevPageState === PAGE_STATE.READING) {
       this.show();
-      const lastRowText = this._termBuf.getRowText(lastRowNum, 0, this._termBuf.cols);
-      const result = site.parseReadingStatus(lastRowText, this._termBuf);
+      const lastRowText = this.buf.getRowText(lastRowNum, 0, this.buf.cols);
+      const result = site.parseReadingStatus(lastRowText, this.buf);
       if (result) {
-        const isEnd = result.isEnd || site.isArticleEnd(lastRowText, this._termBuf, result);
+        const isEnd = result.isEnd || site.isArticleEnd(lastRowText, this.buf, result);
         if (result.pageIndex && result.pageIndex === this._lastEasyReadingPageIndex && !isEnd) {
           return;
         }
@@ -482,12 +443,12 @@ export class EasyReading {
           this._lastEasyReadingPageIndex = result.pageIndex;
         }
 
-        const paging = site.getPagingSlice(this._termBuf, result, this.actualRowIndex, this.pageLines);
+        const paging = site.getPagingSlice(this.buf, result, this.actualRowIndex, this.pageLines);
         let beginIndex = paging.beginIndex;
         const atLastPage = paging.atLastPage;
 
         for (let i = beginIndex; i < lastRowNum; ++i) {
-          if (site.isLineContinuation(this._termBuf, i, false)) {
+          if (site.isLineContinuation(this.buf, i, false)) {
             this.pageWrappedLines[this.actualRowIndex] = (this.pageWrappedLines[this.actualRowIndex] || 0) + 1;
             // if the second row is the wrapped line from first row 
             if (!atLastPage && i == beginIndex) {
@@ -497,9 +458,9 @@ export class EasyReading {
             this.pageWrappedLines[++this.actualRowIndex] = 1;
           }
         }
-        this.appendRows(this._termBuf.lines.slice(beginIndex, lastRowNum), true);
+        this.appendRows(this.buf.lines.slice(beginIndex, lastRowNum), showsLinkPreview);
         // deep clone lines for selection (getRowText and get ansi color)
-        this.pageLines = (this.pageLines || []).concat(JSON.parse(JSON.stringify(this._termBuf.lines.slice(beginIndex, lastRowNum))));
+        this.pageLines = (this.pageLines || []).concat(JSON.parse(JSON.stringify(this.buf.lines.slice(beginIndex, lastRowNum))));
       }
       site.prevPageState = PAGE_STATE.READING;
     } else {
@@ -508,11 +469,11 @@ export class EasyReading {
       this._lastEasyReadingPageIndex = 1;
       this._easyReadingAppendedEnd = false;
       if (site.pageState === PAGE_STATE.READING) {
-        const lastRowText = this._termBuf.getRowText(lastRowNum, 0, this._termBuf.cols);
-        const statusResult = site.parseReadingStatus(lastRowText, this._termBuf);
-        const isEnd = site.isArticleEnd(lastRowText, this._termBuf, statusResult);
+        const lastRowText = this.buf.getRowText(lastRowNum, 0, this.buf.cols);
+        const statusResult = site.parseReadingStatus(lastRowText, this.buf);
+        const isEnd = site.isArticleEnd(lastRowText, this.buf, statusResult);
         for (let i = 0; i < lastRowNum; ++i) {
-          if (site.isLineContinuation(this._termBuf, i, true)) {
+          if (site.isLineContinuation(this.buf, i, true)) {
             this.pageWrappedLines[this.actualRowIndex] = (this.pageWrappedLines[this.actualRowIndex] || 0) + 1;
           } else {
             this.pageWrappedLines[++this.actualRowIndex] = 1;
@@ -523,7 +484,7 @@ export class EasyReading {
         if (this.content) {
           this.content.scrollTop = 0;
         }
-        this.appendRows(this._termBuf.lines.slice(0, lastRowNum), true);
+        this.appendRows(this.buf.lines.slice(0, lastRowNum), showsLinkPreview);
         if (isEnd) {
           this._easyReadingAppendedEnd = true;
         }
@@ -536,16 +497,12 @@ export class EasyReading {
           this.replyRowDiv.style.display = 'none';
         }
         // deep clone lines for selection (getRowText and get ansi color)
-        this.pageLines = JSON.parse(JSON.stringify(this._termBuf.lines.slice(0, lastRowNum)));
+        this.pageLines = JSON.parse(JSON.stringify(this.buf.lines.slice(0, lastRowNum)));
       } else {
         this.hide();
       }
       site.prevPageState = site.pageState;
     }
-  }
-
-  populateEasyReadingPage() {
-    this.populatePage();
   }
 
   updatePage(changedLineHtmlStrs) {
@@ -565,12 +522,12 @@ export class EasyReading {
   get _turnPageLines() {
     if (this._customTurnPageLines > 0) return this._customTurnPageLines;
     const cont = this.content;
-    const chh = this._view?.chh || 16;
+    const chh = this.view?.chh || 16;
     if (cont && chh) {
       let lines = Math.floor(cont.clientHeight / chh) - 1;
       if (lines > 0) return lines;
     }
-    return Math.max(1, this._termBuf.rows - 2);
+    return Math.max(1, (this.buf?.rows || 24) - 2);
   }
 
   set _turnPageLines(val) {
@@ -578,34 +535,23 @@ export class EasyReading {
   }
 
   _onChanged(e) {
-    const site = this._site;
+    const site = this.site;
     console.debug("page state: " + site?.prevPageState + "->" + site?.pageState);
-    const values = readValuesWithDefault()
-    // make sure to come back to easy reading mode
     const isEnteringReading = (site?.prevPageState === PAGE_STATE.LIST || site?.prevPageState === PAGE_STATE.NORMAL) &&
         site?.pageState === PAGE_STATE.READING;
     if (isEnteringReading) {
       this._resetInFlight();
     }
-    if (isEnteringReading &&
-        !this.enabled && 
-        values.enableEasyReading &&
-        this._core.connectedUrl.easyReadingSupported)
-    {
-      this.enabled = true;
-    } else if (!values.enableEasyReading) {
-      this.enabled = false;
-    }
 
-    if (!this.enabled || !site)
+    if (!this.enabled || !site || this.app?.connectedUrl?.easyReadingSupported === false)
       return;
 
-    let lastRowNum = site.getLastRowNum(this._termBuf);
-    const lastRowText = this._termBuf.getRowText(lastRowNum, 0, this._termBuf.cols);
+    let lastRowNum = site.getLastRowNum(this.buf);
+    const lastRowText = this.buf.getRowText(lastRowNum, 0, this.buf.cols);
     // dealing with page state jump to 0 because last row wasn't updated fully 
     if (site.pageState === PAGE_STATE.READING) {
       this.started = true;
-    } else if (this.started && site.isPushPrompt(this._termBuf)) {
+    } else if (this.started && site.isPushPrompt(this.buf)) {
       this.showPushInitText = true;
     } else {
       this.showReplyText = false;
@@ -614,20 +560,20 @@ export class EasyReading {
       this._resetInFlight();
     }
     if (this.started) {
-      const isParked = this._termBuf.isFrameReady
-        ? this._termBuf.isFrameReady()
-        : site.isCursorParked(this._termBuf);
+      const isParked = this.buf.isFrameReady
+        ? this.buf.isFrameReady()
+        : site.isCursorParked(this.buf);
 
       if (isParked) {
         if (this.ignoreOneUpdate) {
           this.ignoreOneUpdate = false;
           return;
         }
-        const result = site.parseReadingStatus(lastRowText, this._termBuf);
+        const result = site.parseReadingStatus(lastRowText, this.buf);
         if (result) {
           this.showPushInitText = false;
           this.showReplyText = false;
-          const isEnd = site.isArticleEnd(lastRowText, this._termBuf, result);
+          const isEnd = site.isArticleEnd(lastRowText, this.buf, result);
 
           if (this._pageDownInFlight) {
             const pageAdvanced = (result.pageIndex != null && result.pageIndex !== this._lastRequestedPageIndex) ||
@@ -653,7 +599,7 @@ export class EasyReading {
               this._lastRequestedRowIndexStart = result.rowIndexStart;
             }
           }
-        } else if (site.isArticleEnd(lastRowText, this._termBuf, null)) {
+        } else if (site.isArticleEnd(lastRowText, this.buf, null)) {
           this.easyReadingReachedPageEnd = true;
           this._resetInFlight();
         } else if (!this.showPushInitText) { // only if not showing last row text
@@ -663,14 +609,14 @@ export class EasyReading {
           this.started = false;
           this._resetInFlight();
         }
-      } else if (site.isPushPrompt(this._termBuf)) {
+      } else if (site.isPushPrompt(this.buf)) {
         this.showPushInitText = true;
-      } else if (site.isReplyPrompt(this._termBuf)) {
+      } else if (site.isReplyPrompt(this.buf)) {
         this.showReplyText = true;
       } else {
-        if (this._termBuf.cur_y === lastRowNum) {
+        if (this.buf.cur_y === lastRowNum) {
           this.showPushInitText = false;
-        } else if (this._termBuf.cur_y === lastRowNum - 1) {
+        } else if (this.buf.cur_y === lastRowNum - 1) {
           this.showReplyText = false;
         }
         // last line hasn't changed
@@ -681,14 +627,14 @@ export class EasyReading {
 
   _armInFlightWatchdog() {
     this._clearInFlightWatchdog();
-    this._inFlightTimer = setTimeout(() => {
+    this._inFlightTimer = this.setTimeout(() => {
       this._onInFlightTimeout();
     }, INFLIGHT_WATCHDOG_MS);
   }
 
   _clearInFlightWatchdog() {
     if (this._inFlightTimer !== null) {
-      clearTimeout(this._inFlightTimer);
+      this.clearTimeout(this._inFlightTimer);
       this._inFlightTimer = null;
     }
   }
@@ -738,12 +684,12 @@ export class EasyReading {
     this._resetInFlight();
     const now = Date.now();
     const duration = (this.lastWheelTime && (now - this.lastWheelTime < 1000)) ? 1200 : 300;
-    this._core?.suppressInertialWheel?.(duration);
+    this.app?.suppressInertialWheel?.(duration);
     if (!this.easyReadingReachedPageEnd) {
       this.ignoreOneUpdate = true;
     }
-    if (this._site) {
-      this._site.prevPageState = PAGE_STATE.NORMAL;
+    if (this.site) {
+      this.site.prevPageState = PAGE_STATE.NORMAL;
     }
   }
 
@@ -753,11 +699,11 @@ export class EasyReading {
     this._resetInFlight();
     const now = Date.now();
     const duration = (this.lastWheelTime && (now - this.lastWheelTime < 1000)) ? 1200 : 300;
-    this._core?.suppressInertialWheel?.(duration);
+    this.app?.suppressInertialWheel?.(duration);
   }
 
   _send(data) {
-    this._core?.send(data);
+    this.app?.send?.(data);
   }
 
   send(data) {
@@ -772,7 +718,7 @@ export class EasyReading {
     if (e.defaultPrevented)
       return;
 
-    const site = this._site;
+    const site = this.site;
     let stop = false;
     if (!e.ctrlKey && !e.altKey) {
       switch (e.key) {
@@ -807,7 +753,7 @@ export class EasyReading {
       return false;
     if (lines > 0 && cont.scrollTop >= cont.scrollHeight - cont.clientHeight)
       return false;
-    const chh = this._view?.chh || 16;
+    const chh = this.view?.chh || 16;
     cont.scrollTop += chh * lines;
     return true;
   }
@@ -829,7 +775,7 @@ export class EasyReading {
   }
 
   _onKeyDownProcessUI(e) {
-    const site = this._site;
+    const site = this.site;
     if (site?.handleEasyReadingKeyDown?.(this, e)) {
       e.preventDefault();
       return;
@@ -883,11 +829,11 @@ export class EasyReading {
           }
           break;
         case 'k':
-          stop = this._scrollBy(-1);
+          this._scrollBy(-1);
           stop = true;
           break;
         case 'j':
-          stop = this._scrollBy(1);
+          this._scrollBy(1);
           stop = true;
           break;
         case 'Home':
@@ -931,8 +877,7 @@ export class EasyReading {
     if (!this.enabled || !this.started)
       return;
     let stop = false;
-    const mouseBrowsing = this._core?.getPlugin?.("mouse_browsing");
-    const mouseCursor = mouseBrowsing?.mouseCursor ?? 0;
+    const mouseCursor = this.buf?.mouseCursor ?? 0;
     switch (mouseCursor) {
       case 0:
       case 1: // Arrow Left
@@ -973,84 +918,6 @@ export class EasyReading {
       e.preventDefault();
   }
 
-  // --- Input Interceptor Interface (EventEmitter) ---
-
-  _attachInputInterceptors(inputInterceptors) {
-    if (!inputInterceptors) return;
-    this._onNavCmdBound = (event) => {
-      if (!this.isActive()) return;
-      if (this.handleNavCmd(event.cmd)) {
-        event.preventDefault();
-      }
-    };
-    this._onWheelBound = (event) => {
-      const res = this.handleWheel(event.originalEvent || event);
-      if (res === 'suppress') {
-        event.suppress = true;
-        event.preventDefault();
-      } else if (res) {
-        event.handled = true;
-        event.preventDefault();
-      }
-    };
-    this._onMouseClickBound = (e) => {
-      this.handleMouseClick(e);
-    };
-    this._onKeyDownBound = (e) => {
-      this.handleKeyDown(e);
-    };
-    this._onTextInputBound = (e) => {
-      if (this.handleTextInput(e)) {
-        if (typeof e.preventDefault === 'function') e.preventDefault();
-        e.defaultPrevented = true;
-      }
-    };
-    this._onSelectAllBound = (event) => {
-      if (this.selectAll()) {
-        event.preventDefault();
-      }
-    };
-    this._onQueryActiveBound = (event) => {
-      if (this.isActive()) {
-        event.active = true;
-      }
-    };
-    this._onGetSelectedTextBound = (event) => {
-      const text = this.getSelectedText();
-      if (text !== undefined) {
-        event.text = text;
-      }
-    };
-    this._onGetSelectionColRowBound = (event) => {
-      if (this.isActive()) {
-        event.colRow = this.getSelectionColRow();
-      }
-    };
-
-    inputInterceptors.on('navCmd', this._onNavCmdBound);
-    inputInterceptors.on('wheel', this._onWheelBound);
-    inputInterceptors.on('mouseClick', this._onMouseClickBound);
-    inputInterceptors.on('keyDown', this._onKeyDownBound);
-    inputInterceptors.on('textInput', this._onTextInputBound);
-    inputInterceptors.on('selectAll', this._onSelectAllBound);
-    inputInterceptors.on('queryActive', this._onQueryActiveBound);
-    inputInterceptors.on('getSelectedText', this._onGetSelectedTextBound);
-    inputInterceptors.on('getSelectionColRow', this._onGetSelectionColRowBound);
-  }
-
-  _detachInputInterceptors(inputInterceptors) {
-    if (!inputInterceptors) return;
-    if (this._onNavCmdBound) inputInterceptors.off('navCmd', this._onNavCmdBound);
-    if (this._onWheelBound) inputInterceptors.off('wheel', this._onWheelBound);
-    if (this._onMouseClickBound) inputInterceptors.off('mouseClick', this._onMouseClickBound);
-    if (this._onKeyDownBound) inputInterceptors.off('keyDown', this._onKeyDownBound);
-    if (this._onTextInputBound) inputInterceptors.off('textInput', this._onTextInputBound);
-    if (this._onSelectAllBound) inputInterceptors.off('selectAll', this._onSelectAllBound);
-    if (this._onQueryActiveBound) inputInterceptors.off('queryActive', this._onQueryActiveBound);
-    if (this._onGetSelectedTextBound) inputInterceptors.off('getSelectedText', this._onGetSelectedTextBound);
-    if (this._onGetSelectionColRowBound) inputInterceptors.off('getSelectionColRow', this._onGetSelectionColRowBound);
-  }
-
   handleNavCmd(cmd) {
     if (!this.isActive()) return false;
     switch (cmd) {
@@ -1073,7 +940,7 @@ export class EasyReading {
         this._scrollBy(this._turnPageLines);
         return true;
       case "previousThread": {
-        const tCmd = this._core?.site?.getThreadCommand?.("prevThread");
+        const tCmd = this.site?.getThreadCommand?.("prevThread");
         if (tCmd) {
           this.leaveCurrentPost();
           this._send(tCmd);
@@ -1081,7 +948,7 @@ export class EasyReading {
         return true;
       }
       case "nextThread": {
-        const tCmd = this._core?.site?.getThreadCommand?.("nextThread");
+        const tCmd = this.site?.getThreadCommand?.("nextThread");
         if (tCmd) {
           this.leaveCurrentPost();
           this._send(tCmd);
@@ -1122,6 +989,8 @@ export class EasyReading {
   }
 
   handleMouseClick(e) {
+    if (!this.isActive() || this.isPromptActive())
+      return false;
     this._onMouseClick(e);
     return !!e.defaultPrevented;
   }
@@ -1183,12 +1052,14 @@ export class EasyReading {
     return false;
   }
 
-  onFontUpdate({ fontFace, fontSize } = {}) {
+  onFontUpdate({ fontFace, fontSize, lineHeight } = {}) {
     if (this.overlay) {
       if (fontFace) this.overlay.style.setProperty('--font-face', fontFace);
       if (fontSize) {
         this.overlay.style.fontSize = fontSize;
-        this.overlay.style.lineHeight = fontSize;
+        this.overlay.style.lineHeight = lineHeight || this.view?.mainDisplay?.style?.lineHeight || fontSize;
+      } else if (lineHeight) {
+        this.overlay.style.lineHeight = lineHeight;
       }
     }
   }

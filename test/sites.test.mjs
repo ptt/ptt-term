@@ -16,7 +16,7 @@ import {
   EasyReading,
   INFLIGHT_WATCHDOG_MS,
   MAX_INFLIGHT_RETRIES,
-} from '../src/js/easy_reading.js';
+} from '../src/plugins/easy_reading/index.js';
 import {
   parseReplyText,
   parsePushInitText,
@@ -719,7 +719,6 @@ test('EasyReading in-flight control prevents multiple concurrent PageDowns', () 
     };
 
     const mockView = {
-      useEasyReadingMode: true,
       conn: {
         send: (cmd) => sentCommands.push(cmd),
       },
@@ -745,7 +744,8 @@ test('EasyReading in-flight control prevents multiple concurrent PageDowns', () 
       },
     });
 
-    const easyReading = new EasyReading(mockCore, mockView, mockTermBuf);
+    const easyReading = new EasyReading(mockCore, { view: mockView, buf: mockTermBuf, enabled: true });
+    easyReading.init({ app: mockCore, view: mockView, buf: mockTermBuf, enabled: true });
     assert.equal(easyReading._pageDownInFlight, false);
 
     // 1. Initial entry to reading mode triggers first PageDown
@@ -817,7 +817,6 @@ test('EasyReading in-flight watchdog handles dropped response with retries and b
     };
 
     const mockView = {
-      useEasyReadingMode: true,
       conn: {
         send: (cmd) => sentCommands.push(cmd),
       },
@@ -843,7 +842,8 @@ test('EasyReading in-flight watchdog handles dropped response with retries and b
       },
     });
 
-    const easyReading = new EasyReading(mockCore, mockView, mockTermBuf);
+    const easyReading = new EasyReading(mockCore, { view: mockView, buf: mockTermBuf, enabled: true });
+    easyReading.init({ app: mockCore, view: mockView, buf: mockTermBuf, enabled: true });
 
     // Initial page: PageDown queued
     mockTermBuf.dispatchEvent({ type: 'change' });
@@ -924,7 +924,6 @@ test('EasyReading captures complete frames with DEC 2026 synchronized update', (
     };
 
     const mockView = {
-      useEasyReadingMode: true,
       conn: {
         send: (cmd) => sentCommands.push(cmd),
       },
@@ -954,7 +953,8 @@ test('EasyReading captures complete frames with DEC 2026 synchronized update', (
       },
     });
 
-    const easyReading = new EasyReading(mockCore, mockView, mockTermBuf);
+    const easyReading = new EasyReading(mockCore, { view: mockView, buf: mockTermBuf, enabled: true });
+    easyReading.init({ app: mockCore, view: mockView, buf: mockTermBuf, enabled: true });
 
     // Initial frame arrives: triggers PageDown even though cur_x is 15 (not 79)
     mockTermBuf.dispatchEvent({ type: 'change' });
@@ -1053,7 +1053,8 @@ test('EasyReading encapsulates overlay DOM elements and page stitching', () => {
       site: ptt,
     };
 
-    const easyReading = new EasyReading(mockCore, mockView, mockTermBuf);
+    const easyReading = new EasyReading(mockCore, { view: mockView, buf: mockTermBuf, enabled: true });
+    easyReading.init({ app: mockCore, view: mockView, buf: mockTermBuf, enabled: true });
     assert.ok(easyReading.overlay);
     assert.equal(easyReading.overlay.getAttribute('id'), 'easyReadingOverlay');
     assert.ok(easyReading.content);
@@ -1093,7 +1094,6 @@ test('EasyReading decouples state tracking and removes TermBuf property injectio
   };
   const mockView = {
     chh: 16,
-    useEasyReadingMode: true,
   };
   const mockTermBuf = {
     cols: 80,
@@ -1101,7 +1101,8 @@ test('EasyReading decouples state tracking and removes TermBuf property injectio
     addEventListener: () => {},
   };
 
-  const easyReading = new EasyReading(mockCore, mockView, mockTermBuf);
+  const easyReading = new EasyReading(mockCore, { view: mockView, buf: mockTermBuf, enabled: true });
+  easyReading.init({ app: mockCore, view: mockView, buf: mockTermBuf, enabled: true });
 
   // EasyReading owns its own state
   assert.equal(easyReading.enabled, true);
@@ -1141,6 +1142,8 @@ test('EasyReading and App input interceptor pipeline decouples navigation, wheel
     suppressInertialWheel: (duration) => { mockCore.lastSuppressedDuration = duration; },
   };
   mockCore.inputInterceptors = new InputInterceptors(mockCore);
+  mockCore.registerInputInterceptor = (it) => mockCore.inputInterceptors.registerInterceptor(it);
+  mockCore.unregisterInputInterceptor = (it) => mockCore.inputInterceptors.unregisterInterceptor(it);
   mockCore.dispatchNavCmd = (cmd) => mockCore.inputInterceptors.dispatchNavCmd(cmd);
   mockCore.dispatchWheel = (e) => mockCore.inputInterceptors.dispatchWheel(e);
   mockCore.dispatchKeyDown = (e) => mockCore.inputInterceptors.dispatchKeyDown(e);
@@ -1155,12 +1158,12 @@ test('EasyReading and App input interceptor pipeline decouples navigation, wheel
     addEventListener: () => {},
   };
   const mockView = {
-    useEasyReadingMode: true,
     chh: 16,
     conn: { send: (d) => sent.push(d) },
   };
 
-  const easyReading = new EasyReading(mockCore, mockView, mockTermBuf);
+  const easyReading = new EasyReading(mockCore, { view: mockView, buf: mockTermBuf, enabled: true });
+  easyReading.init({ app: mockCore, view: mockView, buf: mockTermBuf, enabled: true });
   assert.ok(mockCore.inputInterceptors.listenerCount('navCmd') > 0);
 
   // 1. Inactive: interceptor returns false / undefined
@@ -1236,12 +1239,12 @@ test('EasyReading and App input interceptor pipeline decouples navigation, wheel
 });
 
 test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update hooks', () => {
-  const mockApp = {
+  const mockApp = Object.assign(new EventEmitter(), {
     plugins: [],
     registerPlugin(plugin) {
       if (!plugin || this.plugins.includes(plugin)) return;
       this.plugins.push(plugin);
-      if (plugin.init) plugin.init({ app: this, core: this, view: this.view, buf: this.buf });
+      if (plugin.init) plugin.init({ app: this, view: this.view, buf: this.buf });
     },
     unregisterPlugin(plugin) {
       const idx = this.plugins.indexOf(plugin);
@@ -1255,19 +1258,10 @@ test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update
         (p) => p.name === name || p.constructor?.name === name
       );
     },
-    dispatchScreenUpdate(changedLines) {
-      for (const plugin of this.plugins) {
-        if (plugin.onScreenUpdate?.(changedLines)) return true;
-      }
-      return false;
-    },
-    dispatchFontUpdate(fontInfo) {
-      for (const plugin of this.plugins) {
-        plugin.onFontUpdate?.(fontInfo);
-      }
-    },
-  };
+  });
   mockApp.inputInterceptors = new InputInterceptors(mockApp);
+  mockApp.registerInputInterceptor = (it) => mockApp.inputInterceptors.registerInterceptor(it);
+  mockApp.unregisterInputInterceptor = (it) => mockApp.inputInterceptors.unregisterInterceptor(it);
 
   const listeners = new Map();
   const mockBuf = {
@@ -1289,10 +1283,8 @@ test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update
     },
   };
 
-  const mockView = {
-    useEasyReadingMode: true,
-  };
-
+  const mockView = {};
+  mockApp.prefValues = { enableEasyReading: true };
   mockApp.view = mockView;
   mockApp.buf = mockBuf;
   mockApp.site = new PttSite();
@@ -1313,7 +1305,7 @@ test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update
   assert.equal(listeners.get('change')?.length, 1);
   assert.equal(listeners.get('viewUpdate')?.length, 1);
 
-  // 2. Font update hook
+  // 2. Font update via event bus
   const dummyOverlay = {
     style: {
       setProperty: (prop, val) => { dummyOverlay.style[prop] = val; },
@@ -1322,17 +1314,15 @@ test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update
     },
   };
   plugin._overlay = dummyOverlay;
-  mockApp.dispatchFontUpdate({ fontFace: 'monospace', fontSize: '20px' });
+  mockApp.emit('term:font-update', { fontFace: 'monospace', fontSize: '20px' });
   assert.equal(dummyOverlay.style['--font-face'], 'monospace');
   assert.equal(dummyOverlay.style.fontSize, '20px');
   assert.equal(dummyOverlay.style.lineHeight, '20px');
 
-  // 3. Screen update hook
+  // 3. Screen update via event bus
   let updatePageCalledWith = null;
   plugin.updatePage = (lines) => { updatePageCalledWith = lines; };
-  plugin.enabled = true;
-  const updateHandled = mockApp.dispatchScreenUpdate(['<div>Line 1</div>']);
-  assert.equal(updateHandled, true);
+  mockApp.emit('term:screen-update', { changedLineHtmlStrs: ['<div>Line 1</div>'] });
   assert.deepEqual(updatePageCalledWith, ['<div>Line 1</div>']);
 
   // 4. Unregister and destroy plugin
@@ -1351,11 +1341,9 @@ test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update
 test('src/plugins exports EasyReading and provides modular plugin architecture', async () => {
   const pluginsModule = await import('../src/plugins/index.js');
   const easyReadingModule = await import('../src/plugins/easy_reading/index.js');
-  const legacyModule = await import('../src/js/easy_reading.js');
 
   assert.equal(pluginsModule.EasyReading, easyReadingModule.EasyReading);
   assert.equal(pluginsModule.EasyReadingPlugin, easyReadingModule.EasyReadingPlugin);
-  assert.equal(legacyModule.EasyReading, easyReadingModule.EasyReading);
   assert.equal(easyReadingModule.default, easyReadingModule.EasyReading);
 
   assert.equal(easyReadingModule.EasyReading.name, 'easy_reading');
@@ -1764,7 +1752,6 @@ test('src/plugins exports AntiIdle and delegates keepalive to site', async () =>
     enabled: true,
     interval: 2000,
   });
-  antiIdle.init({ app: mockApp });
 
   // Tick 1s: should not trigger yet
   antiIdle.tick(1000);
@@ -1804,7 +1791,6 @@ test('src/plugins exports AntiIdle and delegates keepalive to site', async () =>
     enabled: true,
     interval: 1000,
   });
-  eventAntiIdle.init({ app: eventApp });
   eventAntiIdle.tick(1000);
   assert.ok(eventApp.events.includes('term:anti-idle'));
   assert.equal(appAntiIdleSent, true);
@@ -1902,7 +1888,7 @@ test('AutoWrap intercepts term:paste event to adjust data before propagating to 
 
   const app = new MockApp();
   const autoWrap = new AutoWrap(app, { enabled: true, lineWrap: 30 });
-  autoWrap.init({ app });
+  autoWrap.init({ app, enabled: true, lineWrap: 30 });
 
   const longText = 'A quick brown fox jumps over the lazy dog repeatedly until wrapped.';
   app.dispatchPaste(longText);
@@ -1917,7 +1903,7 @@ test('AutoWrap intercepts term:paste event to adjust data before propagating to 
   // Another plugin can further adjust data in term:paste before term receives it
   const app2 = new MockApp();
   const autoWrap2 = new AutoWrap(app2, { enabled: true, lineWrap: 30 });
-  autoWrap2.init({ app: app2 });
+  autoWrap2.init({ app: app2, enabled: true, lineWrap: 30 });
 
   app2.addEventListener('term:paste', (e) => {
     e.data = e.data.toUpperCase();
@@ -1930,7 +1916,7 @@ test('AutoWrap intercepts term:paste event to adjust data before propagating to 
   // If a plugin calls preventDefault(), term does not receive the paste
   const app3 = new MockApp();
   const autoWrap3 = new AutoWrap(app3, { enabled: true, lineWrap: 30 });
-  autoWrap3.init({ app: app3 });
+  autoWrap3.init({ app: app3, enabled: true, lineWrap: 30 });
 
   app3.addEventListener('term:paste', (e) => {
     e.preventDefault();
@@ -2015,10 +2001,9 @@ test('src/plugins exports PacketDump and formats hex data', async () => {
   const mockApp = {
     onPrefChange: () => {},
   };
-  const cl = new packetDumpModule.PacketDump(mockApp);
-  assert.equal(cl.enabled, false);
-  cl.init({ app: mockApp });
-  assert.equal(mockApp.packetDump, undefined);
+  const pd = new packetDumpModule.PacketDump(mockApp);
+  assert.equal(pd.enabled, false);
+  pd.init({ app: mockApp });
 });
 
 test('src/plugins exports FpsMeter and provides plugin metadata and lifecycle', async () => {

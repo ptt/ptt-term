@@ -336,12 +336,7 @@ export class TermView extends EventEmitter {
   setFontFace(fontFace) {
     this.fontFace = fontFace;
     this.input.style.setProperty('font-family', this.fontFace, 'important');
-    this.app?.dispatchFontUpdate?.({ fontFace: this.fontFace });
-  }
-
-  setShowFps(show) {
-    this.showFps = !!show;
-    this.redraw(true);
+    this.app?.emit?.('term:font-update', { fontFace: this.fontFace });
   }
 
   setUseCanvasEngine(enabled) {
@@ -421,7 +416,7 @@ export class TermView extends EventEmitter {
           fontSize: currentFontSize,
           fontFace: this.fontFace,
           highlightBG: this.highlightBG,
-          nowHighlight: this.buf.nowHighlight,
+          nowHighlight: this.buf.highlightCursor ? this.buf.nowHighlight : -1,
           buf: this.buf,
           charset: this.charset,
           copyOnSelect: this.app.copyOnSelect,
@@ -459,7 +454,7 @@ export class TermView extends EventEmitter {
 
   setHighlightedRow(row) {
     console.debug(`setHighlightedRow: ${row}, this.buf.highlightCursor:${ this.buf.highlightCursor}`);
-    if (this.buf.highlightCursor && this.componentScreen) {
+    if ((this.buf.highlightCursor || row === -1) && this.componentScreen) {
       this.componentScreen.setCurrentHighlighted(row);
     }
   }
@@ -586,7 +581,7 @@ export class TermView extends EventEmitter {
     }
     this.mainDisplay.style.fontSize = fontSize;
     this.mainDisplay.style.lineHeight = lineHeight;
-    this.app?.dispatchFontUpdate?.({ fontSize });
+    this.app?.emit?.('term:font-update', { fontSize, lineHeight });
     this.cursor.style.fontSize = fontSize;
     this.cursor.style.lineHeight = lineHeight;
     this.applyCursorStyle();
@@ -1180,15 +1175,6 @@ export class TermView extends EventEmitter {
     el.setAttribute('srow', '0');
     target.appendChild(el);
     return renderRowHtml(row, 0, this.chh, false, el);
-  }
-
-  get useEasyReadingMode() {
-    return this.app?.prefValues?.enableEasyReading ?? false;
-  }
-  set useEasyReadingMode(val) {
-    if (this.app?.prefValues) {
-      this.app.prefValues.enableEasyReading = Boolean(val);
-    }
   }
 
   isEasyReadingActive() {
