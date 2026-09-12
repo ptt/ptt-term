@@ -12,13 +12,14 @@
   overflow: hidden;
   z-index: 1;
 
-  user-select: none;
+  user-select: text;
   touch-action: none;
   -webkit-touch-callout: none;
 }
 
 #cursor {
   display: none;
+  user-select: none;
 }
 
 #cursor.cursor--underline {
@@ -108,12 +109,14 @@ a:hover {
   white-space: pre;
 }
 
-#screenContainer {
+#screenContainer,
+#mainContainer {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+  user-select: text;
 }
 
 @keyframes visual-bell-flash {

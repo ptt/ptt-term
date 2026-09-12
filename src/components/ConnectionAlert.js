@@ -14,7 +14,9 @@ export const ConnectionAlert = ({ onDismiss }) => {
           target.isContentEditable);
       const isInModal =
         document.body.classList.contains("modal-open") ||
-        (target && (target.closest(".modal") || target.closest("dialog[open]")));
+        (target &&
+          typeof target.closest === "function" &&
+          (target.closest(".modal") || target.closest("dialog[open]")));
 
       if (isEditable || isInModal) {
         return;

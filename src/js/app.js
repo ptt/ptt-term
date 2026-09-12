@@ -12,6 +12,7 @@ import { TouchController } from './touch_controller';
 import { _, setupI18n } from './i18n';
 import { unescapeStr } from './string_util';
 import { setTimer, parseConnectUrl } from './util';
+import { shouldPreserveDomSelection } from './quirks';
 import { setTerminalBellEnabled, setWindowFocused } from './bell.js';
 import { readValuesWithDefault, writeValues, updatePref } from './pref.js';
 import { applyColorScheme } from './color_schemes.js';
@@ -33,7 +34,11 @@ export class App extends EventEmitter {
   this.preventContextMenuOnMouseUp = false;
   this.skipMouseClick = false;
 
-  this.view = new TermView();
+  // Browser quirks handling: Gecko DOM selection preservation
+  this.preserveDomSelection = shouldPreserveDomSelection();
+  this.view = new TermView({
+    preserveDomSelection: this.preserveDomSelection,
+  });
   this.buf = new TermBuf(80, 24);
   this.buf.app = this;
   this.enableVisualBell = false;
@@ -596,6 +601,10 @@ export class App extends EventEmitter {
       this._debugTouchLog('setInputAreaFocus blocked: modal or context menu active');
       return;
     }
+    if (this.preserveDomSelection && !force && !this.isSelectionCollapsed()) {
+      this._debugTouchLog('setInputAreaFocus blocked: preserving text selection');
+      return;
+    }
     if (this.isMobileDevice() && !force) {
       this._debugTouchLog('setInputAreaFocus blocked: mobile device and not force');
       return;
@@ -632,6 +641,9 @@ export class App extends EventEmitter {
     if (this.view && this.view.useCanvasEngine) {
       return !this.view.getSelectionColRow();
     }
+    if (this.preserveDomSelection && this.view?._domSelectedText) {
+      return false;
+    }
     return typeof window !== 'undefined' && window.getSelection ? window.getSelection().isCollapsed : true;
   }
 
@@ -662,9 +674,25 @@ export class App extends EventEmitter {
       }
     }
     this.strToCopy = str;
+    let textarea = null;
     try {
+      if (typeof document !== 'undefined' && document.body) {
+        textarea = document.createElement('textarea');
+        textarea.value = str;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.top = '-9999px';
+        textarea.style.left = '-9999px';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        textarea.setSelectionRange(0, str.length);
+      }
       document.execCommand('copy');
     } catch (err) {}
+    if (textarea && textarea.parentNode) {
+      textarea.parentNode.removeChild(textarea);
+    }
     this.strToCopy = null;
   }
 
@@ -1278,6 +1306,14 @@ export class App extends EventEmitter {
 
   if (e.button == 2) { //right button
   } else if (e.button === 0) { //left button
+    if (this.preserveDomSelection && this.view?._domSelectedText) {
+      const sel = typeof window !== 'undefined' && window.getSelection ? window.getSelection() : null;
+      if (!sel || sel.isCollapsed) {
+        this.view._domSelectedText = '';
+        this.view._domSelectionColRow = null;
+        this.lastSelection = null;
+      }
+    }
     const a = e.target && e.target.closest('a');
     if (a) {
       if (this.site.handleCustomLink(a.href, this)) {
@@ -1381,6 +1417,17 @@ export class App extends EventEmitter {
       this.skipMouseClick = true;
   } else if(e.button == 2) {
     this.mouseRightButtonDown = true;
+    if (this.preserveDomSelection && this.view && !this.view.useCanvasEngine) {
+      const selText = this.view.getSelectedText();
+      if (selText) {
+        this.view._domSelectedText = selText;
+        const colRow = this.view.getSelectionColRow();
+        if (colRow) {
+          this.view._domSelectionColRow = colRow;
+          this.lastSelection = colRow;
+        }
+      }
+    }
   }
   }
 

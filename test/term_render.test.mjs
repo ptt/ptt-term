@@ -3711,3 +3711,23 @@ test('TermView fontFitWindowWidth sets transformOrigin to center and prevents vi
     'Broken center top origin cuts off bottom status bar by ~half a row'
   );
 });
+
+test('TermView and App handle DOM selection preservation and fallback', () => {
+  const currentTermViewSource = fs.readFileSync(path.resolve('src/js/term_view.js'), 'utf-8');
+  const currentAppSource = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+
+  assert.ok(currentTermViewSource.includes("from './quirks'"), 'term_view.js must import directly from quirks');
+  assert.ok(currentTermViewSource.includes("this.preserveDomSelection = typeof options?.preserveDomSelection === 'boolean'"), 'TermView constructor must support preserveDomSelection option');
+  assert.ok(currentTermViewSource.includes("this._domSelectedText = ''"), 'TermView must initialize _domSelectedText');
+  assert.ok(currentTermViewSource.includes("this._domSelectionColRow = null"), 'TermView must initialize _domSelectionColRow');
+  assert.ok(currentTermViewSource.includes("document.addEventListener('selectionchange'"), 'TermView must track selectionchange');
+  assert.ok(currentTermViewSource.includes('if (this.preserveDomSelection && this._domSelectedText)'), 'TermView getSelectedText must fall back to _domSelectedText');
+  assert.ok(currentTermViewSource.includes('if (this.preserveDomSelection && this._domSelectionColRow)'), 'TermView getSelectionColRow must fall back to _domSelectionColRow');
+
+  assert.ok(currentAppSource.includes('this.preserveDomSelection = shouldPreserveDomSelection()'), 'App constructor must initialize preserveDomSelection');
+  assert.ok(currentAppSource.includes('preserveDomSelection: this.preserveDomSelection'), 'App must pass preserveDomSelection option to TermView');
+  assert.ok(currentAppSource.includes('if (this.preserveDomSelection && !force && !this.isSelectionCollapsed())'), 'App setInputAreaFocus must preserve selection');
+  assert.ok(currentAppSource.includes('if (this.preserveDomSelection && this.view?._domSelectedText)'), 'App isSelectionCollapsed must check selection fallback');
+  assert.ok(currentAppSource.includes('if (this.preserveDomSelection && this.view && !this.view.useCanvasEngine)'), 'App mouse_down must snapshot selection on right-click');
+});
+

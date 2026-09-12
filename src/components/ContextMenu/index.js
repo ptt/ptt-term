@@ -414,11 +414,11 @@ export class ContextMenu extends React.Component {
     const selColRow = app.view.getSelectionColRow();
     app.lastSelection = selColRow || null;
 
-    const aElement = targetEl ? targetEl.closest("a") : null;
+    const aElement = targetEl && typeof targetEl.closest === "function" ? targetEl.closest("a") : null;
     const contextOnUrl = aElement ? aElement.getAttribute("href") || "" : "";
 
     let selectedText = app.view.getSelectedText();
-    if (!selectedText && !window.getSelection().isCollapsed) {
+    if (!selectedText && typeof window !== "undefined" && window.getSelection && !window.getSelection().isCollapsed) {
       selectedText = window
         .getSelection()
         .toString()

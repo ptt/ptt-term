@@ -6,14 +6,22 @@ import { termColors, termInvColors, termDefaultBg, termDefaultFg, termDefaultLin
 import { renderRowHtml, renderScreen } from './term_ui';
 import { _ } from './i18n';
 import { setTimer } from './util';
+import { shouldPreserveDomSelection } from './quirks';
 import { stringWidth } from './string_util';
 
 const ENTER_CHAR = '\r';
 const DEFINE_INPUT_BUFFER_SIZE = 12;
 
 export class TermView extends EventEmitter {
-  constructor() {
+  constructor(options = {}) {
     super();
+
+    this.preserveDomSelection = typeof options?.preserveDomSelection === 'boolean'
+      ? options.preserveDomSelection
+      : shouldPreserveDomSelection();
+
+    this._domSelectedText = '';
+    this._domSelectionColRow = null;
     //new pref - start
   this.termWidth = 0;
   this.termHeight = 0;
@@ -167,6 +175,9 @@ export class TermView extends EventEmitter {
       return;
     if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || (e.keyCode > 15 && e.keyCode < 19))
       return; // Shift Ctrl Alt
+    if (this.preserveDomSelection && this.app && !this.app.isSelectionCollapsed()) {
+      return;
+    }
     // set input area focus whenever key down even if there is selection
     this.app.setInputAreaFocus();
   }, false);
@@ -174,6 +185,32 @@ export class TermView extends EventEmitter {
   this.input.addEventListener('input', (e) => {
     this.onInput(e);
   }, false);
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('selectionchange', () => {
+      if (!this.preserveDomSelection || this.useCanvasEngine) return;
+      if (typeof window === 'undefined' || !window.getSelection) return;
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed && sel.rangeCount > 0) {
+        const text = sel.toString().replace(/\u00a0/g, " ");
+        if (text) {
+          this._domSelectedText = text;
+          try {
+            const r = sel.getRangeAt(0);
+            this._domSelectionColRow = {
+              start: this.countCol(r.startContainer, r.startOffset),
+              end: this.countCol(r.endContainer, r.endOffset)
+            };
+            if (this.app) {
+              this.app.lastSelection = this._domSelectionColRow;
+            }
+          } catch (err) {
+            this._domSelectionColRow = null;
+          }
+        }
+      }
+    });
+  }
   }
 
   get mainContainer() {
@@ -473,6 +510,11 @@ export class TermView extends EventEmitter {
     if (stop) {
       e.preventDefault();
       return;
+    }
+
+    if (this.preserveDomSelection && this._domSelectedText && !isModifierOnly) {
+      this._domSelectedText = '';
+      this._domSelectionColRow = null;
     }
 
     this._keyboard.onKeyDown(e);
@@ -926,8 +968,11 @@ export class TermView extends EventEmitter {
       }
       return '';
     }
-    if (!window.getSelection().isCollapsed) {
+    if (typeof window !== 'undefined' && window.getSelection && !window.getSelection().isCollapsed) {
       return window.getSelection().toString().replace(/\u00a0/g, " ");
+    }
+    if (this.preserveDomSelection && this._domSelectedText) {
+      return this._domSelectedText;
     }
     return '';
   }
@@ -960,6 +1005,10 @@ export class TermView extends EventEmitter {
         sel.removeAllRanges();
       }
     }
+    if (this.preserveDomSelection) {
+      this._domSelectedText = '';
+      this._domSelectionColRow = null;
+    }
   }
 
   getSelectionColRow() {
@@ -973,9 +1022,14 @@ export class TermView extends EventEmitter {
         if (sel)
           return sel;
       }
-    }
-    if (window.getSelection().isCollapsed || window.getSelection().rangeCount === 0)
       return null;
+    }
+    if (typeof window === 'undefined' || !window.getSelection || window.getSelection().isCollapsed || window.getSelection().rangeCount === 0) {
+      if (this.preserveDomSelection && this._domSelectionColRow) {
+        return this._domSelectionColRow;
+      }
+      return null;
+    }
     let r = window.getSelection().getRangeAt(0);
     return {
       start: this.countCol(r.startContainer, r.startOffset),
