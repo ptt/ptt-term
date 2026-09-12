@@ -3773,7 +3773,12 @@ test('TermView and App handle DOM selection preservation and fallback', () => {
   assert.ok(currentAppSource.includes('hasWebKitImeQuirk: this.hasWebKitImeQuirk'), 'App must pass hasWebKitImeQuirk option to TermView');
   assert.ok(currentAppSource.includes('if (this.preserveDomSelection && !force && !this.isSelectionCollapsed())'), 'App setInputAreaFocus must preserve selection');
   assert.ok(currentAppSource.includes('if (this.preserveDomSelection && this.view?._domSelectedText)'), 'App isSelectionCollapsed must check selection fallback');
-  assert.ok(currentAppSource.includes('if (this.preserveDomSelection && this.view && !this.view.useCanvasEngine)'), 'App mouse_down must snapshot selection on right-click');
+  assert.ok(
+    /if\s*\(\s*this\.preserveDomSelection\s*&&\s*this\.view\s*&&\s*!this\.view\.useCanvasEngine\s*\)/.test(
+      currentAppSource
+    ),
+    'App mouse_down must snapshot selection on right-click'
+  );
 });
 
 test('quirks.js detects WebKit IME and Gecko DOM selection quirks via API/engine features', async () => {

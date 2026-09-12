@@ -899,19 +899,27 @@ test('ContextMenu and App do not send ^L on settings close and only switch EasyR
     'utf-8'
   );
 
-  // App.switchToEasyReadingMode must not send ^L
-  const switchFnMatch = appSrc.match(/switchToEasyReadingMode\([^)]*\)\s*\{([^}]+)\}/);
-  assert.ok(switchFnMatch, 'App must define switchToEasyReadingMode');
+  // App and ContextMenu completely decouple EasyReading (no switchToEasyReadingMode or ^L sending)
   assert.ok(
-    !switchFnMatch[1].includes("send(unescapeStr('^L'))") &&
-      !switchFnMatch[1].includes("send('^L')"),
-    'switchToEasyReadingMode must not send ^L'
+    !appSrc.includes('switchToEasyReadingMode'),
+    'App must not define switchToEasyReadingMode'
   );
-
-  // ContextMenu onPrefSaveImpl checks whether enableEasyReading changed
   assert.ok(
-    contextMenuSrc.includes('prevEnableEasyReading !== nextEnableEasyReading'),
-    'ContextMenu must only switch easy reading mode if enableEasyReading changed'
+    !appSrc.includes('easyReadingSupported'),
+    'App must not define easyReadingSupported'
+  );
+  assert.ok(
+    !appSrc.includes('suppressInertialWheel'),
+    'App must not define suppressInertialWheel'
+  );
+  assert.ok(
+    !contextMenuSrc.includes('switchToEasyReadingMode'),
+    'ContextMenu must not call switchToEasyReadingMode'
+  );
+  assert.ok(
+    !contextMenuSrc.includes("send(unescapeStr('^L'))") &&
+      !contextMenuSrc.includes("send('^L')"),
+    'ContextMenu must not send ^L on settings close'
   );
 });
 

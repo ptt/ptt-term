@@ -37,6 +37,9 @@ export class EasyReading extends PluginBase {
 
     this.lastWheelTime = 0;
     this.lastHideTime = 0;
+    this.suppressWheelUntil = 0;
+    this.suppressWheelStartedAt = 0;
+    this.lastWheelEventTime = 0;
     this._keyDownKeyCode = 0;
     this._keyDownIsComposing = false;
 
@@ -68,7 +71,7 @@ export class EasyReading extends PluginBase {
   }
 
   onInit() {
-    this.registerInputInterceptorWhileEnabled(this);
+    this.registerInputInterceptor(this);
     this.listenApp('term:easy-reading:switch', (e) => {
       const doSwitch = e?.doSwitch !== undefined ? e.doSwitch : e?.detail?.doSwitch;
       if (Boolean(doSwitch) !== this.enabled) {
@@ -310,9 +313,7 @@ export class EasyReading extends PluginBase {
       this.overlay.style.display = 'none';
     }
     this.lastHideTime = Date.now();
-    if (this.app) {
-      this.app.suppressInertialWheel?.(600);
-    }
+    this.suppressInertialWheel(600);
     this.clearRows();
     if (this.lastRowDiv) {
       this.lastRowDiv.style.backgroundColor = '';
@@ -543,7 +544,12 @@ export class EasyReading extends PluginBase {
       this._resetInFlight();
     }
 
-    if (!this.enabled || !site || this.app?.connectedUrl?.easyReadingSupported === false)
+    if (
+      !this.enabled ||
+      !site ||
+      site.easyReadingSupported === false ||
+      this.app?.connectedUrl?.easyReadingSupported === false
+    )
       return;
 
     let lastRowNum = site.getLastRowNum(this.buf);
@@ -679,12 +685,22 @@ export class EasyReading extends PluginBase {
     }
   }
 
+  suppressInertialWheel(durationMs = 300) {
+    const now = Date.now();
+    this.suppressWheelUntil = Math.max(
+      this.suppressWheelUntil || 0,
+      now + durationMs
+    );
+    this.suppressWheelStartedAt = now;
+    this.app?.suppressInertialWheel?.(durationMs);
+  }
+
   leaveCurrentPost() {
     console.debug('leave current post');
     this._resetInFlight();
     const now = Date.now();
     const duration = (this.lastWheelTime && (now - this.lastWheelTime < 1000)) ? 1200 : 300;
-    this.app?.suppressInertialWheel?.(duration);
+    this.suppressInertialWheel(duration);
     if (!this.easyReadingReachedPageEnd) {
       this.ignoreOneUpdate = true;
     }
@@ -699,7 +715,7 @@ export class EasyReading extends PluginBase {
     this._resetInFlight();
     const now = Date.now();
     const duration = (this.lastWheelTime && (now - this.lastWheelTime < 1000)) ? 1200 : 300;
-    this.app?.suppressInertialWheel?.(duration);
+    this.suppressInertialWheel(duration);
   }
 
   _send(data) {
@@ -978,13 +994,40 @@ export class EasyReading extends PluginBase {
       this.lastWheelTime = now;
       return true;
     }
-    const isOverlayTarget = !!(this.overlay && e?.target &&
-      (e.target === this.overlay || this.overlay.contains(e.target)));
-    const recentlyScrolled = this.lastWheelTime && (now - this.lastWheelTime < 1000);
-    const recentlyExited = this.lastHideTime && (now - this.lastHideTime < 600);
-    if (isOverlayTarget || recentlyScrolled || recentlyExited) {
+    const isOverlayTarget = !!(
+      this.overlay &&
+      e?.target &&
+      (e.target === this.overlay || this.overlay.contains(e.target))
+    );
+    const recentlyScrolled =
+      this.lastWheelTime && now - this.lastWheelTime < 1000;
+    const recentlyExited = this.lastHideTime && now - this.lastHideTime < 600;
+    const isSuppressed =
+      isOverlayTarget ||
+      recentlyScrolled ||
+      recentlyExited ||
+      (this.suppressWheelUntil && now < this.suppressWheelUntil);
+
+    if (isSuppressed) {
+      if (this.lastWheelEventTime && now - this.lastWheelEventTime < 200) {
+        if (!this.suppressWheelStartedAt) {
+          this.suppressWheelStartedAt = now;
+        }
+        if (now - this.suppressWheelStartedAt < 2500) {
+          this.suppressWheelUntil = Math.max(
+            this.suppressWheelUntil || 0,
+            now + 350
+          );
+        }
+      }
+      this.lastWheelEventTime = now;
+      e?.stopPropagation?.();
+      e?.preventDefault?.();
       return 'suppress';
     }
+
+    this.suppressWheelUntil = 0;
+    this.suppressWheelStartedAt = 0;
     return false;
   }
 

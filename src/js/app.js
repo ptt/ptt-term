@@ -89,9 +89,6 @@ export class App extends EventEmitter {
     this.overlays = [];
     this.contextMenuItems = [];
     this.on('term:anti-idle', () => this.sendAntiIdle());
-    this.suppressWheelUntil = 0;
-    this.suppressWheelContinuous = false;
-    this.suppressWheelStartedAt = 0;
     this.wheelDeltaYAccum = 0;
     this.lastWheelEventTime = 0;
     this.lastWheelCmdTime = 0;
@@ -475,7 +472,6 @@ export class App extends EventEmitter {
       port: parsed.port,
       type: this.site.name,
       siteType: this.site.name,
-      easyReadingSupported: true,
     };
   }
 
@@ -740,10 +736,6 @@ export class App extends EventEmitter {
     return typeof window !== 'undefined' && window.getSelection
       ? window.getSelection().isCollapsed
       : true;
-  }
-
-  switchToEasyReadingMode(doSwitch) {
-    this.emit('term:easy-reading:switch', { doSwitch, detail: { doSwitch } });
   }
 
   async doCopy(str) {
@@ -1678,18 +1670,6 @@ export class App extends EventEmitter {
       this.setInputAreaFocus();
   }
 
-  suppressInertialWheel(durationMs) {
-    const now = Date.now();
-    const duration = durationMs || 300;
-    this.suppressWheelUntil = Math.max(
-      this.suppressWheelUntil || 0,
-      now + duration
-    );
-    this.suppressWheelContinuous = true;
-    this.suppressWheelStartedAt = now;
-    this.wheelDeltaYAccum = 0;
-  }
-
   mouse_scroll(e) {
     if (this.modalShown || this.isDialogOrExcludedTarget(e)) return;
 
@@ -1705,40 +1685,16 @@ export class App extends EventEmitter {
     }
 
     const interceptorHandled = this.dispatchWheel(e);
-    if (interceptorHandled === true) {
+    if (interceptorHandled) {
+      if (interceptorHandled === 'suppress') {
+        this.wheelDeltaYAccum = 0;
+        e.stopPropagation();
+        e.preventDefault();
+      }
       return;
     }
 
     const now = Date.now();
-    const isSuppressed =
-      interceptorHandled === 'suppress' ||
-      (this.suppressWheelUntil && now < this.suppressWheelUntil);
-
-    if (isSuppressed) {
-      // If events are continuing continuously (< 200ms between events),
-      // inertia is still coasting. Extend suppression window (capped at 2500ms total).
-      if (this.lastWheelEventTime && now - this.lastWheelEventTime < 200) {
-        if (!this.suppressWheelStartedAt) {
-          this.suppressWheelStartedAt = now;
-        }
-        if (now - this.suppressWheelStartedAt < 2500) {
-          this.suppressWheelUntil = Math.max(
-            this.suppressWheelUntil || 0,
-            now + 350
-          );
-        }
-      }
-      this.lastWheelEventTime = now;
-      this.wheelDeltaYAccum = 0;
-      e.stopPropagation();
-      e.preventDefault();
-      return;
-    }
-
-    // Suppression period ended
-    this.suppressWheelUntil = 0;
-    this.suppressWheelContinuous = false;
-    this.suppressWheelStartedAt = 0;
 
     // 4. Normal Terminal Wheel Handling with Pixel Accumulation & Throttling
     let deltaY = e.deltaY;
