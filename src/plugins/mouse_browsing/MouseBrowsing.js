@@ -2,7 +2,6 @@ import React from "preact/compat";
 import { PluginBase } from "../PluginBase.js";
 import { parseOptionText } from "../../js/pref.js";
 import { _ } from "../../js/i18n.js";
-import { setTimer } from "../../js/util.js";
 import { PAGE_STATE } from "../../js/sites/index.js";
 const cursorBack = new URL("../../cursor/back.png", import.meta.url).href;
 const cursorPageup = new URL("../../cursor/pageup.png", import.meta.url).href;
@@ -307,14 +306,10 @@ export class MouseBrowsing extends PluginBase {
   }
 
   _clearTimers() {
-    if (this._dblclickTimer) {
-      this._dblclickTimer.cancel();
-      this._dblclickTimer = null;
-    }
-    if (this._mbTimer) {
-      this._mbTimer.cancel();
-      this._mbTimer = null;
-    }
+    this.clearTimeout(this._dblclickTimer);
+    this._dblclickTimer = null;
+    this.clearTimeout(this._mbTimer);
+    this._mbTimer = null;
   }
 
   onInit() {
@@ -447,17 +442,11 @@ export class MouseBrowsing extends PluginBase {
   handleMouseUp(e) {
     if (!this.enabled || !e) return false;
     if (e.button === 0) {
-      if (this._mbTimer) {
-        this._mbTimer.cancel();
-      }
-      this._mbTimer = setTimer(
-        false,
-        () => {
-          this._mbTimer = null;
-          if (this.app) this.app.skipMouseClick = false;
-        },
-        100
-      );
+      this.clearTimeout(this._mbTimer);
+      this._mbTimer = this.setTimeout(() => {
+        this._mbTimer = null;
+        if (this.app) this.app.skipMouseClick = false;
+      }, 100);
       this.mouseLeftButtonDown = false;
       if (this.app?.isSelectionCollapsed?.()) {
         const pos = this.app.clientToPos?.(e.clientX, e.clientY);
@@ -540,16 +529,10 @@ export class MouseBrowsing extends PluginBase {
   }
 
   _setDblclickTimer() {
-    if (this._dblclickTimer) {
-      this._dblclickTimer.cancel();
-    }
-    this._dblclickTimer = setTimer(
-      false,
-      () => {
-        this._dblclickTimer = null;
-      },
-      350
-    );
+    this.clearTimeout(this._dblclickTimer);
+    this._dblclickTimer = this.setTimeout(() => {
+      this._dblclickTimer = null;
+    }, 350);
   }
 
   switchMouseBrowsing() {

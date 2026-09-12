@@ -267,6 +267,22 @@ export class App extends EventEmitter {
     return this.pluginManager.destroyPlugins();
   }
 
+  destroy() {
+    if (this.timerEverySec) {
+      this.timerEverySec.cancel();
+      this.timerEverySec = null;
+    }
+    if (this.inputAreaFocusTimer) {
+      this.inputAreaFocusTimer.cancel();
+      this.inputAreaFocusTimer = null;
+    }
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout);
+      this.resizeTimeout = null;
+    }
+    this.pluginManager.destroy();
+  }
+
   registerOverlay(overlay) {
     return this.pluginManager.registerOverlay(overlay);
   }

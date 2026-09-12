@@ -1493,3 +1493,29 @@ test('Plugins declare defaultPrefs and onTogglePref hooks, decoupling PrefModal 
   );
 });
 
+test('MouseBrowsing tracks timers in PluginBase._timers and App supports unregisterPlugin/destroyPlugins', async () => {
+  const { MouseBrowsing } = await import('../src/plugins/mouse_browsing/MouseBrowsing.js');
+  const { PluginManager } = await import('../src/js/plugin_manager.js');
+  const app = new MockApp();
+  app.pluginManager = new PluginManager(app);
+  const mb = new MouseBrowsing(app, { enabled: true });
+  app.pluginManager.registerPlugin(mb);
+
+  mb.handleMouseDown({ button: 0 });
+  assert.equal(mb._timers.size, 1, 'Dblclick timer should be tracked in PluginBase._timers');
+
+  mb.handleMouseUp({ button: 0, clientX: 0, clientY: 0 });
+  assert.equal(mb._timers.size, 2, 'MouseUp timer should also be tracked in PluginBase._timers');
+
+  mb.disable();
+  assert.equal(mb._timers.size, 0, 'Disabling MouseBrowsing must clear all timers via PluginBase');
+
+  assert.equal(app.pluginManager.plugins.length, 1);
+  assert.equal(app.pluginManager.unregisterPlugin('mouse_browsing'), true);
+  assert.equal(app.pluginManager.plugins.length, 0);
+
+  const appSrc = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+  assert.ok(appSrc.includes('unregisterPlugin(pluginOrId)'), 'App must define unregisterPlugin(pluginOrId)');
+  assert.ok(appSrc.includes('destroyPlugins()'), 'App must define destroyPlugins()');
+  assert.ok(appSrc.includes('destroy()'), 'App must define destroy()');
+});
