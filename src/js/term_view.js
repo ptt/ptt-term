@@ -2,7 +2,7 @@
 
 import { EventEmitter } from './event.js';
 import { TermKeyboard } from './term_keyboard';
-import { termColors, termInvColors, termDefaultBg, termDefaultFg, termDefaultLink } from './term_buf';
+import { termColors, termInvColors, termDefaultBg, termDefaultFg, termDefaultLink, getContrastColor } from './term_buf';
 import { renderRowHtml, renderScreen } from './term_ui';
 import { _ } from './i18n';
 import { setTimer } from './util';
@@ -852,35 +852,60 @@ export class TermView extends EventEmitter {
     if (!this.input || !this.buf) return;
     const pos = this.convertMN2XYEx(this.buf.cur_x, this.buf.cur_y);
     if (this.input.getAttribute('bshow') == '1') {
-      {
-        this.input.style.opacity = '1';
-        this.input.style.border = 'double';
-        // Workaround for Safari / All Browsers: Text inside input element #t is transparent by default.
-        // Visible text, background, and caret colors are required during IME composition across all browsers.
-        this.input.style.color = '#ffffff';
-        this.input.style.background = '#000000';
-        this.input.style.caretColor = '#ffffff';
-        {
-          //this.input.style.width  = (this.chh-4)*10 + 'px';
-          this.input.style.fontSize = this.chh-4 + 'px';
-          //this.input.style.lineHeight = this.chh+4 + 'px';
-          this.input.style.height = this.chh + 'px';
-        }
+      const lines = this.buf.lines;
+      const line = lines ? lines[this.buf.cur_y] : null;
+      const ch = line ? line[this.buf.cur_x] : null;
+      const defaultBg = termColors.defaultBg || termDefaultBg || termColors[0] || '#000000';
+      const defaultFg = termColors.defaultFg || termDefaultFg || termColors[7] || '#c0c0c0';
+      const isPlain = Boolean(termColors.forcePlainText);
+      const bgIdx = ch ? ch.getBg() : 0;
+      const fgIdx = ch ? ch.getFg() : 7;
+      const bgHex = (isPlain || bgIdx === 0) ? defaultBg : (termColors[bgIdx] || defaultBg);
+      let fgHex = (isPlain || fgIdx === 7) ? defaultFg : (termColors[fgIdx] || defaultFg);
+      if (fgIdx === bgIdx || fgHex.toLowerCase() === bgHex.toLowerCase()) {
+        fgHex = (bgHex.toLowerCase() === defaultBg.toLowerCase()) ? defaultFg : (termInvColors[bgIdx] || defaultFg);
       }
+      const minContrast = Math.max(isPlain ? 0 : (Number(termColors.minimumContrast) || 0), 50);
+      fgHex = getContrastColor(fgHex, bgHex, minContrast);
+
+      const borderSize = 3;
+      this.input.style.opacity = '1';
+      this.input.style.border = `${borderSize}px double ${fgHex}`;
+      this.input.style.outline = 'none';
+      this.input.style.padding = '0 2px';
+      this.input.style.margin = '0px';
+      this.input.style.boxSizing = 'content-box';
+      // Workaround for Safari / All Browsers: Text inside input element #t is transparent by default.
+      // Visible text, background, and caret colors derived from cursor cell attributes are required during IME composition.
+      this.input.style.color = fgHex;
+      this.input.style.background = bgHex;
+      this.input.style.caretColor = fgHex;
+      this.input.style.fontSize = (this.chh - 2) + 'px';
+      this.input.style.lineHeight = this.chh + 'px';
+      this.input.style.height = this.chh + 'px';
+
       const innerBounds = this.innerBounds;
       const termwinheight = innerBounds.height;
       const termwinwidth = innerBounds.width;
-      if(termwinheight < pos[1] + parseFloat(this.input.style.height) + this.chh)
-        this.input.style.top = (pos[1] - parseFloat(this.input.style.height) - this.chh)+ 4 +'px';
-      else
-        this.input.style.top = (pos[1] + this.chh) +'px';
+      const boxWidth = parseFloat(this.input.style.width) || ((this.chw || Math.max(8, this.chh / 2)) * 2);
+      const totalHeight = this.chh + borderSize * 2;
+      const totalWidth = boxWidth + borderSize * 2 + 4;
 
-      if(termwinwidth < pos[0] + parseFloat(this.input.style.width))
-        this.input.style.left = termwinwidth - parseFloat(this.input.style.width)- 10 +'px';
-      else
-        this.input.style.left = pos[0] +'px';
+      let topPos = pos[1] - borderSize;
+      if (topPos + totalHeight > termwinheight) {
+        topPos = Math.max(0, termwinheight - totalHeight);
+      } else if (topPos < 0) {
+        topPos = 0;
+      }
+      this.input.style.top = topPos + 'px';
 
-      //this.input.style.left = pos[0] +'px';
+      let leftPos = pos[0] - borderSize;
+      if (leftPos + totalWidth > termwinwidth) {
+        leftPos = Math.max(0, termwinwidth - totalWidth);
+      } else if (leftPos < 0) {
+        leftPos = 0;
+      }
+      this.input.style.left = leftPos + 'px';
     } else if (this.app?.isMobileDevice?.()) {
       this.input.style.left = '0px';
       this.input.style.top = '0px';
@@ -896,15 +921,15 @@ export class TermView extends EventEmitter {
   updateInputBufferWidth() {
     // change width according to input
     const wordCounts = stringWidth(this.input.value);
-    // chh / 2 - 2 because border of 1
-    const oneWordWidth = (this.chh/2-2);
+    const colWidth = this.chw || Math.max(8, this.chh / 2);
     // Provide min-width so single-character composition caret and box aren't clipped
-    const minWidth = (this.chh || 16) * 2;
-    const width = Math.max(oneWordWidth*wordCounts, minWidth);
-    this.input.style.width  = width + 'px';
+    const minWidth = colWidth * 2;
+    const width = Math.max(colWidth * wordCounts + colWidth, minWidth);
+    this.input.style.width = width + 'px';
     const bounds = this.innerBounds;
-    if (parseInt(this.input.style.left) + width + oneWordWidth*2 >= bounds.width) {
-      this.input.style.left = bounds.width - width - oneWordWidth*2 + 'px';
+    const borderAndPad = 10; // 3px border * 2 + 2px padding * 2
+    if (parseFloat(this.input.style.left) + width + borderAndPad > bounds.width) {
+      this.input.style.left = Math.max(0, bounds.width - width - borderAndPad) + 'px';
     }
   }
 
@@ -912,7 +937,8 @@ export class TermView extends EventEmitter {
     //this.input.disabled="";
     this.input.setAttribute('bshow', '1');
     this.input.style.pointerEvents = 'auto';
-    this.input.style.minWidth = ((this.chh || 16) * 2) + 'px';
+    const colWidth = this.chw || Math.max(8, this.chh / 2);
+    this.input.style.minWidth = (colWidth * 2) + 'px';
     // Workaround for WebKit IME: Lock Delay pattern for composition candidate window
     if (this.hasWebKitImeQuirk) {
       this._isComposingSafe = true;
@@ -929,6 +955,7 @@ export class TermView extends EventEmitter {
     //this.input.disabled="";
     this.input.setAttribute('bshow', '0');
     this.input.style.border = 'none';
+    this.input.style.padding = '0px';
     this.input.style.width =  '1px';
     this.input.style.height = '1px';
     this.input.style.opacity = '0';

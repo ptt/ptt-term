@@ -7,7 +7,7 @@ import { isFullWidth } from './wcwidth.js';
 import { playTerminalBell } from './bell.js';
 import { Locator } from './locator.js';
 
-export { termColors, termInvColors, termDefaultBg, termDefaultFg, termDefaultLink } from './color_schemes.js';
+export { termColors, termInvColors, termDefaultBg, termDefaultFg, termDefaultLink, getContrastColor } from './color_schemes.js';
 
 export class TermChar {
   static defaultFg = 7;

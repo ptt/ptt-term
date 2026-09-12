@@ -3646,8 +3646,8 @@ test('TermView and TermKeyboard handle Safari WebKit IME composition, colors, an
   assert.ok(termViewSource.includes("e.key === 'ArrowDown'"), 'keyEventFilter must guard candidate arrow keys');
 
   // TermView composition text visibility check
-  assert.ok(termViewSource.includes("this.input.style.color = '#ffffff'"), 'TermView must set visible text color during composition');
-  assert.ok(termViewSource.includes("this.input.style.background = '#000000'"), 'TermView must set background during composition');
+  assert.ok(termViewSource.includes('this.input.style.color = fgHex'), 'TermView must set visible text color during composition');
+  assert.ok(termViewSource.includes('this.input.style.background = bgHex'), 'TermView must set background during composition');
   assert.ok(termViewSource.includes("this.input.style.color = 'transparent'"), 'TermView must restore transparent color on composition end');
 
   // TermKeyboard composition guard check
@@ -3852,12 +3852,14 @@ test('IME composition styling applies across all browsers and initial focus succ
   const appSource = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
   const mainSource = fs.readFileSync(path.resolve('src/js/main.js'), 'utf-8');
 
-  // 1. updateInputBufferPos must set visible color/background unconditionally (not gated by hasWebKitImeQuirk)
+  // 1. updateInputBufferPos must set visible color/background unconditionally from cell attributes and position inline at cursor
   const updatePosMatch = termViewSource.match(/updateInputBufferPos\(\)\s*\{[\s\S]*?updateInputBufferWidth\(\)/);
   assert.ok(updatePosMatch, 'updateInputBufferPos found');
   assert.ok(!updatePosMatch[0].includes('if (this.hasWebKitImeQuirk)'), 'updateInputBufferPos must not gate IME colors behind hasWebKitImeQuirk');
-  assert.ok(updatePosMatch[0].includes("this.input.style.color = '#ffffff'"), 'updateInputBufferPos must set visible text color');
-  assert.ok(updatePosMatch[0].includes("this.input.style.background = '#000000'"), 'updateInputBufferPos must set visible background color');
+  assert.ok(updatePosMatch[0].includes('this.input.style.color = fgHex'), 'updateInputBufferPos must set visible text color from cell fg attribute');
+  assert.ok(updatePosMatch[0].includes('this.input.style.background = bgHex'), 'updateInputBufferPos must set visible background color from cell bg attribute');
+  assert.ok(updatePosMatch[0].includes('double ${fgHex}'), 'updateInputBufferPos must apply thick double border matching fgHex');
+  assert.ok(updatePosMatch[0].includes('let topPos = pos[1] - borderSize'), 'updateInputBufferPos must align inner content inline at cursor top (pos[1] - borderSize)');
 
   // 2. main.js must show TermWindow before focusing inputArea so Canvas mode initial focus succeeds
   const displayIdx = mainSource.indexOf("getElementById('TermWindow').style.display = ''");
