@@ -1296,9 +1296,6 @@ export class App extends EventEmitter {
       this.view.useCanvasEngine = !!value;
       this.view.redraw(true);
       break;
-    case 'showFps':
-      this.view.setShowFps(!!value);
-      break;
     case 'smoothAnsi':
     case 'smoothAnsiArt':
       this.view.smoothAnsiArt = !!value;

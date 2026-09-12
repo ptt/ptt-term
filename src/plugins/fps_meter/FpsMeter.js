@@ -1,46 +1,27 @@
-import { readValuesWithDefault } from "../../js/pref.js";
+import { PluginBase } from "../PluginBase.js";
 import { _ } from "../../js/i18n.js";
+import { updatePref } from "../../js/pref.js";
 
-export class FpsMeter {
+export class FpsMeter extends PluginBase {
   static id = "fps_meter";
   static name = "fps_meter";
-  static prefKey = "showFps";
+  static prefKey = "enableFpsMeter";
   static group = "debug";
+  static icon = "speed";
 
-  static getMetadata() {
-    return {
-      id: "fps_meter",
-      name: "fps_meter",
-      title: _("plugin_fps_meter_title"),
-      description: _("plugin_fps_meter_desc"),
-      prefKey: "showFps",
-      icon: "speed",
-      group: "debug",
-    };
+  static get title() {
+    return _("plugin_fps_meter_title");
   }
 
-  constructor(appOrOptions = {}, maybeOptions = {}) {
-    let app = null;
-    let options = {};
-    if (
-      appOrOptions &&
-      (appOrOptions.on ||
-        appOrOptions.view ||
-        appOrOptions.buf ||
-        appOrOptions.conn ||
-        appOrOptions.onPrefChange ||
-        appOrOptions.getPlugin ||
-        appOrOptions.registerPlugin)
-    ) {
-      app = appOrOptions;
-      options = maybeOptions || {};
-    } else {
-      options = appOrOptions || {};
-    }
+  static get description() {
+    return _("plugin_fps_meter_desc");
+  }
 
-    this.app = app;
-    this.enabled = false;
-    this.element = null;
+  constructor(app, options = {}) {
+    super(app, options);
+
+    this.element = options.element || null;
+    this._createdElement = false;
     this.textSpan = null;
     this.canvasBtn = null;
     this.smoothAnsiBtn = null;
@@ -49,124 +30,98 @@ export class FpsMeter {
     this.lastUiUpdateTime = 0;
     this.recentDeltas = [];
     this.recentDurations = [];
-    this.isCanvas = !!options.isCanvas;
+    this.isCanvas = !!this.options.isCanvas;
     this.idleTimer = null;
     this.smoothAnsiArt =
-      options.smoothAnsiArt !== undefined ? !!options.smoothAnsiArt : true;
-    this.onToggleCanvas = options.onToggleCanvas || null;
-    this.onToggleSmoothAnsi = options.onToggleSmoothAnsi || null;
-
-    if (this.app) {
-      this.init({ app: this.app, view: this.app.view, buf: this.app.buf });
-    }
+      this.options.smoothAnsiArt !== undefined ? !!this.options.smoothAnsiArt : true;
+    this.onToggleCanvas = this.options.onToggleCanvas || null;
+    this.onToggleSmoothAnsi = this.options.onToggleSmoothAnsi || null;
   }
 
-  get id() {
-    return "fps_meter";
-  }
+  onInit() {
+    this.listenApp("term:pref-change", (e) => {
+      const key = e?.key ?? e?.detail?.key;
+      const val = e?.value !== undefined ? e.value : e?.detail?.value;
+      if (key === "useCanvasEngine") {
+        this.setIsCanvas(Boolean(val));
+      } else if (key === "smoothAnsiArt") {
+        this.setSmoothAnsiArt(Boolean(val));
+      }
+    });
 
-  get name() {
-    return "fps_meter";
-  }
+    this.listenAppWhileEnabled("term:render-frame", (e) => {
+      const durationMs = e?.durationMs ?? e?.detail?.durationMs ?? 0;
+      const isCanvas = e?.isCanvas ?? e?.detail?.isCanvas ?? this.isCanvas;
+      this.recordFrame(durationMs, isCanvas);
+    });
 
-  get prefKey() {
-    return "showFps";
-  }
-
-  get group() {
-    return "debug";
-  }
-
-  get title() {
-    return _("plugin_fps_meter_title");
-  }
-
-  get description() {
-    return _("plugin_fps_meter_desc");
-  }
-
-  get icon() {
-    return "speed";
-  }
-
-  getMetadata() {
-    return {
-      id: this.id,
-      name: this.name,
-      title: this.title,
-      description: this.description,
-      prefKey: this.prefKey,
-      enabled: this.enabled,
-      icon: this.icon,
-      group: this.group,
-    };
-  }
-
-  init({ app, view, buf } = {}) {
-    if (app) {
-      this.app = app;
-      this._onPrefChangeBound = (e) => {
-        const key = e?.key ?? e?.detail?.key;
-        const val = e?.value !== undefined ? e.value : e?.detail?.value;
-        if (key === "showFps") {
-          this.setEnabled(Boolean(val));
-        } else if (key === "useCanvasEngine") {
-          this.setIsCanvas(Boolean(val));
-        } else if (key === "smoothAnsi" || key === "smoothAnsiArt") {
-          this.setSmoothAnsiArt(Boolean(val));
+    if (!this.onToggleCanvas) {
+      this.onToggleCanvas = (isCanvas) => {
+        if (this.app?.prefValues) {
+          this.app.prefValues.useCanvasEngine = isCanvas;
+        }
+        updatePref("useCanvasEngine", isCanvas);
+        if (this.app?.onPrefChange) {
+          this.app.onPrefChange("useCanvasEngine", isCanvas);
         }
       };
-      app.on("term:pref-change", this._onPrefChangeBound);
-      this._onRenderFrameBound = (e) => {
-        if (!this.enabled) return;
-        const durationMs = e?.durationMs ?? e?.detail?.durationMs ?? 0;
-        const isCanvas = e?.isCanvas ?? e?.detail?.isCanvas ?? this.isCanvas;
-        this.recordFrame(durationMs, isCanvas);
+    }
+    if (!this.onToggleSmoothAnsi) {
+      this.onToggleSmoothAnsi = (smooth) => {
+        if (this.app?.prefValues) {
+          this.app.prefValues.smoothAnsiArt = smooth;
+        }
+        updatePref("smoothAnsiArt", smooth);
+        if (this.app?.onPrefChange) {
+          this.app.onPrefChange("smoothAnsiArt", smooth);
+        }
       };
-      app.on("term:render-frame", this._onRenderFrameBound);
-      if (!this.onToggleCanvas) {
-        this.onToggleCanvas = (isCanvas) => {
-          if (this.app?.onPrefChange) {
-            this.app.onPrefChange("useCanvasEngine", isCanvas);
-          }
-        };
+    }
+
+    if (this.view) {
+      if (typeof this.view.useCanvasEngine === "boolean") {
+        this.isCanvas = this.view.useCanvasEngine;
       }
-      if (!this.onToggleSmoothAnsi) {
-        this.onToggleSmoothAnsi = (smooth) => {
-          if (this.app?.onPrefChange) {
-            this.app.onPrefChange("smoothAnsiArt", smooth);
-          }
-        };
+      if (typeof this.view.smoothAnsiArt === "boolean") {
+        this.smoothAnsiArt = this.view.smoothAnsiArt;
       }
     }
-    if (view) {
-      this.view = view;
-      if (typeof view.useCanvasEngine === "boolean") {
-        this.isCanvas = view.useCanvasEngine;
-      }
-      if (typeof view.smoothAnsiArt === "boolean") {
-        this.smoothAnsiArt = view.smoothAnsiArt;
-      }
-    }
-    if (buf) this.buf = buf;
-    this.syncFromPrefs();
   }
 
-  syncFromPrefs() {
-    try {
-      const prefs = readValuesWithDefault();
-      if (prefs && prefs.showFps !== undefined) {
-        this.setEnabled(Boolean(prefs.showFps));
-      }
-    } catch (e) {}
+  onEnable() {
+    const el = this.ensureElement();
+    if (el) el.style.display = "block";
+    this.reset();
+    this.updateDisplay(
+      typeof performance !== "undefined" ? performance.now() : Date.now(),
+      true
+    );
+    this.startIdleChecker();
   }
 
-  destroy() {
-    this.setEnabled(false);
-    if (this.app) {
-      this.app.off("term:pref-change", this._onPrefChangeBound);
-      this.app.off("term:render-frame", this._onRenderFrameBound);
+  onDisable() {
+    const el = this.element || (typeof document !== "undefined" ? document.getElementById("fpsOverlay") : null);
+    if (el) el.style.display = "none";
+    this.stopIdleChecker();
+    this.reset();
+  }
+
+  onDestroy() {
+    this.stopIdleChecker();
+    this.reset();
+    if (this.element) {
+      if (this._createdElement && this.element.parentNode) {
+        this.element.parentNode.removeChild(this.element);
+      } else {
+        this.element.style.display = "none";
+        this.element.innerHTML = "";
+      }
     }
+    this.element = null;
+    this._createdElement = false;
+    this.textSpan = null;
+    this.canvasBtn = null;
+    this.smoothAnsiBtn = null;
   }
 
   ensureElement() {
@@ -176,12 +131,22 @@ export class FpsMeter {
         this.element = document.createElement("div");
         this.element.id = "fpsOverlay";
         document.body.appendChild(this.element);
+        this._createdElement = true;
+      }
+    }
+    if (this.element) {
+      if (this.element.classList) {
+        if (!this.element.classList.contains("nomouse_command")) {
+          this.element.classList.add("nomouse_command");
+        }
+      } else if (!String(this.element.className || "").includes("nomouse_command")) {
+        this.element.className = `${this.element.className || ""} nomouse_command`.trim();
       }
     }
     if (this.element && !this.textSpan && typeof document !== "undefined") {
       this.element.innerHTML = "";
       this.textSpan = document.createElement("span");
-      this.textSpan.className = "fps-text";
+      this.textSpan.className = "fps-text nomouse_command";
       this.element.appendChild(this.textSpan);
 
       const space1 = document.createTextNode(" ");
@@ -191,12 +156,12 @@ export class FpsMeter {
       this.canvasBtn.className = "fps-canvas nomouse_command";
       this.canvasBtn.style.cursor = "pointer";
       this.canvasBtn.style.pointerEvents = "auto";
-      this.canvasBtn.addEventListener("click", (e) => {
+      this.listenWhileEnabled(this.canvasBtn, "click", (e) => {
         e.stopPropagation();
         e.preventDefault();
         this.toggleCanvas();
       });
-      this.canvasBtn.addEventListener("mousedown", (e) => {
+      this.listenWhileEnabled(this.canvasBtn, "mousedown", (e) => {
         e.stopPropagation();
       });
       this.element.appendChild(this.canvasBtn);
@@ -205,37 +170,17 @@ export class FpsMeter {
       this.smoothAnsiBtn.className = "fps-smooth-ansi nomouse_command";
       this.smoothAnsiBtn.style.cursor = "pointer";
       this.smoothAnsiBtn.style.pointerEvents = "auto";
-      this.smoothAnsiBtn.addEventListener("click", (e) => {
+      this.listenWhileEnabled(this.smoothAnsiBtn, "click", (e) => {
         e.stopPropagation();
         e.preventDefault();
         this.toggleSmoothAnsi();
       });
-      this.smoothAnsiBtn.addEventListener("mousedown", (e) => {
+      this.listenWhileEnabled(this.smoothAnsiBtn, "mousedown", (e) => {
         e.stopPropagation();
       });
       this.element.appendChild(this.smoothAnsiBtn);
     }
     return this.element;
-  }
-
-  setEnabled(enabled) {
-    this.enabled = !!enabled;
-    const el = this.ensureElement();
-    if (!el) return;
-
-    if (this.enabled) {
-      el.style.display = "block";
-      this.reset();
-      this.updateDisplay(
-        typeof performance !== "undefined" ? performance.now() : Date.now(),
-        true
-      );
-      this.startIdleChecker();
-    } else {
-      el.style.display = "none";
-      this.stopIdleChecker();
-      this.reset();
-    }
   }
 
   reset() {
@@ -248,7 +193,7 @@ export class FpsMeter {
 
   startIdleChecker() {
     this.stopIdleChecker();
-    this.idleTimer = setInterval(() => {
+    this.idleTimer = this.setInterval(() => {
       if (!this.enabled) return;
       const now =
         typeof performance !== "undefined" ? performance.now() : Date.now();
@@ -257,14 +202,11 @@ export class FpsMeter {
         this.updateDisplay(now, false);
       }
     }, 400);
-    if (this.idleTimer && this.idleTimer.unref) {
-      this.idleTimer.unref();
-    }
   }
 
   stopIdleChecker() {
     if (this.idleTimer) {
-      clearInterval(this.idleTimer);
+      this.clearInterval(this.idleTimer);
       this.idleTimer = null;
     }
   }

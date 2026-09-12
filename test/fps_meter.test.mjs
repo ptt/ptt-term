@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FpsMeter } from '../src/js/fps_meter.js';
+import { FpsMeter } from '../src/plugins/fps_meter/index.js';
 
 function setupMockDom() {
   const element = {

@@ -2032,7 +2032,7 @@ test('src/plugins exports FpsMeter and provides plugin metadata and lifecycle', 
   const staticMeta = fpsModule.FpsMeter.getMetadata();
   assert.equal(staticMeta.id, 'fps_meter');
   assert.equal(staticMeta.name, 'fps_meter');
-  assert.equal(staticMeta.prefKey, 'showFps');
+  assert.equal(staticMeta.prefKey, 'enableFpsMeter');
   assert.equal(staticMeta.icon, 'speed');
   assert.ok(staticMeta.title && staticMeta.title.length > 0);
   assert.ok(staticMeta.description && staticMeta.description.length > 0);
@@ -2047,20 +2047,21 @@ test('src/plugins exports FpsMeter and provides plugin metadata and lifecycle', 
   };
   const meter = new fpsModule.FpsMeter(mockApp);
   assert.equal(meter.id, 'fps_meter');
-  assert.equal(meter.prefKey, 'showFps');
+  assert.equal(meter.prefKey, 'enableFpsMeter');
   assert.equal(meter.icon, 'speed');
 
   const meta = meter.getMetadata();
   assert.equal(meta.id, 'fps_meter');
-  assert.equal(meta.prefKey, 'showFps');
+  assert.equal(meta.prefKey, 'enableFpsMeter');
 
   // Core event broadcasts
   const eventApp = new EventEmitter();
   const eventMeter = new fpsModule.FpsMeter(eventApp);
+  eventMeter.init({ app: eventApp });
   assert.equal(eventMeter.enabled, false);
 
-  // Broadcast showFps pref change
-  eventApp.emit('term:pref-change', { key: 'showFps', value: true });
+  // Broadcast enableFpsMeter pref change
+  eventApp.emit('term:pref-change', { key: 'enableFpsMeter', value: true });
   assert.equal(eventMeter.enabled, true);
 
   // Broadcast engine and smooth pref changes
@@ -2090,7 +2091,7 @@ test('FpsMeter handles term:render-frame and term:pref-change via EventEmitter',
   meter.init({ app: mockApp });
 
   assert.equal(meter.enabled, false);
-  mockApp.emit('term:pref-change', { key: 'showFps', value: true });
+  mockApp.emit('term:pref-change', { key: 'enableFpsMeter', value: true });
   assert.equal(meter.enabled, true);
 
   mockApp.emit('term:pref-change', { key: 'useCanvasEngine', value: true });

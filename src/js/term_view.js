@@ -41,7 +41,6 @@ export class TermView extends EventEmitter {
   //this.highlightFG = 7;
   this.fontFitWindowWidth = false;
   this.useCanvasEngine = true;
-  this.showFps = false;
   this.smoothAnsiArt = true;
   //new pref - end
 

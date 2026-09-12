@@ -18,7 +18,7 @@ export const DEFAULT_PREFS = {
   enableAutoWrap: true,
   lineWrap: 78,
   useCanvasEngine: true,
-  showFps: false,
+  enableFpsMeter: false,
   smoothAnsiArt: true,
   captureConnectionLog: false,
   enableInputHelper: true,

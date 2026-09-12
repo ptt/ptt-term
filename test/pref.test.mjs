@@ -184,19 +184,19 @@ test('updatePrefs patches existing preferences and preserves other keys', () => 
     const mockStorage = new MockLocalStorage();
     globalThis.window = { localStorage: mockStorage };
 
-    writeValues({ fontSize: 20, showFps: false });
+    writeValues({ fontSize: 20, enableFpsMeter: false });
 
-    const updated = updatePrefs({ showFps: true, copyOnSelect: true });
+    const updated = updatePrefs({ enableFpsMeter: true, copyOnSelect: true });
     assert.deepEqual(updated, {
       fontSize: 20,
-      showFps: true,
+      enableFpsMeter: true,
       copyOnSelect: true,
     });
 
     const parsed = JSON.parse(mockStorage.getItem(PREF_STORAGE_KEY));
     assert.deepEqual(parsed.values, {
       fontSize: 20,
-      showFps: true,
+      enableFpsMeter: true,
       copyOnSelect: true,
     });
   } finally {
