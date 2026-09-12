@@ -606,7 +606,7 @@ test('TermBuf puts handles bell (\\x07), setting bellOccurred and dispatching be
   assert.equal(bellSoundPlayed, 1);
 });
 
-test('TermView _send, _convSend and conn getter delegate to app.stream and app.conn', () => {
+test('TermView _send, _convSend and conn getter delegate to app.send and app.conn', () => {
   const connMatch = termViewSource.match(/get conn\(\)\s*\{([\s\S]*?\n  )\}/);
   const sendMatch = termViewSource.match(/_send\(data\)\s*\{([\s\S]*?\n  )\}/);
   const convSendMatch = termViewSource.match(
@@ -617,15 +617,15 @@ test('TermView _send, _convSend and conn getter delegate to app.stream and app.c
   assert.ok(sendMatch, 'TermView must define _send method');
   assert.ok(convSendMatch, 'TermView must define _convSend method');
 
-  const streamSent = [];
-  const mockStream = {
-    send(data) {
-      streamSent.push(data);
-    }
-  };
+  const appSent = [];
   const mockConn = {};
   const mockView = {
-    app: { conn: mockConn, stream: mockStream }
+    app: {
+      conn: mockConn,
+      send(data) {
+        appSent.push(data);
+      },
+    }
   };
   Object.defineProperty(mockView, 'conn', {
     get: new Function(connMatch[1])
@@ -635,9 +635,9 @@ test('TermView _send, _convSend and conn getter delegate to app.stream and app.c
 
   assert.equal(mockView.conn, mockConn);
   mockView._send('\x1b[D');
-  assert.deepEqual(streamSent, ['\x1b[D']);
+  assert.deepEqual(appSent, ['\x1b[D']);
   mockView._convSend('test');
-  assert.deepEqual(streamSent, ['\x1b[D', 'test']);
+  assert.deepEqual(appSent, ['\x1b[D', 'test']);
 });
 
 test('App isDialogOrExcludedTarget handles string, SVGAnimatedString, null and undefined className', () => {

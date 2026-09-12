@@ -299,7 +299,7 @@ export class TermView extends EventEmitter {
   }
 
   _send(data) {
-    this.app?.stream?.send(data);
+    this.app.send(data);
   }
 
   get keyboard() {
@@ -327,7 +327,7 @@ export class TermView extends EventEmitter {
   }
 
   _convSend(data) {
-    this.app?.stream?.send(data);
+    this._send(data);
   }
 
   setFontFace(fontFace) {
