@@ -624,6 +624,10 @@ export class App extends EventEmitter {
       this._debugTouchLog('setInputAreaFocus blocked: recent touch (<500ms) and not force');
       return;
     }
+    if (this.view?.isComposition && document.activeElement === this.inputArea) {
+      this._debugTouchLog('setInputAreaFocus no-op: active IME composition');
+      return;
+    }
     if (document.activeElement === this.inputArea && !force) {
       this._debugTouchLog('setInputAreaFocus no-op: inputArea already activeElement');
       return;
@@ -1329,9 +1333,10 @@ export class App extends EventEmitter {
       return;
     }
     if (this.isSelectionCollapsed() && !skipMouseClick) { //no anything be select
+      const forceFocus = Boolean(this.view?.useCanvasEngine);
       if (this.site.handlePassScreenClick(this.buf, this.conn)) {
         e.preventDefault();
-        this.setInputAreaFocus();
+        this.setInputAreaFocus(forceFocus);
         return;
       }
       if (this.useMouseBrowsing) {
@@ -1358,7 +1363,7 @@ export class App extends EventEmitter {
           this.onMouse_click(e);
           this.setDblclickTimer();
           e.preventDefault();
-          this.setInputAreaFocus();
+          this.setInputAreaFocus(forceFocus);
         }
       } else if (this.buf?.locator?.isActive?.()) {
         const pos = this.clientToPos(e.clientX, e.clientY);
@@ -1366,17 +1371,17 @@ export class App extends EventEmitter {
         if (report) {
           this.send(report);
           e.preventDefault();
-          this.setInputAreaFocus();
+          this.setInputAreaFocus(forceFocus);
         }
       } else if (this.view.leftButtonFunction) {
         if (this.view.leftButtonFunction == 1) {
           this.setNavCmd('doEnter');
           e.preventDefault();
-          this.setInputAreaFocus();
+          this.setInputAreaFocus(forceFocus);
         } else if (this.view.leftButtonFunction == 2) {
           this.setNavCmd('doRight');
           e.preventDefault();
-          this.setInputAreaFocus();
+          this.setInputAreaFocus(forceFocus);
         }
       }
     }
@@ -1450,11 +1455,12 @@ export class App extends EventEmitter {
   }
 
   if (e.button === 0) { //left button
+    const forceFocus = Boolean(this.view?.useCanvasEngine);
     if (this.isSelectionCollapsed()) { //no anything be select
       if (this.useMouseBrowsing)
         this.onMouse_move(e.clientX, e.clientY);
 
-      this.setInputAreaFocus();
+      this.setInputAreaFocus(forceFocus);
       let preventDefault = true;
       if (e.target.className)
         if (this.checkClass(e.target.className))
@@ -1475,7 +1481,7 @@ export class App extends EventEmitter {
         this.inputAreaFocusTimer = null;
       }
       if (!this.contextMenuShown && this.isSelectionCollapsed())
-        this.setInputAreaFocus();
+        this.setInputAreaFocus(forceFocus);
     }, 10);
   } else if (e.button == 2) {
     // right button: opens context menu, do not steal focus or set focus timer

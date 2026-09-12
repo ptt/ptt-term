@@ -245,9 +245,16 @@ export class CanvasScreen extends React.Component {
 
   handleMouseDown = (e) => {
     if (e.button !== 0) return;
-    this.props.setInputAreaFocus();
     if (e.target && e.target.tagName !== "A") {
       e.preventDefault();
+      if (
+        typeof document !== "undefined" &&
+        document.activeElement &&
+        document.activeElement.id === "t" &&
+        !(typeof window !== "undefined" && window.app?.view?.isComposition)
+      ) {
+        document.activeElement.blur();
+      }
     }
     const pos = this.getGridPos(e);
 
@@ -255,13 +262,13 @@ export class CanvasScreen extends React.Component {
       const line = this.props.lines && this.props.lines[pos.row];
       const cols = this.getCols();
       this.setState(CanvasSelection.getWordSelection(pos, line, cols), () => {
-        this.props.setInputAreaFocus();
+        this.props.setInputAreaFocus(true);
       });
       return;
     } else if (e.detail === 3) {
       const cols = this.getCols();
       this.setState(CanvasSelection.getLineSelection(pos, cols), () => {
-        this.props.setInputAreaFocus();
+        this.props.setInputAreaFocus(true);
       });
       return;
     }
@@ -293,7 +300,7 @@ export class CanvasScreen extends React.Component {
   handleGlobalMouseUp = (e) => {
     if (e.button !== 0 || !this.isMouseDown) return;
     this.isMouseDown = false;
-    this.props.setInputAreaFocus();
+    this.props.setInputAreaFocus(true);
     if (!this.dragStarted) {
       this.setState({ selStart: null, selEnd: null });
     } else {

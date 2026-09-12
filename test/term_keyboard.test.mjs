@@ -313,3 +313,31 @@ test('TermKeyboard safely handles events without getModifierState or missing pro
   });
 });
 
+test('TermKeyboard bypasses Bopomofo pre-edit keys and delegates printable keys on input#t to native input/IME events', () => {
+  const { kb, sent } = createKeyboard();
+
+  // 1. Bopomofo phonetic symbols (e.g. ㄅ, ㄆ, ㄇ, ˊ, ˇ, ˋ, ˙) on keydown must never be sent directly
+  for (const bopomofo of ['ㄅ', 'ㄆ', 'ㄇ', 'ㄈ', 'ㄧ', 'ㄨ', 'ㄩ', 'ˊ', 'ˇ', 'ˋ', '˙']) {
+    const evt = mockKeyEvent({ key: bopomofo });
+    kb.onKeyDown(evt);
+    assert.equal(sent.length, 0, `Bopomofo key ${bopomofo} must not be sent directly on keydown`);
+    assert.equal(evt.isDefaultPrevented, false, `Bopomofo key ${bopomofo} must not call preventDefault()`);
+  }
+
+  // 2. When event target is input#t, printable characters must not call preventDefault() on keydown
+  const inputTarget = { id: 't', tagName: 'INPUT' };
+  for (const ch of ['a', '1', '/', ' ']) {
+    const evt = mockKeyEvent({ key: ch, target: inputTarget });
+    kb.onKeyDown(evt);
+    assert.equal(sent.length, 0, `Printable key '${ch}' on input#t must be delegated to input event`);
+    assert.equal(evt.isDefaultPrevented, false, `Printable key '${ch}' on input#t must not preventDefault()`);
+  }
+
+  // 3. Mapped navigation keys (Enter, Backspace, ArrowUp) on input#t still map when not composing
+  const enterEvt = mockKeyEvent({ key: 'Enter', target: inputTarget });
+  kb.onKeyDown(enterEvt);
+  assert.equal(sent[sent.length - 1], '\r');
+  assert.equal(enterEvt.isDefaultPrevented, true);
+});
+
+

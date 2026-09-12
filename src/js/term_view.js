@@ -204,7 +204,12 @@ export class TermView extends EventEmitter {
   };
 
   addEventListener('keydown', (e) => {
-    if (!shouldAcceptInput() || !keyEventFilter(e))
+    if (!shouldAcceptInput())
+      return;
+    if (this.app && !this.app.isDialogOrExcludedTarget(e) && typeof document !== 'undefined' && document.activeElement !== this.input) {
+      this.app.setInputAreaFocus();
+    }
+    if (!keyEventFilter(e))
       return;
 
     if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || (e.keyCode > 15 && e.keyCode < 19))
@@ -844,8 +849,9 @@ export class TermView extends EventEmitter {
   }
 
   updateInputBufferPos() {
+    if (!this.input || !this.buf) return;
+    const pos = this.convertMN2XYEx(this.buf.cur_x, this.buf.cur_y);
     if (this.input.getAttribute('bshow') == '1') {
-      const pos = this.convertMN2XYEx(this.buf.cur_x, this.buf.cur_y);
       {
         this.input.style.opacity = '1';
         this.input.style.border = 'double';
@@ -875,6 +881,15 @@ export class TermView extends EventEmitter {
         this.input.style.left = pos[0] +'px';
 
       //this.input.style.left = pos[0] +'px';
+    } else if (this.app?.isMobileDevice?.()) {
+      this.input.style.left = '0px';
+      this.input.style.top = '0px';
+    } else {
+      // On desktop, keep #t anchored at cursor coordinates even when not composing (bshow="0"),
+      // so OS IME candidate window queries (Windows TSF, macOS NSTextInputClient, Linux IBus/Fcitx)
+      // find #t at the cursor rather than (0,0) on the first composition keystroke.
+      this.input.style.left = pos[0] + 'px';
+      this.input.style.top = pos[1] + 'px';
     }
   }
 
@@ -916,14 +931,13 @@ export class TermView extends EventEmitter {
     this.input.style.border = 'none';
     this.input.style.width =  '1px';
     this.input.style.height = '1px';
-    this.input.style.left =  '0px';
-    this.input.style.top = '0px';
     this.input.style.opacity = '0';
     this.input.style.pointerEvents = 'none';
     this.input.style.color = 'transparent';
     this.input.style.background = 'transparent';
     this.input.style.caretColor = 'transparent';
     this.input.style.minWidth = '';
+    this.updateInputBufferPos();
     // Workaround for WebKit IME: activate Lock Delay for trailing keydown
     if (this.hasWebKitImeQuirk) {
       this._lastCompositionEndTime = Date.now();
