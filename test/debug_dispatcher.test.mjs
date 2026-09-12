@@ -144,53 +144,32 @@ test('EventEmitter: safe no-ops and invalid arguments', () => {
   });
 });
 
-// App integration simulation
+// App integration simulation (App extends EventEmitter directly)
 function createMockApp() {
-  const app = {
-    _debugEmitter: null,
-    get debugEmitter() {
-      if (!this._debugEmitter) {
-        this._debugEmitter = new EventEmitter();
-      }
-      return this._debugEmitter;
-    },
-    registerDebugHandler(type, handler) {
-      return this.debugEmitter.subscribe(type, handler);
-    },
-    unregisterDebugHandler(type, handler) {
-      this._debugEmitter?.off(type, handler);
-    },
-    sendDebugEvent(type, event) {
-      this._debugEmitter?.emit(type, event, type);
-    },
-    _debugTouchLog(msg) {
-      this.sendDebugEvent('touch', msg);
-    },
-  };
-  return app;
+  return new EventEmitter();
 }
 
-test('App debug dispatcher delegates to EventEmitter cleanly', () => {
+test('App debug events are emitted directly via EventEmitter', () => {
   const app = createMockApp();
   const received = [];
 
-  const unsub = app.registerDebugHandler('touch', (msg) => received.push(msg));
-  assert.ok(app._debugEmitter instanceof EventEmitter);
+  const handler = (msg) => received.push(msg);
+  app.on('debug:touch', handler);
 
-  app.sendDebugEvent('touch', 'touch-1');
+  app.emit('debug:touch', 'touch-1');
   assert.deepEqual(received, ['touch-1']);
 
-  unsub();
-  app.sendDebugEvent('touch', 'touch-2');
+  app.off('debug:touch', handler);
+  app.emit('debug:touch', 'touch-2');
   assert.deepEqual(received, ['touch-1']);
 });
 
-test('App _debugTouchLog sends debug event directly without fallback', () => {
+test('App emits debug:touch event directly without wrapper', () => {
   const app = createMockApp();
   const touchEvents = [];
-  app.registerDebugHandler('touch', (e) => touchEvents.push(e));
+  app.on('debug:touch', (e) => touchEvents.push(e));
 
-  app._debugTouchLog('focus blocked');
+  app.emit('debug:touch', 'focus blocked');
   assert.deepEqual(touchEvents, ['focus blocked']);
 });
 
@@ -218,19 +197,19 @@ test('TouchDebugHUD integrates with App debug event dispatcher', () => {
   try {
     mockHud.attachListeners();
 
-    app1._debugTouchLog('blocked on app1');
+    app1.emit('debug:touch', 'blocked on app1');
     assert.deepEqual(logs, ['[APP] blocked on app1']);
 
     const prevProps = { app: app1 };
     mockHud.props = { app: app2 };
     mockHud.componentDidUpdate(prevProps);
 
-    app1._debugTouchLog('ignored on old app1');
-    app2._debugTouchLog('blocked on new app2');
+    app1.emit('debug:touch', 'ignored on old app1');
+    app2.emit('debug:touch', 'blocked on new app2');
     assert.deepEqual(logs, ['[APP] blocked on app1', '[APP] blocked on new app2']);
 
     mockHud.detachListeners();
-    app2._debugTouchLog('ignored on detached app2');
+    app2.emit('debug:touch', 'ignored on detached app2');
     assert.deepEqual(logs, ['[APP] blocked on app1', '[APP] blocked on new app2']);
   } finally {
     global.window = origWindow;

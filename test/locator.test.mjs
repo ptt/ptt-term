@@ -263,7 +263,7 @@ test('App handles VT Mouse Reporting (Locator) click, move, and wheel when Mouse
   const mouse_click = extractAppMethod(appSrc, 'mouse_click');
   const mouse_move = extractAppMethod(appSrc, 'mouse_move');
   const mouse_scroll = extractAppMethod(appSrc, 'mouse_scroll');
-  const setSupportMouseReporting = extractAppMethod(appSrc, 'setSupportMouseReporting');
+  const onPrefChange = extractAppMethod(appSrc, 'onPrefChange');
 
   const buf = new MockTermBuf(80, 24);
   buf.handleDECSET(1003); // any-event tracking
@@ -286,7 +286,8 @@ test('App handles VT Mouse Reporting (Locator) click, move, and wheel when Mouse
     clientToPos: () => ({ col: 9, row: 4 }),
     send: (str) => sent.push(str),
     setInputAreaFocus: () => {},
-    dispatchWheel: () => false,
+    inputInterceptors: { dispatchWheel: () => false },
+    emit: () => {},
     prefValues: { supportMouseReporting: true },
   };
 
@@ -327,10 +328,9 @@ test('App handles VT Mouse Reporting (Locator) click, move, and wheel when Mouse
   assert.equal(sent.length, 3);
   assert.equal(sent[2], '\x1b[<64;10;5M');
 
-  // 4. setSupportMouseReporting
-  setSupportMouseReporting.call(mockApp, false, false);
+  // 4. supportMouseReporting via onPrefChange
+  onPrefChange.call(mockApp, 'supportMouseReporting', false);
   assert.equal(buf.locator.enabled, false);
-  assert.equal(mockApp.prefValues.supportMouseReporting, false);
 });
 
 

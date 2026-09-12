@@ -154,8 +154,8 @@ export class TouchDebugHUD extends React.Component {
 
   componentDidUpdate(prevProps) {
     if (prevProps.app !== this.props.app) {
-      if (prevProps.app?.unregisterDebugHandler && this._onDebugTouch) {
-        prevProps.app.unregisterDebugHandler("touch", this._onDebugTouch);
+      if (prevProps.app?.off && this._onDebugTouch) {
+        prevProps.app.off("debug:touch", this._onDebugTouch);
         this._onDebugTouch = null;
       }
       if (this.prefListener && prevProps.app?.off) {
@@ -270,15 +270,15 @@ export class TouchDebugHUD extends React.Component {
 
     // Register debug event handler on App
     const app = this.props.app || (typeof window !== "undefined" ? window.app : null);
-    if (app && typeof app.registerDebugHandler === "function") {
+    if (app && typeof app.on === "function") {
       if (this._onDebugTouch) {
-        app.unregisterDebugHandler("touch", this._onDebugTouch);
+        app.off?.("debug:touch", this._onDebugTouch);
       }
       this._onDebugTouch = (event) => {
         const msg = typeof event === "string" ? event : (event?.message || String(event));
         this.addEventLog(`[APP] ${msg}`);
       };
-      app.registerDebugHandler("touch", this._onDebugTouch);
+      app.on("debug:touch", this._onDebugTouch);
     }
 
     const recordDomEvent = (e) => {
@@ -322,8 +322,8 @@ export class TouchDebugHUD extends React.Component {
     this.eventListeners = [];
 
     const app = this.props.app || (typeof window !== "undefined" ? window.app : null);
-    if (app && typeof app.unregisterDebugHandler === "function" && this._onDebugTouch) {
-      app.unregisterDebugHandler("touch", this._onDebugTouch);
+    if (app && typeof app.off === "function" && this._onDebugTouch) {
+      app.off("debug:touch", this._onDebugTouch);
       this._onDebugTouch = null;
     }
   }

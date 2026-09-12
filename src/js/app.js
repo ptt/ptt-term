@@ -1,20 +1,19 @@
 // Main Program
 import React from 'react';
 import { render } from 'preact';
-import { AnsiParser, AnsiFilter } from './ansi_parser';
+import { AnsiFilter } from './ansi_parser';
 import { TermView } from './term_view';
 import { TermBuf } from './term_buf';
-import { TelnetConnection, TelnetFilter } from './telnet';
+import { TelnetFilter } from './telnet';
 import { Stream } from './stream';
 import { Websocket } from './websocket';
 import { BUILTIN_PLUGINS, PluginBase } from '../plugins/index.js';
 import { TouchController } from '../touch/TouchController.js';
-import { _, setupI18n } from './i18n';
-import { unescapeStr } from './string_util';
+import { setupI18n } from './i18n';
 import { setTimer, parseConnectUrl } from './util';
 import { hasWebKitImeQuirk, shouldPreserveDomSelection } from './quirks';
 import { setTerminalBellEnabled, setWindowFocused } from './bell.js';
-import { readValuesWithDefault, writeValues, updatePref } from './pref.js';
+import { readValuesWithDefault, writeValues } from './pref.js';
 import { applyColorScheme } from './color_schemes.js';
 import AppOverlay from '../components/AppOverlay';
 import { getSite, PAGE_STATE } from './sites';
@@ -23,8 +22,6 @@ import { InputInterceptors } from './input_interceptors.js';
 import iconLogo from 'Icon/logo.png';
 import iconLogoConnect from 'Icon/logo_connect.png';
 import iconLogoDisconnect from 'Icon/logo_disconnect.png';
-
-function noop() {}
 
 export class App extends EventEmitter {
   constructor() {
@@ -55,9 +52,6 @@ export class App extends EventEmitter {
     this.site = getSite(process.env.SITE_TYPE || 'auto');
     this.buf.site = this.site;
     this.buf.setView(this.view);
-    //this.buf.severNotifyStr=this.getLM('messageNotify');
-    //this.buf.PTTZSTR1=this.getLM('PTTZArea1');
-    //this.buf.PTTZSTR2=this.getLM('PTTZArea2');
     this.view.setBuf(this.buf);
     this.view.setCore(this);
     this.stream = new Stream(null, {
@@ -68,7 +62,13 @@ export class App extends EventEmitter {
     this.ansiFilter = new AnsiFilter(this.buf, { stream: this.stream });
     this.stream.registerFilter(this.telnetFilter);
     this.stream.registerFilter(this.ansiFilter);
-    this.parser = this.ansiFilter;
+    this.stream.addEventListener('telopt', (e) => {
+      this.site?.onTelopt?.(e.cmd, e.opt, this.buf);
+    });
+    this.stream.addEventListener('doNaws', () => {
+      this.stream.sendWillNaws(this.buf.cols, this.buf.rows);
+      this.stream.sendNaws(this.buf.cols, this.buf.rows);
+    });
     this.inputArea =
       typeof document !== 'undefined' ? document.getElementById('t') : null;
     this.termWin =
@@ -103,8 +103,6 @@ export class App extends EventEmitter {
 
     this.lastSelection = null;
 
-    this.appFocused = true;
-
     this.copyOnSelect = false;
     this.warnBeforeClose = true;
     this.colorScheme = 'default';
@@ -123,10 +121,6 @@ export class App extends EventEmitter {
       'mousedown',
       (e) => {
         this.mouse_down(e);
-        const ret = this.middleMouse_down(e);
-        if (ret === false) {
-          e.preventDefault();
-        }
       },
       false
     );
@@ -147,14 +141,6 @@ export class App extends EventEmitter {
       false
     );
 
-    document.addEventListener(
-      'mouseover',
-      (e) => {
-        this.mouse_over(e);
-      },
-      false
-    );
-
     window.addEventListener(
       'wheel',
       (e) => {
@@ -165,8 +151,7 @@ export class App extends EventEmitter {
 
     window.addEventListener(
       'focus',
-      (e) => {
-        this.appFocused = true;
+      () => {
         setWindowFocused(true);
       },
       false
@@ -174,8 +159,7 @@ export class App extends EventEmitter {
 
     window.addEventListener(
       'blur',
-      (e) => {
-        this.appFocused = false;
+      () => {
         setWindowFocused(false);
       },
       false
@@ -194,7 +178,6 @@ export class App extends EventEmitter {
       }
     });
 
-    this.view.innerBounds = this.getWindowInnerBounds();
     this.view.firstGridOffset = this.getFirstGridOffsets();
     window.onresize = () => {
       this.onWindowResize();
@@ -220,7 +203,12 @@ export class App extends EventEmitter {
       this.buf.locator.enabled = this.prefValues.supportMouseReporting ?? true;
     }
     this.onWindowResize();
-    this.setupOverlay();
+    if (typeof document !== 'undefined') {
+      const cmenuEl = document.getElementById('cmenuReact');
+      if (cmenuEl) {
+        render(<AppOverlay app={this} />, cmenuEl);
+      }
+    }
     this.contextMenuShown = false;
 
     // init touch controller if device supports touch
@@ -251,14 +239,6 @@ export class App extends EventEmitter {
     }
   }
 
-  unregisterPlugin(plugin) {
-    const idx = this.plugins.indexOf(plugin);
-    if (idx !== -1) {
-      this.plugins.splice(idx, 1);
-      plugin.destroy?.();
-    }
-  }
-
   registerOverlay(overlay) {
     if (!overlay || !overlay.id) return;
     const idx = this.overlays.findIndex((o) => o.id === overlay.id);
@@ -267,7 +247,7 @@ export class App extends EventEmitter {
     } else {
       this.overlays.push(overlay);
     }
-    this.emit('term:overlay:update', { overlay, detail: { overlay } });
+    this.emit('term:overlay:update', { overlay });
   }
 
   unregisterOverlay(idOrOverlay) {
@@ -275,7 +255,7 @@ export class App extends EventEmitter {
     const idx = this.overlays.findIndex((o) => o.id === id);
     if (idx !== -1) {
       const [removed] = this.overlays.splice(idx, 1);
-      this.emit('term:overlay:update', { removed, detail: { removed } });
+      this.emit('term:overlay:update', { removed });
     }
   }
 
@@ -291,7 +271,7 @@ export class App extends EventEmitter {
     } else {
       this.contextMenuItems.push(item);
     }
-    this.emit('term:context-menu:update', { item, detail: { item } });
+    this.emit('term:context-menu:update', { item });
   }
 
   unregisterContextMenuItem(idOrItem) {
@@ -299,7 +279,7 @@ export class App extends EventEmitter {
     const idx = this.contextMenuItems.findIndex((i) => i.id === id);
     if (idx !== -1) {
       const [removed] = this.contextMenuItems.splice(idx, 1);
-      this.emit('term:context-menu:update', { removed, detail: { removed } });
+      this.emit('term:context-menu:update', { removed });
     }
   }
 
@@ -318,20 +298,6 @@ export class App extends EventEmitter {
         this.registerPlugin(instance);
       } else if (PluginClass && typeof PluginClass === 'object') {
         this.registerPlugin(PluginClass);
-      }
-    }
-  }
-
-  destroyPlugins() {
-    while (this.plugins.length > 0) {
-      const plugin = this.plugins.pop();
-      try {
-        plugin.destroy?.();
-      } catch (e) {
-        console.error(
-          `Failed to destroy plugin ${plugin?.id || plugin?.name}:`,
-          e
-        );
       }
     }
   }
@@ -388,32 +354,6 @@ export class App extends EventEmitter {
     this._useMouseBrowsing = Boolean(val);
   }
 
-  setSupportMouseReporting(enabled, persist = true) {
-    const val = Boolean(enabled);
-    if (this.buf?.locator) {
-      this.buf.locator.enabled = val;
-    }
-    if (this.prefValues) {
-      this.prefValues.supportMouseReporting = val;
-    }
-    if (persist) {
-      updatePref('supportMouseReporting', val);
-    }
-    return val;
-  }
-
-  dispatchNavCmd(cmd) {
-    return this.inputInterceptors.dispatchNavCmd(cmd);
-  }
-
-  dispatchWheel(e) {
-    return this.inputInterceptors.dispatchWheel(e);
-  }
-
-  dispatchMouseClick(e) {
-    return this.inputInterceptors.dispatchMouseClick(e);
-  }
-
   dispatchKeyDown(e) {
     return this.inputInterceptors.dispatchKeyDown(e);
   }
@@ -464,7 +404,18 @@ export class App extends EventEmitter {
     this.site = getSite(siteType || process.env.SITE_TYPE || 'auto');
     this.buf.site = this.site;
 
-    this._setupWebsocketConn(parsed.url);
+    const wsConn = new Websocket(parsed.url);
+    this.emit('term:socket', { socket: wsConn });
+    this.conn = wsConn;
+    this.conn.site = this.site;
+    this.stream.attach(wsConn);
+    this.stream.charset = this.site ? this.site.charset : 'big5';
+    this.conn.addEventListener('open', () => this.onConnect());
+    this.conn.addEventListener('close', () => this.onClose());
+    this.conn.addEventListener('data', (e) => {
+      this.site.onData(e.data, this.buf);
+    });
+
     this.connectedUrl = {
       url: url,
       hostname: parsed.hostname,
@@ -473,45 +424,6 @@ export class App extends EventEmitter {
       type: this.site.name,
       siteType: this.site.name,
     };
-  }
-
-  _setupWebsocketConn(url) {
-    const wsConn = new Websocket(url);
-    this.emit('term:socket', { socket: wsConn, detail: { socket: wsConn } });
-    this._attachConn(wsConn);
-  }
-
-  _attachConn(conn) {
-    this.conn = conn;
-    this.conn.site = this.site;
-    this.stream.attach(conn);
-    this.stream.charset = this.site ? this.site.charset : 'big5';
-    if (!conn.sendNaws)
-      conn.sendNaws = (cols, rows) => this.stream.sendNaws(cols, rows);
-    if (!conn.sendWillNaws)
-      conn.sendWillNaws = (cols, rows) => this.stream.sendWillNaws(cols, rows);
-    if (!conn.sendNop) conn.sendNop = () => this.stream.sendNop();
-    if (!conn.convSend) conn.convSend = (str) => this.stream.send(str);
-    this.conn.addEventListener('open', () => this.onConnect());
-    this.conn.addEventListener('close', () => this.onClose());
-    const onTelopt = (e) => {
-      if (this.site?.onTelopt) {
-        this.site.onTelopt(e.cmd, e.opt, this.buf);
-      }
-    };
-    this.stream.addEventListener('telopt', onTelopt);
-    this.conn.addEventListener('telopt', onTelopt);
-    this.stream.addEventListener('doNaws', (e) => {
-      this.stream.sendWillNaws(this.buf.cols, this.buf.rows);
-      this.stream.sendNaws(this.buf.cols, this.buf.rows);
-    });
-    this.conn.addEventListener('doNaws', (e) => {
-      this.stream.sendWillNaws(this.buf.cols, this.buf.rows);
-      this.stream.sendNaws(this.buf.cols, this.buf.rows);
-    });
-    this.conn.addEventListener('data', (e) => {
-      this.site.onData(e.data, this.buf);
-    });
   }
 
   onConnect() {
@@ -531,24 +443,11 @@ export class App extends EventEmitter {
     this.timerEverySec = setTimer(
       true,
       () => {
-        this.emit('term:tick', {
-          intervalMs: 1000,
-          detail: { intervalMs: 1000 },
-        });
+        this.emit('term:tick', { intervalMs: 1000 });
         this.view.onBlink();
       },
       1000
     );
-  }
-
-  onData(data) {
-    if (this.stream) {
-      if (!this.stream.conn) {
-        this.stream.feed(data);
-      }
-    } else if (this.parser) {
-      this.parser.feed(data);
-    }
   }
 
   onClose() {
@@ -560,7 +459,10 @@ export class App extends EventEmitter {
     this.conn.isConnected = false;
     this.site?.resetLoginPrompt?.();
 
-    this.cancelMbTimer();
+    if (this.mbTimer) {
+      this.mbTimer.cancel();
+      this.mbTimer = null;
+    }
 
     this.connectState = 2;
     this.emit('term:disconnect');
@@ -574,19 +476,12 @@ export class App extends EventEmitter {
   }
 
   send(data) {
-    this.emit('term:send', { data, detail: { data } });
+    this.emit('term:send', { data });
     this.stream.send(data);
   }
 
   sendKey(key) {
     return this.view ? this.view.sendKey(key) : false;
-  }
-
-  sendData(str) {
-    this.emit('term:send', { data: str, detail: { data: str } });
-    if (this.connectState == 1) {
-      this.stream.send(str);
-    }
   }
 
   sendAntiIdle() {
@@ -599,90 +494,45 @@ export class App extends EventEmitter {
     return false;
   }
 
-  cancelMbTimer() {
-    if (this.mbTimer) {
-      this.mbTimer.cancel();
-      this.mbTimer = null;
-    }
-  }
-
-  setMbTimer() {
-    this.cancelMbTimer();
-    this.mbTimer = setTimer(
-      false,
-      () => {
-        this.mbTimer.cancel();
-        this.mbTimer = null;
-        this.skipMouseClick = false;
-      },
-      100
-    );
-  }
-
-  cancelDblclickTimer() {
+  setDblclickTimer() {
     if (this.dblclickTimer) {
       this.dblclickTimer.cancel();
-      this.dblclickTimer = null;
     }
-  }
-
-  setDblclickTimer() {
-    this.cancelDblclickTimer();
     this.dblclickTimer = setTimer(
       false,
       () => {
-        this.dblclickTimer.cancel();
         this.dblclickTimer = null;
       },
       350
     );
   }
 
-  get debugEmitter() {
-    if (!this._debugEmitter) {
-      this._debugEmitter = new EventEmitter();
-    }
-    return this._debugEmitter;
-  }
-
-  registerDebugHandler(type, handler) {
-    return this.debugEmitter.subscribe(type, handler);
-  }
-
-  unregisterDebugHandler(type, handler) {
-    this._debugEmitter?.off(type, handler);
-  }
-
-  sendDebugEvent(type, event) {
-    this._debugEmitter?.emit(type, event, type);
-  }
-
-  _debugTouchLog(msg) {
-    this.sendDebugEvent('touch', msg);
-  }
-
   setInputAreaFocus(force = false) {
     if (!this.inputArea) return;
     if (this.modalShown || this.contextMenuShown) {
-      this._debugTouchLog(
+      this.emit(
+        'debug:touch',
         'setInputAreaFocus blocked: modal or context menu active'
       );
       return;
     }
     if (this.preserveDomSelection && !force && !this.isSelectionCollapsed()) {
-      this._debugTouchLog(
+      this.emit(
+        'debug:touch',
         'setInputAreaFocus blocked: preserving text selection'
       );
       return;
     }
     if (this.isMobileDevice() && !force) {
-      this._debugTouchLog(
+      this.emit(
+        'debug:touch',
         'setInputAreaFocus blocked: mobile device and not force'
       );
       return;
     }
     if (this.isMobileLayout() && !force) {
-      this._debugTouchLog(
+      this.emit(
+        'debug:touch',
         'setInputAreaFocus blocked: mobile layout and not force'
       );
       return;
@@ -693,17 +543,22 @@ export class App extends EventEmitter {
         Date.now() - (this.touch.lastTouchTime || 0) < 500) &&
       !force
     ) {
-      this._debugTouchLog(
+      this.emit(
+        'debug:touch',
         'setInputAreaFocus blocked: recent touch (<500ms) and not force'
       );
       return;
     }
     if (this.view?.isComposition && document.activeElement === this.inputArea) {
-      this._debugTouchLog('setInputAreaFocus no-op: active IME composition');
+      this.emit(
+        'debug:touch',
+        'setInputAreaFocus no-op: active IME composition'
+      );
       return;
     }
     if (document.activeElement === this.inputArea && !force) {
-      this._debugTouchLog(
+      this.emit(
+        'debug:touch',
         'setInputAreaFocus no-op: inputArea already activeElement'
       );
       return;
@@ -738,20 +593,21 @@ export class App extends EventEmitter {
       : true;
   }
 
+  _formatCopyText(str) {
+    if (typeof str !== 'string' || str.indexOf('\x1b') >= 0) return str;
+    if (this.trimTrailingSpaces !== false) {
+      return str
+        .split(/\r\n|\r|\n/)
+        .map((line) => line.replace(/[ \t]+$/, ''))
+        .join('\r')
+        .replace(/[ \t\r]+$/, '');
+    }
+    return str.replace(/\r\n|\n/g, '\r');
+  }
+
   async doCopy(str) {
     if (typeof str !== 'string') return;
-    if (this.trimTrailingSpaces !== false) {
-      if (str.indexOf('\x1b') < 0) {
-        str = str
-          .split(/\r\n|\r|\n/)
-          .map((line) => line.replace(/[ \t]+$/, ''))
-          .join('\r')
-          .replace(/[ \t\r]+$/, '');
-      }
-    } else if (str.indexOf('\x1b') < 0) {
-      str = str.replace(/\r\n/g, '\r');
-      str = str.replace(/\n/g, '\r');
-    }
+    str = this._formatCopyText(str);
     if (navigator.clipboard && navigator.clipboard.writeText) {
       try {
         await navigator.clipboard.writeText(str);
@@ -817,20 +673,14 @@ export class App extends EventEmitter {
   }
 
   onDOMCopy(e) {
-    this.emit('term:user-activity', { type: 'copy', detail: { type: 'copy' } });
+    this.emit('term:user-activity', { type: 'copy' });
     if (this.strToCopy) {
       e.clipboardData.setData('text', this.strToCopy);
       e.preventDefault();
       console.log('copied: ', this.strToCopy);
     } else {
-      let text = this.view.getSelectedText();
+      const text = this._formatCopyText(this.view.getSelectedText());
       if (text) {
-        if (text.indexOf('\x1b') < 0) {
-          text = text
-            .replace(/\r\n/g, '\r')
-            .replace(/\n/g, '\r')
-            .replace(/ +\r/g, '\r');
-        }
         e.clipboardData.setData('text', text);
         e.preventDefault();
       }
@@ -838,19 +688,13 @@ export class App extends EventEmitter {
   }
 
   async doPaste() {
-    if (navigator.clipboard && navigator.clipboard.readText) {
+    if (navigator.clipboard?.readText) {
       try {
         const text = await navigator.clipboard.readText();
-        this.onPasteDone(text);
-      } catch {
-        this.showPasteUnimplemented();
-      }
-    } else {
-      this.showPasteUnimplemented();
+        this.dispatchPaste(text);
+        return;
+      } catch {}
     }
-  }
-
-  showPasteUnimplemented() {
     this.modalShown = true;
     this.showAlert('pasteShortcut', {
       onDismiss: () => {
@@ -869,34 +713,23 @@ export class App extends EventEmitter {
       text: content,
       originalEvent,
     };
-    let event;
-    if (typeof CustomEvent !== 'undefined') {
-      event = new CustomEvent('term:paste', {
-        detail,
-        cancelable: true,
-      });
-    } else {
-      event = {
-        type: 'term:paste',
-        detail,
-        defaultPrevented: false,
-        preventDefault() {
-          this.defaultPrevented = true;
-        },
-      };
-    }
-    Object.defineProperty(event, 'data', {
-      get() {
+    const event = {
+      type: 'term:paste',
+      detail,
+      defaultPrevented: false,
+      preventDefault() {
+        this.defaultPrevented = true;
+      },
+      get data() {
         return detail.data;
       },
-      set(val) {
+      set data(val) {
         detail.data = val;
         detail.text = val;
       },
-      configurable: true,
-    });
+    };
 
-    this.dispatchEvent(event);
+    this.emit('term:paste', event);
     if (event.defaultPrevented) {
       return false;
     }
@@ -914,26 +747,12 @@ export class App extends EventEmitter {
     return true;
   }
 
-  onPasteDone(content, originalEvent = null) {
-    this.dispatchPaste(content, originalEvent);
-  }
-
   onDOMPaste(e) {
     let str = e.clipboardData ? e.clipboardData.getData('text') : '';
     if (str) {
       e.preventDefault();
       this.dispatchPaste(str, e);
     }
-  }
-
-  onSymFont(content) {
-    console.log('using ' + (content ? 'extension' : 'system') + ' font');
-    const font_src = content ? 'src: url(' + content.data + ');' : '';
-    const css = '@font-face { font-family: MingLiUNoGlyph; ' + font_src + ' }';
-    const style = document.createElement('style');
-    style.type = 'text/css';
-    style.innerHTML = css;
-    document.getElementsByTagName('head')[0].appendChild(style);
   }
 
   doSelectAll() {
@@ -997,16 +816,6 @@ export class App extends EventEmitter {
 
     this.buf.resize(cols, rows);
     this.stream.sendNaws(cols, rows);
-  }
-
-  switchMouseBrowsing() {
-    this.useMouseBrowsing = !this.useMouseBrowsing;
-    if (this.prefValues) {
-      this.prefValues.enableMouseBrowsing = this.useMouseBrowsing;
-    }
-    updatePref('enableMouseBrowsing', this.useMouseBrowsing);
-    this.onPrefChange('enableMouseBrowsing', this.useMouseBrowsing);
-    return this.useMouseBrowsing;
   }
 
   updateTabIcon(aStatus) {
@@ -1085,8 +894,8 @@ export class App extends EventEmitter {
     if (force && e && typeof e === 'object') {
       e.forceMouseBrowsing = true;
     }
-    this.emit('term:click', { event: e, detail: { event: e } });
-    this.dispatchMouseClick(e);
+    this.emit('term:click', { event: e });
+    this.inputInterceptors?.dispatchMouseClick(e);
   }
 
   onMouse_move(cX, cY, refresh = false, force = false) {
@@ -1098,14 +907,6 @@ export class App extends EventEmitter {
       clientY: cY,
       refresh,
       force,
-      detail: {
-        col: pos.col,
-        row: pos.row,
-        clientX: cX,
-        clientY: cY,
-        refresh,
-        force,
-      },
     });
   }
 
@@ -1113,7 +914,6 @@ export class App extends EventEmitter {
     this.emit('term:reset-mouse-cursor', {
       clientX: cX,
       clientY: cY,
-      detail: { clientX: cX, clientY: cY },
     });
   }
 
@@ -1203,6 +1003,24 @@ export class App extends EventEmitter {
     }
   }
 
+  _applyCurrentColorScheme() {
+    applyColorScheme(
+      this.colorScheme,
+      this.prefValues?.customColors,
+      this.prefValues?.customDefaultBg,
+      this.prefValues?.customDefaultFg,
+      this.prefValues?.customDefaultLink,
+      this.prefValues?.customForcePlainText,
+      this.prefValues?.minimumContrast
+    );
+    if (this.view) {
+      this.view.updateHighlightColor();
+      if (!this._batchUpdatingPrefs) {
+        this.view.redraw(true);
+      }
+    }
+  }
+
   onValuesPrefChange(values) {
     const prevValues = this._prefsInitialized ? this.prefValues || {} : null;
     this._prefsInitialized = true;
@@ -1210,24 +1028,32 @@ export class App extends EventEmitter {
     if (values && values.colorScheme !== undefined) {
       this.colorScheme = values.colorScheme;
     }
-    for (const name in values) {
-      const prevVal = prevValues ? prevValues[name] : undefined;
-      const nextVal = values[name];
-      const changed =
-        !prevValues ||
-        prevVal !== nextVal ||
-        (typeof nextVal === 'object' &&
-          nextVal !== null &&
-          JSON.stringify(prevVal) !== JSON.stringify(nextVal));
-      if (changed) {
-        this.onPrefChange(name, nextVal);
-      }
-    }
-
-    // These prefs have to be processed as a whole.
+    this._batchUpdatingPrefs = true;
+    this._pendingColorScheme = false;
     try {
+      for (const name in values) {
+        const prevVal = prevValues ? prevValues[name] : undefined;
+        const nextVal = values[name];
+        const changed =
+          !prevValues ||
+          prevVal !== nextVal ||
+          (typeof nextVal === 'object' &&
+            nextVal !== null &&
+            JSON.stringify(prevVal) !== JSON.stringify(nextVal));
+        if (changed) {
+          this.onPrefChange(name, nextVal);
+        }
+      }
+      if (this._pendingColorScheme) {
+        this._applyCurrentColorScheme();
+      }
+      // These prefs have to be processed as a whole.
       this.applyTermSizeMode(values);
-    } catch (e) {}
+    } catch (e) {
+    } finally {
+      this._batchUpdatingPrefs = false;
+      this._pendingColorScheme = false;
+    }
   }
 
   onPrefChange(name, value) {
@@ -1235,14 +1061,12 @@ export class App extends EventEmitter {
       this.emit('term:pref-change', {
         key: name,
         value,
-        detail: { key: name, value },
       });
       switch (name) {
         case 'uiLocale':
           setupI18n(value);
           this.emit('term:i18n:change', {
             lang: value,
-            detail: { lang: value },
           });
           this.emit('term:overlay:update');
           break;
@@ -1281,38 +1105,17 @@ export class App extends EventEmitter {
           break;
         case 'colorScheme':
           this.colorScheme = value;
-          applyColorScheme(
-            value,
-            this.prefValues?.customColors,
-            this.prefValues?.customDefaultBg,
-            this.prefValues?.customDefaultFg,
-            this.prefValues?.customDefaultLink,
-            this.prefValues?.customForcePlainText,
-            this.prefValues?.minimumContrast
-          );
-          if (this.view) {
-            this.view.updateHighlightColor();
-            this.view.redraw(true);
-          }
-          break;
+        // fallthrough
         case 'customColors':
         case 'customDefaultBg':
         case 'customDefaultFg':
         case 'customDefaultLink':
         case 'customForcePlainText':
         case 'minimumContrast':
-          applyColorScheme(
-            this.colorScheme,
-            this.prefValues?.customColors,
-            this.prefValues?.customDefaultBg,
-            this.prefValues?.customDefaultFg,
-            this.prefValues?.customDefaultLink,
-            this.prefValues?.customForcePlainText,
-            this.prefValues?.minimumContrast
-          );
-          if (this.view) {
-            this.view.updateHighlightColor();
-            this.view.redraw(true);
+          if (this._batchUpdatingPrefs) {
+            this._pendingColorScheme = true;
+          } else {
+            this._applyCurrentColorScheme();
           }
           break;
         case 'enableBell':
@@ -1338,11 +1141,10 @@ export class App extends EventEmitter {
           if (this.view) {
             this.view.lineHeight = this.lineHeight;
           }
-          try {
-            this.applyTermSizeMode(this.prefValues);
-          } catch (e) {}
-          if (this.view) {
-            this.view.redraw(true);
+          if (!this._batchUpdatingPrefs) {
+            try {
+              this.applyTermSizeMode(this.prefValues);
+            } catch (e) {}
           }
           break;
         case 'dbcsDetect':
@@ -1365,14 +1167,20 @@ export class App extends EventEmitter {
           break;
         case 'useCanvasEngine':
           this.view.useCanvasEngine = !!value;
-          this.view.redraw(true);
+          if (!this._batchUpdatingPrefs) {
+            this.view.redraw(true);
+          }
           break;
         case 'smoothAnsiArt':
           this.view.smoothAnsiArt = !!value;
-          this.view.redraw(true);
+          if (!this._batchUpdatingPrefs) {
+            this.view.redraw(true);
+          }
           break;
         case 'supportMouseReporting':
-          this.setSupportMouseReporting(!!value, false);
+          if (this.buf?.locator) {
+            this.buf.locator.enabled = !!value;
+          }
           break;
 
         default:
@@ -1382,17 +1190,6 @@ export class App extends EventEmitter {
       // eats all errors
       return;
     }
-  }
-
-  checkClass(cn) {
-    if (!cn) return false;
-    const str =
-      typeof cn === 'string'
-        ? cn
-        : typeof cn.baseVal === 'string'
-          ? cn.baseVal
-          : '';
-    return str.indexOf('nomouse_command') >= 0;
   }
 
   isDialogOrExcludedTarget(e) {
@@ -1407,7 +1204,14 @@ export class App extends EventEmitter {
         return true;
       }
     }
-    if (e.target.className && this.checkClass(e.target.className)) {
+    const cn = e.target.className;
+    const cnStr =
+      typeof cn === 'string'
+        ? cn
+        : typeof cn?.baseVal === 'string'
+          ? cn.baseVal
+          : '';
+    if (cnStr.indexOf('nomouse_command') >= 0) {
       return true;
     }
     if (
@@ -1429,96 +1233,65 @@ export class App extends EventEmitter {
     const skipMouseClick = this.skipMouseClick;
     this.skipMouseClick = false;
 
-    if (e.button == 2) {
-      //right button
-    } else if (e.button === 0) {
-      //left button
-      if (this.preserveDomSelection && this.view?._domSelectedText) {
-        const sel =
-          typeof window !== 'undefined' && window.getSelection
-            ? window.getSelection()
-            : null;
-        if (!sel || sel.isCollapsed) {
-          this.view._domSelectedText = '';
-          this.view._domSelectionColRow = null;
-          this.lastSelection = null;
-        }
+    if (e.button !== 0) return;
+
+    if (this.preserveDomSelection && this.view?._domSelectedText) {
+      const sel =
+        typeof window !== 'undefined' && window.getSelection
+          ? window.getSelection()
+          : null;
+      if (!sel || sel.isCollapsed) {
+        this.view._domSelectedText = '';
+        this.view._domSelectionColRow = null;
+        this.lastSelection = null;
       }
-      const a = e.target && e.target.closest('a');
-      if (a) {
-        if (this.site.handleCustomLink(a.href, this)) {
-          e.preventDefault();
-        }
+    }
+    const a = e.target && e.target.closest('a');
+    if (a) {
+      if (this.site.handleCustomLink(a.href, this)) {
+        e.preventDefault();
+      }
+      return;
+    }
+    if (this.isSelectionCollapsed()) {
+      //no anything be select
+      const forceFocus = Boolean(this.view?.useCanvasEngine);
+      if (
+        !skipMouseClick &&
+        this.site.handlePassScreenClick(this.buf, this.conn)
+      ) {
+        e.preventDefault();
+        this.setInputAreaFocus(forceFocus);
         return;
       }
-      if (this.isSelectionCollapsed()) {
-        //no anything be select
-        const forceFocus = Boolean(this.view?.useCanvasEngine);
-        if (
-          !skipMouseClick &&
-          this.site.handlePassScreenClick(this.buf, this.conn)
-        ) {
+      if (!skipMouseClick && this.buf?.locator?.isActive?.()) {
+        const pos = this.clientToPos(e.clientX, e.clientY);
+        const report = this.buf.locator.handleMouseClick(e, pos);
+        if (report) {
+          this.send(report);
           e.preventDefault();
           this.setInputAreaFocus(forceFocus);
           return;
         }
-        if (!skipMouseClick && this.buf?.locator?.isActive?.()) {
-          const pos = this.clientToPos(e.clientX, e.clientY);
-          const report = this.buf.locator.handleMouseClick(e, pos);
-          if (report) {
-            this.send(report);
-            e.preventDefault();
-            this.setInputAreaFocus(forceFocus);
-            return;
-          }
-        }
-        if (this.useMouseBrowsing) {
-          if (skipMouseClick) {
-            this.onMouse_move(e.clientX, e.clientY, true);
-          } else {
-            this.onMouse_click(e);
-            this.setDblclickTimer();
-            e.preventDefault();
-            this.setInputAreaFocus(forceFocus);
-          }
-        } else if (!skipMouseClick && this.view.leftButtonFunction) {
-          if (this.view.leftButtonFunction == 1) {
-            this.setNavCmd('doEnter');
-            e.preventDefault();
-            this.setInputAreaFocus(forceFocus);
-          } else if (this.view.leftButtonFunction == 2) {
-            this.setNavCmd('doRight');
-            e.preventDefault();
-            this.setInputAreaFocus(forceFocus);
-          }
-        }
       }
-    } else if (e.button == 1) {
-      //middle button
-    } else {
-    }
-  }
-
-  middleMouse_down(e) {
-    if (
-      this.modalShown ||
-      this.contextMenuShown ||
-      this.isDialogOrExcludedTarget(e)
-    )
-      return;
-    if (e.button == 1) {
-      if (e.target && e.target.closest('a')) {
-        return;
-      }
-      if (this.view.middleButtonFunction == 1) {
-        this.send('\r');
-        return false;
-      } else if (this.view.middleButtonFunction == 2) {
-        this.send('\x1b[D');
-        return false;
-      } else if (this.view.middleButtonFunction == 3) {
-        this.doPaste();
-        return false;
+      if (this.useMouseBrowsing) {
+        if (skipMouseClick) {
+          this.onMouse_move(e.clientX, e.clientY, true);
+        } else {
+          this.onMouse_click(e);
+          e.preventDefault();
+          this.setInputAreaFocus(forceFocus);
+        }
+      } else if (!skipMouseClick && this.view.leftButtonFunction) {
+        if (this.view.leftButtonFunction == 1) {
+          this.setNavCmd('doEnter');
+          e.preventDefault();
+          this.setInputAreaFocus(forceFocus);
+        } else if (this.view.leftButtonFunction == 2) {
+          this.setNavCmd('doRight');
+          e.preventDefault();
+          this.setInputAreaFocus(forceFocus);
+        }
       }
     }
   }
@@ -1542,8 +1315,21 @@ export class App extends EventEmitter {
         this.setDblclickTimer();
       }
       this.mouseLeftButtonDown = true;
-      //this.setInputAreaFocus();
       if (!this.isSelectionCollapsed()) this.skipMouseClick = true;
+    } else if (e.button === 1) {
+      if (e.target && e.target.closest('a')) {
+        return;
+      }
+      if (this.view.middleButtonFunction == 1) {
+        this.send('\r');
+        e.preventDefault();
+      } else if (this.view.middleButtonFunction == 2) {
+        this.send('\x1b[D');
+        e.preventDefault();
+      } else if (this.view.middleButtonFunction == 3) {
+        this.doPaste();
+        e.preventDefault();
+      }
     } else if (e.button == 2) {
       this.mouseRightButtonDown = true;
       if (
@@ -1573,14 +1359,19 @@ export class App extends EventEmitter {
       return;
     //0=left button, 1=middle button, 2=right button
     if (e.button === 0) {
-      this.setMbTimer();
+      if (this.mbTimer) {
+        this.mbTimer.cancel();
+      }
+      this.mbTimer = setTimer(
+        false,
+        () => {
+          this.mbTimer = null;
+          this.skipMouseClick = false;
+        },
+        100
+      );
       this.mouseLeftButtonDown = false;
-    } else if (e.button == 2) {
-      this.mouseRightButtonDown = false;
-    }
 
-    if (e.button === 0) {
-      //left button
       const forceFocus = Boolean(this.view?.useCanvasEngine);
       if (this.isSelectionCollapsed()) {
         //no anything be select
@@ -1607,24 +1398,21 @@ export class App extends EventEmitter {
                 : ''
           );
         }
-      }
-      if (this.inputAreaFocusTimer) {
-        this.inputAreaFocusTimer.cancel();
-      }
-      this.inputAreaFocusTimer = setTimer(
-        false,
-        () => {
-          if (this.inputAreaFocusTimer) {
-            this.inputAreaFocusTimer.cancel();
+        if (this.inputAreaFocusTimer) {
+          this.inputAreaFocusTimer.cancel();
+        }
+        this.inputAreaFocusTimer = setTimer(
+          false,
+          () => {
             this.inputAreaFocusTimer = null;
-          }
-          if (!this.contextMenuShown && this.isSelectionCollapsed())
-            this.setInputAreaFocus(forceFocus);
-        },
-        10
-      );
+            if (!this.contextMenuShown && this.isSelectionCollapsed())
+              this.setInputAreaFocus(forceFocus);
+          },
+          10
+        );
+      }
     } else if (e.button == 2) {
-      // right button: opens context menu, do not steal focus or set focus timer
+      this.mouseRightButtonDown = false;
     } else {
       this.setInputAreaFocus();
       e.preventDefault();
@@ -1658,18 +1446,6 @@ export class App extends EventEmitter {
     }
   }
 
-  mouse_over(e) {
-    if (
-      this.modalShown ||
-      this.contextMenuShown ||
-      this.isDialogOrExcludedTarget(e)
-    )
-      return;
-
-    if (this.isSelectionCollapsed() && !this.mouseLeftButtonDown)
-      this.setInputAreaFocus();
-  }
-
   mouse_scroll(e) {
     if (this.modalShown || this.isDialogOrExcludedTarget(e)) return;
 
@@ -1684,7 +1460,7 @@ export class App extends EventEmitter {
       }
     }
 
-    const interceptorHandled = this.dispatchWheel(e);
+    const interceptorHandled = this.inputInterceptors?.dispatchWheel(e);
     if (interceptorHandled) {
       if (interceptorHandled === 'suppress') {
         this.wheelDeltaYAccum = 0;
@@ -1761,30 +1537,14 @@ export class App extends EventEmitter {
       'doPageDown',
       'nextThread',
     ];
-
-    if (isScrollUp) {
-      if (this.mouseRightButtonDown) {
-        const action = mouseWheelActionsUp[this.view.mouseWheelFunction2];
-        this.setNavCmd(action);
-      } else if (this.mouseLeftButtonDown) {
-        const action = mouseWheelActionsUp[this.view.mouseWheelFunction3];
-        this.setNavCmd(action);
-      } else {
-        const action = mouseWheelActionsUp[this.view.mouseWheelFunction1];
-        this.setNavCmd(action);
-      }
-    } else {
-      if (this.mouseRightButtonDown) {
-        const action = mouseWheelActionsDown[this.view.mouseWheelFunction2];
-        this.setNavCmd(action);
-      } else if (this.mouseLeftButtonDown) {
-        const action = mouseWheelActionsDown[this.view.mouseWheelFunction3];
-        this.setNavCmd(action);
-      } else {
-        const action = mouseWheelActionsDown[this.view.mouseWheelFunction1];
-        this.setNavCmd(action);
-      }
-    }
+    const actions = isScrollUp ? mouseWheelActionsUp : mouseWheelActionsDown;
+    const fnIdx = this.mouseRightButtonDown
+      ? this.view.mouseWheelFunction2
+      : this.mouseLeftButtonDown
+        ? this.view.mouseWheelFunction3
+        : this.view.mouseWheelFunction1;
+    const action = actions[fnIdx];
+    this.setNavCmd(action);
 
     e.stopPropagation();
     e.preventDefault();
@@ -1800,7 +1560,7 @@ export class App extends EventEmitter {
   }
 
   setNavCmd(cmd) {
-    if (this.dispatchNavCmd(cmd)) {
+    if (this.inputInterceptors?.dispatchNavCmd(cmd)) {
       return;
     }
     switch (cmd) {
@@ -1816,29 +1576,19 @@ export class App extends EventEmitter {
       case 'doPageDown':
         this.send('\x1b[6~');
         break;
-      case 'previousThread': {
-        const cmd = this.site?.getThreadCommand('prevThread');
-        const pageState = this.site?.pageState;
-        if (
-          cmd &&
-          (pageState === PAGE_STATE.LIST ||
-            pageState === PAGE_STATE.READING ||
-            pageState === PAGE_STATE.MAPLE_LIST)
-        ) {
-          this.send(cmd);
-        }
-        break;
-      }
+      case 'previousThread':
       case 'nextThread': {
-        const cmd = this.site?.getThreadCommand('nextThread');
+        const threadKey =
+          cmd === 'previousThread' ? 'prevThread' : 'nextThread';
+        const threadCmd = this.site?.getThreadCommand(threadKey);
         const pageState = this.site?.pageState;
         if (
-          cmd &&
+          threadCmd &&
           (pageState === PAGE_STATE.LIST ||
             pageState === PAGE_STATE.READING ||
             pageState === PAGE_STATE.MAPLE_LIST)
         ) {
-          this.send(cmd);
+          this.send(threadCmd);
         }
         break;
       }
@@ -1883,12 +1633,5 @@ export class App extends EventEmitter {
     };
     writeValues(nextPrefs);
     this.onValuesPrefChange(nextPrefs);
-    if (this.view.redraw) {
-      this.view.redraw(true);
-    }
-  }
-
-  setupOverlay() {
-    render(<AppOverlay app={this} />, document.getElementById('cmenuReact'));
   }
 }

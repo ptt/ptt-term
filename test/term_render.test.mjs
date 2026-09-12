@@ -651,20 +651,21 @@ test('TermView _send, _convSend and conn getter delegate to app.stream and app.c
   assert.deepEqual(streamSent, ['\x1b[D', 'test']);
 });
 
-test('App checkClass handles string, SVGAnimatedString, null and undefined', () => {
-  const checkClassMatch = appSource.match(
-    /checkClass\(cn\)\s*\{([\s\S]*?)\n  \}/
+test('App isDialogOrExcludedTarget handles string, SVGAnimatedString, null and undefined className', () => {
+  const match = appSource.match(
+    /isDialogOrExcludedTarget\(e\)\s*\{([\s\S]*?)\n  \}/
   );
-  assert.ok(checkClassMatch, 'App must define checkClass');
-  const checkClass = new Function('cn', checkClassMatch[1]);
+  assert.ok(match, 'App must define isDialogOrExcludedTarget');
+  const isDialogOrExcludedTarget = new Function('e', match[1]);
 
-  assert.equal(checkClass('nomouse_command'), true);
-  assert.equal(checkClass('some nomouse_command class'), true);
-  assert.equal(checkClass('packet-dump nomouse_command'), true);
-  assert.equal(checkClass('packet-dump'), false);
-  assert.equal(checkClass('normal-class'), false);
-  assert.equal(checkClass(null), false);
-  assert.equal(checkClass(undefined), false);
+  assert.equal(isDialogOrExcludedTarget({ target: { className: 'nomouse_command' } }), true);
+  assert.equal(isDialogOrExcludedTarget({ target: { className: 'some nomouse_command class' } }), true);
+  assert.equal(isDialogOrExcludedTarget({ target: { className: 'packet-dump nomouse_command' } }), true);
+  assert.equal(isDialogOrExcludedTarget({ target: { className: 'packet-dump' } }), false);
+  assert.equal(isDialogOrExcludedTarget({ target: { className: 'normal-class' } }), false);
+  assert.equal(isDialogOrExcludedTarget({ target: { className: null } }), false);
+  assert.equal(isDialogOrExcludedTarget({ target: { className: undefined } }), false);
+  assert.equal(isDialogOrExcludedTarget(null), false);
 
   // SVGAnimatedString simulation
   const svgClassWithNoMouse = {
@@ -672,8 +673,8 @@ test('App checkClass handles string, SVGAnimatedString, null and undefined', () 
     animVal: 'nomouse_command'
   };
   const svgClassNormal = { baseVal: 'lucide-icon', animVal: 'lucide-icon' };
-  assert.equal(checkClass(svgClassWithNoMouse), true);
-  assert.equal(checkClass(svgClassNormal), false);
+  assert.equal(isDialogOrExcludedTarget({ target: { className: svgClassWithNoMouse } }), true);
+  assert.equal(isDialogOrExcludedTarget({ target: { className: svgClassNormal } }), false);
 });
 
 test('computeToolbarLayout always stacks into 5 rows and scales to max fit with base size minimum', () => {
@@ -3385,10 +3386,10 @@ test('App and ContextMenu decouple mouse browsing and easy reading through event
     'ContextMenu must not depend on app.view.isEasyReadingActive'
   );
 
-  // TermView delegates to hasActiveInputInterceptor and does not inspect pageState
+  // TermView does not define isEasyReadingActive or inspect pageState
   assert.ok(
-    termViewSource.includes('this.app?.hasActiveInputInterceptor'),
-    'TermView isEasyReadingActive must delegate to app.hasActiveInputInterceptor'
+    !termViewSource.includes('isEasyReadingActive'),
+    'TermView must not define or depend on isEasyReadingActive'
   );
   assert.ok(
     !termViewSource.includes('pageState'),

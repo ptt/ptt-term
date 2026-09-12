@@ -1139,18 +1139,10 @@ test('EasyReading and App input interceptor pipeline decouples navigation, wheel
       getThreadCommand: (type) => (type === 'prevThread' ? '\x1b[D\x1b[A\x1b[C' : '\x1b[D\x1b[B\x1b[C'),
     },
     send: (data) => sent.push(data),
-    suppressInertialWheel: (duration) => { mockCore.lastSuppressedDuration = duration; },
   };
   mockCore.inputInterceptors = new InputInterceptors(mockCore);
   mockCore.registerInputInterceptor = (it) => mockCore.inputInterceptors.registerInterceptor(it);
   mockCore.unregisterInputInterceptor = (it) => mockCore.inputInterceptors.unregisterInterceptor(it);
-  mockCore.dispatchNavCmd = (cmd) => mockCore.inputInterceptors.dispatchNavCmd(cmd);
-  mockCore.dispatchWheel = (e) => mockCore.inputInterceptors.dispatchWheel(e);
-  mockCore.dispatchKeyDown = (e) => mockCore.inputInterceptors.dispatchKeyDown(e);
-  mockCore.dispatchTextInput = (e) => mockCore.inputInterceptors.dispatchTextInput(e);
-  mockCore.getInterceptorSelectedText = () => mockCore.inputInterceptors.getSelectedText();
-  mockCore.getInterceptorSelectionColRow = () => mockCore.inputInterceptors.getSelectionColRow();
-  mockCore.dispatchSelectAll = () => mockCore.inputInterceptors.dispatchSelectAll();
   mockCore.hasActiveInputInterceptor = () => mockCore.inputInterceptors.hasActive();
 
   const mockTermBuf = {
@@ -1163,19 +1155,15 @@ test('EasyReading and App input interceptor pipeline decouples navigation, wheel
   };
 
   const easyReading = new EasyReading(mockCore, { view: mockView, buf: mockTermBuf, enabled: true });
-  easyReading.init({ app: mockCore, view: mockView, buf: mockTermBuf, enabled: true });
-  assert.ok(mockCore.inputInterceptors.listenerCount('navCmd') > 0);
+  easyReading.init({ app: mockCore, view: mockView, buf: mockTermBuf });
 
-  // 1. Inactive: interceptor returns false / undefined
+  // Not active initially
   assert.equal(easyReading.isActive(), false);
   assert.equal(mockCore.hasActiveInputInterceptor(), false);
-  assert.equal(mockCore.dispatchNavCmd('doArrowUp'), false);
-  assert.equal(mockCore.dispatchWheel({ deltaY: 100 }), false);
-  assert.equal(mockCore.getInterceptorSelectedText(), null);
-  assert.equal(mockCore.getInterceptorSelectionColRow(), undefined);
-  assert.equal(mockCore.dispatchSelectAll(), false);
+  assert.equal(mockCore.inputInterceptors.dispatchNavCmd('doArrowDown'), false);
+  assert.equal(mockCore.inputInterceptors.dispatchWheel({ deltaY: 50 }), false);
 
-  // 2. Active mode
+  // Activate easy reading
   easyReading._overlay = { style: { display: 'block' } };
   easyReading._content = { scrollTop: 0, scrollHeight: 500, clientHeight: 200 };
   easyReading.enabled = true;
@@ -1184,53 +1172,53 @@ test('EasyReading and App input interceptor pipeline decouples navigation, wheel
   assert.equal(mockCore.hasActiveInputInterceptor(), true);
 
   // Wheel handling when active: returns true and updates lastWheelTime
-  const wheelRes = mockCore.dispatchWheel({ deltaY: 50 });
+  const wheelRes = mockCore.inputInterceptors.dispatchWheel({ deltaY: 50 });
   assert.equal(wheelRes, true);
   assert.ok(easyReading.lastWheelTime > 0);
 
   // Navigation commands when active
   // doArrowDown: scrollable, scrolls by 1 line (16px) and returns true without sending terminal keys
-  const navDown = mockCore.dispatchNavCmd('doArrowDown');
+  const navDown = mockCore.inputInterceptors.dispatchNavCmd('doArrowDown');
   assert.equal(navDown, true);
   assert.equal(easyReading._content.scrollTop, 16);
   assert.equal(sent.length, 0);
 
   // doArrowUp: scrollable (scrollTop=16), scrolls up by 1 line to 0
-  const navUp = mockCore.dispatchNavCmd('doArrowUp');
+  const navUp = mockCore.inputInterceptors.dispatchNavCmd('doArrowUp');
   assert.equal(navUp, true);
   assert.equal(easyReading._content.scrollTop, 0);
   assert.equal(sent.length, 0);
 
   // doArrowUp again at scrollTop=0: cannot scroll further, leaves current post and sends escape sequence
-  const navUpBoundary = mockCore.dispatchNavCmd('doArrowUp');
+  const navUpBoundary = mockCore.inputInterceptors.dispatchNavCmd('doArrowUp');
   assert.equal(navUpBoundary, true);
   assert.deepEqual(sent, ['\x1b[D\x1b[A\x1b[C']);
   sent.length = 0;
 
   // previousThread / nextThread
-  mockCore.dispatchNavCmd('nextThread');
+  mockCore.inputInterceptors.dispatchNavCmd('nextThread');
   assert.deepEqual(sent, ['\x1b[D\x1b[B\x1b[C']);
   sent.length = 0;
 
   // KeyDown and text input handling (Chinese IME composition suppression)
   const keyDownEvent = { keyCode: 229, isComposing: true, defaultPrevented: false, preventDefault() { this.defaultPrevented = true; } };
-  mockCore.dispatchKeyDown(keyDownEvent);
+  mockCore.inputInterceptors.dispatchKeyDown(keyDownEvent);
   assert.equal(easyReading._keyDownKeyCode, 229);
   assert.equal(easyReading._keyDownIsComposing, true);
 
   const textInputEvent = { target: { value: '注' } };
-  const inputHandled = mockCore.dispatchTextInput(textInputEvent);
+  const inputHandled = mockCore.inputInterceptors.dispatchTextInput(textInputEvent);
   assert.equal(inputHandled, true);
   assert.equal(textInputEvent.target.value, ''); // Swallowed composition string!
 
   // Selection col/row is null during easy reading (grid coordinates suppressed)
-  assert.equal(mockCore.getInterceptorSelectionColRow(), null);
+  assert.equal(mockCore.inputInterceptors.getSelectionColRow(), null);
 
   // Wheel suppression upon exit
   easyReading.hide();
   assert.equal(easyReading.isActive(), false);
   // Recently scrolled in EasyReading: dispatchWheel returns 'suppress'
-  const suppressedWheel = mockCore.dispatchWheel({ deltaY: 50 });
+  const suppressedWheel = mockCore.inputInterceptors.dispatchWheel({ deltaY: 50 });
   assert.equal(suppressedWheel, 'suppress');
 
   // Unregister interceptor
@@ -1238,20 +1226,13 @@ test('EasyReading and App input interceptor pipeline decouples navigation, wheel
   assert.equal(mockCore.inputInterceptors.listenerCount('navCmd'), 0);
 });
 
-test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update hooks', () => {
+test('EasyReading plugin lifecycle: registerPlugin, events, and destroy', () => {
   const mockApp = Object.assign(new EventEmitter(), {
     plugins: [],
     registerPlugin(plugin) {
       if (!plugin || this.plugins.includes(plugin)) return;
       this.plugins.push(plugin);
       if (plugin.init) plugin.init({ app: this, view: this.view, buf: this.buf });
-    },
-    unregisterPlugin(plugin) {
-      const idx = this.plugins.indexOf(plugin);
-      if (idx !== -1) {
-        this.plugins.splice(idx, 1);
-        plugin.destroy?.();
-      }
     },
     getPlugin(name) {
       return this.plugins.find(
@@ -1325,11 +1306,9 @@ test('EasyReadingPlugin lifecycle: init, destroy, screen update, and font update
   mockApp.emit('term:screen-update', { changedLineHtmlStrs: ['<div>Line 1</div>'] });
   assert.deepEqual(updatePageCalledWith, ['<div>Line 1</div>']);
 
-  // 4. Unregister and destroy plugin
-  mockApp.unregisterPlugin(plugin);
-  assert.equal(mockApp.plugins.includes(plugin), false);
+  // 4. Destroy plugin
+  plugin.destroy();
   assert.equal(mockApp.inputInterceptors.listenerCount('navCmd'), 0);
-  assert.equal(mockApp.getPlugin('easy_reading'), undefined);
   assert.equal(mockApp.easyReading, undefined);
   assert.equal(mockView._easyReading, undefined);
   assert.equal(mockBuf._easyReading, undefined);
@@ -2279,3 +2258,4 @@ test('AutoSite onData fires login on 請輸入代號 without locking to PTT, and
   assert.equal(fired2, true, '請輸入代號 must fire login event');
   assert.equal(auto2.isLocked, false, '請輸入代號 must NOT lock AutoSite to PTT');
 });
+

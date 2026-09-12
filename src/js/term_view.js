@@ -1176,8 +1176,4 @@ export class TermView extends EventEmitter {
     target.appendChild(el);
     return renderRowHtml(row, 0, this.chh, false, el);
   }
-
-  isEasyReadingActive() {
-    return this.app?.hasActiveInputInterceptor() ?? false;
-  }
 }

@@ -561,45 +561,25 @@ test('AutoWrap and FpsMeter follow standard PluginBase lifecycle and defer init(
   assert.equal(fpsMeter._initialized, true);
 });
 
-test('App source defines destroyPlugins() to clean up all registered plugins', () => {
-  const appFile = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
-  assert.ok(
-    appFile.includes('destroyPlugins()'),
-    'App must define destroyPlugins()'
-  );
-  assert.ok(
-    appFile.includes('plugin.destroy'),
-    'destroyPlugins must invoke plugin.destroy()'
-  );
+test('PluginBase destroy() cleans up registered overlays, context menu items, and interceptors', () => {
+  const app = new MockApp();
+  const plugin = new PluginBase(app);
+  plugin.init({ app });
 
-  // Test the destruction logic against a mock app simulating App.prototype.destroyPlugins
-  let destroyed1 = false;
-  let destroyed2 = false;
-  const mockApp = {
-    plugins: [
-      { destroy: () => { destroyed1 = true; } },
-      { destroy: () => { destroyed2 = true; } },
-    ],
-    destroyPlugins() {
-      if (Array.isArray(this.plugins)) {
-        for (const plugin of this.plugins) {
-          try {
-            if (typeof plugin.destroy === 'function') {
-              plugin.destroy();
-            }
-          } catch (e) {
-            console.error('Failed to destroy plugin', e);
-          }
-        }
-        this.plugins = [];
-      }
-    }
-  };
+  plugin.registerOverlay({ id: 'test-ov', render: () => null });
+  plugin.registerContextMenuItem({ id: 'test-cm', label: 'Test' });
+  const interceptor = { onKeyDown: () => true };
+  plugin.registerInputInterceptor(interceptor);
 
-  mockApp.destroyPlugins();
-  assert.equal(destroyed1, true);
-  assert.equal(destroyed2, true);
-  assert.equal(mockApp.plugins.length, 0);
+  assert.equal(app.overlays.length, 1);
+  assert.equal(app.contextMenuItems.length, 1);
+  assert.equal(app.inputInterceptors.length, 1);
+
+  plugin.destroy();
+
+  assert.equal(app.overlays.length, 0);
+  assert.equal(app.contextMenuItems.length, 0);
+  assert.equal(app.inputInterceptors.length, 0);
 });
 
 test('PluginBase setEnabled prioritizes onPrefChange over onValuesPrefChange for efficient updates', () => {

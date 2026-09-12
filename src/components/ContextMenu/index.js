@@ -532,7 +532,6 @@ export class ContextMenu extends React.Component {
   handlePrefReset = (values) => {
     const { app } = this.props;
     app.onValuesPrefChange(values);
-    app.view.redraw(true);
   };
 
   render() {

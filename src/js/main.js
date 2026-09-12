@@ -21,7 +21,6 @@ async function startApp() {
     });
   }
 
-  // TODO: Call onSymFont for font data when it's implemented.
   console.log("load pref from storage");
   app.onValuesPrefChange(app.prefValues || readValuesWithDefault());
 
