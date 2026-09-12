@@ -145,7 +145,7 @@
     "message": "BBS Login"
   },
   "login_modal_desc": {
-    "message": "Use browser password manager to autofill or save credentials. Passwords are not saved by the app."
+    "message": "Use browser password manager to autofill or save credentials. Passwords are not saved by the app. Press Cancel to register a new account."
   },
   "login_modal_username": {
     "message": "Username"
@@ -164,6 +164,9 @@
   },
   "login_modal_cancel": {
     "message": "Cancel"
+  },
+  "login_modal_disable": {
+    "message": "Disable"
   },
   "login_modal_logging_in": {
     "message": "Logging in..."

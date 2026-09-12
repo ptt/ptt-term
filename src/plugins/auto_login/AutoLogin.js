@@ -1,5 +1,5 @@
 import React from "preact/compat";
-import { readValuesWithDefault } from "../../js/pref.js";
+import { readValuesWithDefault, updatePref } from "../../js/pref.js";
 import { _ } from "../../js/i18n.js";
 import { isBrowser } from "../../js/util.js";
 
@@ -207,6 +207,29 @@ export class AutoLogin {
     return this.showsModal;
   }
 
+  disable() {
+    this.enabled = false;
+    this.hide();
+    updatePref("enableAutoLogin", false);
+    if (this.app) {
+      if (
+        typeof this.app.onValuesPrefChange === "function" &&
+        this.app.prefValues
+      ) {
+        this.app.onValuesPrefChange({
+          ...this.app.prefValues,
+          enableAutoLogin: false,
+        });
+      } else {
+        this.app.emit?.("term:pref-change", {
+          key: "enableAutoLogin",
+          value: false,
+          detail: { key: "enableAutoLogin", value: false },
+        });
+      }
+    }
+  }
+
   handleLogin = ({ username, password }) => {
     const app = this.app;
     if (!app) return;
@@ -237,6 +260,7 @@ export class AutoLogin {
       show: this.showsModal,
       app: targetApp,
       onHide: () => this.hide(),
+      onDisable: () => this.disable(),
       onLogin: this.handleLogin,
     });
   }

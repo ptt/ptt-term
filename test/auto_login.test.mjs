@@ -74,6 +74,14 @@ test('AutoLogin lifecycle, context menu, and modal toggle', () => {
   plugin.toggle();
   assert.strictEqual(plugin.showsModal, false);
 
+  // Disable plugin permanently turns off enabled state and closes modal
+  plugin.show();
+  assert.strictEqual(plugin.showsModal, true);
+  plugin.disable();
+  assert.strictEqual(plugin.enabled, false);
+  assert.strictEqual(plugin.showsModal, false);
+  assert.strictEqual(mockApp.modalShown, false);
+
   // Destroy cleans up
   plugin.destroy();
   assert.ok(unregisteredMenuItemIds.includes('auto_login'));
@@ -148,6 +156,9 @@ test('LoginModal structure adheres to browser password manager conventions', () 
   assert.ok(modalSource.includes("mediation: \"optional\""), 'Must request credentials with optional mediation on user gesture');
   assert.ok(modalSource.includes('focusAppropriateField'), 'Must focus appropriate field when credentials retrieved');
   assert.ok(modalSource.includes('submitBtnRef'), 'Must reference submit button for focus management');
+  assert.ok(modalSource.includes('LoginModal__Btn--disable'), 'Must render disable button in footer');
+  assert.ok(modalSource.includes('handleDisable'), 'Must implement handleDisable handler');
+  assert.ok(modalCss.includes('margin-right: auto'), 'Disable button must push cancel/submit buttons to right');
 });
 
 test('ContextMenu and DropdownMenu integration passes pluginItems', () => {

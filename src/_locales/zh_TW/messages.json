@@ -145,7 +145,7 @@
     "message": "BBS 帳號登入"
   },
   "login_modal_desc": {
-    "message": "利用瀏覽器自動填入或記憶密碼，本程式不會另外儲存您的帳號與密碼。"
+    "message": "利用瀏覽器自動填入或記憶密碼，本程式不會另外儲存您的帳號與密碼。註冊新帳號請按取消。"
   },
   "login_modal_username": {
     "message": "帳號"
@@ -164,6 +164,9 @@
   },
   "login_modal_cancel": {
     "message": "取消"
+  },
+  "login_modal_disable": {
+    "message": "停用"
   },
   "login_modal_logging_in": {
     "message": "登入中..."

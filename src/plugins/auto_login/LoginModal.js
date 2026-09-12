@@ -160,6 +160,16 @@ export class LoginModal extends React.Component {
     }
   };
 
+  handleDisable = (e) => {
+    e?.preventDefault?.();
+    this.setState({ username: "", password: "", submitted: false });
+    if (this.props.onDisable) {
+      this.props.onDisable();
+    } else if (this.props.onHide) {
+      this.props.onHide();
+    }
+  };
+
   render() {
     const { show } = this.props;
     const { username, password, submitted } = this.state;
@@ -279,6 +289,14 @@ export class LoginModal extends React.Component {
           </div>
 
           <div className="LoginModal__Footer">
+            <button
+              type="button"
+              className="btn btn-default LoginModal__Btn LoginModal__Btn--disable"
+              onClick={this.handleDisable}
+              disabled={submitted}
+            >
+              {_("login_modal_disable")}
+            </button>
             <button
               type="button"
               className="btn btn-default LoginModal__Btn LoginModal__Btn--cancel"

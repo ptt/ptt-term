@@ -107,6 +107,24 @@ dialog.LoginModal {
   cursor: pointer;
 }
 
+.LoginModal__Btn--disable {
+  margin-right: auto;
+  color: #8e8e93;
+  background-color: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.LoginModal__Btn--disable:hover:not(:disabled),
+.LoginModal__Btn--disable:focus:not(:disabled) {
+  color: #ff3b30;
+  background-color: rgba(255, 59, 48, 0.08);
+  border-color: transparent;
+  box-shadow: none;
+}
+
 .LoginModal__Btn--submit {
   background-color: #007aff;
   border-color: #007aff;
