@@ -390,10 +390,6 @@ export class TermView extends EventEmitter {
     }, 200);
   }
 
-  _convSend(data) {
-    this._send(data);
-  }
-
   setFontFace(fontFace) {
     this.fontFace = fontFace;
     this.input.style.setProperty('font-family', this.fontFace, 'important');
@@ -564,7 +560,7 @@ export class TermView extends EventEmitter {
     const escChar = this.buf?.site?.getEditorEscapeChar?.() ?? '\x15';
     text = text.replace(/\x1b/g, escChar);
 
-    this._convSend(text);
+    this._send(text);
   }
 
   onTextInput(text, isPasting) {
@@ -572,7 +568,7 @@ export class TermView extends EventEmitter {
       this.paste(text);
       return;
     }
-    this._convSend(text);
+    this._send(text);
   }
 
   onKeyDown(e) {
@@ -633,9 +629,7 @@ export class TermView extends EventEmitter {
     }
     this.mainDisplay.style.transform = scaleCss;
 
-    this.firstGridOffset = this.app?.getFirstGridOffsets
-      ? this.app.getFirstGridOffsets()
-      : this.getFirstGridOffsets();
+    this.firstGridOffset = this.getFirstGridOffsets();
 
     this.updateReverseScaleCss();
     this.updateCursorPos();
@@ -712,9 +706,7 @@ export class TermView extends EventEmitter {
       Math.min(maxPanY, Math.round(py != null ? py : this.panY || 0))
     );
     this.updateMainDisplayMargin();
-    this.firstGridOffset = this.app?.getFirstGridOffsets
-      ? this.app.getFirstGridOffsets()
-      : this.getFirstGridOffsets();
+    this.firstGridOffset = this.getFirstGridOffsets();
     this.updateCursorPos();
   }
 
@@ -1051,6 +1043,63 @@ export class TermView extends EventEmitter {
     this.isComposition = false;
   }
 
+  applyTermSizeMode(values, { isMobile = false, onResizeTerm } = {}) {
+    if (!values) return;
+    this.innerBounds = this.getWindowInnerBounds();
+    this.resizer = null;
+    const effectiveMode = isMobile ? 'fixed-font-size' : values.termSizeMode;
+    const resizeTerm =
+      typeof onResizeTerm === 'function'
+        ? onResizeTerm
+        : (cols, rows) => this.app?.setTermSize?.(cols, rows);
+
+    switch (effectiveMode) {
+      case 'fixed-term-size': {
+        this.fontFitWindowWidth = values.fontFitWindowWidth;
+        const size = values.termSize;
+        resizeTerm(size.cols, size.rows);
+        this.fontResize();
+        this.redraw(true);
+        break;
+      }
+      case 'fixed-font-size': {
+        this.fontFitWindowWidth = false;
+        const fontSize = values.fontSize || 24;
+        this.resizer = () => {
+          const size = this.calcTermSizeFromFont(fontSize);
+          resizeTerm(size.cols, size.rows);
+          this.fixedResize(fontSize);
+          this.redraw(true);
+        };
+        this.resizer();
+        break;
+      }
+      case 'max-font-size': {
+        this.fontFitWindowWidth = false;
+        const maxFontSize =
+          values.maxFontSize !== undefined
+            ? values.maxFontSize
+            : values.fontSize || 999;
+        const minSize = { cols: 80, rows: 24 };
+        this.resizer = () => {
+          const scaledFontSize = this.calcFontSizeFromTerm(
+            minSize.cols,
+            minSize.rows
+          );
+          const fontSize = Math.min(scaledFontSize, maxFontSize);
+          const size = this.calcTermSizeFromFont(fontSize);
+          resizeTerm(size.cols, size.rows);
+          this.fixedResize(fontSize);
+          this.redraw(true);
+        };
+        this.resizer();
+        break;
+      }
+    }
+
+    this.setTransFix(this.fontFitWindowWidth);
+  }
+
   fontResize() {
     const cols = this.buf ? this.buf.cols : 80;
     const rows = this.buf ? this.buf.rows : 24;
@@ -1201,6 +1250,18 @@ export class TermView extends EventEmitter {
 
   hasDomSelectionFallback() {
     return Boolean(this.preserveDomSelection && this._domSelectedText);
+  }
+
+  isSelectionCollapsed() {
+    if (this.useCanvasEngine) {
+      return !this.getSelectionColRow();
+    }
+    if (this.hasDomSelectionFallback()) {
+      return false;
+    }
+    return typeof window !== 'undefined' && window.getSelection
+      ? window.getSelection().isCollapsed
+      : true;
   }
 
   snapshotDomSelection() {

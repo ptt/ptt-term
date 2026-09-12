@@ -1145,6 +1145,41 @@ export class TermBuf extends EventEmitter {
   }
 
   /**
+   * @param {{ start: { row: number, col: number }, end: { row: number, col: number } }} selection
+   * @param {{ color?: boolean, isutf8?: boolean, reset?: boolean }} [options]
+   * @returns {string}
+   */
+  getSelectionText(selection, { color = false, isutf8 = true, reset = false } = {}) {
+    if (!selection || !selection.start || !selection.end) return '';
+    let result = '';
+    if (selection.start.row === selection.end.row) {
+      result += this.getText(
+        selection.start.row,
+        selection.start.col,
+        selection.end.col,
+        color,
+        isutf8,
+        reset
+      );
+    } else {
+      for (let i = selection.start.row; i <= selection.end.row; ++i) {
+        let scol = 0;
+        let ecol = this.cols - 1;
+        if (i === selection.start.row) {
+          scol = selection.start.col;
+        } else if (i === selection.end.row) {
+          ecol = selection.end.col;
+        }
+        result += this.getText(i, scol, ecol, color, isutf8, reset);
+        if (i !== selection.end.row) {
+          result += '\r';
+        }
+      }
+    }
+    return result;
+  }
+
+  /**
    * @param {number} row
    * @param {number} colStart
    * @param {number} colEnd

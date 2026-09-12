@@ -597,16 +597,12 @@ test('TermBuf puts handles bell (\\x07), setting bellOccurred and dispatching be
   );
 });
 
-test('TermView _send, _convSend and conn getter delegate to app.send and app.conn', () => {
+test('TermView _send and conn getter delegate to app.send and app.conn', () => {
   const connMatch = termViewSource.match(/get conn\(\)\s*\{([\s\S]*?\n  )\}/);
   const sendMatch = termViewSource.match(/_send\(data\)\s*\{([\s\S]*?\n  )\}/);
-  const convSendMatch = termViewSource.match(
-    /_convSend\(data\)\s*\{([\s\S]*?\n  )\}/
-  );
 
   assert.ok(connMatch, 'TermView must define conn getter');
   assert.ok(sendMatch, 'TermView must define _send method');
-  assert.ok(convSendMatch, 'TermView must define _convSend method');
 
   const appSent = [];
   const mockConn = {};
@@ -622,12 +618,11 @@ test('TermView _send, _convSend and conn getter delegate to app.send and app.con
     get: new Function(connMatch[1])
   });
   mockView._send = new Function('data', sendMatch[1]).bind(mockView);
-  mockView._convSend = new Function('data', convSendMatch[1]).bind(mockView);
 
   assert.equal(mockView.conn, mockConn);
   mockView._send('\x1b[D');
   assert.deepEqual(appSent, ['\x1b[D']);
-  mockView._convSend('test');
+  mockView._send('test');
   assert.deepEqual(appSent, ['\x1b[D', 'test']);
 });
 
@@ -3761,7 +3756,8 @@ test('TermView and App handle DOM selection preservation and fallback', () => {
   assert.ok(currentAppSource.includes('preserveDomSelection: this.preserveDomSelection'), 'App must pass preserveDomSelection option to TermView');
   assert.ok(currentAppSource.includes('hasWebKitImeQuirk: this.hasWebKitImeQuirk'), 'App must pass hasWebKitImeQuirk option to TermView');
   assert.ok(currentAppSource.includes('if (this.preserveDomSelection && !force && !this.isSelectionCollapsed())'), 'App setInputAreaFocus must preserve selection');
-  assert.ok(currentAppSource.includes('this.view?.hasDomSelectionFallback?.()'), 'App isSelectionCollapsed must delegate selection fallback check to view.hasDomSelectionFallback()');
+  assert.ok(currentAppSource.includes('this.view.isSelectionCollapsed()'), 'App isSelectionCollapsed must delegate to view.isSelectionCollapsed()');
+  assert.ok(currentTermViewSource.includes('this.hasDomSelectionFallback()'), 'TermView isSelectionCollapsed must check hasDomSelectionFallback()');
   assert.ok(currentAppSource.includes('this.view?.snapshotDomSelection?.()'), 'App mouse_down must snapshot selection on right-click via view.snapshotDomSelection()');
   assert.ok(currentAppSource.includes('this.view?.clearDomSelectionIfCollapsed?.()'), 'App mouse_click must clear collapsed selection via view.clearDomSelectionIfCollapsed()');
 });

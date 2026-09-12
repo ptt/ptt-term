@@ -564,7 +564,7 @@ export class App extends EventEmitter {
   }
 
   sendKey(key) {
-    return this.view ? this.view.sendKey(key) : false;
+    return this.view?.keyboard?.sendKey(key) ?? false;
   }
 
   sendAntiIdle() {
@@ -652,15 +652,13 @@ export class App extends EventEmitter {
         ? window.getSelection().isCollapsed
         : true;
     }
-    if (this.view && this.view.useCanvasEngine) {
-      return !this.view.getSelectionColRow();
+    if (this.view?.isSelectionCollapsed) {
+      return this.view.isSelectionCollapsed();
     }
-    if (this.view?.hasDomSelectionFallback?.()) {
-      return false;
-    }
-    return typeof window !== 'undefined' && window.getSelection
-      ? window.getSelection().isCollapsed
-      : true;
+    return !(
+      this.view?.selection?.hasSelection() ||
+      this.view?.hasDomSelectionFallback?.()
+    );
   }
 
   _formatCopyText(str) {
@@ -710,35 +708,10 @@ export class App extends EventEmitter {
   }
 
   doCopyAnsi() {
-    if (!this.lastSelection) return;
-
-    const selection = this.lastSelection;
-    let ansiText = '';
-    if (selection.start.row == selection.end.row) {
-      ansiText += this.buf.getText(
-        selection.start.row,
-        selection.start.col,
-        selection.end.col,
-        true,
-        true,
-        false
-      );
-    } else {
-      for (let i = selection.start.row; i <= selection.end.row; ++i) {
-        let scol = 0;
-        let ecol = this.buf.cols - 1;
-        if (i == selection.start.row) {
-          scol = selection.start.col;
-        } else if (i == selection.end.row) {
-          ecol = selection.end.col;
-        }
-        ansiText += this.buf.getText(i, scol, ecol, true, true, false);
-        if (i != selection.end.row) {
-          ansiText += '\r';
-        }
-      }
-    }
-
+    if (!this.lastSelection || !this.buf) return;
+    const ansiText = this.buf.getSelectionText(this.lastSelection, {
+      color: true,
+    });
     this.doCopy(ansiText);
   }
 
@@ -996,64 +969,28 @@ export class App extends EventEmitter {
     return isMobileUA || hasCoarseOnly || this.isMobileLayout();
   }
 
-  applyTermSizeMode(values) {
-    if (!values) return;
+  get resizer() {
+    return this._resizer !== undefined
+      ? this._resizer
+      : this.view
+        ? this.view.resizer
+        : null;
+  }
+
+  set resizer(val) {
+    this._resizer = val;
     if (this.view) {
-      this.view.innerBounds = this.getWindowInnerBounds();
+      this.view.resizer = val;
     }
-    this.resizer = null;
-    const isMobile = this.isMobileLayout();
-    const effectiveMode = isMobile ? 'fixed-font-size' : values.termSizeMode;
+  }
 
-    switch (effectiveMode) {
-      case 'fixed-term-size':
-        this.view.fontFitWindowWidth = values.fontFitWindowWidth;
-
-        let size = values.termSize;
-        this.setTermSize(size.cols, size.rows);
-        this.view.fontResize();
-        this.view.redraw(true);
-        break;
-
-      case 'fixed-font-size':
-        this.view.fontFitWindowWidth = false;
-
-        let fontSize = values.fontSize || 24;
-        this.resizer = () => {
-          let size = this.view.calcTermSizeFromFont(fontSize);
-          this.setTermSize(size.cols, size.rows);
-          this.view.fixedResize(fontSize);
-          this.view.redraw(true);
-        };
-        // Immediately recalc once.
-        this.resizer();
-        break;
-
-      case 'max-font-size':
-        this.view.fontFitWindowWidth = false;
-
-        let maxFontSize =
-          values.maxFontSize !== undefined
-            ? values.maxFontSize
-            : values.fontSize || 999;
-        let minSize = { cols: 80, rows: 24 };
-        this.resizer = () => {
-          let scaledFontSize = this.view.calcFontSizeFromTerm(
-            minSize.cols,
-            minSize.rows
-          );
-          let fontSize = Math.min(scaledFontSize, maxFontSize);
-          let size = this.view.calcTermSizeFromFont(fontSize);
-          this.setTermSize(size.cols, size.rows);
-          this.view.fixedResize(fontSize);
-          this.view.redraw(true);
-        };
-        // Immediately recalc once.
-        this.resizer();
-        break;
-    }
-
-    this.view?.setTransFix?.(this.view.fontFitWindowWidth);
+  applyTermSizeMode(values) {
+    if (!values || !this.view) return;
+    this._resizer = undefined;
+    this.view.applyTermSizeMode(values, {
+      isMobile: this.isMobileLayout(),
+      onResizeTerm: (cols, rows) => this.setTermSize(cols, rows),
+    });
   }
 
   _applyCurrentColorScheme() {
