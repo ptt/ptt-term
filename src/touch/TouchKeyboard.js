@@ -1505,24 +1505,7 @@ export class TouchKeyboard extends React.Component {
     }
     const { app } = this.props;
     if (!app || !app.view) return;
-    if (app.zoomFont) {
-      app.zoomFont(delta);
-    } else {
-      const currentSize = app.view.chh || 24;
-      const newSize = Math.max(12, Math.min(60, currentSize + delta * 2));
-      if (newSize === currentSize) return;
-
-      const currentPrefs = readValuesWithDefault();
-      const nextPrefs = {
-        ...currentPrefs,
-        fontSize: newSize,
-      };
-      writeValues(nextPrefs);
-      app.onValuesPrefChange(nextPrefs);
-      if (app.view.redraw) {
-        app.view.redraw(true);
-      }
-    }
+    app.zoomFont?.(delta);
     this.updateToolbarLayout();
   };
 

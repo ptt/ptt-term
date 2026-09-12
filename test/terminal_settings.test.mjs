@@ -19,12 +19,8 @@ import {
   buildBugReportUrl,
 } from '../src/js/bug_report.js';
 
-const PREF_MODAL_JS_PATH = fs.existsSync(path.resolve('src/components/Settings/PrefModal.js'))
-  ? path.resolve('src/components/Settings/PrefModal.js')
-  : path.resolve('src/components/ContextMenu/PrefModal.js');
-const PREF_MODAL_CSS_PATH = fs.existsSync(path.resolve('src/components/Settings/PrefModal.css'))
-  ? path.resolve('src/components/Settings/PrefModal.css')
-  : path.resolve('src/components/ContextMenu/PrefModal.css');
+const PREF_MODAL_JS_PATH = path.resolve('src/components/Settings/PrefModal.js');
+const PREF_MODAL_CSS_PATH = path.resolve('src/components/Settings/PrefModal.css');
 
 test('COLOR_SCHEMES defines all standard terminal color palettes with 16 colors each', () => {
   const expectedSchemes = [

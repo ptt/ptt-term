@@ -54,8 +54,8 @@ export class PluginBase {
     const resolvedOptions = isApp ? options : (app || options || {});
 
     this.app = resolvedApp;
-    this.view = resolvedOptions.view || null;
-    this.buf = resolvedOptions.buf || null;
+    this.view = resolvedOptions.view || resolvedApp?.view || null;
+    this.buf = resolvedOptions.buf || resolvedApp?.buf || null;
     this.options = resolvedOptions;
 
     // Internal trackers for managed resources

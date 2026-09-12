@@ -14,7 +14,7 @@ export class PluginManager {
     registerPluginPrefs([plugin.constructor || plugin]);
     this.plugins.push(plugin);
     if (typeof plugin.init === 'function') {
-      plugin.init({ app: this.app, view: this.app.view, buf: this.app.buf });
+      plugin.init({ app: this.app });
     }
   }
 
@@ -54,10 +54,7 @@ export class PluginManager {
     if (!Array.isArray(pluginClasses)) return;
     for (const PluginClass of pluginClasses) {
       if (typeof PluginClass === 'function') {
-        const instance = new PluginClass(this.app, {
-          view: this.app.view,
-          buf: this.app.buf,
-        });
+        const instance = new PluginClass(this.app);
         this.registerPlugin(instance);
       } else if (PluginClass && typeof PluginClass === 'object') {
         this.registerPlugin(PluginClass);

@@ -1,4 +1,3 @@
-import { readValuesWithDefault, writeValues } from "../js/pref.js";
 import { PAGE_STATE } from "../js/sites/index.js";
 
 const MOVE_THRESHOLD = 8;
@@ -35,24 +34,7 @@ export class TouchController {
   }
 
   zoomFont(delta) {
-    if (this.app && this.app.zoomFont) {
-      this.app.zoomFont(delta);
-    } else if (this.app && this.app.view) {
-      const currentSize = this.app.view.chh || 24;
-      const newSize = Math.max(12, Math.min(60, currentSize + delta * 2));
-      if (newSize === currentSize) return;
-
-      const currentPrefs = readValuesWithDefault();
-      const nextPrefs = {
-        ...currentPrefs,
-        fontSize: newSize,
-      };
-      writeValues(nextPrefs);
-      this.app.onValuesPrefChange(nextPrefs);
-      if (this.app.view.redraw) {
-        this.app.view.redraw(true);
-      }
-    }
+    this.app?.zoomFont?.(delta);
   }
 
   setupHandlers() {

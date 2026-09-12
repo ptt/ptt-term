@@ -26,12 +26,8 @@ const termViewSource = fs.readFileSync(
   'utf-8'
 );
 const appSource = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
-const prefModalJsPath = fs.existsSync(path.resolve('src/components/Settings/PrefModal.js'))
-  ? path.resolve('src/components/Settings/PrefModal.js')
-  : path.resolve('src/components/ContextMenu/PrefModal.js');
-const prefModalCssPath = fs.existsSync(path.resolve('src/components/Settings/PrefModal.css'))
-  ? path.resolve('src/components/Settings/PrefModal.css')
-  : path.resolve('src/components/ContextMenu/PrefModal.css');
+const prefModalJsPath = path.resolve('src/components/Settings/PrefModal.js');
+const prefModalCssPath = path.resolve('src/components/Settings/PrefModal.css');
 
 function createHarness() {
   const harness = {

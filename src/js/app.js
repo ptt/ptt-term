@@ -169,10 +169,7 @@ export class App extends EventEmitter {
     this.contextMenuShown = false;
 
     // init touch controller if device supports touch
-    const hasTouch =
-      typeof window !== 'undefined' &&
-      ('ontouchstart' in window || navigator.maxTouchPoints > 0);
-    if (hasTouch) {
+    if (this.hasTouchSupport()) {
       this.touch = new TouchController(this);
     }
     // Workaround for Safari / Desktop: index.html defines inputmode="none" for mobile touch devices.
@@ -763,11 +760,13 @@ export class App extends EventEmitter {
     return this.mouse.dispatchMove(cX, cY, refresh, force, options);
   }
 
-  isMobileLayout() {
+  hasTouchSupport() {
     if (typeof window === 'undefined') return false;
-    const hasTouch =
-      'ontouchstart' in window || (navigator && navigator.maxTouchPoints > 0);
-    if (!hasTouch) return false;
+    return 'ontouchstart' in window || (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
+  }
+
+  isMobileLayout() {
+    if (!this.hasTouchSupport()) return false;
     const isNarrow = window.innerWidth <= 768;
     const isCompactLandscape =
       window.innerHeight <= 500 && window.innerWidth <= 1024;
@@ -775,10 +774,7 @@ export class App extends EventEmitter {
   }
 
   isMobileDevice() {
-    if (typeof window === 'undefined') return false;
-    const hasTouch =
-      'ontouchstart' in window || (navigator && navigator.maxTouchPoints > 0);
-    if (!hasTouch) return false;
+    if (!this.hasTouchSupport()) return false;
     const isMobileUA = /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(
       (navigator && navigator.userAgent) || ''
     );
