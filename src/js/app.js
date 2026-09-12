@@ -296,10 +296,21 @@ export class App extends EventEmitter {
     if (!Array.isArray(pluginClasses)) return;
     for (const PluginClass of pluginClasses) {
       if (typeof PluginClass === 'function') {
-        const instance = new PluginClass(this, { view: this.view, buf: this.buf, core: this });
+        const instance = new PluginClass(this, { view: this.view, buf: this.buf });
         this.registerPlugin(instance);
       } else if (PluginClass && typeof PluginClass === 'object') {
         this.registerPlugin(PluginClass);
+      }
+    }
+  }
+
+  destroyPlugins() {
+    while (this.plugins.length > 0) {
+      const plugin = this.plugins.pop();
+      try {
+        plugin.destroy?.();
+      } catch (e) {
+        console.error(`Failed to destroy plugin ${plugin?.id || plugin?.name}:`, e);
       }
     }
   }
@@ -308,6 +319,14 @@ export class App extends EventEmitter {
     return this.plugins.find(
       (p) => p.id === name || p.name === name || p.constructor?.name === name
     );
+  }
+
+  registerInputInterceptor(interceptor) {
+    return this.inputInterceptors.registerInterceptor(interceptor);
+  }
+
+  unregisterInputInterceptor(interceptor) {
+    return this.inputInterceptors.unregisterInterceptor(interceptor);
   }
 
   getPluginList() {
@@ -1095,18 +1114,30 @@ export class App extends EventEmitter {
   }
 
   onValuesPrefChange(values) {
-  this.prefValues = values;
-  if (values && values.colorScheme !== undefined) {
-    this.colorScheme = values.colorScheme;
-  }
-  for (const name in values) {
-    this.onPrefChange(name, values[name]);
-  }
+    const prevValues = this._prefsInitialized ? (this.prefValues || {}) : null;
+    this._prefsInitialized = true;
+    this.prefValues = { ...values };
+    if (values && values.colorScheme !== undefined) {
+      this.colorScheme = values.colorScheme;
+    }
+    for (const name in values) {
+      const prevVal = prevValues ? prevValues[name] : undefined;
+      const nextVal = values[name];
+      const changed =
+        !prevValues ||
+        prevVal !== nextVal ||
+        (typeof nextVal === 'object' &&
+          nextVal !== null &&
+          JSON.stringify(prevVal) !== JSON.stringify(nextVal));
+      if (changed) {
+        this.onPrefChange(name, nextVal);
+      }
+    }
 
-  // These prefs have to be processed as a whole.
-  try {
-    this.applyTermSizeMode(values);
-  } catch (e) {}
+    // These prefs have to be processed as a whole.
+    try {
+      this.applyTermSizeMode(values);
+    } catch (e) {}
   }
 
   onPrefChange(name, value) {
