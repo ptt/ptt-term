@@ -805,6 +805,11 @@ export class TermView extends EventEmitter {
       {
         this.input.style.opacity = '1';
         this.input.style.border = 'double';
+        // Workaround for Safari / All Browsers: Text inside input element #t is transparent by default.
+        // Visible text, background, and caret colors are required during IME composition across all browsers.
+        this.input.style.color = '#ffffff';
+        this.input.style.background = '#000000';
+        this.input.style.caretColor = '#ffffff';
         {
           //this.input.style.width  = (this.chh-4)*10 + 'px';
           this.input.style.fontSize = this.chh-4 + 'px';
@@ -834,7 +839,9 @@ export class TermView extends EventEmitter {
     const wordCounts = stringWidth(this.input.value);
     // chh / 2 - 2 because border of 1
     const oneWordWidth = (this.chh/2-2);
-    const width = oneWordWidth*wordCounts;
+    // Provide min-width so single-character composition caret and box aren't clipped
+    const minWidth = (this.chh || 16) * 2;
+    const width = Math.max(oneWordWidth*wordCounts, minWidth);
     this.input.style.width  = width + 'px';
     const bounds = this.innerBounds;
     if (parseInt(this.input.style.left) + width + oneWordWidth*2 >= bounds.width) {
@@ -846,6 +853,7 @@ export class TermView extends EventEmitter {
     //this.input.disabled="";
     this.input.setAttribute('bshow', '1');
     this.input.style.pointerEvents = 'auto';
+    this.input.style.minWidth = ((this.chh || 16) * 2) + 'px';
     this.updateInputBufferPos();
     this.isComposition = true;
   }
@@ -860,6 +868,10 @@ export class TermView extends EventEmitter {
     this.input.style.top = '0px';
     this.input.style.opacity = '0';
     this.input.style.pointerEvents = 'none';
+    this.input.style.color = 'transparent';
+    this.input.style.background = 'transparent';
+    this.input.style.caretColor = 'transparent';
+    this.input.style.minWidth = '';
     this.isComposition = false;
   }
 
