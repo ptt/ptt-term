@@ -857,47 +857,21 @@ export class App extends EventEmitter {
 
   // use this method to get better window size in case of page zoom != 100%
   getWindowInnerBounds() {
-    const width =
-      document.documentElement.clientWidth - (this.view.viewMargin || 0) * 2;
-    const height =
-      document.documentElement.clientHeight - (this.view.viewMargin || 0) * 2;
-    const bounds = {
-      width: width,
-      height: height,
-    };
-    return bounds;
+    return this.view
+      ? this.view.getWindowInnerBounds()
+      : { width: 0, height: 0 };
   }
 
   getFirstGridOffsets() {
-    const container = document.querySelector('.main');
-    return {
-      top: container ? container.offsetTop : 0,
-      left: container ? container.offsetLeft : 0,
-    };
+    return this.view
+      ? this.view.getFirstGridOffsets()
+      : { top: 0, left: 0 };
   }
 
   clientToPos(cX, cY) {
-    let x;
-    let y;
-    const w = this.view.innerBounds.width;
-    const h = this.view.innerBounds.height;
-    if (this.view.scaleX != 1 || this.view.scaleY != 1) {
-      x = cX - (w - this.view.chw * this.buf.cols * this.view.scaleX) / 2;
-      y = cY - (h - this.view.chh * this.buf.rows * this.view.scaleY) / 2;
-    } else {
-      x = cX - parseFloat(this.view.firstGridOffset.left);
-      y = cY - parseFloat(this.view.firstGridOffset.top);
-    }
-    let col = Math.floor(x / (this.view.chw * this.view.scaleX));
-    let row = Math.floor(y / (this.view.chh * this.view.scaleY));
-
-    if (row < 0) row = 0;
-    else if (row >= this.buf.rows - 1) row = this.buf.rows - 1;
-
-    if (col < 0) col = 0;
-    else if (col >= this.buf.cols - 1) col = this.buf.cols - 1;
-
-    return { col: col, row: row };
+    return this.view
+      ? this.view.clientToPos(cX, cY)
+      : { col: 0, row: 0 };
   }
 
   onMouse_click(e, force = false) {

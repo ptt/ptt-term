@@ -3881,4 +3881,38 @@ test('IME composition styling applies across all browsers and initial focus succ
   assert.ok(nativeDialogSource.includes('window.app.setInputAreaFocus?.(true)'), 'NativeDialog must restore focus after dialog.close()');
 });
 
+test('TermView clientToPos and convertMN2XYEx are consistent inverses in both unscaled and scaled modes', () => {
+  const currentTermViewSource = fs.readFileSync(path.resolve('src/js/term_view.js'), 'utf-8');
+  const originMatch = currentTermViewSource.match(/_getGridOrigin\(\)\s*\{([\s\S]*?\n  )\}/);
+  const mn2xyMatch = currentTermViewSource.match(/convertMN2XYEx\(cx, cy\)\s*\{([\s\S]*?\n  )\}/);
+  const clientToPosMatch = currentTermViewSource.match(/clientToPos\(cX, cY\)\s*\{([\s\S]*?\n  )\}/);
+
+  assert.ok(originMatch && mn2xyMatch && clientToPosMatch, 'TermView must define _getGridOrigin, convertMN2XYEx, and clientToPos');
+
+  const mockView = {
+    innerBounds: { width: 1200, height: 800 },
+    buf: { cols: 80, rows: 24 },
+    chw: 12,
+    chh: 24,
+    scaleX: 1,
+    scaleY: 1,
+    viewMargin: 10,
+    firstGridOffset: { left: 100, top: 50 },
+  };
+  mockView._getGridOrigin = new Function(originMatch[1]).bind(mockView);
+  mockView.convertMN2XYEx = new Function('cx', 'cy', mn2xyMatch[1]).bind(mockView);
+  mockView.clientToPos = new Function('cX', 'cY', clientToPosMatch[1]).bind(mockView);
+
+  // Unscaled mode round-trip
+  const [px1, py1] = mockView.convertMN2XYEx(15, 8);
+  assert.deepEqual(mockView.clientToPos(px1 + 2, py1 + 2), { col: 15, row: 8 });
+
+  // Scaled mode round-trip (with viewMargin and +10 width offset accounted for)
+  mockView.scaleX = 1.25;
+  mockView.scaleY = 1.25;
+  const [px2, py2] = mockView.convertMN2XYEx(40, 12);
+  assert.deepEqual(mockView.clientToPos(px2 + 2, py2 + 2), { col: 40, row: 12 });
+});
+
+
 

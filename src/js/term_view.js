@@ -562,7 +562,9 @@ export class TermView extends EventEmitter {
     }
     this.mainDisplay.style.transform = scaleCss;
 
-    this.firstGridOffset = this.app.getFirstGridOffsets();
+    this.firstGridOffset = this.app?.getFirstGridOffsets
+      ? this.app.getFirstGridOffsets()
+      : this.getFirstGridOffsets();
 
     this.updateReverseScaleCss();
     this.updateCursorPos();
@@ -572,6 +574,26 @@ export class TermView extends EventEmitter {
     }
   }
 
+  getWindowInnerBounds() {
+    if (typeof document === 'undefined' || !document.documentElement) {
+      return { width: 0, height: 0 };
+    }
+    const width =
+      document.documentElement.clientWidth - (this.viewMargin || 0) * 2;
+    const height =
+      document.documentElement.clientHeight - (this.viewMargin || 0) * 2;
+    return { width, height };
+  }
+
+  getFirstGridOffsets() {
+    const container =
+      this.mainDisplay ||
+      (typeof document !== 'undefined' ? document.querySelector('.main') : null);
+    return {
+      top: container ? container.offsetTop : 0,
+      left: container ? container.offsetLeft : 0,
+    };
+  }
 
   getAvailableScrollWidth() {
     const cols = this.buf ? this.buf.cols : 80;
@@ -619,9 +641,9 @@ export class TermView extends EventEmitter {
       Math.min(maxPanY, Math.round(py != null ? py : this.panY || 0))
     );
     this.updateMainDisplayMargin();
-    if (this.app) {
-      this.firstGridOffset = this.app.getFirstGridOffsets();
-    }
+    this.firstGridOffset = this.app?.getFirstGridOffsets
+      ? this.app.getFirstGridOffsets()
+      : this.getFirstGridOffsets();
     this.updateCursorPos();
   }
 
@@ -641,17 +663,46 @@ export class TermView extends EventEmitter {
     }
   }
 
-  convertMN2XYEx(cx, cy) {
-    let origin;
+  _getGridOrigin() {
     const w = this.innerBounds.width;
     const h = this.innerBounds.height;
-    if(this.scaleX!=1 || this.scaleY!=1)
-      origin = [((w - (this.chw*this.buf.cols+10)*this.scaleX)/2) + this.viewMargin, ((h - (this.chh*this.buf.rows)*this.scaleY)/2) + this.viewMargin];
-    else
-      origin = [this.firstGridOffset.left, this.firstGridOffset.top];
-    const realX = origin[0] + (cx) * this.chw * this.scaleX;
-    const realY = origin[1] + (cy) * this.chh * this.scaleY;
+    const cols = this.buf ? this.buf.cols : 80;
+    const rows = this.buf ? this.buf.rows : 24;
+    if (this.scaleX != 1 || this.scaleY != 1) {
+      return [
+        (w - (this.chw * cols + 10) * this.scaleX) / 2 + (this.viewMargin || 0),
+        (h - (this.chh * rows) * this.scaleY) / 2 + (this.viewMargin || 0),
+      ];
+    }
+    return [
+      parseFloat(this.firstGridOffset?.left) || 0,
+      parseFloat(this.firstGridOffset?.top) || 0,
+    ];
+  }
+
+  convertMN2XYEx(cx, cy) {
+    const origin = this._getGridOrigin();
+    const realX = origin[0] + cx * this.chw * this.scaleX;
+    const realY = origin[1] + cy * this.chh * this.scaleY;
     return [realX, realY];
+  }
+
+  clientToPos(cX, cY) {
+    const origin = this._getGridOrigin();
+    const x = cX - origin[0];
+    const y = cY - origin[1];
+    const cols = this.buf ? this.buf.cols : 80;
+    const rows = this.buf ? this.buf.rows : 24;
+    let col = Math.floor(x / (this.chw * this.scaleX));
+    let row = Math.floor(y / (this.chh * this.scaleY));
+
+    if (row < 0) row = 0;
+    else if (row >= rows - 1) row = rows - 1;
+
+    if (col < 0) col = 0;
+    else if (col >= cols - 1) col = cols - 1;
+
+    return { col, row };
   }
 
   checkLeftDBCS() {
