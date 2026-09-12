@@ -7,5 +7,5 @@ export {
   TouchKeyboardPlugin,
   TouchUIPlugin,
 } from "./TouchUI.js";
-export { TouchDebugHUD } from "./TouchDebugHUD.js";
+export { TouchDebugHUD } from "../plugins/touch_debug_hud/index.js";
 export { TouchInputSheet, stringWidth } from "./TouchInputSheet.js";

@@ -2137,12 +2137,14 @@ test('src/plugins exports TouchDebugHUD and provides plugin metadata and lifecyc
   assert.equal(hudPlugin.icon, 'debug');
 
   assert.equal(typeof hudPlugin.renderOverlay, 'function');
-  const overlayNode = hudPlugin.renderOverlay({ app: mockApp });
-  assert.ok(overlayNode);
+  assert.equal(hudPlugin.renderOverlay({ app: mockApp }), null);
   hudPlugin.setEnabled(true);
   assert.equal(hudPlugin.enabled, true);
+  const overlayNode = hudPlugin.renderOverlay({ app: mockApp });
+  assert.ok(overlayNode);
   hudPlugin.setEnabled(false);
   assert.equal(hudPlugin.enabled, false);
+  assert.equal(hudPlugin.renderOverlay({ app: mockApp }), null);
   hudPlugin.destroy();
 });
 

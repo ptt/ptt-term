@@ -1,134 +1,65 @@
 import React from "preact/compat";
+import { PluginBase } from "../PluginBase.js";
 import { getQueryVariable } from "../../js/util.js";
 import { readValuesWithDefault, updatePref } from "../../js/pref.js";
 import { _ } from "../../js/i18n.js";
 
-export class TouchDebugHUDPlugin {
+export class TouchDebugHUDPlugin extends PluginBase {
   static id = "touch_debug_hud";
   static name = "touch_debug_hud";
   static prefKey = "enableTouchDebugHUD";
   static group = "debug";
+  static icon = "debug";
 
-  static getMetadata() {
-    return {
-      id: "touch_debug_hud",
-      name: "touch_debug_hud",
-      title: _("plugin_touch_debug_hud_title"),
-      description: _("plugin_touch_debug_hud_desc"),
-      prefKey: "enableTouchDebugHUD",
-      icon: "debug",
-      group: "debug",
-    };
-  }
-
-  constructor(app, options = {}) {
-    this.app = app || null;
-    this.view = options.view || null;
-    this.buf = options.buf || null;
-    this.enabled = options.enabled ?? false;
-    this.component = null;
-
-    this._onChanged = (e) => {
-      const enabled = e?.enabled ?? e?.detail?.enabled;
-      if (typeof enabled === "boolean") {
-        this.enabled = enabled;
-      }
-    };
-    if (typeof window !== "undefined") {
-      window.addEventListener("term:touch-debug-changed", this._onChanged);
-    }
-  }
-
-  get id() {
-    return "touch_debug_hud";
-  }
-
-  get name() {
-    return "touch_debug_hud";
-  }
-
-  get prefKey() {
-    return "enableTouchDebugHUD";
-  }
-
-  get group() {
-    return "debug";
-  }
-
-  get title() {
+  static get title() {
     return _("plugin_touch_debug_hud_title");
   }
 
-  get description() {
+  static get description() {
     return _("plugin_touch_debug_hud_desc");
   }
 
-  get icon() {
-    return "debug";
+  constructor(app, options = {}) {
+    super(app, options);
+    this.component = null;
   }
 
-  getMetadata() {
-    return {
-      id: this.id,
-      name: this.name,
-      title: this.title,
-      description: this.description,
-      prefKey: this.prefKey,
-      enabled: this.enabled,
-      icon: this.icon,
-      group: this.group,
-    };
-  }
-
-  init({ app, view, buf } = {}) {
-    if (app) {
-      this.app = app;
-      this._onPrefChangeBound = (e) => {
-        const key = e?.key ?? e?.detail?.key;
-        const value = e?.value !== undefined ? e.value : e?.detail?.value;
-        if (key === "enableTouchDebugHUD") {
-          this.setEnabled(Boolean(value));
-        }
-      };
-      this._onToggleBound = () => this.toggle();
-      app.on("term:toggle-touch-debug", this._onToggleBound);
-      app.on("term:pref-change", this._onPrefChangeBound);
-      if (typeof window !== "undefined") {
-        window.addEventListener?.("term:toggle-touch-debug", this._onToggleBound);
-      }
+  onInit() {
+    this._onToggleBound = () => this.toggle();
+    this.listenApp("term:toggle-touch-debug", this._onToggleBound);
+    if (typeof window !== "undefined") {
+      this.listen(window, "term:toggle-touch-debug", this._onToggleBound);
     }
-    if (view) this.view = view;
-    if (buf) this.buf = buf;
-    this.syncFromPrefs();
   }
 
   syncFromPrefs() {
-    try {
-      const prefs = readValuesWithDefault();
-      const isDebugUrl = Boolean(getQueryVariable("debug"));
-      const isEnabled = Boolean(prefs?.enableTouchDebugHUD || isDebugUrl);
-      this.setEnabled(isEnabled);
-    } catch (e) {}
+    super.syncFromPrefs();
+    if (!this.enabled && this.options?.enabled === undefined) {
+      try {
+        if (Boolean(getQueryVariable("debug"))) {
+          this.enabled = true;
+        }
+      } catch {}
+    }
   }
 
-  setEnabled(enabled) {
-    const isEnabled = Boolean(enabled);
-    this.enabled = isEnabled;
-    this.app?.emit("term:overlay:update");
+  onEnable() {
+    this._notifyState(true);
+  }
+
+  onDisable() {
+    this._notifyState(false);
+  }
+
+  _notifyState(isEnabled) {
     this.app?.emit("term:touch-debug-changed", { enabled: isEnabled });
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("term:touch-debug-changed", {
-          detail: { enabled: isEnabled },
-        })
-      );
-    }
     if (this.component) {
-      this.component.setHudEnabled(isEnabled);
+      this.component.setHudEnabled(isEnabled, false);
     }
   }
 
   renderOverlay({ app } = {}) {
+    if (!this.enabled) return null;
     const targetApp = app || this.app;
     return React.createElement(TouchDebugHUD, { app: targetApp, plugin: this });
   }
@@ -142,24 +73,19 @@ export class TouchDebugHUDPlugin {
   }
 
   isActive() {
-    if (this.component && typeof this.component.state?.enabled === "boolean") {
-      return Boolean(this.component.state.enabled);
+    if (this.component) {
+      if (typeof this.component._enabled === "boolean") {
+        return Boolean(this.component._enabled);
+      }
+      if (typeof this.component.state?.enabled === "boolean") {
+        return Boolean(this.component.state.enabled);
+      }
     }
     return this.enabled;
   }
 
-  destroy() {
-    this.setEnabled(false);
-    if (this.app) {
-      this.app.off("term:toggle-touch-debug", this._onToggleBound);
-      this.app.off("term:pref-change", this._onPrefChangeBound);
-    }
-    if (typeof window !== "undefined") {
-      window.removeEventListener?.("term:toggle-touch-debug", this._onToggleBound);
-      if (this._onChanged) {
-        window.removeEventListener("term:touch-debug-changed", this._onChanged);
-      }
-    }
+  onDestroy() {
+    this.component = null;
   }
 }
 
@@ -172,9 +98,12 @@ export class TouchDebugHUD extends React.Component {
   constructor(props) {
     super(props);
     const isDebugUrl = Boolean(getQueryVariable("debug"));
-    const prefs = readValuesWithDefault();
-    const isEnabled = Boolean(prefs?.enableTouchDebugHUD || isDebugUrl);
+    const prefs = props.app?.prefValues || readValuesWithDefault();
+    const isEnabled = props.plugin
+      ? Boolean(props.plugin.enabled)
+      : Boolean(prefs?.enableTouchDebugHUD || isDebugUrl);
 
+    this._enabled = isEnabled;
     this.state = {
       enabled: isEnabled,
       collapsed: true,
@@ -183,6 +112,7 @@ export class TouchDebugHUD extends React.Component {
       now: Date.now(),
     };
     this.eventListeners = [];
+    this.copyTimer = null;
   }
 
   getPlugin() {
@@ -190,11 +120,12 @@ export class TouchDebugHUD extends React.Component {
   }
 
   componentDidMount() {
+    const isEnabled = this._enabled !== undefined ? this._enabled : Boolean(this.state?.enabled);
     const plugin = this.getPlugin();
     if (plugin) {
       plugin.component = this;
-      if (plugin.enabled !== this.state.enabled) {
-        this.setHudEnabled(plugin.enabled);
+      if (plugin.enabled !== isEnabled) {
+        this.setHudEnabled(plugin.enabled, false);
       }
     }
 
@@ -205,16 +136,19 @@ export class TouchDebugHUD extends React.Component {
       window.addEventListener("term:toggle-touch-debug", this.handleToggleEvent);
     }
 
-    if (this.state.enabled) {
+    if (isEnabled) {
       this.startTimer();
       this.attachListeners();
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent("term:touch-debug-changed", {
-            detail: { enabled: true },
-          })
-        );
-      }
+    }
+    if (!plugin && this.props.app?.on) {
+      this.prefListener = (e) => {
+        const key = e?.key ?? e?.detail?.key;
+        const value = e?.value !== undefined ? e.value : e?.detail?.value;
+        if (key === "enableTouchDebugHUD") {
+          this.setHudEnabled(Boolean(value), false);
+        }
+      };
+      this.props.app.on("term:pref-change", this.prefListener);
     }
   }
 
@@ -224,15 +158,24 @@ export class TouchDebugHUD extends React.Component {
         prevProps.app.unregisterDebugHandler("touch", this._onDebugTouch);
         this._onDebugTouch = null;
       }
-      if (this.state.enabled) {
-        const app = this.props.app || (typeof window !== "undefined" ? window.app : null);
-        if (app?.registerDebugHandler) {
-          this._onDebugTouch = (event) => {
-            const msg = typeof event === "string" ? event : (event?.message || String(event));
-            this.addEventLog(`[APP] ${msg}`);
-          };
-          app.registerDebugHandler("touch", this._onDebugTouch);
-        }
+      if (this.prefListener && prevProps.app?.off) {
+        prevProps.app.off("term:pref-change", this.prefListener);
+        this.prefListener = null;
+      }
+      const plugin = this.getPlugin?.();
+      if (!plugin && this.props.app?.on) {
+        this.prefListener = (e) => {
+          const key = e?.key ?? e?.detail?.key;
+          const value = e?.value !== undefined ? e.value : e?.detail?.value;
+          if (key === "enableTouchDebugHUD") {
+            this.setHudEnabled(Boolean(value), false);
+          }
+        };
+        this.props.app.on("term:pref-change", this.prefListener);
+      }
+      const isEnabled = this._enabled !== undefined ? this._enabled : Boolean(this.state?.enabled);
+      if (isEnabled) {
+        this.attachListeners();
       }
     }
   }
@@ -242,17 +185,22 @@ export class TouchDebugHUD extends React.Component {
     if (plugin && plugin.component === this) {
       plugin.component = null;
     }
-
+    if (this.copyTimer) {
+      clearTimeout(this.copyTimer);
+      this.copyTimer = null;
+    }
     this.stopTimer();
     this.detachListeners();
-    if (typeof window !== "undefined") {
-      if (this.handleToggleEvent) {
-        window.removeEventListener(
-          "term:toggle-touch-debug",
-          this.handleToggleEvent
-        );
-        this.handleToggleEvent = null;
-      }
+    if (typeof window !== "undefined" && this.handleToggleEvent) {
+      window.removeEventListener(
+        "term:toggle-touch-debug",
+        this.handleToggleEvent
+      );
+      this.handleToggleEvent = null;
+    }
+    if (this.prefListener && this.props.app?.off) {
+      this.props.app.off("term:pref-change", this.prefListener);
+      this.prefListener = null;
     }
   }
 
@@ -270,9 +218,11 @@ export class TouchDebugHUD extends React.Component {
     }
   }
 
-  setHudEnabled(enabled) {
+  setHudEnabled(enabled, persist = true) {
     const isEnabled = Boolean(enabled);
-    if (this.state.enabled === isEnabled) return;
+    const currentEnabled = this._enabled !== undefined ? this._enabled : Boolean(this.state?.enabled);
+    if (currentEnabled === isEnabled) return;
+    this._enabled = isEnabled;
 
     this.setState({
       enabled: isEnabled,
@@ -288,9 +238,15 @@ export class TouchDebugHUD extends React.Component {
 
     const plugin = this.getPlugin();
     if (plugin) {
-      plugin.enabled = isEnabled;
+      if (plugin.enabled !== isEnabled) {
+        plugin.setEnabled(isEnabled, persist);
+      }
+      return;
     }
-    updatePref("enableTouchDebugHUD", isEnabled);
+
+    if (persist) {
+      updatePref("enableTouchDebugHUD", isEnabled);
+    }
 
     if (typeof window !== "undefined") {
       window.dispatchEvent(
@@ -302,13 +258,15 @@ export class TouchDebugHUD extends React.Component {
   }
 
   toggleHud() {
-    const nextState = !this.state.enabled;
+    const currentEnabled = this._enabled !== undefined ? this._enabled : Boolean(this.state?.enabled);
+    const nextState = !currentEnabled;
     this.setHudEnabled(nextState);
     return nextState;
   }
 
   attachListeners() {
     if (typeof window === "undefined") return;
+    this.detachListeners();
 
     // Register debug event handler on App
     const app = this.props.app || (typeof window !== "undefined" ? window.app : null);
@@ -438,10 +396,18 @@ export class TouchDebugHUD extends React.Component {
       "====================================================",
     ].join("\n");
 
+    const setCopiedFeedback = () => {
+      this.setState({ copied: true });
+      if (this.copyTimer) clearTimeout(this.copyTimer);
+      this.copyTimer = setTimeout(() => {
+        this.copyTimer = null;
+        this.setState({ copied: false });
+      }, 2000);
+    };
+
     if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(report).then(() => {
-        this.setState({ copied: true });
-        setTimeout(() => this.setState({ copied: false }), 2000);
+        setCopiedFeedback();
       });
     } else {
       const textarea = document.createElement("textarea");
@@ -450,8 +416,7 @@ export class TouchDebugHUD extends React.Component {
       textarea.select();
       document.execCommand("copy");
       document.body.removeChild(textarea);
-      this.setState({ copied: true });
-      setTimeout(() => this.setState({ copied: false }), 2000);
+      setCopiedFeedback();
     }
   };
 
@@ -510,6 +475,7 @@ export class TouchDebugHUD extends React.Component {
       return h(
         "div",
         {
+          className: "nomouse_command",
           style: {
             position: "fixed",
             top: "8px",
@@ -534,6 +500,7 @@ export class TouchDebugHUD extends React.Component {
     return h(
       "div",
       {
+        className: "nomouse_command",
         style: {
           position: "fixed",
           top: "8px",
