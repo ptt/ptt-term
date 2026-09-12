@@ -44,17 +44,7 @@ export class TermView extends EventEmitter {
 
   this.buf = null;
   this.app = null;
-  this.page = null;
 
-  // Cursor
-  this.cursorX = 0;
-  this.cursorY = 0;
-
-  this.curRow = 0;
-  this.curCol = 0;
-
-
-  //this.DBDetection = false;
   this.blinkOn = false;
 
   // React
@@ -70,7 +60,6 @@ export class TermView extends EventEmitter {
     clearSelection() {},
   };
 
-  this.selection = null;
   this.input = document.getElementById('t');
   this.cursor = document.getElementById('cursor');
   this.termWin = document.getElementById('TermWindow');
