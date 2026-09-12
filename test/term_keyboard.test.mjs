@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TermKeyboard } from '../src/js/term_keyboard.js';
+import { EventEmitter } from '../src/js/event.js';
 import { PttSite, BaseSite, Maple3Site, AutoSite } from '../src/js/sites/index.js';
 
 function createKeyboard({ isLeftDB = false, isCurDB = false, site = null } = {}) {
@@ -339,5 +340,39 @@ test('TermKeyboard bypasses Bopomofo pre-edit keys and delegates printable keys 
   assert.equal(sent[sent.length - 1], '\r');
   assert.equal(enterEvt.isDefaultPrevented, true);
 });
+
+test('TermView and TermBuf delegate sendKey to TermKeyboard for BaseSite DBCS cursor handling', () => {
+  const sent = [];
+  const kb = new TermKeyboard((data) => sent.push(data));
+  const maple3Site = new Maple3Site();
+
+  // Simulate TermView instance with _keyboard and TermBuf instance delegating sendKey to view
+  const mockView = {
+    _keyboard: kb,
+    checkLeftDBCS: () => true,
+    checkCurrentDBCS: () => false,
+    sendKey(key) {
+      return this._keyboard ? this._keyboard.sendKey(key) : false;
+    },
+  };
+  const mockBuf = Object.assign(new EventEmitter(), {
+    view: mockView,
+    checkLeftDBCS: () => true,
+    checkCurrentDBCS: () => false,
+    sendKey(key) {
+      return this.view ? this.view.sendKey(key) : false;
+    },
+  });
+
+  maple3Site.attach(mockBuf);
+  kb.addEventListener('term:key', (e) => {
+    const detail = e.detail;
+    mockBuf.emit('term:key', { ...detail, term: mockView, view: mockView, buf: mockBuf });
+  });
+
+  kb.onKeyDown(mockKeyEvent({ key: 'Backspace' }));
+  assert.equal(sent.join(''), '\b\b', 'Should send double Backspace via mockBuf.sendKey -> mockView.sendKey -> kb.sendKey');
+});
+
 
 

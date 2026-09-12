@@ -306,6 +306,10 @@ export class TermView extends EventEmitter {
     return this._keyboard;
   }
 
+  sendKey(key) {
+    return this._keyboard ? this._keyboard.sendKey(key) : false;
+  }
+
   triggerVisualBell() {
     const el = this.screenContainer || (typeof document !== 'undefined' ? document.getElementById('screenContainer') : null);
     if (!el || !el.classList) return;
