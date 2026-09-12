@@ -660,6 +660,8 @@ test('App checkClass handles string, SVGAnimatedString, null and undefined', () 
 
   assert.equal(checkClass('nomouse_command'), true);
   assert.equal(checkClass('some nomouse_command class'), true);
+  assert.equal(checkClass('packet-dump nomouse_command'), true);
+  assert.equal(checkClass('packet-dump'), false);
   assert.equal(checkClass('normal-class'), false);
   assert.equal(checkClass(null), false);
   assert.equal(checkClass(undefined), false);
@@ -1872,14 +1874,14 @@ test('PrefModal streamlines extensions UI and consolidates options', () => {
     'General tab must not contain enableMediaPreviewer (managed by media_previewer extension)'
   );
 
-  // 4. Obsolete connection log option is removed from Advanced tab
+  // 4. Obsolete packet dump option is removed from Advanced tab
   const advancedTabSection = prefModalSource.substring(
     prefModalSource.indexOf('navActiveKey === "advanced"'),
     prefModalSource.indexOf('navActiveKey === "about"')
   );
   assert.ok(
-    !advancedTabSection.includes('name="capturePacketDump"'),
-    'Advanced tab must not contain capturePacketDump (managed by packet_dump extension)'
+    !advancedTabSection.includes('name="enablePacketDump"'),
+    'Advanced tab must not contain enablePacketDump (managed by packet_dump extension)'
   );
 });
 

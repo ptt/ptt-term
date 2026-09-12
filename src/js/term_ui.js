@@ -18,9 +18,6 @@ export class ColorState {
   }
 }
 
-/**
- * @deprecated
- */
 export function renderRowHtml(chars, row, forceWidth, enableLinkInlinePreview, cont) {
   let instance = null;
   render(

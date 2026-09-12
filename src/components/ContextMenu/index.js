@@ -223,7 +223,9 @@ export class ContextMenu extends React.Component {
 
     this.touchStartHandler = (event) => {
       if (!this.isInstanceActive()) {
-        window.removeEventListener("touchstart", this.touchStartHandler, false);
+        window.removeEventListener("touchstart", this.touchStartHandler, {
+          passive: true,
+        });
         return;
       }
       if (
@@ -239,7 +241,9 @@ export class ContextMenu extends React.Component {
       }
       this.handleHide();
     };
-    window.addEventListener("touchstart", this.touchStartHandler, false);
+    window.addEventListener("touchstart", this.touchStartHandler, {
+      passive: true,
+    });
 
     this.hotKeyUpHandler = (event) => {
       if (!this.isInstanceActive()) {
@@ -261,6 +265,43 @@ export class ContextMenu extends React.Component {
       }
     };
     window.addEventListener("keyup", this.hotKeyUpHandler, false);
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.app !== this.props.app) {
+      if (prevProps.app) {
+        if (prevProps.app.openContextMenu) {
+          prevProps.app.openContextMenu = null;
+        }
+        if (this._onFloatingMenuToggle) {
+          prevProps.app.off("ui:floating-menu-toggle", this._onFloatingMenuToggle);
+        }
+        if (this._onContextMenuUpdate) {
+          prevProps.app.off("term:context-menu:update", this._onContextMenuUpdate);
+        }
+      }
+      const { app } = this.props;
+      if (app) {
+        app.openContextMenu = (x, y) => {
+          if (!this.isInstanceActive()) return;
+          this.showMenuAt(x, y);
+        };
+        if (!this._onFloatingMenuToggle) {
+          this._onFloatingMenuToggle = ({ event, targetEl } = {}) => {
+            this.handleFloatingMenuToggle(event, targetEl);
+          };
+        }
+        app.on("ui:floating-menu-toggle", this._onFloatingMenuToggle);
+        if (!this._onContextMenuUpdate) {
+          this._onContextMenuUpdate = () => {
+            if (this.isInstanceActive()) {
+              this.forceUpdate();
+            }
+          };
+        }
+        app.on("term:context-menu:update", this._onContextMenuUpdate);
+      }
+    }
   }
 
   componentWillUnmount() {
@@ -286,7 +327,9 @@ export class ContextMenu extends React.Component {
       passive: true,
     });
     window.removeEventListener("keyup", this.hotKeyUpHandler, false);
-    window.removeEventListener("touchstart", this.touchStartHandler, false);
+    window.removeEventListener("touchstart", this.touchStartHandler, {
+      passive: true,
+    });
     window.removeEventListener("click", this.clickHandler, false);
     const termWindow = document.getElementById("TermWindow");
     if (termWindow) {
@@ -393,6 +436,10 @@ export class ContextMenu extends React.Component {
       return;
     }
     const { app } = this.props;
+    const anyModalShown = Boolean(this.state.showsSettings || app?.modalShown);
+    if (anyModalShown) {
+      return;
+    }
     if (app && app.rightClickAction === "paste" && !event.shiftKey) {
       app.doPaste();
       return;
@@ -576,11 +623,10 @@ export class ContextMenu extends React.Component {
         },
       });
     }
-    pluginItems.sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
 
     return (
       <React.Fragment>
-        <div className={cx({ open })}>
+        <div className={cx({ open: open && !anyModalShown })}>
           <DropdownMenu
             open={open}
             pageX={pageX}

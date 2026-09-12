@@ -82,6 +82,8 @@ export {
   TouchUIPlugin,
 };
 
+export { PluginBase } from './PluginBase.js';
+
 export const PLUGIN_GROUPS = [
   {
     id: 'ui',
@@ -109,7 +111,6 @@ export const PLUGIN_GROUPS = [
 export const PLUGIN_GROUP_MAP = {
   virtual_keyboard: 'ui',
   touch_keyboard: 'ui',
-  touch_ui: 'ui',
   media_previewer: 'ui',
   input_helper: 'ui',
   pwa_prompt: 'ui',
@@ -203,27 +204,9 @@ export function getAvailablePlugins(app) {
   }
   if (list.length === 0) {
     list = BUILTIN_PLUGINS.map((PluginClass) => {
-      let meta;
-      if (PluginClass.getMetadata) {
-        meta = { ...PluginClass.getMetadata() };
-        if (PluginClass.renderOptions && !meta.renderOptions) {
-          meta.renderOptions = PluginClass.renderOptions;
-        }
-      } else {
-        const instance = new PluginClass();
-        meta = instance.getMetadata
-          ? { ...instance.getMetadata() }
-          : {
-              id: PluginClass.name,
-              name: PluginClass.name,
-              title: PluginClass.name,
-              description: '',
-              prefKey: PluginClass.prefKey,
-              icon: 'extension',
-            };
-        if ((PluginClass.renderOptions || instance.renderOptions) && !meta.renderOptions) {
-          meta.renderOptions = PluginClass.renderOptions || instance.renderOptions.bind(instance);
-        }
+      const meta = { ...PluginClass.getMetadata() };
+      if (PluginClass.renderOptions && !meta.renderOptions) {
+        meta.renderOptions = PluginClass.renderOptions;
       }
       return meta;
     });

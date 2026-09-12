@@ -155,7 +155,7 @@ export class TelnetFilter extends EventEmitter {
           this.iac_sb = [];
           break;
         case NOP: {
-          const payload = { cmd: 'NOP', opt: null };
+          const payload = { cmd: 'NOP', opt: null, detail: { cmd: 'NOP', opt: null } };
           this.emit('nop');
           this.emit('telopt', payload);
           s?.emit?.('telopt', payload);
@@ -173,7 +173,7 @@ export class TelnetFilter extends EventEmitter {
         break;
 
       case STATE_WILL: {
-        const payload = { cmd: 'WILL', opt: b };
+        const payload = { cmd: 'WILL', opt: b, detail: { cmd: 'WILL', opt: b } };
         this.emit('telopt', payload);
         s?.emit?.('telopt', payload);
         switch (b) {
@@ -194,7 +194,7 @@ export class TelnetFilter extends EventEmitter {
       }
 
       case STATE_DO: {
-        const payload = { cmd: 'DO', opt: b };
+        const payload = { cmd: 'DO', opt: b, detail: { cmd: 'DO', opt: b } };
         this.emit('telopt', payload);
         s?.emit?.('telopt', payload);
         switch (b) {
@@ -218,7 +218,7 @@ export class TelnetFilter extends EventEmitter {
       }
 
       case STATE_DONT: {
-        const payload = { cmd: 'DONT', opt: b };
+        const payload = { cmd: 'DONT', opt: b, detail: { cmd: 'DONT', opt: b } };
         this.emit('telopt', payload);
         s?.emit?.('telopt', payload);
         this.state = STATE_DATA;
@@ -226,7 +226,7 @@ export class TelnetFilter extends EventEmitter {
       }
 
       case STATE_WONT: {
-        const payload = { cmd: 'WONT', opt: b };
+        const payload = { cmd: 'WONT', opt: b, detail: { cmd: 'WONT', opt: b } };
         this.emit('telopt', payload);
         s?.emit?.('telopt', payload);
         this.state = STATE_DATA;

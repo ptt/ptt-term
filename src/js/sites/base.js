@@ -72,8 +72,10 @@ export class BaseSite extends EventEmitter {
       this._connectListener = () => this.resetLoginPrompt();
       this._disconnectListener = () => this.resetLoginPrompt();
       term.on('term:key', this._keyListener);
-      term.on('term:connect', this._connectListener);
-      term.on('term:disconnect', this._disconnectListener);
+      const connTarget = term.app || term;
+      this._attachedConnTarget = connTarget;
+      connTarget.on('term:connect', this._connectListener);
+      connTarget.on('term:disconnect', this._disconnectListener);
     }
   }
 
@@ -83,10 +85,13 @@ export class BaseSite extends EventEmitter {
   detach() {
     if (this._attachedTerm) {
       if (this._keyListener) this._attachedTerm.off('term:key', this._keyListener);
-      if (this._connectListener) this._attachedTerm.off('term:connect', this._connectListener);
-      if (this._disconnectListener) this._attachedTerm.off('term:disconnect', this._disconnectListener);
+    }
+    if (this._attachedConnTarget) {
+      if (this._connectListener) this._attachedConnTarget.off('term:connect', this._connectListener);
+      if (this._disconnectListener) this._attachedConnTarget.off('term:disconnect', this._disconnectListener);
     }
     this._attachedTerm = null;
+    this._attachedConnTarget = null;
     this._keyListener = null;
     this._connectListener = null;
     this._disconnectListener = null;
@@ -722,8 +727,9 @@ export class BaseSite extends EventEmitter {
 
     if (target && target !== this) {
       target.emit('term:login-prompt', detail);
+    } else {
+      this.emit('term:login-prompt', detail);
     }
-    this.emit('term:login-prompt', detail);
   }
 
   /**

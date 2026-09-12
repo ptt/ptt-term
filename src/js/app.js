@@ -7,7 +7,7 @@ import { TermBuf } from './term_buf';
 import { TelnetConnection, TelnetFilter } from './telnet';
 import { Stream } from './stream';
 import { Websocket } from './websocket';
-import { BUILTIN_PLUGINS } from '../plugins/index.js';
+import { BUILTIN_PLUGINS, PluginBase } from '../plugins/index.js';
 import { TouchController } from '../touch/TouchController.js';
 import { _, setupI18n } from './i18n';
 import { unescapeStr } from './string_util';
@@ -30,7 +30,7 @@ export class App extends EventEmitter {
   constructor() {
     super();
 
-  this._useMouseBrowsing = true;
+  this._useMouseBrowsing = false;
   this.preventContextMenuOnMouseUp = false;
   this.skipMouseClick = false;
 
@@ -83,7 +83,6 @@ export class App extends EventEmitter {
   this.overlays = [];
   this.contextMenuItems = [];
   this.on('term:anti-idle', () => this.sendAntiIdle());
-  this.initPlugins(BUILTIN_PLUGINS);
   this.suppressWheelUntil = 0;
   this.suppressWheelContinuous = false;
   this.suppressWheelStartedAt = 0;
@@ -177,7 +176,14 @@ export class App extends EventEmitter {
   this.dblclickTimer=null;
   this.mbTimer=null;
   this.timerEverySec=null;
-  this.prefValues = null;
+  try {
+    this.prefValues = readValuesWithDefault();
+  } catch {
+    this.prefValues = null;
+  }
+  if (this.prefValues && this.buf?.locator) {
+    this.buf.locator.enabled = this.prefValues.supportMouseReporting ?? true;
+  }
   this.onWindowResize();
   this.setupOverlay();
   this.contextMenuShown = false;
@@ -197,25 +203,15 @@ export class App extends EventEmitter {
     this.inputArea.removeAttribute('inputmode');
     this.inputArea.removeAttribute('virtualkeyboardpolicy');
   }
+
+  this.initPlugins(BUILTIN_PLUGINS);
   }
 
   registerPlugin(plugin) {
     if (!plugin || this.plugins.includes(plugin)) return;
     this.plugins.push(plugin);
-    if (plugin.init) {
-      plugin.init({ app: this, core: this, view: this.view, buf: this.buf });
-    }
-    if (plugin.getContextMenuItems) {
-      const items = plugin.getContextMenuItems();
-      if (Array.isArray(items)) {
-        for (const item of items) {
-          this.registerContextMenuItem(item);
-        }
-      }
-    } else if (Array.isArray(plugin.contextMenuItems)) {
-      for (const item of plugin.contextMenuItems) {
-        this.registerContextMenuItem(item);
-      }
+    if (typeof plugin.init === 'function') {
+      plugin.init({ app: this, view: this.view, buf: this.buf });
     }
   }
 
@@ -223,23 +219,6 @@ export class App extends EventEmitter {
     const idx = this.plugins.indexOf(plugin);
     if (idx !== -1) {
       this.plugins.splice(idx, 1);
-      if (plugin.getContextMenuItems) {
-        const items = plugin.getContextMenuItems();
-        if (Array.isArray(items)) {
-          for (const item of items) {
-            this.unregisterContextMenuItem(item.id);
-          }
-        }
-      } else if (Array.isArray(plugin.contextMenuItems)) {
-        for (const item of plugin.contextMenuItems) {
-          this.unregisterContextMenuItem(item.id);
-        }
-      } else if (plugin.id) {
-        this.unregisterContextMenuItem(plugin.id);
-      }
-      if (plugin.id) {
-        this.unregisterOverlay(plugin.id);
-      }
       plugin.destroy?.();
     }
   }
@@ -331,52 +310,52 @@ export class App extends EventEmitter {
 
   getPluginList() {
     return this.plugins.map((p) => {
-      let meta;
-      if (p.getMetadata) {
-        meta = p.getMetadata();
-      } else {
-        meta = {
-          id: p.id || p.name || p.constructor?.name,
-          name: p.name || p.constructor?.name,
-          title: p.title || p.name,
-          description: p.description || '',
-          prefKey: p.prefKey,
-          enabled: p.enabled,
-          icon: p.icon || 'extension',
-          group: p.group || p.constructor?.group,
-        };
-      }
+      const meta = p.getMetadata
+        ? { ...p.getMetadata() }
+        : {
+            id: p.id || p.name || p.constructor?.name,
+            name: p.name || p.constructor?.name,
+            title: p.title || p.name,
+            description: p.description || '',
+            prefKey: p.prefKey,
+            enabled: p.enabled,
+            icon: p.icon || 'extension',
+            group: p.group || p.constructor?.group,
+          };
       if (!meta.group) {
         meta.group = p.group || p.constructor?.group;
       }
-      if ((p.renderOptions || p.constructor?.renderOptions) && !meta.renderOptions) {
-        meta.renderOptions = (p.renderOptions || p.constructor?.renderOptions).bind(p);
+      const hasCustomRenderOptions =
+        typeof p.constructor?.renderOptions === 'function' ||
+        (typeof p.renderOptions === 'function' &&
+          p.renderOptions !== PluginBase.prototype.renderOptions);
+      if (hasCustomRenderOptions && !meta.renderOptions) {
+        meta.renderOptions = (p.constructor?.renderOptions || p.renderOptions).bind(p);
       }
       return meta;
     });
   }
 
-  dispatchScreenUpdate(changedLineHtmlStrs) {
-    for (const plugin of this.plugins) {
-      if (plugin.onScreenUpdate?.(changedLineHtmlStrs)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  dispatchFontUpdate(fontInfo) {
-    for (const plugin of this.plugins) {
-      plugin.onFontUpdate?.(fontInfo);
-    }
-  }
-
   get useMouseBrowsing() {
-    return this._useMouseBrowsing ?? true;
+    return Boolean(this._useMouseBrowsing);
   }
 
   set useMouseBrowsing(val) {
     this._useMouseBrowsing = Boolean(val);
+  }
+
+  setSupportMouseReporting(enabled, persist = true) {
+    const val = Boolean(enabled);
+    if (this.buf?.locator) {
+      this.buf.locator.enabled = val;
+    }
+    if (this.prefValues) {
+      this.prefValues.supportMouseReporting = val;
+    }
+    if (persist) {
+      updatePref('supportMouseReporting', val);
+    }
+    return val;
   }
 
   dispatchNavCmd(cmd) {
@@ -456,9 +435,6 @@ export class App extends EventEmitter {
   _setupWebsocketConn(url) {
     const wsConn = new Websocket(url);
     this.emit('term:socket', { socket: wsConn, detail: { socket: wsConn } });
-    for (const plugin of this.plugins) {
-      plugin.onAttachSocket?.(wsConn);
-    }
     this._attachConn(wsConn);
   }
 
@@ -504,6 +480,9 @@ export class App extends EventEmitter {
     this.updateTabIcon('connect');
     this.view.buf.setTitle({conn: this.connectedUrl.hostname});
     this.emit('term:connect');
+    if (this.timerEverySec) {
+      this.timerEverySec.cancel();
+    }
     this.timerEverySec = setTimer(true, () => {
       this.emit('term:tick', { intervalMs: 1000, detail: { intervalMs: 1000 } });
       this.view.onBlink();
@@ -524,6 +503,7 @@ export class App extends EventEmitter {
     console.info("app onClose");
     if (this.timerEverySec) {
       this.timerEverySec.cancel();
+      this.timerEverySec = null;
     }
     this.conn.isConnected = false;
     this.site?.resetLoginPrompt?.();
@@ -929,12 +909,11 @@ export class App extends EventEmitter {
 
   switchMouseBrowsing() {
     this.useMouseBrowsing = !this.useMouseBrowsing;
-    updatePref('useMouseBrowsing', this.useMouseBrowsing);
-    this.emit('term:pref-change', {
-      key: 'useMouseBrowsing',
-      value: this.useMouseBrowsing,
-      detail: { key: 'useMouseBrowsing', value: this.useMouseBrowsing },
-    });
+    if (this.prefValues) {
+      this.prefValues.enableMouseBrowsing = this.useMouseBrowsing;
+    }
+    updatePref('enableMouseBrowsing', this.useMouseBrowsing);
+    this.onPrefChange('enableMouseBrowsing', this.useMouseBrowsing);
     return this.useMouseBrowsing;
   }
 
@@ -954,12 +933,12 @@ export class App extends EventEmitter {
 
   const link = document.querySelector("link[rel~='icon']");
   if (!link) {
-    const newLink = document.createElement("link");
-    newLink.setAttribute("rel", "icon");
-    newLink.setAttribute("href", icon);
+    const newLink = document.createElement('link');
+    newLink.setAttribute('rel', 'icon');
+    newLink.setAttribute('href', icon);
     document.head.appendChild(newLink);
   } else {
-    link.setAttribute("href", icon);
+    link.setAttribute('href', icon);
   }
   }
 
@@ -1010,23 +989,27 @@ export class App extends EventEmitter {
   return {col: col, row: row};
   }
 
-  onMouse_click(e) {
+  onMouse_click(e, force = false) {
     if (!this.conn || !this.conn.isConnected)
       return;
 
+    if (force && e && typeof e === 'object') {
+      e.forceMouseBrowsing = true;
+    }
     this.emit('term:click', { event: e, detail: { event: e } });
     this.dispatchMouseClick(e);
   }
 
-  onMouse_move(cX, cY) {
+  onMouse_move(cX, cY, refresh = false, force = false) {
     const pos = this.clientToPos(cX, cY);
     this.emit('term:mouse-move', {
       col: pos.col,
       row: pos.row,
       clientX: cX,
       clientY: cY,
-      refresh: false,
-      detail: { col: pos.col, row: pos.row, clientX: cX, clientY: cY, refresh: false }
+      refresh,
+      force,
+      detail: { col: pos.col, row: pos.row, clientX: cX, clientY: cY, refresh, force }
     });
   }
 
@@ -1149,26 +1132,8 @@ export class App extends EventEmitter {
       this.emit('term:i18n:change', { lang: value, detail: { lang: value } });
       this.emit('term:overlay:update');
       break;
-    case 'useMouseBrowsing': {
-      const useMouseBrowsing = !!value;
-      this.useMouseBrowsing = useMouseBrowsing;
-      if (!useMouseBrowsing) {
-        if (this.buf?.termWin) this.buf.termWin.style.cursor = 'auto';
-        this.buf?.clearHighlight?.();
-      }
-      this.view.redraw(true);
-      this.view.updateCursorPos();
-      break;
-    }
-    case 'mouseBrowsingHighlight':
-      this.buf.highlightCursor = value;
-      this.view.redraw(true);
-      this.view.updateCursorPos();
-      break;
-    case 'mouseBrowsingHighlightColor':
-      this.view.highlightBG = value;
-      this.view.updateHighlightColor();
-      this.view.updateCursorPos();
+    case 'enableMouseBrowsing':
+      this.useMouseBrowsing = !!value;
       break;
     case 'mouseLeftFunction':
       this.view.leftButtonFunction = value;
@@ -1269,9 +1234,6 @@ export class App extends EventEmitter {
     case 'dbcsDetect':
       this.view.dbcsDetect = value;
       break;
-    case 'lineWrap':
-    case 'enableAutoWrap':
-      break;
     case 'fontFace': {
       let fontFace = value;
       if (!fontFace) 
@@ -1292,15 +1254,12 @@ export class App extends EventEmitter {
       this.view.useCanvasEngine = !!value;
       this.view.redraw(true);
       break;
-    case 'smoothAnsi':
     case 'smoothAnsiArt':
       this.view.smoothAnsiArt = !!value;
       this.view.redraw(true);
       break;
     case 'supportMouseReporting':
-      if (this.buf?.locator) {
-        this.buf.locator.enabled = !!value;
-      }
+      this.setSupportMouseReporting(!!value, false);
       break;
 
     default:
@@ -1330,6 +1289,12 @@ export class App extends EventEmitter {
         return true;
       }
     }
+    if (e.target.className && this.checkClass(e.target.className)) {
+      return true;
+    }
+    if (e.target.tagName && String(e.target.tagName).toLowerCase().indexOf('menuitem') >= 0) {
+      return true;
+    }
     return false;
   }
 
@@ -1356,48 +1321,33 @@ export class App extends EventEmitter {
       }
       return;
     }
-    if (this.isSelectionCollapsed() && !skipMouseClick) { //no anything be select
+    if (this.isSelectionCollapsed()) { //no anything be select
       const forceFocus = Boolean(this.view?.useCanvasEngine);
-      if (this.site.handlePassScreenClick(this.buf, this.conn)) {
+      if (!skipMouseClick && this.site.handlePassScreenClick(this.buf, this.conn)) {
         e.preventDefault();
         this.setInputAreaFocus(forceFocus);
         return;
       }
-      if (this.useMouseBrowsing) {
-        let doMouseCommand = true;
-        if (e.target.className)
-          if (this.checkClass(e.target.className))
-            doMouseCommand = false;
-        if (e.target.tagName)
-          if(e.target.tagName.indexOf("menuitem") >= 0 )
-            doMouseCommand = false;
-        if (skipMouseClick) {
-          doMouseCommand = false;
-          const pos = this.clientToPos(e.clientX, e.clientY);
-          this.emit('term:mouse-move', {
-            col: pos.col,
-            row: pos.row,
-            clientX: e.clientX,
-            clientY: e.clientY,
-            refresh: true,
-            detail: { col: pos.col, row: pos.row, clientX: e.clientX, clientY: e.clientY, refresh: true }
-          });
-        }
-        if (doMouseCommand) {
-          this.onMouse_click(e);
-          this.setDblclickTimer();
-          e.preventDefault();
-          this.setInputAreaFocus(forceFocus);
-        }
-      } else if (this.buf?.locator?.isActive?.()) {
+      if (!skipMouseClick && this.buf?.locator?.isActive?.()) {
         const pos = this.clientToPos(e.clientX, e.clientY);
         const report = this.buf.locator.handleMouseClick(e, pos);
         if (report) {
           this.send(report);
           e.preventDefault();
           this.setInputAreaFocus(forceFocus);
+          return;
         }
-      } else if (this.view.leftButtonFunction) {
+      }
+      if (this.useMouseBrowsing) {
+        if (skipMouseClick) {
+          this.onMouse_move(e.clientX, e.clientY, true);
+        } else {
+          this.onMouse_click(e);
+          this.setDblclickTimer();
+          e.preventDefault();
+          this.setInputAreaFocus(forceFocus);
+        }
+      } else if (!skipMouseClick && this.view.leftButtonFunction) {
         if (this.view.leftButtonFunction == 1) {
           this.setNavCmd('doEnter');
           e.preventDefault();
@@ -1485,19 +1435,14 @@ export class App extends EventEmitter {
         this.onMouse_move(e.clientX, e.clientY);
 
       this.setInputAreaFocus(forceFocus);
-      let preventDefault = true;
-      if (e.target.className)
-        if (this.checkClass(e.target.className))
-          preventDefault = false;
-      if (e.target.tagName)
-        if (e.target.tagName.indexOf("menuitem") >= 0 )
-          preventDefault = false;
-      if (preventDefault)
-        e.preventDefault();
+      e.preventDefault();
     } else { //something has be select
       if (this.copyOnSelect && (this.hasActiveInputInterceptor() || !this.view || !this.view.useCanvasEngine)) {
         this.doCopy(this.view ? this.view.getSelectedText() : (typeof window !== 'undefined' && window.getSelection ? window.getSelection().toString().replace(/\u00a0/g, " ") : ""));
       }
+    }
+    if (this.inputAreaFocusTimer) {
+      this.inputAreaFocusTimer.cancel();
     }
     this.inputAreaFocusTimer = setTimer(false, () => {
       if (this.inputAreaFocusTimer) {
@@ -1516,16 +1461,28 @@ export class App extends EventEmitter {
   }
 
   mouse_move(e) {
-  if (this.modalShown || this.contextMenuShown || this.isDialogOrExcludedTarget(e))
-    return;
-  if (this.useMouseBrowsing) {
-    if (this.isSelectionCollapsed()) {
-      if(!this.mouseLeftButtonDown)
-        this.onMouse_move(e.clientX, e.clientY);
-    } else
-      this.resetMouseCursor();
-  }
-
+    if (this.modalShown || this.contextMenuShown || this.isDialogOrExcludedTarget(e))
+      return;
+    if (this.buf?.locator?.isActive?.()) {
+      if (this.termWin?.style) {
+        this.termWin.style.cursor = 'default';
+      }
+      if (this.buf.locator.requiresMotionReports?.()) {
+        const pos = this.clientToPos(e.clientX, e.clientY);
+        const report = this.buf.locator.handleMouseMove(e, pos);
+        if (report) {
+          this.send(report);
+        }
+      }
+      return;
+    }
+    if (this.useMouseBrowsing) {
+      if (this.isSelectionCollapsed()) {
+        if (!this.mouseLeftButtonDown)
+          this.onMouse_move(e.clientX, e.clientY);
+      } else
+        this.resetMouseCursor();
+    }
   }
 
   mouse_over(e) {
@@ -1548,6 +1505,17 @@ export class App extends EventEmitter {
   mouse_scroll(e) {
     if (this.modalShown || this.isDialogOrExcludedTarget(e)) 
       return;
+
+    if (this.buf?.locator?.isActive?.()) {
+      const pos = this.clientToPos(e.clientX, e.clientY);
+      const report = this.buf.locator.handleWheel(e, pos);
+      if (report) {
+        this.send(report);
+        e.stopPropagation();
+        e.preventDefault();
+        return;
+      }
+    }
 
     const interceptorHandled = this.dispatchWheel(e);
     if (interceptorHandled === true) {

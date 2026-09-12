@@ -21,6 +21,10 @@ async function startApp() {
     });
   }
 
+  // TODO: Call onSymFont for font data when it's implemented.
+  console.log("load pref from storage");
+  app.onValuesPrefChange(app.prefValues || readValuesWithDefault());
+
   // connect.
   const allowOverride = process.env.ALLOW_OVERRIDE_FROM_QUERY;
   const siteUrl = (allowOverride && getQueryVariable('site'))
@@ -29,9 +33,6 @@ async function startApp() {
     || process.env.SITE_TYPE
     || 'auto';
   app.connect(siteUrl, siteType);
-  // TODO: Call onSymFont for font data when it's implemented.
-  console.log("load pref from storage");
-  app.onValuesPrefChange(readValuesWithDefault());
   document.getElementById('TermWindow').style.display = '';
   app.onWindowResize();
   app.setInputAreaFocus();

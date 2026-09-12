@@ -1,5 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import { Locator } from '../src/js/locator.js';
 import { AnsiParser } from '../src/js/ansi_parser.js';
 import { MouseBrowsing } from '../src/plugins/mouse_browsing/MouseBrowsing.js';
@@ -230,4 +232,105 @@ test('Preferences defaults supportMouseReporting to true', () => {
   const prefs = readValuesWithDefault();
   assert.equal(prefs.supportMouseReporting, true);
 });
+
+function extractAppMethod(appSrc, methodName) {
+  const startIdx = appSrc.indexOf(`  ${methodName}(`);
+  if (startIdx === -1) throw new Error(`Method ${methodName} not found`);
+  let depth = 0;
+  let bodyStart = -1;
+  for (let i = startIdx; i < appSrc.length; i++) {
+    if (appSrc[i] === '{') {
+      if (depth === 0) bodyStart = i + 1;
+      depth++;
+    } else if (appSrc[i] === '}') {
+      depth--;
+      if (depth === 0) {
+        const header = appSrc.slice(startIdx, bodyStart - 1);
+        const argsMatch = header.match(/\(([^)]*)\)/);
+        const args = argsMatch
+          ? argsMatch[1].split(',').map((s) => s.trim().split('=')[0].trim()).filter(Boolean)
+          : [];
+        const body = appSrc.slice(bodyStart, i);
+        return new Function(...args, body);
+      }
+    }
+  }
+  throw new Error(`Unbalanced braces for ${methodName}`);
+}
+
+test('App handles VT Mouse Reporting (Locator) click, move, and wheel when MouseBrowsing is disabled', () => {
+  const appSrc = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+  const mouse_click = extractAppMethod(appSrc, 'mouse_click');
+  const mouse_move = extractAppMethod(appSrc, 'mouse_move');
+  const mouse_scroll = extractAppMethod(appSrc, 'mouse_scroll');
+  const setSupportMouseReporting = extractAppMethod(appSrc, 'setSupportMouseReporting');
+
+  const buf = new MockTermBuf(80, 24);
+  buf.handleDECSET(1003); // any-event tracking
+  buf.handleDECSET(1006); // SGR mode
+
+  const sent = [];
+  const mockApp = {
+    modalShown: false,
+    contextMenuShown: false,
+    isDialogOrExcludedTarget: () => false,
+    isSelectionCollapsed: () => true,
+    useMouseBrowsing: false,
+    buf,
+    view: { useCanvasEngine: false },
+    site: {
+      handleCustomLink: () => false,
+      handlePassScreenClick: () => false,
+    },
+    termWin: { style: { cursor: 'pointer' } },
+    clientToPos: () => ({ col: 9, row: 4 }),
+    send: (str) => sent.push(str),
+    setInputAreaFocus: () => {},
+    dispatchWheel: () => false,
+    prefValues: { supportMouseReporting: true },
+  };
+
+  // 1. Click
+  let defaultPrevented = false;
+  mouse_click.call(mockApp, {
+    button: 0,
+    clientX: 100,
+    clientY: 50,
+    target: { closest: () => null },
+    preventDefault: () => { defaultPrevented = true; },
+  });
+  assert.equal(defaultPrevented, true);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0], '\x1b[<0;10;5M\x1b[<0;10;5m');
+
+  // 2. Move (with 1003 any-event mode)
+  mouse_move.call(mockApp, {
+    clientX: 100,
+    clientY: 50,
+  });
+  assert.equal(mockApp.termWin.style.cursor, 'default');
+  assert.equal(sent.length, 2);
+  assert.equal(sent[1], '\x1b[<32;10;5M');
+
+  // 3. Wheel
+  let wheelStopped = false;
+  let wheelPrevented = false;
+  mouse_scroll.call(mockApp, {
+    deltaY: -100,
+    clientX: 100,
+    clientY: 50,
+    stopPropagation: () => { wheelStopped = true; },
+    preventDefault: () => { wheelPrevented = true; },
+  });
+  assert.equal(wheelStopped, true);
+  assert.equal(wheelPrevented, true);
+  assert.equal(sent.length, 3);
+  assert.equal(sent[2], '\x1b[<64;10;5M');
+
+  // 4. setSupportMouseReporting
+  setSupportMouseReporting.call(mockApp, false, false);
+  assert.equal(buf.locator.enabled, false);
+  assert.equal(mockApp.prefValues.supportMouseReporting, false);
+});
+
 
