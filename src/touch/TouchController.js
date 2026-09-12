@@ -182,9 +182,11 @@ export class TouchController {
 
       if (this.panDirection === "list_scroll") {
         e.preventDefault();
-        this.highlightCopy = app.buf.highlightCursor;
+        if (this.highlightCopy === undefined) {
+          this.highlightCopy = app.buf.highlightCursor;
+        }
         app.buf.highlightCursor = true;
-        app.onMouse_move(e.clientX, e.clientY);
+        app.onMouse_move(e.clientX, e.clientY, false, true);
         this.touchedCenter.x = e.clientX;
         this.touchedCenter.y = e.clientY;
       } else if (this.panDirection === "select" && this.isSelecting) {
@@ -242,16 +244,23 @@ export class TouchController {
         if (
           this.panDirection === "list_scroll" &&
           site?.pageState === PAGE_STATE.LIST &&
-          app.buf &&
-          app.buf.highlightCursor &&
-          app.buf.nowHighlight !== -1
+          app.buf
         ) {
-          app.onMouse_click({
-            clientX: this.touchedCenter.x,
-            clientY: this.touchedCenter.y,
-          });
+          if (app.buf.highlightCursor && app.buf.nowHighlight !== -1) {
+            app.onMouse_click(
+              {
+                clientX: this.touchedCenter.x,
+                clientY: this.touchedCenter.y,
+              },
+              true
+            );
+          }
           app.buf.nowHighlight = -1;
-          app.buf.highlightCursor = this.highlightCopy;
+          app.view?.clearHighlight?.();
+          if (this.highlightCopy !== undefined) {
+            app.buf.highlightCursor = this.highlightCopy;
+            this.highlightCopy = undefined;
+          }
           if (target && target.style) target.style.cursor = "auto";
         }
       } else {
@@ -260,12 +269,21 @@ export class TouchController {
         if (app.view) {
           app.view.clearSelection();
         }
-        this.highlightCopy = app.buf.highlightCursor;
-        app.buf.highlightCursor = false;
-        app.onMouse_move(e.clientX, e.clientY);
-        app.onMouse_click(e);
-        app.buf.nowHighlight = -1;
-        app.buf.highlightCursor = this.highlightCopy;
+        const savedHighlight =
+          this.highlightCopy !== undefined
+            ? this.highlightCopy
+            : app.buf?.highlightCursor;
+        if (app.buf) {
+          app.buf.highlightCursor = false;
+        }
+        app.onMouse_move(e.clientX, e.clientY, false, true);
+        app.onMouse_click(e, true);
+        if (app.buf) {
+          app.buf.nowHighlight = -1;
+          app.buf.highlightCursor = savedHighlight;
+        }
+        app.view?.clearHighlight?.();
+        this.highlightCopy = undefined;
         if (target && target.style) target.style.cursor = "auto";
         console.debug("pointer tap (touch)");
       }
@@ -298,9 +316,13 @@ export class TouchController {
         app.view.clearSelection();
       }
 
-      if (app.buf && app.buf.highlightCursor) {
+      if (app.buf) {
         app.buf.nowHighlight = -1;
-        app.buf.highlightCursor = this.highlightCopy;
+        app.view?.clearHighlight?.();
+        if (this.highlightCopy !== undefined) {
+          app.buf.highlightCursor = this.highlightCopy;
+          this.highlightCopy = undefined;
+        }
         if (target && target.style) target.style.cursor = "auto";
       }
 
@@ -345,8 +367,6 @@ export class TouchController {
  * @param {number} [options.col80Right] Right boundary coordinate of column 80
  * @param {number} [options.cols] Current terminal columns (buf.cols)
  * @param {number} [options.colWidth] Width of one column in pixels
- * @param {number} [options.termWidth] Legacy fallback: terminal width
- * @param {number} [options.termRight] Legacy fallback: right edge of terminal
  * @param {boolean} [options.isCompactLandscape]
  * @param {number} [options.toolbarScale]
  * @returns {{ isStacked: boolean, stackedWidth: number, stackedHeight: number, toolbarScale: number, maxCols: number, drawableRight: number }}
@@ -359,8 +379,6 @@ export function computeToolbarLayout({
   col80Right,
   cols = 80,
   colWidth,
-  termWidth,
-  termRight,
   isCompactLandscape = false,
   toolbarScale = 1.0,
 }) {
@@ -383,9 +401,7 @@ export function computeToolbarLayout({
   let effectiveCol80Right = col80Right;
 
   if (effectiveDrawableRight == null) {
-    if (termRight != null) {
-      effectiveDrawableRight = termRight;
-    } else if (colWidth != null && cols != null && cols > 80) {
+    if (colWidth != null && cols != null && cols > 80) {
       effectiveDrawableRight = cols * colWidth;
     } else {
       effectiveDrawableRight = viewportWidth;
@@ -395,9 +411,6 @@ export function computeToolbarLayout({
   if (effectiveCol80Right == null) {
     if (colWidth != null && cols != null && cols > 80) {
       effectiveCol80Right = 80 * colWidth;
-    } else if (termWidth != null && cols != null && cols > 80) {
-      const estColWidth = termWidth / cols;
-      effectiveCol80Right = effectiveDrawableRight - (cols - 80) * estColWidth;
     }
   }
 

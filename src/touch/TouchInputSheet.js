@@ -23,6 +23,10 @@ export class TouchInputSheet extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
+    if (prevProps.app !== this.props.app) {
+      this.unregisterInterceptor(prevProps.app);
+      this.registerInterceptor(this.props.app);
+    }
     if (!prevProps.open && this.props.open) {
       this.focusTextarea();
     }
@@ -38,8 +42,8 @@ export class TouchInputSheet extends React.Component {
     }
   }
 
-  registerInterceptor = () => {
-    const inputInterceptors = this.props.app?.inputInterceptors;
+  registerInterceptor = (targetApp = this.props.app) => {
+    const inputInterceptors = targetApp?.inputInterceptors;
     if (inputInterceptors) {
       this.handleKeyDownBound = (e) => {
         if (!this.props.open) return;
@@ -60,8 +64,8 @@ export class TouchInputSheet extends React.Component {
     }
   };
 
-  unregisterInterceptor = () => {
-    const inputInterceptors = this.props.app?.inputInterceptors;
+  unregisterInterceptor = (targetApp = this.props.app) => {
+    const inputInterceptors = targetApp?.inputInterceptors;
     if (inputInterceptors) {
       if (this.handleKeyDownBound) {
         inputInterceptors.off("keyDown", this.handleKeyDownBound);

@@ -8,7 +8,7 @@ import { TelnetConnection, TelnetFilter } from './telnet';
 import { Stream } from './stream';
 import { Websocket } from './websocket';
 import { BUILTIN_PLUGINS } from '../plugins/index.js';
-import { TouchController } from './touch_controller';
+import { TouchController } from '../touch/TouchController.js';
 import { _, setupI18n } from './i18n';
 import { unescapeStr } from './string_util';
 import { setTimer, parseConnectUrl } from './util';

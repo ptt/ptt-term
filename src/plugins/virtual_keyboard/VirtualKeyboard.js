@@ -1,120 +1,61 @@
 import React from "preact/compat";
-import { readValuesWithDefault } from "../../js/pref.js";
+import { PluginBase } from "../PluginBase.js";
 import { _ } from "../../js/i18n.js";
 import { isBrowser } from "../../js/util.js";
 
 let _TouchKeyboard = null;
 
-export class VirtualKeyboardOverlay extends (React?.Component || class {}) {
+export class VirtualKeyboardOverlay extends React.Component {
   constructor(props) {
     super(props);
     this.state = { Component: _TouchKeyboard };
   }
 
   componentDidMount() {
+    this._unmounted = false;
     if (!this.state.Component && isBrowser()) {
       import("../../touch/TouchKeyboard.js")
         .then((mod) => {
           _TouchKeyboard = mod.TouchKeyboard || mod.default;
-          this.setState({ Component: _TouchKeyboard });
+          if (!this._unmounted) {
+            this.setState({ Component: _TouchKeyboard });
+          }
         })
         .catch(() => {});
     }
   }
 
+  componentWillUnmount() {
+    this._unmounted = true;
+  }
+
   render() {
-    const Component = this.state.Component;
+    const Component = this.state.Component || _TouchKeyboard;
     if (!Component) return null;
     return React.createElement(Component, this.props);
   }
 }
 
-export class VirtualKeyboardPlugin {
+export class VirtualKeyboardPlugin extends PluginBase {
   static id = "virtual_keyboard";
   static name = "virtual_keyboard";
   static prefKey = "enableVirtualKeyboard";
   static group = "ui";
+  static icon = "keyboard";
 
-  static getMetadata() {
-    return {
-      id: "virtual_keyboard",
-      name: "virtual_keyboard",
-      title: _("plugin_virtual_keyboard_title"),
-      description: _("plugin_virtual_keyboard_desc"),
-      prefKey: "enableVirtualKeyboard",
-      icon: "keyboard",
-      group: "ui",
-    };
-  }
-
-  constructor(app, options = {}) {
-    this.app = app || null;
-    this.view = options.view || null;
-    this.buf = options.buf || null;
-    this.enabled = options.enabled ?? false;
-    this._onPrefChangeBound = null;
-  }
-
-  get id() {
-    return "virtual_keyboard";
-  }
-
-  get name() {
-    return "virtual_keyboard";
-  }
-
-  get prefKey() {
-    return "enableVirtualKeyboard";
-  }
-
-  get group() {
-    return "ui";
-  }
-
-  get title() {
+  static get title() {
     return _("plugin_virtual_keyboard_title");
   }
 
-  get description() {
+  static get description() {
     return _("plugin_virtual_keyboard_desc");
   }
 
-  get icon() {
-    return "keyboard";
+  constructor(app, options = {}) {
+    super(app, options);
   }
 
-  getMetadata() {
-    return {
-      id: this.id,
-      name: this.name,
-      title: this.title,
-      description: this.description,
-      prefKey: this.prefKey,
-      enabled: this.enabled,
-      icon: this.icon,
-      group: this.group,
-    };
-  }
-
-  init({ app, view, buf } = {}) {
-    if (app) {
-      this.app = app;
-      this._onPrefChangeBound = (e) => {
-        const key = e?.detail?.key ?? e?.key;
-        const value = e?.detail?.value ?? e?.value;
-        if (
-          key === "enableVirtualKeyboard" ||
-          key === "enableTouchKeyboard"
-        ) {
-          this.setEnabled(Boolean(value));
-        }
-      };
-      app.on("term:pref-change", this._onPrefChangeBound);
-    }
-    if (view) this.view = view;
-    if (buf) this.buf = buf;
-    this.syncFromPrefs();
-
+  onInit() {
     if (isBrowser() && !_TouchKeyboard) {
       import("../../touch/TouchKeyboard.js")
         .then((mod) => {
@@ -124,18 +65,22 @@ export class VirtualKeyboardPlugin {
     }
   }
 
-  syncFromPrefs() {
-    try {
-      const prefs = readValuesWithDefault();
-      const val = prefs?.enableVirtualKeyboard ?? prefs?.enableTouchKeyboard;
-      this.setEnabled(val !== undefined ? Boolean(val) : false);
-    } catch (e) {}
+  _clearKeyboardOffset() {
+    if (typeof document !== "undefined") {
+      document.documentElement?.style?.removeProperty("--keyboard-offset");
+      const termWin = document.getElementById("TermWindow");
+      if (termWin?.style) {
+        termWin.style.removeProperty("--keyboard-offset");
+      }
+    }
   }
 
-  setEnabled(enabled) {
-    const isEnabled = Boolean(enabled);
-    this.enabled = isEnabled;
-    this.app?.emit("term:overlay:update");
+  onDisable() {
+    this._clearKeyboardOffset();
+  }
+
+  onDestroy() {
+    this._clearKeyboardOffset();
   }
 
   toggle() {
@@ -150,16 +95,6 @@ export class VirtualKeyboardPlugin {
       app: targetApp,
       plugin: this,
     });
-  }
-
-  destroy() {
-    this.setEnabled(false);
-    if (this.app) {
-      if (this._onPrefChangeBound) {
-        this.app.off("term:pref-change", this._onPrefChangeBound);
-        this._onPrefChangeBound = null;
-      }
-    }
   }
 }
 

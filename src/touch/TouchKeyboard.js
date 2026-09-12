@@ -525,39 +525,7 @@ export class TouchKeyboard extends React.Component {
     };
     window.addEventListener("touchstart", this.touchStartHandler, false);
 
-    if (this.props.app && this.props.app.inputArea) {
-      this.inputAreaFocusHandler = () => {
-        if (!this.isInstanceActive()) return;
-        const mode = this.props.app.inputArea.getAttribute("inputmode");
-        if (mode !== "none") {
-          this.setState({ isSystemKeyboardOpen: true });
-        }
-      };
-      this.inputAreaBlurHandler = () => {
-        if (!this.isInstanceActive()) return;
-        this.setState({
-          isSystemKeyboardOpen: false,
-          isDirectInputMode: false,
-        });
-        if (this.props.app.inputArea) {
-          this.props.app.inputArea.setAttribute("inputmode", "none");
-          this.props.app.inputArea.setAttribute(
-            "virtualkeyboardpolicy",
-            "manual"
-          );
-        }
-      };
-      this.props.app.inputArea.addEventListener(
-        "focus",
-        this.inputAreaFocusHandler,
-        false
-      );
-      this.props.app.inputArea.addEventListener(
-        "blur",
-        this.inputAreaBlurHandler,
-        false
-      );
-    }
+    this._attachInputAreaListeners(this.props.app);
 
     if (typeof window !== "undefined") {
       this.handleWindowScroll = () => {
@@ -577,6 +545,56 @@ export class TouchKeyboard extends React.Component {
     }
   }
 
+  _attachInputAreaListeners = (app = this.props.app) => {
+    if (!app?.inputArea) return;
+    this._detachInputAreaListeners(app);
+    this.inputAreaFocusHandler = () => {
+      if (!this.isInstanceActive()) return;
+      const mode = app.inputArea?.getAttribute?.("inputmode");
+      if (mode !== "none") {
+        this.setState({ isSystemKeyboardOpen: true });
+      }
+    };
+    this.inputAreaBlurHandler = () => {
+      if (!this.isInstanceActive()) return;
+      this.setState({
+        isSystemKeyboardOpen: false,
+        isDirectInputMode: false,
+      });
+      if (app.inputArea) {
+        app.inputArea.setAttribute("inputmode", "none");
+        app.inputArea.setAttribute("virtualkeyboardpolicy", "manual");
+      }
+    };
+    app.inputArea.addEventListener("focus", this.inputAreaFocusHandler, false);
+    app.inputArea.addEventListener("blur", this.inputAreaBlurHandler, false);
+  };
+
+  _detachInputAreaListeners = (app = this.props.app) => {
+    if (!app?.inputArea) return;
+    if (this.inputAreaFocusHandler) {
+      app.inputArea.removeEventListener(
+        "focus",
+        this.inputAreaFocusHandler,
+        false
+      );
+    }
+    if (this.inputAreaBlurHandler) {
+      app.inputArea.removeEventListener(
+        "blur",
+        this.inputAreaBlurHandler,
+        false
+      );
+    }
+  };
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.app !== this.props.app) {
+      this._detachInputAreaListeners(prevProps.app);
+      this._attachInputAreaListeners(this.props.app);
+    }
+  }
+
   componentWillUnmount() {
     this._isMounted = false;
     if (this.handleWindowScroll) {
@@ -592,7 +610,7 @@ export class TouchKeyboard extends React.Component {
     if (this.dragState) {
       window.removeEventListener("pointermove", this.handleDragMove);
       window.removeEventListener("pointerup", this.handleDragEnd);
-      window.removeEventListener("pointercancel", this.handleDragEnd);
+      window.removeEventListener("pointercancel", this.handleDragCancel);
       this.dragState = null;
     }
     if (this.resizeState) {
@@ -631,20 +649,12 @@ export class TouchKeyboard extends React.Component {
       this.mainResizeObserver.disconnect();
       this.mainResizeObserver = null;
     }
-    if (this.props.app && this.props.app.inputArea) {
-      if (this.inputAreaFocusHandler) {
-        this.props.app.inputArea.removeEventListener(
-          "focus",
-          this.inputAreaFocusHandler,
-          false
-        );
-      }
-      if (this.inputAreaBlurHandler) {
-        this.props.app.inputArea.removeEventListener(
-          "blur",
-          this.inputAreaBlurHandler,
-          false
-        );
+    this._detachInputAreaListeners(this.props.app);
+    if (typeof document !== "undefined") {
+      document.documentElement?.style?.removeProperty("--keyboard-offset");
+      const termWin = document.getElementById("TermWindow");
+      if (termWin?.style) {
+        termWin.style.removeProperty("--keyboard-offset");
       }
     }
   }

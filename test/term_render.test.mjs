@@ -4,9 +4,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { h, Component, render } from 'preact';
 import {
+  TouchController,
   computeToolbarLayout,
-  TouchController
-} from '../src/js/touch_controller.js';
+} from '../src/touch/TouchController.js';
 import {
   AntiIdle,
   AutoWrap,
@@ -2644,14 +2644,6 @@ test('src/touch module cleanly exports TouchController, computeToolbarLayout, To
   assert.ok(
     contextMenuSource.includes('handleFloatingMenuToggle = (event, targetEl) =>'),
     'ContextMenu must preserve handleFloatingMenuToggle handler'
-  );
-
-  const touchControllerLegacySource = fs.readFileSync(
-    path.resolve('src/js/touch_controller.js'),
-    'utf-8'
-  );
-  assert.ok(
-    touchControllerLegacySource.includes("from '../touch/TouchController.js'")
   );
 });
 
