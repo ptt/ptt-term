@@ -1902,6 +1902,7 @@ test('AutoWrap intercepts term:paste event to adjust data before propagating to 
 
   const app = new MockApp();
   const autoWrap = new AutoWrap(app, { enabled: true, lineWrap: 30 });
+  autoWrap.init({ app });
 
   const longText = 'A quick brown fox jumps over the lazy dog repeatedly until wrapped.';
   app.dispatchPaste(longText);
@@ -1916,6 +1917,7 @@ test('AutoWrap intercepts term:paste event to adjust data before propagating to 
   // Another plugin can further adjust data in term:paste before term receives it
   const app2 = new MockApp();
   const autoWrap2 = new AutoWrap(app2, { enabled: true, lineWrap: 30 });
+  autoWrap2.init({ app: app2 });
 
   app2.addEventListener('term:paste', (e) => {
     e.data = e.data.toUpperCase();
@@ -1928,6 +1930,7 @@ test('AutoWrap intercepts term:paste event to adjust data before propagating to 
   // If a plugin calls preventDefault(), term does not receive the paste
   const app3 = new MockApp();
   const autoWrap3 = new AutoWrap(app3, { enabled: true, lineWrap: 30 });
+  autoWrap3.init({ app: app3 });
 
   app3.addEventListener('term:paste', (e) => {
     e.preventDefault();

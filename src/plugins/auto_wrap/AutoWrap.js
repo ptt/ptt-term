@@ -1,13 +1,23 @@
 import React from "preact/compat";
+import { PluginBase } from "../PluginBase.js";
 import { readValuesWithDefault } from "../../js/pref.js";
 import { _ } from "../../js/i18n.js";
 import { wrapText } from "../../js/string_util.js";
 
-export class AutoWrap {
+export class AutoWrap extends PluginBase {
   static id = "auto_wrap";
   static name = "auto_wrap";
   static prefKey = "enableAutoWrap";
   static group = "bbs";
+  static icon = "wrap_text";
+
+  static get title() {
+    return _("plugin_auto_wrap_title");
+  }
+
+  static get description() {
+    return _("plugin_auto_wrap_desc");
+  }
 
   static renderOptions({ values = {}, handleNumberInputChange }) {
     return React.createElement(
@@ -38,149 +48,69 @@ export class AutoWrap {
     );
   }
 
-  renderOptions(props) {
-    return AutoWrap.renderOptions(props);
-  }
-
-  static getMetadata() {
-    return {
-      id: "auto_wrap",
-      name: "auto_wrap",
-      title: _("plugin_auto_wrap_title"),
-      description: _("plugin_auto_wrap_desc"),
-      prefKey: "enableAutoWrap",
-      icon: "wrap_text",
-      group: "bbs",
-      renderOptions: AutoWrap.renderOptions,
-    };
-  }
-
   constructor(app, options = {}) {
-    this.app = app || null;
-    this.view = options.view || null;
-    this.buf = options.buf || null;
-    this.lineWrap = options.lineWrap ?? 78;
-    this.enabled = options.enabled ?? true;
-    if (app) {
-      this.init({ app, view: this.view, buf: this.buf, lineWrap: this.lineWrap, enabled: this.enabled });
+    super(app, options);
+    if (this.lineWrap === undefined) {
+      this.lineWrap = options.lineWrap ?? 78;
     }
   }
 
-  get id() {
-    return "auto_wrap";
-  }
-
-  get name() {
-    return "auto_wrap";
-  }
-
-  get prefKey() {
-    return "enableAutoWrap";
-  }
-
-  get group() {
-    return "bbs";
-  }
-
-  get title() {
-    return _("plugin_auto_wrap_title");
-  }
-
-  get description() {
-    return _("plugin_auto_wrap_desc");
-  }
-
-  get icon() {
-    return "wrap_text";
-  }
-
-  getMetadata() {
-    return {
-      id: this.id,
-      name: this.name,
-      title: this.title,
-      description: this.description,
-      prefKey: this.prefKey,
-      enabled: this.enabled,
-      icon: this.icon,
-      group: this.group,
-      renderOptions: AutoWrap.renderOptions,
-    };
-  }
-
-  init(options = {}) {
-    const { app, core, view, buf, lineWrap, enabled } = options || {};
-    const targetApp = app || core;
-    if (targetApp) {
-      if (this.app && this._onPrefChangeBound && this.app !== targetApp) {
-        this.destroy();
+  onInit(options = {}) {
+    this.listenApp("term:pref-change", (e) => {
+      const key = e?.key ?? e?.detail?.key;
+      const value = e?.value !== undefined ? e.value : e?.detail?.value;
+      if (key === "lineWrap") {
+        this.setLineWrap(value);
       }
-      this.app = targetApp;
-      if (!this._onPrefChangeBound) {
-        this._onPrefChangeBound = (e) => {
-          const key = e?.key ?? e?.detail?.key;
-          const value = e?.value !== undefined ? e.value : e?.detail?.value;
-          if (key === "lineWrap") {
-            this.setLineWrap(value);
-          } else if (key === "enableAutoWrap") {
-            this.enabled = Boolean(value);
-            this.syncView();
-          }
-        };
-        if (typeof this.app.on === "function") {
-          this.app.on("term:pref-change", this._onPrefChangeBound);
-        } else {
-          this.app.addEventListener?.("term:pref-change", this._onPrefChangeBound);
+    });
+
+    this.listenAppWhileEnabled("term:paste", (e) => {
+      if (!this.lineWrap || this.lineWrap <= 0) {
+        return;
+      }
+      const text = e.data ?? e.detail?.data ?? e.detail?.text;
+      if (typeof text === "string") {
+        const wrapped = this.wrap(text);
+        if (e.detail) {
+          e.detail.data = wrapped;
+          e.detail.text = wrapped;
         }
+        e.data = wrapped;
       }
-      if (!this._onPasteBound) {
-        this._onPasteBound = (e) => {
-          if (!this.enabled || !this.lineWrap || this.lineWrap <= 0) {
-            return;
-          }
-          const text = e.data ?? e.detail?.data ?? e.detail?.text;
-          if (typeof text === "string") {
-            const wrapped = this.wrap(text);
-            if (e.detail) {
-              e.detail.data = wrapped;
-              e.detail.text = wrapped;
-            }
-            e.data = wrapped;
-          }
-        };
-        if (typeof this.app.on === "function") {
-          this.app.on("term:paste", this._onPasteBound);
-        } else {
-          this.app.addEventListener?.("term:paste", this._onPasteBound);
-        }
-      }
-    }
-    if (view) this.view = view;
-    if (buf) this.buf = buf;
-    this.syncFromPrefs();
-    if (lineWrap !== undefined) {
-      this.setLineWrap(lineWrap);
-    }
-    if (enabled !== undefined) {
-      this.enabled = Boolean(enabled);
+    });
+
+    if (options?.lineWrap !== undefined) {
+      this.setLineWrap(options.lineWrap);
     }
   }
 
   syncFromPrefs() {
-    const prefs = readValuesWithDefault();
-    const wrapCols = Number(prefs.lineWrap);
+    super.syncFromPrefs();
+    if (this.options?.lineWrap !== undefined) {
+      this.lineWrap = this.options.lineWrap;
+      return;
+    }
+    const appPrefs = this.app?.prefValues;
+    let prefs = null;
+    if (!appPrefs || appPrefs.lineWrap === undefined) {
+      try {
+        prefs = readValuesWithDefault();
+      } catch {
+        prefs = null;
+      }
+    }
+    const rawLineWrap = appPrefs?.lineWrap ?? prefs?.lineWrap;
+    const wrapCols = Number(rawLineWrap);
     this.lineWrap = wrapCols > 0 ? wrapCols : 78;
-    this.enabled = Boolean(prefs.enableAutoWrap ?? (wrapCols > 0));
-    this.syncView();
   }
 
   setLineWrap(cols) {
+    if (cols === 0 || cols === "0") {
+      this.lineWrap = 0;
+      return;
+    }
     const num = Math.max(0, Number(cols) || 0);
     this.lineWrap = num > 0 ? num : 78;
-    this.syncView();
-  }
-
-  syncView() {
   }
 
   wrap(text, enterChar = "\r") {
@@ -195,27 +125,6 @@ export class AutoWrap {
 
   transformPaste(text, enterChar = "\r") {
     return this.wrap(text, enterChar);
-  }
-
-  destroy() {
-    if (this.app) {
-      if (this._onPrefChangeBound) {
-        if (typeof this.app.off === "function") {
-          this.app.off("term:pref-change", this._onPrefChangeBound);
-        } else {
-          this.app.removeEventListener?.("term:pref-change", this._onPrefChangeBound);
-        }
-        this._onPrefChangeBound = null;
-      }
-      if (this._onPasteBound) {
-        if (typeof this.app.off === "function") {
-          this.app.off("term:paste", this._onPasteBound);
-        } else {
-          this.app.removeEventListener?.("term:paste", this._onPasteBound);
-        }
-        this._onPasteBound = null;
-      }
-    }
   }
 }
 

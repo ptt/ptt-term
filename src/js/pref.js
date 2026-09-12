@@ -149,9 +149,6 @@ export const readValuesWithDefault = () => {
       prefs.enablePwaPrompt = false;
     }
     if (saved) {
-      if (saved.enableAutoWrap === undefined && saved.lineWrap !== undefined) {
-        prefs.enableAutoWrap = Boolean(saved.lineWrap > 0);
-      }
       if (saved.enableLiveUpdate === undefined && saved.endTurnsOnLiveUpdate !== undefined) {
         prefs.enableLiveUpdate = Boolean(saved.endTurnsOnLiveUpdate);
       }
