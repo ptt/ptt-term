@@ -3635,9 +3635,9 @@ test('TermView and TermKeyboard handle Safari WebKit IME composition, colors, an
   // TermKeyboard composition guard check
   assert.ok(termKbSource.includes('e.isComposing || e.key === \'Process\' || e.keyCode === 229'), 'TermKeyboard._onKeyDown must guard against composing keys');
 
-  // App desktop inputmode removal check
-  assert.ok(appSource.includes('!this.isMobileDevice()'), 'App should check !this.isMobileDevice() to remove inputmode on desktop');
-  assert.ok(appSource.includes('this.inputArea.removeAttribute(\'inputmode\')'), 'App should remove inputmode on desktop');
+  // App and TermView desktop inputmode removal check
+  assert.ok(appSource.includes('this.view.configureInputMode(this.isMobileDevice())'), 'App should delegate inputmode configuration to TermView with isMobileDevice()');
+  assert.ok(termViewSource.includes("this.input.removeAttribute('inputmode')"), 'TermView should remove inputmode on desktop');
 });
 
 test('TermView fontFitWindowWidth sets transformOrigin to center and prevents viewport overflow', () => {
@@ -3845,13 +3845,13 @@ test('IME composition styling applies across all browsers and initial focus succ
   assert.ok(updatePosMatch[0].includes('let topPos = pos[1] - borderSize'), 'updateInputBufferPos must align inner content inline at cursor top (pos[1] - borderSize)');
 
   // 2. main.js must show TermWindow before focusing inputArea so Canvas mode initial focus succeeds
-  const displayIdx = mainSource.indexOf("getElementById('TermWindow').style.display = ''");
+  const displayIdx = mainSource.indexOf('app.showTermWindow()');
   const focusIdx = mainSource.indexOf('app.setInputAreaFocus()');
-  assert.ok(displayIdx !== -1 && focusIdx !== -1, 'TermWindow display and setInputAreaFocus present in main.js');
+  assert.ok(displayIdx !== -1 && focusIdx !== -1, 'showTermWindow and setInputAreaFocus present in main.js');
   assert.ok(displayIdx < focusIdx, 'TermWindow must be made visible before calling app.setInputAreaFocus()');
 
   // 3. app.js must check isMobileDevice() rather than hasTouch before setting inputmode="none"
-  assert.ok(appSource.includes('if (this.inputArea && this.isMobileDevice())'), 'app.js must check isMobileDevice() for inputmode="none"');
+  assert.ok(appSource.includes('this.view.configureInputMode(this.isMobileDevice())'), 'app.js must pass isMobileDevice() to configureInputMode');
 
   // 4. CanvasScreen must blur #t on mousedown when not composing and call setInputAreaFocus(true) on mouseup
   const canvasScreenSource = fs.readFileSync(path.resolve('src/components/Canvas/CanvasScreen.js'), 'utf-8');

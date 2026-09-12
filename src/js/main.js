@@ -22,7 +22,7 @@ async function startApp() {
   }
 
   console.log("load pref from storage");
-  document.getElementById('TermWindow').style.display = '';
+  app.showTermWindow();
   app.onValuesPrefChange(app.prefValues || readValuesWithDefault());
 
   // connect.

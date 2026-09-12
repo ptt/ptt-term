@@ -133,11 +133,11 @@ export class TermKeyboard extends EventEmitter {
         if (/[\u3100-\u312F\u31A0-\u31BF\u02C7\u02CA\u02CB\u02D9]/.test(e.key)) {
           return false;
         }
-        // When the hidden input element #t is focused and receiving events directly,
+        // When a native input element is focused and receiving events directly,
         // do not call preventDefault() on printable character keydowns so that
         // browser/OS native input and IME composition can process the keystroke
         // uncancelled via the 'input' and 'composition*' events.
-        if (e.target && (e.target.id === 't' || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) {
           return false;
         }
         if (!e.isComposing && e.key !== 'Process' && e.keyCode !== 229) {

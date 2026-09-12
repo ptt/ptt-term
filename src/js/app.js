@@ -102,20 +102,6 @@ export class App extends EventEmitter {
       this.stream.sendWillNaws(this.buf.cols, this.buf.rows);
       this.stream.sendNaws(this.buf.cols, this.buf.rows);
     });
-    this.inputArea =
-      typeof document !== 'undefined' ? document.getElementById('t') : null;
-    this.termWin =
-      typeof document !== 'undefined'
-        ? document.getElementById('TermWindow')
-        : null;
-
-    // horizontally center term window
-    if (this.termWin) {
-      this.termWin.setAttribute('align', 'center');
-    }
-    if (this.view?.mainDisplay) {
-      this.view.mainDisplay.style.transformOrigin = 'center';
-    }
 
     this.plugins = [];
     this.inputInterceptors = new InputInterceptors(this);
@@ -196,14 +182,6 @@ export class App extends EventEmitter {
     document.addEventListener('copy', (e) => {
       this.onDOMCopy(e);
     });
-    this.inputArea.addEventListener('paste', (e) => {
-      this.onDOMPaste(e);
-    });
-    this.inputArea.addEventListener('blur', () => {
-      if (this.isMobileDevice()) {
-        this.inputArea.setAttribute('inputmode', 'none');
-      }
-    });
 
     this.view.firstGridOffset = this.getFirstGridOffsets();
     window.onresize = () => {
@@ -242,17 +220,39 @@ export class App extends EventEmitter {
     if (hasTouch) {
       this.touch = new TouchController(this);
     }
-    if (this.inputArea && this.isMobileDevice()) {
-      this.inputArea.setAttribute('inputmode', 'none');
-      this.inputArea.setAttribute('virtualkeyboardpolicy', 'manual');
-    } else if (this.inputArea && !this.isMobileDevice()) {
-      // Workaround for Safari / Desktop: index.html defines inputmode="none" for mobile touch devices.
-      // On desktop browsers (especially Safari & Chrome), inputmode="none" suppresses native IME composition.
-      this.inputArea.removeAttribute('inputmode');
-      this.inputArea.removeAttribute('virtualkeyboardpolicy');
-    }
+    // Workaround for Safari / Desktop: index.html defines inputmode="none" for mobile touch devices.
+    // On desktop browsers (especially Safari & Chrome), inputmode="none" suppresses native IME composition.
+    this.view.configureInputMode(this.isMobileDevice());
 
     this.initPlugins(BUILTIN_PLUGINS);
+  }
+
+  get inputArea() {
+    return this._inputArea !== undefined
+      ? this._inputArea
+      : this.view
+        ? this.view.input
+        : null;
+  }
+
+  set inputArea(val) {
+    this._inputArea = val;
+  }
+
+  get termWin() {
+    return this._termWin !== undefined
+      ? this._termWin
+      : this.view
+        ? this.view.termWin
+        : null;
+  }
+
+  set termWin(val) {
+    this._termWin = val;
+  }
+
+  showTermWindow() {
+    this.view?.showTermWindow();
   }
 
   registerPlugin(plugin) {
@@ -1053,10 +1053,7 @@ export class App extends EventEmitter {
         break;
     }
 
-    const mainEl = document.querySelector('.main');
-    if (mainEl) {
-      mainEl.classList.toggle('trans-fix', !!this.view.fontFitWindowWidth);
-    }
+    this.view?.setTransFix?.(this.view.fontFitWindowWidth);
   }
 
   _applyCurrentColorScheme() {
@@ -1161,15 +1158,11 @@ export class App extends EventEmitter {
           break;
         case 'backspaceKey':
           this.backspaceKey = value;
-          if (this.view && this.view._keyboard) {
-            this.view._keyboard.backspaceKey = value;
-          }
+          this.view?.setKeyMapOptions?.({ backspaceKey: value });
           break;
         case 'deleteKey':
           this.deleteKey = value;
-          if (this.view && this.view._keyboard) {
-            this.view._keyboard.deleteKey = value;
-          }
+          this.view?.setKeyMapOptions?.({ deleteKey: value });
           break;
         case 'lineHeight':
           this.lineHeight = parseFloat(value) || 1.0;
@@ -1394,7 +1387,9 @@ export class App extends EventEmitter {
     )
       return;
     if (this.buf?.locator?.isActive?.()) {
-      if (this.termWin?.style) {
+      if (this.view?.setCursor) {
+        this.view.setCursor('default');
+      } else if (this.termWin?.style) {
         this.termWin.style.cursor = 'default';
       }
       if (this.buf.locator.requiresMotionReports?.()) {

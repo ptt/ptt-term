@@ -81,8 +81,13 @@ export class TermView extends EventEmitter {
 
 
 
+  if (this.termWin) {
+    this.termWin.setAttribute('align', 'center');
+  }
+
   const mainDisplay = document.createElement('div');
   mainDisplay.setAttribute('class', 'main');
+  mainDisplay.style.transformOrigin = 'center';
   this.termWin.appendChild(mainDisplay);
   this.mainDisplay = mainDisplay;
 
@@ -216,6 +221,16 @@ export class TermView extends EventEmitter {
     this.onInput(e);
   }, false);
 
+  this.input.addEventListener('paste', (e) => {
+    this.app?.onDOMPaste(e);
+  }, false);
+
+  this.input.addEventListener('blur', () => {
+    if (this.app?.isMobileDevice?.()) {
+      this.input.setAttribute('inputmode', 'none');
+    }
+  }, false);
+
   if (typeof document !== 'undefined') {
     document.addEventListener('selectionchange', () => {
       if (!this.preserveDomSelection || this.useCanvasEngine) return;
@@ -315,6 +330,44 @@ export class TermView extends EventEmitter {
 
   get keyboard() {
     return this._keyboard;
+  }
+
+  setKeyMapOptions({ backspaceKey, deleteKey } = {}) {
+    if (this._keyboard) {
+      if (backspaceKey !== undefined) this._keyboard.backspaceKey = backspaceKey;
+      if (deleteKey !== undefined) this._keyboard.deleteKey = deleteKey;
+    }
+  }
+
+  showTermWindow() {
+    if (this.termWin && this.termWin.style) {
+      this.termWin.style.display = '';
+    }
+  }
+
+  setCursor(cursorStyle) {
+    if (this.termWin && this.termWin.style) {
+      this.termWin.style.cursor = cursorStyle;
+    }
+  }
+
+  setTransFix(enabled) {
+    if (this.mainDisplay && this.mainDisplay.classList) {
+      this.mainDisplay.classList.toggle('trans-fix', !!enabled);
+    }
+  }
+
+  configureInputMode(isMobile) {
+    if (!this.input) return;
+    if (isMobile) {
+      this.input.setAttribute('inputmode', 'none');
+      this.input.setAttribute('virtualkeyboardpolicy', 'manual');
+    } else {
+      // Workaround for Safari / Desktop: index.html defines inputmode="none" for mobile touch devices.
+      // On desktop browsers (especially Safari & Chrome), inputmode="none" suppresses native IME composition.
+      this.input.removeAttribute('inputmode');
+      this.input.removeAttribute('virtualkeyboardpolicy');
+    }
   }
 
   sendKey(key) {
