@@ -475,11 +475,27 @@ export class BaseSite extends EventEmitter {
   }
 
   /**
+   * Check whether current page state allows same-thread navigation.
+   * @returns {boolean}
+   */
+  isThreadNavigationAllowed() {
+    return (
+      this.pageState === undefined ||
+      this.pageState === PAGE_STATE.LIST ||
+      this.pageState === PAGE_STATE.READING ||
+      this.pageState === PAGE_STATE.MAPLE_LIST
+    );
+  }
+
+  /**
    * Get command string for same-thread navigation / refresh.
    * @param {'prevThread'|'nextThread'|'firstThread'|'refreshPost'|'lastThreadList'|'lastThreadReading'} action
    * @returns {string|null}
    */
   getThreadCommand(action) {
+    if (!this.isThreadNavigationAllowed()) {
+      return null;
+    }
     switch (action) {
       case 'prevThread':
         return '[';

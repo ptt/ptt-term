@@ -16,7 +16,7 @@ import { setTerminalBellEnabled, setWindowFocused } from './bell.js';
 import { readValuesWithDefault, writeValues } from './pref.js';
 import { applyColorScheme } from './color_schemes.js';
 import AppOverlay from '../components/AppOverlay';
-import { getSite, PAGE_STATE } from './sites';
+import { getSite } from './sites';
 import { EventEmitter } from './event';
 import { InputInterceptors } from './input_interceptors.js';
 import iconLogo from 'Icon/logo.png';
@@ -1581,13 +1581,7 @@ export class App extends EventEmitter {
         const threadKey =
           cmd === 'previousThread' ? 'prevThread' : 'nextThread';
         const threadCmd = this.site?.getThreadCommand(threadKey);
-        const pageState = this.site?.pageState;
-        if (
-          threadCmd &&
-          (pageState === PAGE_STATE.LIST ||
-            pageState === PAGE_STATE.READING ||
-            pageState === PAGE_STATE.MAPLE_LIST)
-        ) {
+        if (threadCmd) {
           this.send(threadCmd);
         }
         break;

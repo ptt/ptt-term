@@ -128,6 +128,9 @@ export class Maple3Site extends BaseSite {
   }
 
   getThreadCommand(action) {
+    if (!this.isThreadNavigationAllowed()) {
+      return null;
+    }
     switch (action) {
       case 'prevThread':
         return '-';

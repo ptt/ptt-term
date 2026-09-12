@@ -2259,3 +2259,39 @@ test('AutoSite onData fires login on 請輸入代號 without locking to PTT, and
   assert.equal(auto2.isLocked, false, '請輸入代號 must NOT lock AutoSite to PTT');
 });
 
+test('Site.getThreadCommand enforces pageState filtering and App is fully decoupled from pageState / PAGE_STATE', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { Maple3Site } = await import('../src/js/sites/maple3.js');
+
+  const ptt = new PttSite();
+  const maple = new Maple3Site();
+
+  // In MENU or OTHER pageState, thread navigation commands should return null
+  ptt.pageState = PAGE_STATE.MENU;
+  assert.equal(ptt.getThreadCommand('prevThread'), null);
+  assert.equal(ptt.getThreadCommand('nextThread'), null);
+
+  maple.pageState = PAGE_STATE.MENU;
+  assert.equal(maple.getThreadCommand('prevThread'), null);
+  assert.equal(maple.getThreadCommand('nextThread'), null);
+
+  // In LIST, READING, and MAPLE_LIST, thread navigation commands should succeed
+  ptt.pageState = PAGE_STATE.LIST;
+  assert.equal(ptt.getThreadCommand('prevThread'), '[');
+  assert.equal(ptt.getThreadCommand('nextThread'), ']');
+
+  ptt.pageState = PAGE_STATE.READING;
+  assert.equal(ptt.getThreadCommand('prevThread'), '[');
+  assert.equal(ptt.getThreadCommand('nextThread'), ']');
+
+  maple.pageState = PAGE_STATE.MAPLE_LIST;
+  assert.equal(maple.getThreadCommand('prevThread'), '-');
+  assert.equal(maple.getThreadCommand('nextThread'), '+');
+
+  // Verify App does not reference pageState or PAGE_STATE
+  const appSrc = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+  assert.ok(!appSrc.includes('pageState'), 'App must not directly inspect site.pageState');
+  assert.ok(!appSrc.includes('PAGE_STATE'), 'App must not import or use PAGE_STATE');
+});
+
