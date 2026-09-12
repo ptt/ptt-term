@@ -53,7 +53,7 @@ test('E2E Build: Vite production build succeeds and generates complete PWA distr
   assert.ok(html.includes('id="TermWindow"'), 'Missing TermWindow container');
   assert.ok(html.includes('id="t"'), 'Missing hidden input area');
   assert.ok(!html.includes('id="fpsOverlay"'), 'FPS overlay must not be hardcoded in index.html');
-  assert.ok(html.includes('id="connLogOverlay"'), 'Missing Connection Log overlay');
+  assert.ok(!html.includes('id="packetDumpOverlay"'), 'Packet Dump overlay must not be hardcoded in index.html');
 
   // 4. Validate sw.js exists and is valid JavaScript
   const swPath = path.join(DIST_DIR, 'sw.js');

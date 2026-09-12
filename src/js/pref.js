@@ -20,7 +20,7 @@ export const DEFAULT_PREFS = {
   useCanvasEngine: true,
   enableFpsMeter: false,
   smoothAnsiArt: true,
-  captureConnectionLog: false,
+  enablePacketDump: false,
   enableInputHelper: true,
   enableTouchDebugHUD: false,
   enableAutoLogin: true,

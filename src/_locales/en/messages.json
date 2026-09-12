@@ -108,10 +108,10 @@
   "plugin_media_previewer_desc": {
     "message": "Shows image and media popup preview on hover, supporting Imgur and trusted domain whitelist."
   },
-  "plugin_conn_log_title": {
-    "message": "Connection Packet Logger"
+  "plugin_packet_dump_title": {
+    "message": "Packet Dump"
   },
-  "plugin_conn_log_desc": {
+  "plugin_packet_dump_desc": {
     "message": "Captures and displays raw WebSocket / Telnet hexadecimal packet streams in real time."
   },
   "plugin_fps_meter_title": {

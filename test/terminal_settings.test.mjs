@@ -536,7 +536,7 @@ test('Extension list supports groups with colored Bands for categories (User Int
   assert.equal(debugGroup.title, 'Debug & Development');
   assert.equal(debugGroup.titleKey, 'plugin_group_debug');
   const debugPluginIds = debugGroup.plugins.map((p) => p.id);
-  assert.deepEqual(debugPluginIds, ['fps_meter', 'touch_debug_hud', 'conn_log']);
+  assert.deepEqual(debugPluginIds, ['fps_meter', 'touch_debug_hud', 'packet_dump']);
 
   // Verify all plugins have their group attribute defined
   assert.equal(plugins.length, 13);

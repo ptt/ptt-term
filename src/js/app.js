@@ -1319,7 +1319,7 @@ export class App extends EventEmitter {
   checkClass(cn) {
     if (!cn) return false;
     const str = typeof cn === 'string' ? cn : (typeof cn.baseVal === 'string' ? cn.baseVal : '');
-    return str.indexOf('nomouse_command') >= 0 || str.indexOf('conn-log') >= 0;
+    return str.indexOf('nomouse_command') >= 0;
   }
 
   isDialogOrExcludedTarget(e) {

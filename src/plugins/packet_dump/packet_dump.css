@@ -1,4 +1,4 @@
-#connLogOverlay {
+#packetDumpOverlay {
   position: fixed;
   bottom: 0;
   left: 0;
@@ -14,15 +14,15 @@
   font-family: monospace, Consolas, "Courier New", monospace;
 }
 
-#connLogOverlay.collapsed {
+#packetDumpOverlay.collapsed {
   height: 24px;
 }
 
-#connLogOverlay.collapsed #connLogContent {
+#packetDumpOverlay.collapsed #packetDumpContent {
   display: none;
 }
 
-#connLogHeader {
+#packetDumpHeader {
   height: 24px;
   min-height: 24px;
   background-color: #1a1a1a;
@@ -37,38 +37,38 @@
   cursor: pointer;
 }
 
-.conn-log-header-left {
+.packet-dump-header-left {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.conn-log-title {
+.packet-dump-title {
   font-weight: bold;
   color: #bbb;
 }
 
-.conn-log-legend {
+.packet-dump-legend {
   display: flex;
   gap: 8px;
   font-size: 10px;
 }
 
-.conn-log-legend-recv {
+.packet-dump-legend-recv {
   color: #ffffff;
 }
 
-.conn-log-legend-send {
+.packet-dump-legend-send {
   color: #80c0ff;
 }
 
-.conn-log-header-right {
+.packet-dump-header-right {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.conn-log-btn {
+.packet-dump-btn {
   background: #333;
   color: #ccc;
   border: 1px solid #555;
@@ -79,13 +79,13 @@
   line-height: 1.2;
 }
 
-.conn-log-btn:hover {
+.packet-dump-btn:hover {
   background: #444;
   color: #fff;
   border-color: #777;
 }
 
-#connLogContent {
+#packetDumpContent {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
@@ -98,34 +98,34 @@
   scrollbar-color: rgba(255, 255, 255, 0.25) rgba(0, 0, 0, 0.2);
 }
 
-#connLogContent::-webkit-scrollbar {
+#packetDumpContent::-webkit-scrollbar {
   width: 8px;
 }
 
-#connLogContent::-webkit-scrollbar-track {
+#packetDumpContent::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.2);
 }
 
-#connLogContent::-webkit-scrollbar-thumb {
+#packetDumpContent::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.25);
   border-radius: 4px;
 }
 
-#connLogContent::-webkit-scrollbar-thumb:hover {
+#packetDumpContent::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.4);
 }
 
-.conn-log-item {
+.packet-dump-item {
   word-break: break-all;
   white-space: pre-wrap;
   margin-bottom: 2px;
   font-family: inherit;
 }
 
-.conn-log-recv {
+.packet-dump-recv {
   color: #ffffff;
 }
 
-.conn-log-send {
+.packet-dump-send {
   color: #80c0ff;
 }

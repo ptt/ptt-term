@@ -660,7 +660,6 @@ test('App checkClass handles string, SVGAnimatedString, null and undefined', () 
 
   assert.equal(checkClass('nomouse_command'), true);
   assert.equal(checkClass('some nomouse_command class'), true);
-  assert.equal(checkClass('conn-log'), true);
   assert.equal(checkClass('normal-class'), false);
   assert.equal(checkClass(null), false);
   assert.equal(checkClass(undefined), false);
@@ -1879,8 +1878,8 @@ test('PrefModal streamlines extensions UI and consolidates options', () => {
     prefModalSource.indexOf('navActiveKey === "about"')
   );
   assert.ok(
-    !advancedTabSection.includes('name="captureConnectionLog"'),
-    'Advanced tab must not contain captureConnectionLog (managed by conn_log extension)'
+    !advancedTabSection.includes('name="capturePacketDump"'),
+    'Advanced tab must not contain capturePacketDump (managed by packet_dump extension)'
   );
 });
 

@@ -26,9 +26,9 @@ import {
   MediaPreviewerPlugin,
 } from './media_previewer/index.js';
 import {
-  ConnectionLog,
-  ConnectionLogPlugin,
-} from './conn_log/index.js';
+  PacketDump,
+  PacketDumpPlugin,
+} from './packet_dump/index.js';
 import {
   FpsMeter,
   FpsMeterPlugin,
@@ -66,8 +66,8 @@ export {
   AutoWrapPlugin,
   MediaPreviewer,
   MediaPreviewerPlugin,
-  ConnectionLog,
-  ConnectionLogPlugin,
+  PacketDump,
+  PacketDumpPlugin,
   FpsMeter,
   FpsMeterPlugin,
   TouchDebugHUD,
@@ -102,7 +102,7 @@ export const PLUGIN_GROUPS = [
     titleKey: 'plugin_group_debug',
     title: 'Debug & Development',
     color: '#af52de',
-    pluginIds: ['fps_meter', 'touch_debug_hud', 'conn_log'],
+    pluginIds: ['fps_meter', 'touch_debug_hud', 'packet_dump'],
   },
 ];
 
@@ -121,7 +121,7 @@ export const PLUGIN_GROUP_MAP = {
   live_update: 'bbs',
   fps_meter: 'debug',
   touch_debug_hud: 'debug',
-  conn_log: 'debug',
+  packet_dump: 'debug',
 };
 
 export function groupPlugins(plugins = []) {
@@ -188,7 +188,7 @@ export const BUILTIN_PLUGINS = [
   LiveUpdate,
   FpsMeter,
   TouchDebugHUDPlugin,
-  ConnectionLog,
+  PacketDump,
   VirtualKeyboardPlugin,
   PwaPromptPlugin,
 ];

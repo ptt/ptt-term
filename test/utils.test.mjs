@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { Event } from '../src/js/event.js';
 import { setTimer, getQueryVariable, resolveWebSocketUrl, parseConnectUrl, hasProcess, isBrowser } from '../src/js/util.js';
 import { uint8ArrayToBinaryString } from '../src/js/websocket.js';
-import { bytesToHex, ConnectionLog } from '../src/js/conn_log.js';
+import { bytesToHex, PacketDump } from '../src/plugins/packet_dump/index.js';
 
 test('Event target supports addEventListener, dispatchEvent, and removeEventListener', () => {
   const emitter = new Event();
@@ -113,8 +113,8 @@ test('bytesToHex formats byte arrays as uppercase two-digit hex strings', () => 
   assert.equal(bytesToHex([0x1b, 0x5b, 0x30, 0x6d]), '1B 5B 30 6D');
 });
 
-test('ConnectionLog manages logging, formatting, and UI state', () => {
-  // Mock DOM environment for ConnectionLog
+test('PacketDump manages logging, formatting, and UI state', () => {
+  // Mock DOM environment for PacketDump
   const elements = {};
   const mockDocument = {
     getElementById: (id) => elements[id] || null,
@@ -163,14 +163,14 @@ test('ConnectionLog manages logging, formatting, and UI state', () => {
       onPrefChange: () => {},
     };
 
-    const connLog = new ConnectionLog(mockApp);
-    assert.equal(connLog.enabled, false);
+    const packetDump = new PacketDump(mockApp);
+    assert.equal(packetDump.enabled, false);
 
     // Toggle collapse
-    connLog.toggleCollapse();
-    assert.equal(connLog.collapsed, true);
-    connLog.toggleCollapse();
-    assert.equal(connLog.collapsed, false);
+    packetDump.toggleCollapse();
+    assert.equal(packetDump.collapsed, true);
+    packetDump.toggleCollapse();
+    assert.equal(packetDump.collapsed, false);
   } finally {
     globalThis.document = originalDoc;
   }

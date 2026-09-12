@@ -1998,27 +1998,27 @@ test('src/plugins exports MediaPreviewer and resolves trusted image urls', async
   assert.equal(mp.resolveImageUrl('https://imgur.com/abcd123'), null);
 });
 
-test('src/plugins exports ConnectionLog and formats hex data', async () => {
+test('src/plugins exports PacketDump and formats hex data', async () => {
   const pluginsModule = await import('../src/plugins/index.js');
-  const connLogModule = await import('../src/plugins/conn_log/index.js');
+  const packetDumpModule = await import('../src/plugins/packet_dump/index.js');
 
-  assert.equal(pluginsModule.ConnectionLog, connLogModule.ConnectionLog);
+  assert.equal(pluginsModule.PacketDump, packetDumpModule.PacketDump);
 
-  const meta = connLogModule.ConnectionLog.getMetadata();
-  assert.equal(meta.id, 'conn_log');
-  assert.equal(meta.prefKey, 'captureConnectionLog');
+  const meta = packetDumpModule.PacketDump.getMetadata();
+  assert.equal(meta.id, 'packet_dump');
+  assert.equal(meta.prefKey, 'enablePacketDump');
 
   // Test bytesToHex formatting
-  assert.equal(connLogModule.bytesToHex(new Uint8Array([0x1b, 0x5b, 0x41])), '1B 5B 41');
-  assert.equal(connLogModule.bytesToHex([]), '');
+  assert.equal(packetDumpModule.bytesToHex(new Uint8Array([0x1b, 0x5b, 0x41])), '1B 5B 41');
+  assert.equal(packetDumpModule.bytesToHex([]), '');
 
   const mockApp = {
     onPrefChange: () => {},
   };
-  const cl = new connLogModule.ConnectionLog(mockApp);
+  const cl = new packetDumpModule.PacketDump(mockApp);
   assert.equal(cl.enabled, false);
   cl.init({ app: mockApp });
-  assert.equal(mockApp.connLog, undefined);
+  assert.equal(mockApp.packetDump, undefined);
 });
 
 test('src/plugins exports FpsMeter and provides plugin metadata and lifecycle', async () => {
