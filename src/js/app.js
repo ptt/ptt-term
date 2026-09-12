@@ -37,6 +37,9 @@ export class App extends EventEmitter {
       hasWebKitImeQuirk: this.hasWebKitImeQuirk,
       preserveDomSelection: this.preserveDomSelection,
     });
+    this.view.on('term:selection-change', ({ selection }) => {
+      this.lastSelection = selection;
+    });
     this.buf = new TermBuf(80, 24);
     this.buf.app = this;
     this.enableVisualBell = false;
@@ -597,7 +600,7 @@ export class App extends EventEmitter {
     if (this.view && this.view.useCanvasEngine) {
       return !this.view.getSelectionColRow();
     }
-    if (this.preserveDomSelection && this.view?._domSelectedText) {
+    if (this.view?.hasDomSelectionFallback?.()) {
       return false;
     }
     return typeof window !== 'undefined' && window.getSelection
@@ -1209,16 +1212,8 @@ export class App extends EventEmitter {
 
     if (e.button !== 0) return;
 
-    if (this.preserveDomSelection && this.view?._domSelectedText) {
-      const sel =
-        typeof window !== 'undefined' && window.getSelection
-          ? window.getSelection()
-          : null;
-      if (!sel || sel.isCollapsed) {
-        this.view._domSelectedText = '';
-        this.view._domSelectionColRow = null;
-        this.lastSelection = null;
-      }
+    if (this.view?.clearDomSelectionIfCollapsed?.()) {
+      this.lastSelection = null;
     }
     const a = e.target && e.target.closest('a');
     if (a) {
@@ -1271,20 +1266,9 @@ export class App extends EventEmitter {
     if (e.button === 0) {
       if (!this.isSelectionCollapsed()) this.skipMouseClick = true;
     } else if (e.button == 2) {
-      if (
-        this.preserveDomSelection &&
-        this.view &&
-        !this.view.useCanvasEngine
-      ) {
-        const selText = this.view.getSelectedText();
-        if (selText) {
-          this.view._domSelectedText = selText;
-          const colRow = this.view.getSelectionColRow();
-          if (colRow) {
-            this.view._domSelectionColRow = colRow;
-            this.lastSelection = colRow;
-          }
-        }
+      const colRow = this.view?.snapshotDomSelection?.();
+      if (colRow) {
+        this.lastSelection = colRow;
       }
     }
   }

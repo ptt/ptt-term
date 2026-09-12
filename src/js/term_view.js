@@ -231,9 +231,9 @@ export class TermView extends EventEmitter {
               start: this.countCol(r.startContainer, r.startOffset),
               end: this.countCol(r.endContainer, r.endOffset)
             };
-            if (this.app) {
-              this.app.lastSelection = this._domSelectionColRow;
-            }
+            this.emit('term:selection-change', {
+              selection: this._domSelectionColRow,
+            });
           } catch (err) {
             this._domSelectionColRow = null;
           }
@@ -1126,6 +1126,42 @@ export class TermView extends EventEmitter {
       this._domSelectedText = '';
       this._domSelectionColRow = null;
     }
+  }
+
+  hasDomSelectionFallback() {
+    return Boolean(this.preserveDomSelection && this._domSelectedText);
+  }
+
+  snapshotDomSelection() {
+    if (!this.preserveDomSelection || this.useCanvasEngine) {
+      return null;
+    }
+    const selText = this.getSelectedText();
+    if (selText) {
+      this._domSelectedText = selText;
+      const colRow = this.getSelectionColRow();
+      if (colRow) {
+        this._domSelectionColRow = colRow;
+        return colRow;
+      }
+    }
+    return null;
+  }
+
+  clearDomSelectionIfCollapsed() {
+    if (!this.preserveDomSelection || !this._domSelectedText) {
+      return false;
+    }
+    const sel =
+      typeof window !== 'undefined' && window.getSelection
+        ? window.getSelection()
+        : null;
+    if (!sel || sel.isCollapsed) {
+      this._domSelectedText = '';
+      this._domSelectionColRow = null;
+      return true;
+    }
+    return false;
   }
 
   getSelectionColRow() {
