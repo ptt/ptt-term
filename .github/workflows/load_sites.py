@@ -16,6 +16,92 @@ REQUIRED_FIELDS = [
     'DEV_PROXY_HEADER',
 ]
 
+VALID_PLUGINS = {
+    'anti_idle': 'enableAntiIdle',
+    'auto_login': 'enableAutoLogin',
+    'auto_wrap': 'enableAutoWrap',
+    'easy_reading': 'enableEasyReading',
+    'fps_meter': 'enableFpsMeter',
+    'input_helper': 'enableInputHelper',
+    'live_update': 'enableLiveUpdate',
+    'media_previewer': 'enableMediaPreviewer',
+    'mouse_browsing': 'enableMouseBrowsing',
+    'packet_dump': 'enablePacketDump',
+    'pwa_prompt': 'enablePwaPrompt',
+    'touch_debug_hud': 'enableTouchDebugHUD',
+    'virtual_keyboard': 'enableVirtualKeyboard',
+}
+PREF_KEY_TO_PLUGIN_ID = {v: k for k, v in VALID_PLUGINS.items()}
+
+
+def _resolve_plugin_id(name, fname):
+    if name in VALID_PLUGINS:
+        return name
+    if name in PREF_KEY_TO_PLUGIN_ID:
+        return PREF_KEY_TO_PLUGIN_ID[name]
+    raise ValueError(
+        f"Site config '{fname}' has unknown plugin in DEFAULT_PLUGINS: '{name}'"
+    )
+
+
+def normalize_default_plugins(raw, fname):
+    if raw is None or raw == '' or raw == {} or raw == []:
+        return ''
+    if isinstance(raw, str):
+        raw = raw.strip()
+        if not raw:
+            return ''
+        if raw.startswith('{'):
+            try:
+                raw = json.loads(raw)
+            except Exception as e:
+                raise ValueError(
+                    f"Site config '{fname}' has invalid JSON in DEFAULT_PLUGINS: {e}"
+                ) from e
+
+    normalized = {}
+    if isinstance(raw, dict):
+        for k, v in raw.items():
+            plugin_id = _resolve_plugin_id(str(k).strip(), fname)
+            if isinstance(v, bool):
+                enabled = v
+            elif str(v).lower() in ('true', '1', 'yes', 'on'):
+                enabled = True
+            elif str(v).lower() in ('false', '0', 'no', 'off'):
+                enabled = False
+            else:
+                raise ValueError(
+                    f"Site config '{fname}' has invalid boolean value for plugin '{k}': {v!r}"
+                )
+            normalized[plugin_id] = enabled
+    elif isinstance(raw, (list, str)):
+        items = (
+            raw
+            if isinstance(raw, list)
+            else [x.strip() for x in raw.split(',') if x.strip()]
+        )
+        for item in items:
+            item_str = str(item).strip()
+            if not item_str:
+                continue
+            if item_str.startswith('+'):
+                name = item_str[1:].strip()
+                enabled = True
+            elif item_str.startswith(('-', '!')):
+                name = item_str[1:].strip()
+                enabled = False
+            else:
+                name = item_str
+                enabled = True
+            plugin_id = _resolve_plugin_id(name, fname)
+            normalized[plugin_id] = enabled
+    else:
+        raise ValueError(
+            f"Site config '{fname}' has invalid DEFAULT_PLUGINS format: {type(raw).__name__}"
+        )
+
+    return json.dumps(normalized, separators=(',', ':')) if normalized else ''
+
 
 def load_sites(sites_dir=None):
     if not sites_dir:
@@ -75,6 +161,14 @@ def load_sites(sites_dir=None):
         data.setdefault('BRANCH', 'gh-pages')
         data.setdefault('SITE_TYPE', 'auto')
         data.setdefault('DEPLOY_BRANCH', '')
+
+        # Normalize DEFAULT_PLUGINS (supports dict, list, string, or PLUGINS alias)
+        raw_plugins = (
+            data.get('DEFAULT_PLUGINS')
+            if 'DEFAULT_PLUGINS' in data
+            else data.pop('PLUGINS', None)
+        )
+        data['DEFAULT_PLUGINS'] = normalize_default_plugins(raw_plugins, fname)
 
         # DYNAMIC_TITLE must be string 'true' or 'false'
         dynamic_title = data.get('DYNAMIC_TITLE', 'false')

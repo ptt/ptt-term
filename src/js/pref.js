@@ -90,6 +90,98 @@ export const isStandaloneMode = () => {
   );
 };
 
+export const PLUGIN_PREF_KEY_MAP = {
+  anti_idle: "enableAntiIdle",
+  auto_login: "enableAutoLogin",
+  auto_wrap: "enableAutoWrap",
+  easy_reading: "enableEasyReading",
+  fps_meter: "enableFpsMeter",
+  input_helper: "enableInputHelper",
+  live_update: "enableLiveUpdate",
+  media_previewer: "enableMediaPreviewer",
+  mouse_browsing: "enableMouseBrowsing",
+  packet_dump: "enablePacketDump",
+  pwa_prompt: "enablePwaPrompt",
+  touch_debug_hud: "enableTouchDebugHUD",
+  virtual_keyboard: "enableVirtualKeyboard",
+};
+
+const resolvePluginPrefKey = (key) => {
+  if (!key) return null;
+  const trimmed = String(key).trim();
+  if (Object.prototype.hasOwnProperty.call(PLUGIN_PREF_KEY_MAP, trimmed)) {
+    return PLUGIN_PREF_KEY_MAP[trimmed];
+  }
+  if (Object.values(PLUGIN_PREF_KEY_MAP).includes(trimmed)) {
+    return trimmed;
+  }
+  return null;
+};
+
+export const parseDefaultPlugins = (
+  raw = typeof process !== "undefined" && process.env ? process.env.DEFAULT_PLUGINS : ""
+) => {
+  if (!raw) return {};
+  const result = {};
+
+  let parsedObj = null;
+  if (typeof raw === "object" && raw !== null && !Array.isArray(raw)) {
+    parsedObj = raw;
+  } else if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (!trimmed) return {};
+    if (trimmed.startsWith("{")) {
+      try {
+        parsedObj = JSON.parse(trimmed);
+      } catch {
+        return {};
+      }
+    } else {
+      const items = trimmed.split(",");
+      for (const item of items) {
+        const s = item.trim();
+        if (!s) continue;
+        let enabled = true;
+        let name = s;
+        if (s.startsWith("+")) {
+          name = s.slice(1).trim();
+          enabled = true;
+        } else if (s.startsWith("-") || s.startsWith("!")) {
+          name = s.slice(1).trim();
+          enabled = false;
+        }
+        const prefKey = resolvePluginPrefKey(name);
+        if (prefKey) {
+          result[prefKey] = enabled;
+        }
+      }
+      return result;
+    }
+  }
+
+  if (parsedObj && typeof parsedObj === "object") {
+    for (const [k, v] of Object.entries(parsedObj)) {
+      const prefKey = resolvePluginPrefKey(k);
+      if (prefKey) {
+        if (typeof v === "boolean") {
+          result[prefKey] = v;
+        } else if (typeof v === "string") {
+          const lower = v.toLowerCase();
+          if (lower === "true" || lower === "1" || lower === "yes" || lower === "on") {
+            result[prefKey] = true;
+          } else if (lower === "false" || lower === "0" || lower === "no" || lower === "off") {
+            result[prefKey] = false;
+          }
+        } else if (typeof v === "number") {
+          result[prefKey] = Boolean(v);
+        }
+      }
+    }
+  }
+
+  return result;
+};
+
 export const getDefaultPwaPrompt = () => {
   if (isStandaloneMode()) return false;
   return isMobileEnvironment();
@@ -103,6 +195,7 @@ export const getDefaultPrefs = () => ({
   ...DEFAULT_PREFS,
   enablePwaPrompt: getDefaultPwaPrompt(),
   enableVirtualKeyboard: getDefaultVirtualKeyboard(),
+  ...parseDefaultPlugins(),
   termSize: { ...DEFAULT_PREFS.termSize },
   customColors: [...DEFAULT_PREFS.customColors],
   customDefaultBg: DEFAULT_PREFS.customDefaultBg,

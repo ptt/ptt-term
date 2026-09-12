@@ -4,6 +4,7 @@ import {
   DEFAULT_PREFS,
   PREF_STORAGE_KEY,
   getDefaultPrefs,
+  parseDefaultPlugins,
   readValuesWithDefault,
   writeValues,
   updatePrefs,
@@ -246,3 +247,75 @@ test('enableBell defaults to always and preserves string values', () => {
     globalThis.window = originalWindow;
   }
 });
+
+test('parseDefaultPlugins parses JSON dictionary and +plugin/-plugin string formats', () => {
+  // 1. JSON string format with snake_case IDs and enablePascalCase keys
+  assert.deepEqual(
+    parseDefaultPlugins('{"easy_reading":true,"mouse_browsing":false,"enableTouchDebugHUD":true}'),
+    {
+      enableEasyReading: true,
+      enableMouseBrowsing: false,
+      enableTouchDebugHUD: true,
+    }
+  );
+
+  // 2. Comma-separated string format (+plugin, -plugin, !plugin, plugin)
+  assert.deepEqual(
+    parseDefaultPlugins('+easy_reading, -media_previewer, !auto_wrap, fps_meter'),
+    {
+      enableEasyReading: true,
+      enableMediaPreviewer: false,
+      enableAutoWrap: false,
+      enableFpsMeter: true,
+    }
+  );
+
+  // 3. Unknown plugin keys are ignored safely
+  assert.deepEqual(
+    parseDefaultPlugins('{"unknown_plugin":true,"easy_reading":true}'),
+    {
+      enableEasyReading: true,
+    }
+  );
+});
+
+test('getDefaultPrefs applies process.env.DEFAULT_PLUGINS overrides while preserving user saved prefs', () => {
+  const originalEnv = process.env.DEFAULT_PLUGINS;
+  const originalWindow = globalThis.window;
+  try {
+    process.env.DEFAULT_PLUGINS = '{"easy_reading":true,"media_previewer":false,"virtual_keyboard":true}';
+
+    const defaults = getDefaultPrefs();
+    assert.equal(defaults.enableEasyReading, true);
+    assert.equal(defaults.enableMediaPreviewer, false);
+    assert.equal(defaults.enableVirtualKeyboard, true);
+    // Unmentioned plugins retain built-in default
+    assert.equal(defaults.enableAutoLogin, DEFAULT_PREFS.enableAutoLogin);
+
+    // User's localStorage preferences still override site DEFAULT_PLUGINS
+    const mockStorage = new MockLocalStorage();
+    globalThis.window = { localStorage: mockStorage };
+    mockStorage.setItem(
+      PREF_STORAGE_KEY,
+      JSON.stringify({
+        values: {
+          enableEasyReading: false,
+          enableMediaPreviewer: true,
+        },
+      })
+    );
+
+    const effective = readValuesWithDefault();
+    assert.equal(effective.enableEasyReading, false);
+    assert.equal(effective.enableMediaPreviewer, true);
+    assert.equal(effective.enableVirtualKeyboard, true);
+  } finally {
+    if (originalEnv === undefined) {
+      delete process.env.DEFAULT_PLUGINS;
+    } else {
+      process.env.DEFAULT_PLUGINS = originalEnv;
+    }
+    globalThis.window = originalWindow;
+  }
+});
+

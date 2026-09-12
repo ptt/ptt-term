@@ -153,3 +153,82 @@ test('load_sites.py filters sites by --branch prod/beta and supports --site over
   });
 });
 
+test('load_sites.py normalizes and validates DEFAULT_PLUGINS', () => {
+  const os = fs.mkdtempSync(path.join(PROJECT_ROOT, 'test', '.tmp-sites-'));
+  try {
+    // Valid dict format + valid string format
+    fs.writeFileSync(
+      path.join(os, 'site_dict.yml'),
+      yaml.stringify({
+        CNAME: 'dict.example.com',
+        TARGET_REPO: 'example/dict',
+        SITE_URL: 'wss://dict.example.com/bbs',
+        DEV_PROXY_TARGET: 'https://dict.example.com',
+        DEV_PROXY_HEADER: 'https://dict.example.com',
+        DEFAULT_PLUGINS: {
+          easy_reading: true,
+          mouse_browsing: false,
+          enableTouchDebugHUD: true,
+        },
+      })
+    );
+
+    fs.writeFileSync(
+      path.join(os, 'site_str.yml'),
+      yaml.stringify({
+        CNAME: 'str.example.com',
+        TARGET_REPO: 'example/str',
+        SITE_URL: 'wss://str.example.com/bbs',
+        DEV_PROXY_TARGET: 'https://str.example.com',
+        DEV_PROXY_HEADER: 'https://str.example.com',
+        DEFAULT_PLUGINS: '+fps_meter, -media_previewer, !auto_wrap',
+      })
+    );
+
+    const out = execFileSync('python3', [LOAD_SITES_SCRIPT, '--sites-dir', os], {
+      encoding: 'utf-8',
+      cwd: PROJECT_ROOT,
+    });
+    const matrix = JSON.parse(out.match(/^matrix=(.+)$/m)[1]);
+    const siteDict = matrix.site.find((s) => s.SITE_ID === 'site_dict');
+    const siteStr = matrix.site.find((s) => s.SITE_ID === 'site_str');
+
+    assert.deepEqual(JSON.parse(siteDict.DEFAULT_PLUGINS), {
+      easy_reading: true,
+      mouse_browsing: false,
+      touch_debug_hud: true,
+    });
+    assert.deepEqual(JSON.parse(siteStr.DEFAULT_PLUGINS), {
+      fps_meter: true,
+      media_previewer: false,
+      auto_wrap: false,
+    });
+
+    // Invalid plugin name should fail validation
+    fs.writeFileSync(
+      path.join(os, 'site_invalid.yml'),
+      yaml.stringify({
+        CNAME: 'invalid.example.com',
+        TARGET_REPO: 'example/invalid',
+        SITE_URL: 'wss://invalid.example.com/bbs',
+        DEV_PROXY_TARGET: 'https://invalid.example.com',
+        DEV_PROXY_HEADER: 'https://invalid.example.com',
+        DEFAULT_PLUGINS: {
+          non_existent_plugin: true,
+        },
+      })
+    );
+
+    assert.throws(() => {
+      execFileSync('python3', [LOAD_SITES_SCRIPT, '--sites-dir', os, '--validate'], {
+        encoding: 'utf-8',
+        cwd: PROJECT_ROOT,
+        stdio: 'pipe',
+      });
+    }, /unknown plugin in DEFAULT_PLUGINS: 'non_existent_plugin'/);
+  } finally {
+    fs.rmSync(os, { recursive: true, force: true });
+  }
+});
+
+

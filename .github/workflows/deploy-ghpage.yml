@@ -44,6 +44,10 @@ on:
         type: string
         required: false
         default: 'gh-pages'
+      DEFAULT_PLUGINS:
+        type: string
+        required: false
+        default: ''
     secrets:
       deploy-token:
         required: true
@@ -69,6 +73,7 @@ jobs:
           DYNAMIC_TITLE: ${{ inputs.DYNAMIC_TITLE }}
           SITE_URL: ${{ inputs.SITE_URL }}
           SITE_TYPE: ${{ inputs.SITE_TYPE }}
+          DEFAULT_PLUGINS: ${{ inputs.DEFAULT_PLUGINS }}
           ALLOW_OVERRIDE_FROM_QUERY: "yes"
           DEV_PROXY_TARGET: ${{ inputs.DEV_PROXY_TARGET }}
           DEV_PROXY_HEADER: ${{ inputs.DEV_PROXY_HEADER }}
