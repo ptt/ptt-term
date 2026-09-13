@@ -126,74 +126,65 @@ export class EventEmitter {
     return this.on(type, wrapper);
   }
 
-  emit(type, ...args) {
-    let handled = false;
+  _dispatch(type, args, shouldStop = null) {
+    if (shouldStop && shouldStop(args[0])) return true;
+
+    const invoke = (fn, isWildcard) => {
+      try {
+        if (isWildcard) {
+          fn.apply(this, [...args, type]);
+        } else {
+          fn.apply(this, args);
+        }
+      } catch (err) {
+        console.error(`[EventEmitter] error in ${isWildcard ? '*' : type}:`, err);
+      }
+    };
 
     // Fast path: single slot
-    if (this._singleType === type) {
-      try {
-        this._singleListener.apply(this, args);
-      } catch (err) {
-        console.error(`[EventEmitter] error in ${type}:`, err);
-      }
-      return true;
-    }
-
-    if (this._singleType === '*') {
-      try {
-        this._singleListener.apply(this, [...args, type]);
-      } catch (err) {
-        console.error(`[EventEmitter] error in *:`, err);
-      }
-      return true;
+    if (this._singleType === type || this._singleType === '*') {
+      invoke(this._singleListener, this._singleType === '*');
+      return shouldStop ? Boolean(shouldStop(args[0])) : true;
     }
 
     if (!this._events) return false;
 
-    const listeners = this._events.get(type);
-    if (typeof listeners === 'function') {
-      try {
-        listeners.apply(this, args);
-      } catch (err) {
-        console.error(`[EventEmitter] error in ${type}:`, err);
-      }
-      handled = true;
-    } else if (listeners) {
-      const snapshot = Array.from(listeners);
-      for (const fn of snapshot) {
-        try {
-          fn.apply(this, args);
-        } catch (err) {
-          console.error(`[EventEmitter] error in ${type}:`, err);
-        }
-      }
-      handled = snapshot.length > 0;
-    }
-
-    // Wildcard listeners
-    if (this._events) {
-      const wildcard = this._events.get('*');
-      if (typeof wildcard === 'function') {
-        try {
-          wildcard.apply(this, [...args, type]);
-        } catch (err) {
-          console.error(`[EventEmitter] error in *:`, err);
+    let handled = false;
+    const runGroup = (key, isWildcard) => {
+      const listeners = this._events.get(key);
+      if (typeof listeners === 'function') {
+        if (!shouldStop || !shouldStop(args[0])) {
+          invoke(listeners, isWildcard);
         }
         handled = true;
-      } else if (wildcard) {
-        const snapshot = Array.from(wildcard);
+      } else if (listeners) {
+        const snapshot = Array.from(listeners);
         for (const fn of snapshot) {
-          try {
-            fn.apply(this, [...args, type]);
-          } catch (err) {
-            console.error(`[EventEmitter] error in *:`, err);
-          }
+          if (shouldStop && shouldStop(args[0])) break;
+          invoke(fn, isWildcard);
         }
-        handled = true;
+        handled = handled || snapshot.length > 0;
       }
+    };
+
+    runGroup(type, false);
+    if (this._events) {
+      runGroup('*', true);
     }
 
-    return handled;
+    return shouldStop ? Boolean(shouldStop(args[0])) : handled;
+  }
+
+  emit(type, ...args) {
+    return this._dispatch(type, args, null);
+  }
+
+  emitStoppable(
+    type,
+    event,
+    shouldStop = (e) => Boolean(e?.defaultPrevented || e?.handled)
+  ) {
+    return this._dispatch(type, [event], shouldStop);
   }
 
   removeAllListeners(type) {

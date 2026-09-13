@@ -640,7 +640,7 @@ export class App extends EventEmitter {
     if (!event) {
       return false;
     }
-    this.emit('term:paste', event);
+    this.emitStoppable('term:paste', event);
     return this.clipboard.completePaste(this.view, event);
   }
 

@@ -20,8 +20,7 @@ export class InputInterceptors extends EventEmitter {
       return true;
     }
     const event = { active: false };
-    this.emit('queryActive', event);
-    return event.active;
+    return this.emitStoppable('queryActive', event, (e) => Boolean(e.active));
   }
 
   isActive() {
@@ -36,8 +35,7 @@ export class InputInterceptors extends EventEmitter {
         this.defaultPrevented = true;
       },
     };
-    this.emit('navCmd', event);
-    return event.defaultPrevented;
+    return this.emitStoppable('navCmd', event);
   }
 
   dispatchWheel(e) {
@@ -52,7 +50,11 @@ export class InputInterceptors extends EventEmitter {
         this.handled = true;
       },
     };
-    this.emit('wheel', event);
+    this.emitStoppable(
+      'wheel',
+      event,
+      (ev) => Boolean(ev.handled || ev.suppress || ev.defaultPrevented)
+    );
     if (event.suppress) {
       return 'suppress';
     }
@@ -63,28 +65,23 @@ export class InputInterceptors extends EventEmitter {
   }
 
   dispatchMouseClick(e) {
-    this.emit('mouseClick', e);
-    return Boolean(e && (e.defaultPrevented || e.handled));
+    return this.emitStoppable('mouseClick', e);
   }
 
   dispatchMouseDown(e) {
-    this.emit('mouseDown', e);
-    return Boolean(e && (e.defaultPrevented || e.handled));
+    return this.emitStoppable('mouseDown', e);
   }
 
   dispatchMouseUp(e) {
-    this.emit('mouseUp', e);
-    return Boolean(e && (e.defaultPrevented || e.handled));
+    return this.emitStoppable('mouseUp', e);
   }
 
   dispatchKeyDown(e) {
-    this.emit('keyDown', e);
-    return Boolean(e && (e.defaultPrevented || e.handled));
+    return this.emitStoppable('keyDown', e);
   }
 
   dispatchTextInput(e) {
-    this.emit('textInput', e);
-    return Boolean(e && (e.defaultPrevented || e.handled));
+    return this.emitStoppable('textInput', e);
   }
 
   dispatchSelectAll() {
@@ -94,19 +91,26 @@ export class InputInterceptors extends EventEmitter {
         this.defaultPrevented = true;
       },
     };
-    this.emit('selectAll', event);
-    return event.defaultPrevented;
+    return this.emitStoppable('selectAll', event);
   }
 
   getSelectedText() {
     const event = { text: null };
-    this.emit('getSelectedText', event);
+    this.emitStoppable(
+      'getSelectedText',
+      event,
+      (e) => e.text !== null && e.text !== undefined
+    );
     return event.text;
   }
 
   getSelectionColRow() {
     const event = { colRow: undefined };
-    this.emit('getSelectionColRow', event);
+    this.emitStoppable(
+      'getSelectionColRow',
+      event,
+      (e) => e.colRow !== undefined
+    );
     return event.colRow;
   }
 
@@ -119,7 +123,6 @@ export class InputInterceptors extends EventEmitter {
 
     if (typeof interceptor.handleNavCmd === 'function') {
       const fn = (e) => {
-        if (e?.defaultPrevented) return;
         if (interceptor.handleNavCmd(e.cmd)) {
           e.preventDefault?.();
         }
@@ -130,7 +133,6 @@ export class InputInterceptors extends EventEmitter {
 
     if (typeof interceptor.handleWheel === 'function') {
       const fn = (e) => {
-        if (e?.handled || e?.suppress || e?.defaultPrevented) return;
         const res = interceptor.handleWheel(e.originalEvent || e);
         if (res === 'suppress') {
           e.suppress = true;
@@ -146,13 +148,10 @@ export class InputInterceptors extends EventEmitter {
 
     if (typeof interceptor.handleMouseClick === 'function') {
       const fn = (e) => {
-        if (e?.handled || e?.defaultPrevented) return;
-        if (interceptor.handleMouseClick(e)) {
-          if (e) {
-            e.defaultPrevented = true;
-            e.handled = true;
-            e.preventDefault?.();
-          }
+        if (interceptor.handleMouseClick(e) && e) {
+          e.defaultPrevented = true;
+          e.handled = true;
+          e.preventDefault?.();
         }
       };
       this.on('mouseClick', fn);
@@ -161,13 +160,10 @@ export class InputInterceptors extends EventEmitter {
 
     if (typeof interceptor.handleMouseDown === 'function') {
       const fn = (e) => {
-        if (e?.handled || e?.defaultPrevented) return;
-        if (interceptor.handleMouseDown(e)) {
-          if (e) {
-            e.defaultPrevented = true;
-            e.handled = true;
-            e.preventDefault?.();
-          }
+        if (interceptor.handleMouseDown(e) && e) {
+          e.defaultPrevented = true;
+          e.handled = true;
+          e.preventDefault?.();
         }
       };
       this.on('mouseDown', fn);
@@ -176,13 +172,10 @@ export class InputInterceptors extends EventEmitter {
 
     if (typeof interceptor.handleMouseUp === 'function') {
       const fn = (e) => {
-        if (e?.handled || e?.defaultPrevented) return;
-        if (interceptor.handleMouseUp(e)) {
-          if (e) {
-            e.defaultPrevented = true;
-            e.handled = true;
-            e.preventDefault?.();
-          }
+        if (interceptor.handleMouseUp(e) && e) {
+          e.defaultPrevented = true;
+          e.handled = true;
+          e.preventDefault?.();
         }
       };
       this.on('mouseUp', fn);
@@ -191,13 +184,10 @@ export class InputInterceptors extends EventEmitter {
 
     if (typeof interceptor.handleKeyDown === 'function') {
       const fn = (e) => {
-        if (e?.handled || e?.defaultPrevented) return;
-        if (interceptor.handleKeyDown(e)) {
-          if (e) {
-            e.defaultPrevented = true;
-            e.handled = true;
-            e.preventDefault?.();
-          }
+        if (interceptor.handleKeyDown(e) && e) {
+          e.defaultPrevented = true;
+          e.handled = true;
+          e.preventDefault?.();
         }
       };
       this.on('keyDown', fn);
@@ -206,13 +196,10 @@ export class InputInterceptors extends EventEmitter {
 
     if (typeof interceptor.handleTextInput === 'function') {
       const fn = (e) => {
-        if (e?.handled || e?.defaultPrevented) return;
-        if (interceptor.handleTextInput(e)) {
-          if (e) {
-            e.defaultPrevented = true;
-            e.handled = true;
-            e.preventDefault?.();
-          }
+        if (interceptor.handleTextInput(e) && e) {
+          e.defaultPrevented = true;
+          e.handled = true;
+          e.preventDefault?.();
         }
       };
       this.on('textInput', fn);
@@ -231,7 +218,6 @@ export class InputInterceptors extends EventEmitter {
 
     if (typeof interceptor.getSelectedText === 'function') {
       const fn = (e) => {
-        if (e?.text !== null && e?.text !== undefined) return;
         const text = interceptor.getSelectedText();
         if (text !== null && text !== undefined) {
           e.text = text;
@@ -243,7 +229,6 @@ export class InputInterceptors extends EventEmitter {
 
     if (typeof interceptor.getSelectionColRow === 'function') {
       const fn = (e) => {
-        if (e?.colRow !== undefined) return;
         const colRow = interceptor.getSelectionColRow();
         if (colRow !== undefined) {
           e.colRow = colRow;
@@ -255,7 +240,6 @@ export class InputInterceptors extends EventEmitter {
 
     if (typeof interceptor.selectAll === 'function') {
       const fn = (e) => {
-        if (e?.defaultPrevented) return;
         if (interceptor.selectAll()) {
           e.preventDefault?.();
         }

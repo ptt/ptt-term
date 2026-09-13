@@ -283,3 +283,41 @@ test('TermKeyboard emits term:key event directly to EventEmitter subscribers', a
   assert.equal(received[0].term, kb);
 });
 
+test('EventEmitter: emitStoppable short-circuits when event is handled or defaultPrevented', () => {
+  const ee = new EventEmitter();
+  const called = [];
+
+  ee.on('test', (e) => {
+    called.push('first');
+  });
+  ee.on('test', (e) => {
+    called.push('second');
+    e.handled = true;
+  });
+  ee.on('test', (e) => {
+    called.push('third');
+  });
+
+  const evt = { handled: false };
+  const stopped = ee.emitStoppable('test', evt);
+  assert.equal(stopped, true);
+  assert.deepEqual(called, ['first', 'second']);
+
+  // Custom shouldStop predicate (e.g. queryActive / getSelectedText)
+  const ee2 = new EventEmitter();
+  const queryCalls = [];
+  ee2.on('query', (e) => {
+    queryCalls.push(1);
+    e.text = 'selected';
+  });
+  ee2.on('query', (e) => {
+    queryCalls.push(2);
+    e.text = 'overwritten';
+  });
+  const queryEvt = { text: null };
+  const res = ee2.emitStoppable('query', queryEvt, (e) => e.text !== null);
+  assert.equal(res, true);
+  assert.equal(queryEvt.text, 'selected');
+  assert.deepEqual(queryCalls, [1]);
+});
+
