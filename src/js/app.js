@@ -22,6 +22,13 @@ import { ClipboardManager } from './clipboard.js';
 import { MouseController } from './mouse_controller.js';
 import { BackNavigationController } from './back_navigation.js';
 import { PluginManager } from './plugin_manager.js';
+import {
+  DISCONNECT_CHECK_INTERVAL_MS,
+  CONNECT_CHECK_INTERVAL_MS,
+  initVersionChecker,
+  canCheckVersion,
+  checkVersionAndReloadIfNeeded,
+} from './version_checker.js';
 import iconLogo from 'Icon/logo.png';
 import iconLogoConnect from 'Icon/logo_connect.png';
 import iconLogoDisconnect from 'Icon/logo_disconnect.png';
@@ -29,6 +36,9 @@ import iconLogoDisconnect from 'Icon/logo_disconnect.png';
 export class App extends EventEmitter {
   constructor() {
     super();
+
+    this._hasConnectedOnce = false;
+    initVersionChecker();
 
     this.preventContextMenuOnMouseUp = false;
     this.skipMouseClick = false;
@@ -446,6 +456,24 @@ export class App extends EventEmitter {
   }
 
   connect(url, siteType) {
+    if (
+      this._hasConnectedOnce &&
+      canCheckVersion({ intervalMs: CONNECT_CHECK_INTERVAL_MS })
+    ) {
+      checkVersionAndReloadIfNeeded({
+        intervalMs: CONNECT_CHECK_INTERVAL_MS,
+      }).then((reloading) => {
+        if (!reloading) {
+          this._doConnect(url, siteType);
+        }
+      });
+      return;
+    }
+    this._doConnect(url, siteType);
+  }
+
+  _doConnect(url, siteType) {
+    this._hasConnectedOnce = true;
     this.dismissAlert('connection');
     this.connectState = 0;
     console.log('connect: ' + url + ', siteType: ' + siteType);
@@ -534,6 +562,9 @@ export class App extends EventEmitter {
       },
     });
     this.updateTabIcon('disconnect');
+    checkVersionAndReloadIfNeeded({
+      intervalMs: DISCONNECT_CHECK_INTERVAL_MS,
+    });
   }
 
   updateDocumentTitle() {

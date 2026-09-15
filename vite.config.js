@@ -83,6 +83,21 @@ export default defineConfig(({ mode, command }) => {
     ],
   });
 
+  const buildVersionInfo = () => ({
+    version: process.env.npm_package_version || pkg.version,
+    commit: getCommitHash(),
+    buildDate: getBuildDate(),
+  });
+
+  const buildSwSource = () => {
+    const commitHash = getCommitHash() || pkg.version || 'v1';
+    const rawSw = fs.readFileSync(path.resolve(__dirname, 'src/sw.js'), 'utf-8');
+    return rawSw.replace(
+      /const CACHE_NAME = ['"][^'"]+['"];/,
+      `const CACHE_NAME = 'app-${commitHash}';`
+    );
+  };
+
   return {
     base: './',
     ...(command === 'serve' && {
@@ -156,7 +171,14 @@ export default defineConfig(({ mode, command }) => {
             }
             if (url === '/sw.js') {
               res.setHeader('Content-Type', 'application/javascript');
-              fs.createReadStream(path.resolve(__dirname, 'src/sw.js')).pipe(res);
+              res.setHeader('Cache-Control', 'no-cache');
+              res.end(buildSwSource());
+              return;
+            }
+            if (url === '/version.json') {
+              res.setHeader('Content-Type', 'application/json');
+              res.setHeader('Cache-Control', 'no-store');
+              res.end(JSON.stringify(buildVersionInfo(), null, 2));
               return;
             }
             next();
@@ -191,7 +213,12 @@ export default defineConfig(({ mode, command }) => {
           this.emitFile({
             type: 'asset',
             fileName: 'sw.js',
-            source: fs.readFileSync(path.resolve(__dirname, 'src/sw.js'), 'utf-8'),
+            source: buildSwSource(),
+          });
+          this.emitFile({
+            type: 'asset',
+            fileName: 'version.json',
+            source: JSON.stringify(buildVersionInfo(), null, 2),
           });
         },
       },
