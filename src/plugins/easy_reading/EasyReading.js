@@ -907,6 +907,9 @@ export class EasyReading extends PluginBase {
             result.pageIndex === 1 &&
             (result.rowIndexStart == null || result.rowIndexStart === 1);
           if (!isFirstPage) {
+            if (site) {
+              site.pageState = PAGE_STATE.NORMAL;
+            }
             this.started = false;
             return;
           }
@@ -1022,14 +1025,16 @@ export class EasyReading extends PluginBase {
     console.debug('leave current post');
     const wasInFlight = this._pageDownInFlight;
     this._resetInFlight();
-    this.sendCommandAfterUpdate = '';
+    if (this.sendCommandAfterUpdate !== 'skipOne') {
+      this.sendCommandAfterUpdate = '';
+    }
     this._temporarilyHidden = false;
     const now = Date.now();
     const duration = (this.lastWheelTime && (now - this.lastWheelTime < 1000)) ? 1200 : 300;
     this.suppressInertialWheel(duration);
     if (this.started && wasInFlight && !this.easyReadingReachedPageEnd) {
       this.ignoreOneUpdate = true;
-    } else {
+    } else if (!wasInFlight && this.sendCommandAfterUpdate !== 'skipOne') {
       this.ignoreOneUpdate = false;
     }
     if (this.site) {
@@ -1053,6 +1058,9 @@ export class EasyReading extends PluginBase {
 
   stopEasyReading() {
     console.debug('stop easy reading');
+    if (this.started && this._pageDownInFlight && !this.easyReadingReachedPageEnd) {
+      this.ignoreOneUpdate = true;
+    }
     this.sendCommandAfterUpdate = 'skipOne';
     this._resetInFlight();
     const now = Date.now();

@@ -3249,6 +3249,225 @@ test('Terminal site.filterWheelScroll and EasyReading stop continuous wheel scro
   assert.equal(res.maxSteps, 1, 'Downward jump at 100% clamps to 1 step');
 });
 
+test('PttSite parseListRow and isMenuScreen recognize modern PTT show_status bar and xyz submenus without stateful regex issues', () => {
+  const ptt = new PttSite();
+
+  // Modern PTT show_status() rows (menu.c) with various pager modes
+  const modernRows = [
+    '9/15周二 16:20Valentines    線上12345人,我是hungte,呼叫器關閉      (h)說明',
+    '9/15周二 8:05               線上1人,我是guest,呼叫器開啟          (h)說明',
+    '12/31周日 23:59             線上9999人,我是sysop,呼叫器拔掉        (h)說明',
+    '1/1周一 0:00NewYear         線上888人,我是user1,呼叫器防水        (h)說明',
+    '5/20周五 13:14Love          線上520人,我是lover,呼叫器好友        (h)說明',
+  ];
+
+  for (const row of modernRows) {
+    // Calling multiple times must consistently return true (no stateful /g lastIndex bug)
+    assert.equal(parseListRow(row), true, `First call for: ${row}`);
+    assert.equal(parseListRow(row), true, `Second call for: ${row}`);
+  }
+
+  // Submenus like xyz (【工具程式】, 【使用者統計資訊】, 【熱門話題與看板】) must be detected as MENU
+  const xyzTitles = [
+    '【工具程式】              批踢踢實業坊',
+    '【使用者統計資訊】        批踢踢實業坊',
+    '【熱門話題與看板】        批踢踢實業坊',
+    '【個人設定】              批踢踢實業坊',
+  ];
+
+  for (const title of xyzTitles) {
+    const mockXyzTerm = {
+      rows: 24,
+      cols: 80,
+      cur_y: 12,
+      cur_x: 20,
+      isLineEmpty: () => false,
+      getRowText: (r) => {
+        if (r === 0) return title;
+        if (r === 23) return modernRows[0];
+        return '';
+      },
+    };
+    assert.equal(ptt.isMenuScreen(mockXyzTerm), true, `${title} should be detected as menu screen`);
+    assert.equal(ptt.setPageState(mockXyzTerm), PAGE_STATE.MENU);
+  }
+});
+
+test('EasyReading exits cleanly when reading a long article from xyz menu without getting stuck or needing extra q', () => {
+  const originalDoc = globalThis.document;
+  const mockElements = new Map();
+  const createEl = (tag) => {
+    const el = {
+      tagName: tag.toUpperCase(),
+      style: {
+        display: '',
+        setProperty(k, v) { this[k] = v; },
+        getPropertyValue(k) { return this[k] || ''; },
+      },
+      attributes: {},
+      childNodes: [],
+      innerHTML: '',
+      scrollTop: 0,
+      scrollHeight: 600,
+      clientHeight: 600,
+      offsetHeight: 20,
+      offsetTop: 460,
+      setAttribute(k, v) { this.attributes[k] = v; if (k === 'id') mockElements.set(v, this); },
+      getAttribute(k) { return this.attributes[k]; },
+      appendChild(child) { this.childNodes.push(child); child.parentNode = this; return child; },
+      removeChild(child) {
+        const idx = this.childNodes.indexOf(child);
+        if (idx >= 0) this.childNodes.splice(idx, 1);
+      },
+      get lastChild() {
+        return this.childNodes[this.childNodes.length - 1] || null;
+      },
+      addEventListener() {},
+      removeEventListener() {},
+      contains(target) { return target === this || this.childNodes.includes(target); },
+      getBoundingClientRect() {
+        return { top: 0, left: 0, width: 800, height: 480 };
+      },
+    };
+    return el;
+  };
+
+  globalThis.document = {
+    createElement: createEl,
+    getElementById: (id) => mockElements.get(id) || null,
+  };
+
+  try {
+    const ptt = new PttSite();
+    const createLine = (text, bg = 0, fg = 7) =>
+      Array.from({ length: 80 }, (_, i) => ({
+        ch: text[i] || ' ',
+        getBg: () => bg,
+        getFg: () => fg,
+      }));
+
+    const lines = Array.from({ length: 24 }, (_, r) => createLine(`Row ${r}`));
+    const sentCommands = [];
+
+    const mockBuf = Object.assign(new EventEmitter(), {
+      cols: 80,
+      rows: 24,
+      cur_x: 20,
+      cur_y: 12,
+      site: ptt,
+      hasFrameSync: false,
+      inSyncUpdate: false,
+      lines,
+      isFrameReady() {
+        if (this.hasFrameSync) return !this.inSyncUpdate;
+        return this.site.isCursorParked(this);
+      },
+      isLineEmpty(row) {
+        return this.getRowText(row).trim().length === 0;
+      },
+      getRowText(row) {
+        if (!this.lines[row]) return '';
+        return this.lines[row].map((c) => c.ch).join('');
+      },
+    });
+
+    const mockView = {
+      chw: 10,
+      chh: 20,
+      scaleX: 1,
+      scaleY: 1,
+      fontSizePx: 20,
+      termWin: createEl('div'),
+      mainDisplay: { style: { fontSize: '20px', lineHeight: '20px' } },
+      _getGridOrigin: () => [0, 0],
+      convertMN2XYEx: (col, row) => [col * 10, row * 20],
+      updateCursorPos() {},
+      renderSingleRow(target, row) {
+        target.textContent = row.map((c) => c.ch).join('').trim();
+      },
+    };
+
+    const mockApp = Object.assign(new EventEmitter(), {
+      buf: mockBuf,
+      view: mockView,
+      site: ptt,
+      send(cmd) { sentCommands.push(cmd); },
+      registerInputInterceptor() {},
+      unregisterInputInterceptor() {},
+    });
+
+    const er = new EasyReading();
+    er.init({ app: mockApp, view: mockView, buf: mockBuf });
+    er.setEnabled(true);
+
+    // 1. Start in xyz menu (【工具程式】)
+    lines[0] = createLine('【工具程式】              批踢踢實業坊');
+    lines[23] = createLine('9/15周二 16:20Valentines    線上12345人,我是hungte,呼叫器關閉      (h)說明');
+    mockBuf.cur_x = 20;
+    mockBuf.cur_y = 14;
+    ptt.setPageState(mockBuf);
+    assert.equal(ptt.pageState, PAGE_STATE.MENU);
+
+    // 2. Enter a long article (e.g. GPL / user100 in pmore, Page 1 of 5 arrives)
+    lines[0] = createLine('                    GNU GENERAL PUBLIC LICENSE');
+    lines[23] = createLine('  瀏覽 第 1/5 頁 ( 20%)  目前顯示: 第 01~23 行 (y)回應(X%)推文(h)說明 (←/q)離開 ', 7, 0);
+    mockBuf.cur_x = 79;
+    mockBuf.cur_y = 23;
+    ptt.setPageState(mockBuf);
+    assert.equal(ptt.pageState, PAGE_STATE.READING);
+
+    er.onScreenUpdate(lines, false);
+    assert.equal(er.isActive(), true, 'EasyReading overlay is shown on Page 1');
+    assert.equal(er._pageDownInFlight, true, 'PageDown is in flight for long article');
+    mockBuf.emit('viewUpdate');
+    assert.deepEqual(sentCommands, ['\x1b[6~'], 'Sent PageDown to fetch next page');
+    sentCommands.length = 0;
+
+    // 3. User presses 'q' to exit while PageDown is in flight
+    let keyPrevented = false;
+    const mockEvent = {
+      key: 'q',
+      ctrlKey: false,
+      altKey: false,
+      defaultPrevented: false,
+      preventDefault() {
+        this.defaultPrevented = true;
+        keyPrevented = true;
+      },
+    };
+    const handled = er.handleKeyDown(mockEvent);
+    assert.equal(handled, true, 'q key is handled by EasyReading');
+    assert.equal(keyPrevented, true);
+    assert.deepEqual(sentCommands, ['\x1b[D'], 'Sends Left Arrow to exit pmore');
+    assert.equal(er.ignoreOneUpdate, true, 'stopEasyReading + leaveCurrentPost preserves ignoreOneUpdate = true');
+    sentCommands.length = 0;
+
+    // 4. Stale in-flight Page 2 arrives from server before server processes Left Arrow
+    lines[23] = createLine('  瀏覽 第 2/5 頁 ( 40%)  目前顯示: 第 23~45 行 (y)回應(X%)推文(h)說明 (←/q)離開 ', 7, 0);
+    mockBuf.cur_x = 79;
+    mockBuf.cur_y = 23;
+    ptt.setPageState(mockBuf);
+    er.onScreenUpdate(lines, false);
+    mockBuf.emit('viewUpdate');
+    assert.deepEqual(sentCommands, [], 'Must NOT send another PageDown on stale in-flight page');
+    assert.equal(er.started, false, 'EasyReading stopped after ignoring stale page');
+
+    // 5. Server processes Left Arrow and returns to xyz menu (【工具程式】)
+    lines[0] = createLine('【工具程式】              批踢踢實業坊');
+    lines[23] = createLine('9/15周二 16:20Valentines    線上12345人,我是hungte,呼叫器關閉      (h)說明');
+    mockBuf.cur_x = 20;
+    mockBuf.cur_y = 14;
+    ptt.setPageState(mockBuf);
+    assert.equal(ptt.pageState, PAGE_STATE.MENU, 'State cleanly transitions back to MENU');
+
+    er.onScreenUpdate(lines, false);
+    assert.equal(er.isActive(), false, 'EasyReading overlay hides cleanly without getting stuck');
+  } finally {
+    globalThis.document = originalDoc;
+  }
+});
+
+
 
 
 

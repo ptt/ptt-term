@@ -65,7 +65,8 @@ export function parseStatusRow(str) {
 }
 
 export function parseListRow(str) {
-  const regex = /\[\d{1,2}\/\d{1,2} +星期. +\d{1,2}:\d{1,2}\] .+ 線上\d+人, 我是\w+ +\[呼叫器\](?:關閉|打開) /g;
+  if (!str) return false;
+  const regex = /(?:\[\d{1,2}\/\d{1,2} +星期. +\d{1,2}:\d{1,2}\]|\d{1,2}\/\d{1,2}\s*(?:周|星期).\s+\d{1,2}:\d{1,2}).+線上\s*\d+\s*人[,，]\s*我是\s*\w+.*呼叫器\]?(?:關閉|開啟|打開|拔掉|防水|好友)/;
   return regex.test(str);
 }
 

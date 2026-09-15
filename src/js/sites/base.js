@@ -287,6 +287,12 @@ export class BaseSite extends EventEmitter {
       state = PAGE_STATE.LIST;
     } else if (this.isPassScreen(termBuf)) {
       state = PAGE_STATE.PASS;
+    } else if (
+      state === PAGE_STATE.READING ||
+      state === PAGE_STATE.EDITING ||
+      state === PAGE_STATE.PASS
+    ) {
+      state = PAGE_STATE.NORMAL;
     }
 
     if (
