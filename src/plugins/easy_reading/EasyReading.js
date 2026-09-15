@@ -330,27 +330,26 @@ export class EasyReading extends PluginBase {
     this._onOverlayMouseDown = (e) => {
       const cmdEl = e.target?.closest?.('[data-er-cmd]');
       if (cmdEl) {
-        const cmd = cmdEl.getAttribute('data-er-cmd');
-        const leaveToTermCmds = this.site?.getLeaveToTerminalCommands?.() || [];
-        if (leaveToTermCmds.includes(cmd)) {
-          this.leaveToTerminal();
-          this.send(cmd);
-        } else if (cmd === 'Escape') {
-          this.leaveToTerminal();
-        } else if (cmd === 'q') {
-          this.stopEasyReading();
-          this.leaveCurrentPost();
-          this.send('\x1b[D');
-        }
-        e.preventDefault();
-        e.stopPropagation();
-        if (this.app?.setInputAreaFocus) {
-          this.app.setInputAreaFocus();
+        if (e.button === 0) {
+          const cmd = cmdEl.getAttribute('data-er-cmd');
+          const leaveToTermCmds = this.site?.getLeaveToTerminalCommands?.() || [];
+          if (leaveToTermCmds.includes(cmd)) {
+            this.leaveToTerminal();
+            this.send(cmd);
+          } else if (cmd === 'Escape') {
+            this.leaveToTerminal();
+          } else if (cmd === 'q') {
+            this.stopEasyReading();
+            this.leaveCurrentPost();
+            this.send('\x1b[D');
+          }
+          e.preventDefault();
+          e.stopPropagation();
+          if (this.app?.setInputAreaFocus) {
+            this.app.setInputAreaFocus();
+          }
         }
         return;
-      }
-      if (e.target && e.target.tagName !== 'A' && this.app?.setInputAreaFocus) {
-        this.app.setInputAreaFocus();
       }
     };
     this.listenWhileEnabled(easyReadingOverlay, 'mousedown', this._onOverlayMouseDown);
@@ -1650,6 +1649,9 @@ export class EasyReading extends PluginBase {
     if (typeof window !== 'undefined' && window.getSelection && !window.getSelection().isCollapsed) {
       return window.getSelection().toString().replace(/\u00a0/g, " ");
     }
+    if (this.view?._domSelectedText) {
+      return this.view._domSelectedText;
+    }
     return '';
   }
 
@@ -1663,6 +1665,12 @@ export class EasyReading extends PluginBase {
       window.getSelection().rangeCount === 0 ||
       !this.view?.countCol
     ) {
+      if (this.view?._domSelectionColRow) {
+        return {
+          ...this.view._domSelectionColRow,
+          lines: this.pageLines,
+        };
+      }
       return null;
     }
     const r = window.getSelection().getRangeAt(0);

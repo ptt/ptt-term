@@ -211,7 +211,7 @@ export class MouseController {
     const skipMouseClick = app.skipMouseClick;
     app.skipMouseClick = false;
 
-    if (e.button !== 0) return;
+    if (e.button !== 0 || e.ctrlKey) return;
 
     if (app.view?.clearDomSelectionIfCollapsed?.()) {
       app.lastSelection = null;
@@ -225,7 +225,9 @@ export class MouseController {
     }
     if (app.isSelectionCollapsed()) {
       //no anything be select
-      const forceFocus = Boolean(app.view?.useCanvasEngine);
+      const forceFocus = Boolean(
+        app.view?.useCanvasEngine && !app.hasActiveInputInterceptor?.()
+      );
       if (
         !skipMouseClick &&
         app.site.handlePassScreenClick(app.buf, app.conn)
@@ -264,16 +266,17 @@ export class MouseController {
       app.isDialogOrExcludedTarget(e)
     )
       return;
-    if (e.button === 0) {
+    const isRightClick = e.button === 2 || (e.button === 0 && e.ctrlKey);
+    if (e.button === 0 && !e.ctrlKey) {
       this.leftButtonDown = true;
-    } else if (e.button === 2) {
+    } else if (isRightClick) {
       this.rightButtonDown = true;
     }
     if (app.inputInterceptors?.dispatchMouseDown(e)) {
       return;
     }
     //0=left button, 1=middle button, 2=right button
-    if (e.button === 0) {
+    if (e.button === 0 && !e.ctrlKey) {
       if (!app.isSelectionCollapsed()) app.skipMouseClick = true;
     } else if (e.button === 1) {
       if (e.target && typeof e.target.closest === 'function' && e.target.closest('a')) {
@@ -283,7 +286,7 @@ export class MouseController {
         e.preventDefault?.();
         return;
       }
-    } else if (e.button == 2) {
+    } else if (isRightClick) {
       const colRow = app.view?.snapshotDomSelection?.();
       if (colRow) {
         app.lastSelection = colRow;
@@ -293,7 +296,8 @@ export class MouseController {
 
   onMouseUp(e) {
     const app = this.app;
-    if (e.button === 0) {
+    const isRightClick = e.button === 2 || (e.button === 0 && e.ctrlKey);
+    if (e.button === 0 && !e.ctrlKey) {
       this.leftButtonDown = false;
       if (this._wheelClickResetTimer) {
         this._wheelClickResetTimer.cancel();
@@ -306,7 +310,7 @@ export class MouseController {
         },
         100
       );
-    } else if (e.button === 2) {
+    } else if (isRightClick) {
       this.rightButtonDown = false;
     }
     if (
@@ -317,8 +321,13 @@ export class MouseController {
       return;
     app.inputInterceptors?.dispatchMouseUp(e);
     //0=left button, 1=middle button, 2=right button
-    if (e.button === 0) {
-      const forceFocus = Boolean(app.view?.useCanvasEngine);
+    if (e.button === 0 && !e.ctrlKey) {
+      if (app.view?.clearDomSelectionIfCollapsed?.()) {
+        app.lastSelection = null;
+      }
+      const forceFocus = Boolean(
+        app.view?.useCanvasEngine && !app.hasActiveInputInterceptor?.()
+      );
       if (app.isSelectionCollapsed()) {
         //no anything be select
         app.setInputAreaFocus(forceFocus);

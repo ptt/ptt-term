@@ -1154,28 +1154,36 @@ export class TermBuf extends EventEmitter {
   getSelectionText(selection, { color = false, isutf8 = true, reset = false, lines = undefined } = {}) {
     if (!selection || !selection.start || !selection.end) return '';
     const effectiveLines = lines || selection.lines;
+    let startRow = selection.start.row;
+    let startCol = selection.start.col;
+    let endRow = selection.end.row;
+    let endCol = selection.end.col;
+    if (endRow > startRow && endCol === 0) {
+      endRow -= 1;
+      endCol = this.cols;
+    }
     let result = '';
-    if (selection.start.row === selection.end.row) {
+    if (startRow === endRow) {
       result += this.getText(
-        selection.start.row,
-        selection.start.col,
-        selection.end.col,
+        startRow,
+        startCol,
+        endCol,
         color,
         isutf8,
         reset,
         effectiveLines
       );
     } else {
-      for (let i = selection.start.row; i <= selection.end.row; ++i) {
+      for (let i = startRow; i <= endRow; ++i) {
         let scol = 0;
-        let ecol = this.cols - 1;
-        if (i === selection.start.row) {
-          scol = selection.start.col;
-        } else if (i === selection.end.row) {
-          ecol = selection.end.col;
+        let ecol = this.cols;
+        if (i === startRow) {
+          scol = startCol;
+        } else if (i === endRow) {
+          ecol = endCol;
         }
         result += this.getText(i, scol, ecol, color, isutf8, reset, effectiveLines);
-        if (i !== selection.end.row) {
+        if (i !== endRow) {
           result += '\n';
         }
       }

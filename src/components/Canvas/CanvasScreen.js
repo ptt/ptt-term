@@ -271,7 +271,7 @@ export class CanvasScreen extends React.Component {
   };
 
   handleMouseDown = (e) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || e.ctrlKey) return;
     this.hadSelectionOnMouseDown = Boolean(this.getNormalizedSelection());
     if (e.target && e.target.tagName !== "A") {
       e.preventDefault();
@@ -326,7 +326,7 @@ export class CanvasScreen extends React.Component {
   };
 
   handleGlobalMouseUp = (e) => {
-    if (e.button !== 0 || !this.isMouseDown) return;
+    if (e.button !== 0 || e.ctrlKey || !this.isMouseDown) return;
     this.isMouseDown = false;
     this.props.setInputAreaFocus(true);
     if (!this.dragStarted) {

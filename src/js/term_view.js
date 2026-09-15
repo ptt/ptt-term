@@ -260,7 +260,11 @@ export class TermView extends EventEmitter {
     }
     if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || (e.keyCode > 15 && e.keyCode < 19))
       return; // Shift Ctrl Alt
-    if (this.preserveDomSelection && this.app && !this.app.isSelectionCollapsed()) {
+    if (
+      (this.preserveDomSelection || this.isUsingDomSelection()) &&
+      this.app &&
+      !this.app.isSelectionCollapsed()
+    ) {
       return;
     }
     // set input area focus whenever key down even if there is selection
@@ -283,7 +287,7 @@ export class TermView extends EventEmitter {
 
   if (typeof document !== 'undefined') {
     document.addEventListener('selectionchange', () => {
-      if (!this.preserveDomSelection || this.useCanvasEngine) return;
+      if (!this.preserveDomSelection && !this.isUsingDomSelection()) return;
       if (typeof window === 'undefined' || !window.getSelection) return;
       const sel = window.getSelection();
       if (sel && !sel.isCollapsed && sel.rangeCount > 0) {
@@ -1339,8 +1343,7 @@ export class TermView extends EventEmitter {
 
   getRowLineElement(node) {
     for (let r = node; r && r != r.parentNode; r = r.parentNode) {
-      if (r instanceof Element &&
-        r.getAttribute('data-type') == 'termline') {
+      if (r.getAttribute?.('data-type') === 'termline') {
         return r;
       }
     }
@@ -1350,13 +1353,51 @@ export class TermView extends EventEmitter {
   countCol(node, pos) {
     let rowNode = this.getRowLineElement(node);
     if (!rowNode) {
+      if (node && typeof node.querySelector === 'function') {
+        if (node.getAttribute?.('type') === 'termrow' || node.hasAttribute?.('srow')) {
+          const innerRow = node.querySelector('[data-type="termline"]');
+          const rowIdx = innerRow
+            ? parseInt(innerRow.getAttribute('data-row'), 10)
+            : parseInt(node.getAttribute('srow'), 10);
+          if (!Number.isNaN(rowIdx)) {
+            const maxCol = innerRow
+              ? stringWidth(innerRow.textContent)
+              : this.buf?.cols || 80;
+            return { row: rowIdx, col: pos > 0 ? maxCol : 0 };
+          }
+        }
+        if (pos === 0) {
+          const firstLine = node.querySelector('[data-type="termline"]');
+          if (firstLine) {
+            return { row: parseInt(firstLine.getAttribute('data-row'), 10) || 0, col: 0 };
+          }
+        } else if (pos > 0 && node.childNodes?.length > 0) {
+          const idx = Math.min(pos - 1, node.childNodes.length - 1);
+          const child = node.childNodes[idx];
+          const lastLine =
+            child?.getAttribute?.('data-type') === 'termline'
+              ? child
+              : child?.querySelector?.('[data-type="termline"]');
+          if (lastLine) {
+            const rowIdx = parseInt(lastLine.getAttribute('data-row'), 10) || 0;
+            const maxCol = stringWidth(lastLine.textContent) || this.buf?.cols || 80;
+            return { row: rowIdx, col: maxCol };
+          }
+        }
+      }
       return { row: 0, col: 0 };
     }
 
     let col = 0;
     let doCount = function(cur) {
       if (cur == node) {
-        col += stringWidth(cur.textContent.substring(0, pos));
+        if (cur.nodeName == '#text' || cur.nodeType === 3) {
+          col += stringWidth(cur.textContent.substring(0, pos));
+        } else if (cur.childNodes) {
+          for (let i = 0; i < pos && i < cur.childNodes.length; i++) {
+            col += stringWidth(cur.childNodes[i].textContent);
+          }
+        }
         return false;
       }
       if (cur.nodeName == '#text') {
@@ -1393,6 +1434,9 @@ export class TermView extends EventEmitter {
       return window.getSelection().toString().replace(/\u00a0/g, " ");
     }
     if (this.preserveDomSelection && this._domSelectedText) {
+      return this._domSelectedText;
+    }
+    if (this.isUsingDomSelection() && this._domSelectedText) {
       return this._domSelectedText;
     }
     return '';
@@ -1433,11 +1477,15 @@ export class TermView extends EventEmitter {
   }
 
   hasDomSelectionFallback() {
-    return Boolean(this.preserveDomSelection && this._domSelectedText);
+    return Boolean((this.preserveDomSelection || this.isUsingDomSelection()) && this._domSelectedText);
+  }
+
+  isUsingDomSelection() {
+    return Boolean(!this.useCanvasEngine || this.app?.hasActiveInputInterceptor?.());
   }
 
   isSelectionCollapsed() {
-    if (this.useCanvasEngine) {
+    if (!this.isUsingDomSelection()) {
       return !this.getSelectionColRow();
     }
     if (this.hasDomSelectionFallback()) {
@@ -1449,7 +1497,7 @@ export class TermView extends EventEmitter {
   }
 
   snapshotDomSelection() {
-    if (!this.preserveDomSelection || this.useCanvasEngine) {
+    if (!this.preserveDomSelection && !this.isUsingDomSelection()) {
       return null;
     }
     const selText = this.getSelectedText();
@@ -1465,7 +1513,7 @@ export class TermView extends EventEmitter {
   }
 
   clearDomSelectionIfCollapsed() {
-    if (!this.preserveDomSelection || !this._domSelectedText) {
+    if ((!this.preserveDomSelection && !this.isUsingDomSelection()) || !this._domSelectedText) {
       return false;
     }
     const sel =
@@ -1495,6 +1543,9 @@ export class TermView extends EventEmitter {
     }
     if (typeof window === 'undefined' || !window.getSelection || window.getSelection().isCollapsed || window.getSelection().rangeCount === 0) {
       if (this.preserveDomSelection && this._domSelectionColRow) {
+        return this._domSelectionColRow;
+      }
+      if (this.isUsingDomSelection() && this._domSelectionColRow) {
         return this._domSelectionColRow;
       }
       return null;

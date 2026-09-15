@@ -63,5 +63,9 @@ export function shouldPreserveDomSelection() {
     }
   }
 
+  if (hasWebKitImeQuirk()) {
+    return true;
+  }
+
   return false;
 }

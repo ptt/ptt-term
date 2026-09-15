@@ -3759,7 +3759,7 @@ test('TermView and App handle DOM selection preservation and fallback', () => {
   assert.ok(currentAppSource.includes('this.hasWebKitImeQuirk = hasWebKitImeQuirk()'), 'App constructor must initialize hasWebKitImeQuirk');
   assert.ok(currentAppSource.includes('preserveDomSelection: this.preserveDomSelection'), 'App must pass preserveDomSelection option to TermView');
   assert.ok(currentAppSource.includes('hasWebKitImeQuirk: this.hasWebKitImeQuirk'), 'App must pass hasWebKitImeQuirk option to TermView');
-  assert.ok(currentAppSource.includes('if (this.preserveDomSelection && !force && !this.isSelectionCollapsed())'), 'App setInputAreaFocus must preserve selection');
+  assert.ok(currentAppSource.includes('if (isDomSelectionActive && !force && !this.isSelectionCollapsed())'), 'App setInputAreaFocus must preserve selection');
   assert.ok(currentAppSource.includes('this.view.isSelectionCollapsed()'), 'App isSelectionCollapsed must delegate to view.isSelectionCollapsed()');
   assert.ok(currentTermViewSource.includes('this.hasDomSelectionFallback()'), 'TermView isSelectionCollapsed must check hasDomSelectionFallback()');
   const currentMouseControllerSource = fs.readFileSync(path.resolve('src/js/mouse_controller.js'), 'utf-8');
@@ -4459,3 +4459,183 @@ test('EasyReading horizontal padding respects non-80 terminal column widths (e.g
     'EasyReading._updateOverlayPadding must set --term-cols and --term-rows on overlay'
   );
 });
+
+test('EasyReading preserves selected text on right-click and shows Copy option in ContextMenu', () => {
+  const easyReadingSource = fs.readFileSync(path.resolve('src/plugins/easy_reading/EasyReading.js'), 'utf-8');
+  const appSource = fs.readFileSync(path.resolve('src/js/app.js'), 'utf-8');
+  const termViewSource = fs.readFileSync(path.resolve('src/js/term_view.js'), 'utf-8');
+
+  // 1. EasyReading overlay mousedown does not call setInputAreaFocus on non-command elements
+  assert.ok(
+    !easyReadingSource.includes("e.target.tagName !== 'A' && this.app?.setInputAreaFocus"),
+    'EasyReading _onOverlayMouseDown must not call setInputAreaFocus on right-click or content mousedown'
+  );
+
+  // 2. App setInputAreaFocus blocks non-forced focus whenever DOM selection (EasyReading or DOM mode) is active
+  const setInputAreaFocusBody = appSource.match(/setInputAreaFocus\(force = false\)\s*\{([\s\S]*?\n  )\}/)[1];
+  const setInputAreaFocusFn = new Function('force', setInputAreaFocusBody);
+
+  let focusCount = 0;
+  const mockApp = {
+    inputArea: { focus() { focusCount++; } },
+    modalShown: false,
+    contextMenuShown: false,
+    preserveDomSelection: false, // e.g. Chrome/Safari/Edge
+    view: { useCanvasEngine: true },
+    hasActiveInputInterceptor: () => true, // EasyReading active
+    isSelectionCollapsed: () => false, // Text is selected
+    isMobileDevice: () => false,
+    isMobileLayout: () => false,
+    emit: () => {},
+    setInputAreaFocus: setInputAreaFocusFn,
+  };
+
+  const origDoc = globalThis.document;
+  try {
+    globalThis.document = { activeElement: null };
+    mockApp.setInputAreaFocus(false);
+    assert.equal(focusCount, 0, 'setInputAreaFocus(false) must not focus inputArea when EasyReading has selected text in Chrome');
+
+    mockApp.setInputAreaFocus(true);
+    assert.equal(focusCount, 1, 'setInputAreaFocus(true) forces focus when explicitly requested (e.g. after copy)');
+  } finally {
+    globalThis.document = origDoc;
+  }
+
+  // 3. TermView isUsingDomSelection returns true when EasyReading is active even if useCanvasEngine is true
+  assert.ok(
+    termViewSource.includes('isUsingDomSelection()'),
+    'TermView must define isUsingDomSelection() helper'
+  );
+});
+
+test('Cross-browser copy/paste: Safari/Firefox DOM selection, countCol Element/container nodes, multi-line ANSI col 80, and macOS Ctrl+Click', async () => {
+  const { shouldPreserveDomSelection, hasWebKitImeQuirk } = await import('../src/js/quirks.js');
+  const { stringWidth } = await import('../src/js/wcwidth.js');
+  const { TermBuf } = await import('../src/js/term_buf.js');
+  const canvasScreenSource = fs.readFileSync(path.resolve('src/components/Canvas/CanvasScreen.js'), 'utf-8');
+  const mouseControllerSource = fs.readFileSync(path.resolve('src/js/mouse_controller.js'), 'utf-8');
+  const quirksSource = fs.readFileSync(path.resolve('src/js/quirks.js'), 'utf-8');
+
+  // 1. quirks.js shouldPreserveDomSelection returns true for both Firefox and WebKit/Safari
+  assert.ok(
+    quirksSource.includes('hasWebKitImeQuirk()'),
+    'shouldPreserveDomSelection must check hasWebKitImeQuirk() for Safari/WebKit'
+  );
+  const origWindow = globalThis.window;
+  try {
+    globalThis.window = { safari: {}, location: { search: '' } };
+    assert.equal(shouldPreserveDomSelection(), true, 'Safari (window.safari) should enable shouldPreserveDomSelection');
+    globalThis.window = { location: { search: '?firefox=1' } };
+    assert.equal(shouldPreserveDomSelection(), true, 'Firefox (?firefox=1) should enable shouldPreserveDomSelection');
+  } finally {
+    globalThis.window = origWindow;
+  }
+
+  // 2. TermView.countCol handles Element nodes (pos = child node index) and container nodes outside data-type="termline"
+  const getRowLineElementMatch = termViewSource.match(/getRowLineElement\(node\)\s*\{([\s\S]*?\n  )\}/);
+  const countColMatch = termViewSource.match(/countCol\(node, pos\)\s*\{([\s\S]*?\n    \};\n  )\}/);
+  assert.ok(getRowLineElementMatch && countColMatch, 'getRowLineElement and countCol must exist in TermView');
+  const mockView = {
+    buf: { cols: 80 },
+    getRowLineElement: new Function('node', getRowLineElementMatch[1]),
+    countCol: new Function('node', 'pos', `const stringWidth = this._stringWidth;\n${countColMatch[1]}`),
+    _stringWidth: stringWidth,
+  };
+
+  const mockTermline0 = {
+    nodeType: 1,
+    getAttribute(attr) {
+      if (attr === 'data-type') return 'termline';
+      if (attr === 'data-row') return '0';
+      return null;
+    },
+    childNodes: [
+      { nodeType: 3, textContent: 'Hello ' }, // 6 cols
+      { nodeType: 1, textContent: '中文' }, // 4 cols (2 chars * 2)
+      { nodeType: 3, textContent: 'World' } // 5 cols
+    ]
+  };
+  mockTermline0.childNodes.forEach((child, idx) => {
+    child.parentNode = mockTermline0;
+    child.previousSibling = idx > 0 ? mockTermline0.childNodes[idx - 1] : null;
+  });
+
+  // When node is Element node (e.g. triple click or Safari selection endpoint at child index 2),
+  // countCol(mockTermline0, 2) should sum child 0 ('Hello ' = 6) + child 1 ('中文' = 4) = 10 cols
+  const elementPosResult = mockView.countCol(mockTermline0, 2);
+  assert.equal(elementPosResult.row, 0);
+  assert.equal(elementPosResult.col, 10, 'Element node pos=2 must sum columns of childNodes[0..1] without truncating textContent to 2 chars');
+
+  // When node is a container outside data-type="termline" (e.g. #mainContainer on Select All)
+  const mockTermline1 = {
+    nodeType: 1,
+    getAttribute(attr) {
+      if (attr === 'data-type') return 'termline';
+      if (attr === 'data-row') return '1';
+      return null;
+    },
+    textContent: 'Last Row Content' // 16 cols
+  };
+  const mockContainer = {
+    nodeType: 1,
+    parentNode: null,
+    childNodes: [mockTermline0, mockTermline1],
+    getAttribute() { return null; },
+    querySelector(sel) {
+      if (sel === '[data-type="termline"]') return mockTermline0;
+      return null;
+    }
+  };
+  const selectAllStart = mockView.countCol(mockContainer, 0);
+  assert.equal(selectAllStart.row, 0);
+  assert.equal(selectAllStart.col, 0, 'Container node with pos=0 must resolve to start of first termline');
+
+  const selectAllEnd = mockView.countCol(mockContainer, 2);
+  assert.equal(selectAllEnd.row, 1);
+  assert.equal(selectAllEnd.col, 16, 'Container node with pos>0 must resolve to end of last termline');
+
+  // 3. TermBuf.getSelectionText preserves 80th column on non-final rows and normalizes endCol === 0
+  const buf = new TermBuf(80, 24);
+  for (let c = 0; c < 79; c++) {
+    buf.lines[0][c].ch = 'A';
+  }
+  buf.lines[0][79].ch = 'Z';
+  for (let c = 0; c < 5; c++) {
+    buf.lines[1][c].ch = 'B';
+  }
+
+  // Multi-line selection from (0, 0) to (1, 5)
+  const multiText = buf.getSelectionText({
+    start: { row: 0, col: 0 },
+    end: { row: 1, col: 5 },
+  });
+  const lines = multiText.split('\n');
+  assert.equal(lines[0].length, 80, 'Row 0 in multi-line selection must include all 80 columns including col 79');
+  assert.equal(lines[0][79], 'Z', '80th character must be preserved');
+  assert.equal(lines[1].trim(), 'BBBBB');
+
+  // Triple-click selection from (0, 0) to (1, 0) where browser sets endContainer at start of next line (endCol=0)
+  const tripleClickText = buf.getSelectionText({
+    start: { row: 0, col: 0 },
+    end: { row: 1, col: 0 },
+  });
+  assert.ok(!tripleClickText.includes('\n'), 'endRow > startRow with endCol === 0 must normalize to end of previous row without trailing newline');
+  assert.equal(tripleClickText.length, 80);
+
+  // 4. macOS Ctrl+Click (button === 0 && ctrlKey === true) preserves selection in CanvasScreen and MouseController
+  assert.ok(
+    canvasScreenSource.includes('e.button !== 0 || e.ctrlKey'),
+    'CanvasScreen handleMouseDown and handleGlobalMouseUp must ignore button===0 when ctrlKey is pressed (macOS right-click)'
+  );
+  assert.ok(
+    mouseControllerSource.includes('const isRightClick = e.button === 2 || (e.button === 0 && e.ctrlKey)'),
+    'MouseController onMouseDown/onMouseUp must treat macOS Ctrl+Click as right-click to snapshot DOM selection'
+  );
+  assert.ok(
+    mouseControllerSource.includes('if (e.button !== 0 || e.ctrlKey) return;'),
+    'MouseController onClick must ignore macOS Ctrl+Click so it does not trigger left-click navigation'
+  );
+});
+
+

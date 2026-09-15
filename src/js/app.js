@@ -658,7 +658,11 @@ export class App extends EventEmitter {
       );
       return;
     }
-    if (this.preserveDomSelection && !force && !this.isSelectionCollapsed()) {
+    const isDomSelectionActive =
+      this.preserveDomSelection ||
+      this.hasActiveInputInterceptor() ||
+      !this.view?.useCanvasEngine;
+    if (isDomSelectionActive && !force && !this.isSelectionCollapsed()) {
       this.emit(
         'debug:touch',
         'setInputAreaFocus blocked: preserving text selection'
@@ -720,6 +724,9 @@ export class App extends EventEmitter {
 
   isSelectionCollapsed() {
     if (this.hasActiveInputInterceptor()) {
+      if (this.view?.hasDomSelectionFallback?.()) {
+        return false;
+      }
       return typeof window !== 'undefined' && window.getSelection
         ? window.getSelection().isCollapsed
         : true;
@@ -806,6 +813,7 @@ export class App extends EventEmitter {
   doSelectAll() {
     this.view.selectAll();
     this.lastSelection = this.view.getSelectionColRow();
+    this.view.snapshotDomSelection?.();
   }
 
   doSearchGoogle(searchTerm) {
