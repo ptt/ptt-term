@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ptt-term-v1';
+const CACHE_NAME = 'app-v1';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -33,9 +33,24 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Never cache version.json in Service Worker; always bypass HTTP cache
+  if (url.pathname.endsWith('/version.json')) {
+    event.respondWith(fetch(request, { cache: 'no-store' }));
+    return;
+  }
+
+  // For navigation / HTML requests, use cache: 'no-cache' to revalidate with origin
+  // server and avoid serving stale index.html from browser HTTP disk cache.
+  const isNavigation =
+    request.mode === 'navigate' ||
+    url.pathname === '/' ||
+    url.pathname.endsWith('/') ||
+    url.pathname.endsWith('.html');
+  const fetchInit = isNavigation ? { cache: 'no-cache' } : undefined;
+
   // Network-first strategy: always fetch fresh from network, fallback to cache on network error
   event.respondWith(
-    fetch(request)
+    fetch(request, fetchInit)
       .then((response) => {
         if (response && response.status === 200 && response.type === 'basic') {
           const responseToCache = response.clone();

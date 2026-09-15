@@ -17,6 +17,7 @@ test('E2E Build: Vite production build succeeds and generates complete PWA distr
     'index.html',
     'manifest.webmanifest',
     'sw.js',
+    'version.json',
     'icon-192.png',
     'icon-512.png',
     'icon-maskable-512.png',
@@ -55,11 +56,24 @@ test('E2E Build: Vite production build succeeds and generates complete PWA distr
   assert.ok(!html.includes('id="fpsOverlay"'), 'FPS overlay must not be hardcoded in index.html');
   assert.ok(!html.includes('id="packetDumpOverlay"'), 'Packet Dump overlay must not be hardcoded in index.html');
 
-  // 4. Validate sw.js exists and is valid JavaScript
+  // 4. Validate version.json and sw.js build output
+  const versionPath = path.join(DIST_DIR, 'version.json');
+  const versionData = JSON.parse(fs.readFileSync(versionPath, 'utf-8'));
+  assert.ok(versionData.version, 'version.json must include version');
+  assert.ok(versionData.commit, 'version.json must include commit hash');
+
   const swPath = path.join(DIST_DIR, 'sw.js');
   const swContent = fs.readFileSync(swPath, 'utf-8');
   assert.ok(swContent.includes('install'), 'Service worker must handle install event');
   assert.ok(swContent.includes('fetch'), 'Service worker must handle fetch event');
+  assert.ok(
+    swContent.includes(`app-${versionData.commit}`),
+    'Service worker CACHE_NAME must include build commit hash'
+  );
+  assert.ok(
+    swContent.includes("cache: 'no-cache'") && swContent.includes("cache: 'no-store'"),
+    'Service worker must bypass HTTP cache for HTML navigation and version.json'
+  );
 
   // 5. If Google Chrome is installed, test running Headless Chrome on the built bundle
   if (fs.existsSync(CHROME_PATH)) {
