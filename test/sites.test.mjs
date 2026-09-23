@@ -1462,9 +1462,11 @@ test('src/plugins exports LiveUpdate and provides timer and keyboard lifecycle',
   assert.equal(plugin.active, true);
   assert.ok(plugin.timer !== null);
 
-  // Interval adjustment
+  // Interval adjustment (minimum clamped to 3s)
   plugin.setIntervalSec(2);
-  assert.equal(plugin.intervalSec, 2);
+  assert.equal(plugin.intervalSec, 3);
+  plugin.setIntervalSec(5);
+  assert.equal(plugin.intervalSec, 5);
   assert.equal(plugin.active, true);
 
   plugin.stop();
@@ -1838,6 +1840,73 @@ test('src/plugins exports AntiIdle and delegates keepalive to site', async () =>
   assert.ok(eventApp.events.includes('term:anti-idle'));
   assert.equal(appAntiIdleSent, true);
   assert.equal(eventAntiIdle.idleTime, 0);
+
+  // Simulate switching away from tab (onBackground): sends proactive keep-alive if some idle time elapsed
+  eventApp.events.length = 0;
+  eventAntiIdle.resetIdle(baseNow + 60000);
+  eventAntiIdle.onBackground(baseNow + 62000);
+  assert.equal(eventApp.events.length, 1);
+  assert.equal(eventAntiIdle.idleTime, 0);
+
+  // Verify MIN_INTERVAL_SEC = 15s clamping on setIdleInterval and onTogglePref
+  assert.equal(antiIdleModule.AntiIdle.MIN_INTERVAL_SEC, 15);
+  eventAntiIdle.setIdleInterval(5);
+  assert.equal(eventAntiIdle.interval, 15000);
+  assert.deepEqual(
+    antiIdleModule.AntiIdle.onTogglePref(true, { antiIdleTime: 5 }),
+    { antiIdleTime: 15 }
+  );
+
+  // Verify setTimer uses Web Worker in browser mode to bypass background tab throttling
+  const { setTimer, _resetTimerWorkerForTest } = await import('../src/js/util.js');
+  const origWorker = globalThis.Worker;
+  const origCreateObjURL = URL.createObjectURL;
+  const origRevokeObjURL = URL.revokeObjectURL;
+  const postedMessages = [];
+  let workerInstance = null;
+
+  class MockTimerWorker {
+    constructor(url) {
+      this.url = url;
+      this.onmessage = null;
+      this.onerror = null;
+      workerInstance = this;
+    }
+    postMessage(msg) {
+      postedMessages.push(msg);
+    }
+    terminate() {}
+  }
+
+  try {
+    globalThis.__FORCE_BROWSER_TIMER_WORKER__ = true;
+    globalThis.Worker = MockTimerWorker;
+    URL.createObjectURL = () => 'blob:mock-timer';
+    URL.revokeObjectURL = () => {};
+    _resetTimerWorkerForTest();
+
+    let ticks = 0;
+    const t = setTimer(true, () => { ticks++; }, 5000);
+    assert.ok(workerInstance);
+    assert.equal(postedMessages.length, 1);
+    assert.equal(postedMessages[0].cmd, 'start');
+    assert.equal(postedMessages[0].delay, 5000);
+
+    // Worker tick triggers callback immediately even when main-thread setInterval hasn't fired
+    workerInstance.onmessage({ data: { id: postedMessages[0].id } });
+    assert.equal(ticks, 1);
+
+    t.cancel();
+    assert.equal(postedMessages.length, 2);
+    assert.equal(postedMessages[1].cmd, 'cancel');
+    assert.equal(postedMessages[1].id, postedMessages[0].id);
+  } finally {
+    delete globalThis.__FORCE_BROWSER_TIMER_WORKER__;
+    globalThis.Worker = origWorker;
+    URL.createObjectURL = origCreateObjURL;
+    URL.revokeObjectURL = origRevokeObjURL;
+    _resetTimerWorkerForTest();
+  }
 });
 
 test('src/plugins exports AutoWrap and wraps pasted text', async () => {

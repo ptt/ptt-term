@@ -9,6 +9,7 @@ export class AntiIdle extends PluginBase {
   static prefKey = "enableAntiIdle";
   static group = "bbs";
   static icon = "timer";
+  static MIN_INTERVAL_SEC = 15;
   static DEFAULT_INTERVAL_SEC = 180;
   static defaultPrefs = {
     enableAntiIdle: false,
@@ -16,8 +17,12 @@ export class AntiIdle extends PluginBase {
   };
 
   static onTogglePref(checked, nextValues) {
-    if (checked && (!nextValues.antiIdleTime || nextValues.antiIdleTime <= 0)) {
+    if (!checked) return nextValues;
+    if (!nextValues.antiIdleTime || nextValues.antiIdleTime <= 0) {
       return { ...nextValues, antiIdleTime: AntiIdle.DEFAULT_INTERVAL_SEC };
+    }
+    if (nextValues.antiIdleTime < AntiIdle.MIN_INTERVAL_SEC) {
+      return { ...nextValues, antiIdleTime: AntiIdle.MIN_INTERVAL_SEC };
     }
     return nextValues;
   }
@@ -46,8 +51,11 @@ export class AntiIdle extends PluginBase {
           className: "form-control",
           type: "number",
           name: "antiIdleTime",
-          min: "1",
-          value: values.antiIdleTime || AntiIdle.DEFAULT_INTERVAL_SEC,
+          min: String(AntiIdle.MIN_INTERVAL_SEC),
+          value: Math.max(
+            AntiIdle.MIN_INTERVAL_SEC,
+            parseInt(values.antiIdleTime, 10) || AntiIdle.DEFAULT_INTERVAL_SEC
+          ),
           onChange: handleNumberInputChange,
         }),
         React.createElement(
@@ -87,10 +95,31 @@ export class AntiIdle extends PluginBase {
     this.listenAppWhileEnabled("term:connect", () => this.resetIdle());
     if (typeof document !== "undefined") {
       this.listenWhileEnabled(document, "visibilitychange", () => {
-        if (!document.hidden) {
+        if (document.hidden) {
+          this.onBackground();
+        } else {
           this.tick(0);
         }
       });
+    }
+    if (typeof window !== "undefined") {
+      this.listenWhileEnabled(window, "focus", () => {
+        this.tick(0);
+      });
+      this.listenWhileEnabled(window, "blur", () => {
+        this.tick(0);
+      });
+    }
+  }
+
+  onBackground(now = Date.now()) {
+    if (!this.enabled || !this.app) return;
+    if (this.app.connectState !== 1) return;
+
+    this.tick(0, now);
+    if (this.interval > 0 && this.idleTime > 0) {
+      this.app.emit("term:anti-idle");
+      this.resetIdle(now);
     }
   }
 
@@ -111,13 +140,20 @@ export class AntiIdle extends PluginBase {
     if (this.options?.interval !== undefined) {
       this.interval = this.options.interval;
     } else {
-      this.interval = (timeSec > 0 ? timeSec : AntiIdle.DEFAULT_INTERVAL_SEC) * 1000;
+      const validSec =
+        timeSec > 0
+          ? Math.max(AntiIdle.MIN_INTERVAL_SEC, timeSec)
+          : AntiIdle.DEFAULT_INTERVAL_SEC;
+      this.interval = validSec * 1000;
     }
   }
 
   setIdleInterval(seconds) {
     const sec = Number(seconds);
-    const validSec = sec > 0 ? sec : AntiIdle.DEFAULT_INTERVAL_SEC;
+    const validSec =
+      sec > 0
+        ? Math.max(AntiIdle.MIN_INTERVAL_SEC, sec)
+        : AntiIdle.DEFAULT_INTERVAL_SEC;
     this.interval = validSec * 1000;
     this.resetIdle();
   }
