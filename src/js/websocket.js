@@ -58,6 +58,13 @@ export class Websocket extends EventEmitter {
   }
 
   _onClose(e) {
+    // Diagnostics for disconnect reports: 1000 + "bbs disconnected" comes from
+    // wsproxy when the BBS side closed; 1006 means the transport was cut
+    // (network / proxy / NAT idle timeout / frozen tab).
+    console.info(
+      `websocket closed: code=${e?.code} reason=${JSON.stringify(e?.reason ?? '')} ` +
+      `clean=${e?.wasClean} hidden=${typeof document !== 'undefined' ? document.hidden : 'n/a'}`
+    );
     this._sendQueue = [];
     this._isFlushing = false;
     this.emit('close');

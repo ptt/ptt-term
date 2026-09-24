@@ -11,6 +11,7 @@ export class AntiIdle extends PluginBase {
   static icon = "timer";
   static MIN_INTERVAL_SEC = 15;
   static DEFAULT_INTERVAL_SEC = 180;
+  static BACKGROUND_DEBOUNCE_MS = 1000;
   static defaultPrefs = {
     enableAntiIdle: false,
     antiIdleTime: 180,
@@ -101,13 +102,24 @@ export class AntiIdle extends PluginBase {
           this.tick(0);
         }
       });
+      // Page Lifecycle API (Chromium): the page is about to be frozen (e.g.
+      // energy saver / Edge sleeping tabs). No JS will run until 'resume',
+      // so this is the last chance to push a keepalive out.
+      this.listenWhileEnabled(document, "freeze", () => {
+        this.onBackground();
+      });
+      this.listenWhileEnabled(document, "resume", () => {
+        this.tick(0);
+      });
     }
     if (typeof window !== "undefined") {
       this.listenWhileEnabled(window, "focus", () => {
         this.tick(0);
       });
+      // Switching to another app window may not fire visibilitychange (the
+      // tab stays "visible") but the window can still be occluded/throttled.
       this.listenWhileEnabled(window, "blur", () => {
-        this.tick(0);
+        this.onBackground();
       });
     }
   }
@@ -117,7 +129,8 @@ export class AntiIdle extends PluginBase {
     if (this.app.connectState !== 1) return;
 
     this.tick(0, now);
-    if (this.interval > 0 && this.idleTime > 0) {
+    // blur / visibilitychange / freeze often fire back-to-back; only send once.
+    if (this.interval > 0 && this.idleTime >= AntiIdle.BACKGROUND_DEBOUNCE_MS) {
       this.app.emit("term:anti-idle");
       this.resetIdle(now);
     }

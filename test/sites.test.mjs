@@ -1848,6 +1848,10 @@ test('src/plugins exports AntiIdle and delegates keepalive to site', async () =>
   assert.equal(eventApp.events.length, 1);
   assert.equal(eventAntiIdle.idleTime, 0);
 
+  // blur + visibilitychange firing back-to-back must not double-send
+  eventAntiIdle.onBackground(baseNow + 62010);
+  assert.equal(eventApp.events.length, 1);
+
   // Verify MIN_INTERVAL_SEC = 15s clamping on setIdleInterval and onTogglePref
   assert.equal(antiIdleModule.AntiIdle.MIN_INTERVAL_SEC, 15);
   eventAntiIdle.setIdleInterval(5);
