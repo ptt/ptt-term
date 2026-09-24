@@ -822,6 +822,7 @@ export class PacketDump extends PluginBase {
       this.close();
     };
     this._onMouseOverBound = (e) => this._onTokenHover(e);
+    this._onMouseMoveBound = (e) => this._onMouseMove(e);
     this._onMouseOutBound = (e) => this._onTokenOut(e);
   }
 
@@ -989,15 +990,40 @@ export class PacketDump extends PluginBase {
 
     if (this.contentEl) {
       this.listenWhileEnabled(this.contentEl, "mouseover", this._onMouseOverBound);
+      this.listenWhileEnabled(this.contentEl, "mousemove", this._onMouseMoveBound);
       this.listenWhileEnabled(this.contentEl, "mouseout", this._onMouseOutBound);
     }
 
     return this.overlay;
   }
 
+  _positionTooltip(tokenEl, e) {
+    if (!this.tooltipEl || typeof tokenEl.getBoundingClientRect !== "function") return;
+    const rect = tokenEl.getBoundingClientRect();
+    const tipRect = this.tooltipEl.getBoundingClientRect();
+    const vw = typeof window !== "undefined" ? window.innerWidth : 800;
+    const vh = typeof window !== "undefined" ? window.innerHeight : 600;
+    let left;
+    let top;
+
+    if (tokenEl.classList?.contains("packet-dump-rail")) {
+      left = rect.right + 6;
+      const mouseY = typeof e?.clientY === "number" ? e.clientY : rect.top + 10;
+      top = mouseY - tipRect.height / 2;
+    } else {
+      left = rect.left + rect.width / 2 - tipRect.width / 2;
+      top = rect.top - tipRect.height - 6;
+    }
+
+    left = Math.max(6, Math.min(vw - tipRect.width - 6, left));
+    top = Math.max(6, Math.min(vh - tipRect.height - 6, top));
+    this.tooltipEl.style.left = `${Math.round(left)}px`;
+    this.tooltipEl.style.top = `${Math.round(top)}px`;
+  }
+
   _onTokenHover(e) {
     if (!this.tooltipEl || !e?.target?.closest) return;
-    const tokenEl = e.target.closest(".packet-dump-token");
+    const tokenEl = e.target.closest(".packet-dump-token, .packet-dump-rail");
     if (!tokenEl) {
       this.hideTooltip();
       return;
@@ -1009,22 +1035,23 @@ export class PacketDump extends PluginBase {
     }
     this.tooltipEl.textContent = text;
     this.tooltipEl.style.display = "block";
-    if (typeof tokenEl.getBoundingClientRect === "function") {
-      const rect = tokenEl.getBoundingClientRect();
-      const tipRect = this.tooltipEl.getBoundingClientRect();
-      const vw = typeof window !== "undefined" ? window.innerWidth : 800;
-      let left = rect.left + rect.width / 2 - tipRect.width / 2;
-      left = Math.max(6, Math.min(vw - tipRect.width - 6, left));
-      const top = Math.max(6, rect.top - tipRect.height - 6);
-      this.tooltipEl.style.left = `${Math.round(left)}px`;
-      this.tooltipEl.style.top = `${Math.round(top)}px`;
-    }
+    this._positionTooltip(tokenEl, e);
+  }
+
+  _onMouseMove(e) {
+    if (!this.tooltipEl || this.tooltipEl.style.display === "none") return;
+    const railEl = e?.target?.closest?.(".packet-dump-rail");
+    if (!railEl) return;
+    this._positionTooltip(railEl, e);
   }
 
   _onTokenOut(e) {
     if (!this.tooltipEl) return;
     const related = e?.relatedTarget;
-    if (related?.closest && related.closest(".packet-dump-token")) {
+    if (
+      related?.closest &&
+      related.closest(".packet-dump-token, .packet-dump-rail")
+    ) {
       return;
     }
     this.hideTooltip();
@@ -1153,6 +1180,18 @@ export class PacketDump extends PluginBase {
     const item = document.createElement("div");
     item.className =
       "packet-dump-item packet-dump-" + direction + " nomouse_command";
+
+    // Hover target over the left direction border showing the packet size.
+    const rail = document.createElement("span");
+    rail.className = "packet-dump-rail nomouse_command";
+    const dirLabel = direction === "send" ? "Send" : "Recv";
+    const sizeLabel = `${dirLabel}: ${bytes.length} byte${bytes.length === 1 ? "" : "s"}`;
+    if (typeof rail.setAttribute === "function") {
+      rail.setAttribute("data-tooltip", sizeLabel);
+    } else {
+      rail.title = sizeLabel;
+    }
+    item.appendChild(rail);
 
     for (let idx = 0; idx < tokens.length; idx++) {
       const tok = tokens[idx];

@@ -169,3 +169,63 @@ test('parsePacket: decodes ANSI CSI cursor, OSC title, and C1 escape sequences',
   assert.equal(tokens[3].type, 'ansi');
   assert.match(tokens[3].tooltip, /Save Cursor/);
 });
+
+test('PacketDump._positionTooltip aligns rail tooltip with clientY across tall rails', () => {
+  const pd = new PacketDump({});
+  pd.tooltipEl = {
+    style: {},
+    getBoundingClientRect: () => ({ width: 100, height: 24 }),
+  };
+
+  const tallRailEl = {
+    classList: { contains: (cls) => cls === 'packet-dump-rail' },
+    getBoundingClientRect: () => ({
+      top: 100,
+      bottom: 1100,
+      height: 1000,
+      left: 0,
+      right: 10,
+      width: 10,
+    }),
+  };
+
+  // Hover near the top of the tall rail (clientY = 130)
+  pd._positionTooltip(tallRailEl, { clientY: 130 });
+  assert.equal(pd.tooltipEl.style.left, '16px');
+  assert.equal(pd.tooltipEl.style.top, `${130 - 12}px`);
+
+  // Move towards middle of the tall rail (clientY = 350)
+  pd._positionTooltip(tallRailEl, { clientY: 350 });
+  assert.equal(pd.tooltipEl.style.left, '16px');
+  assert.equal(pd.tooltipEl.style.top, `${350 - 12}px`);
+
+  // Near the bottom, tooltip is clamped so it does not exceed the viewport
+  pd._positionTooltip(tallRailEl, { clientY: 600 });
+  assert.equal(pd.tooltipEl.style.left, '16px');
+  assert.equal(pd.tooltipEl.style.top, '570px');
+});
+
+test('PacketDump._positionTooltip centers tooltip above token for regular tokens', () => {
+  const pd = new PacketDump({});
+  pd.tooltipEl = {
+    style: {},
+    getBoundingClientRect: () => ({ width: 80, height: 20 }),
+  };
+
+  const tokenEl = {
+    classList: { contains: (cls) => cls === 'packet-dump-token' },
+    getBoundingClientRect: () => ({
+      top: 200,
+      bottom: 220,
+      height: 20,
+      left: 50,
+      right: 90,
+      width: 40,
+    }),
+  };
+
+  pd._positionTooltip(tokenEl, {});
+  // Centered horizontally above token: left = 50 + 20 - 40 = 30; top = 200 - 20 - 6 = 174
+  assert.equal(pd.tooltipEl.style.left, '30px');
+  assert.equal(pd.tooltipEl.style.top, '174px');
+});

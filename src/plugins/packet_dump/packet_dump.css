@@ -141,6 +141,7 @@
 }
 
 .packet-dump-item {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   gap: 3px;
@@ -149,6 +150,27 @@
   padding-left: 6px;
   border-left: 2px solid transparent;
   font-family: inherit;
+}
+
+/* Hover target over the left send/recv border (shows packet size) */
+.packet-dump-rail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -6px;
+  width: 10px;
+  cursor: help;
+  z-index: 1;
+}
+
+.packet-dump-rail:hover {
+  background: linear-gradient(
+    to right,
+    transparent 4px,
+    currentColor 4px,
+    currentColor 8px,
+    transparent 8px
+  );
 }
 
 .packet-dump-recv {
