@@ -44,7 +44,43 @@ export class Websocket extends EventEmitter {
   }
 
   _onOpen(e) {
+    this._acquireKeepAliveLock();
     this.emit('open');
+  }
+
+  // Chromium now lets pages with an open WebSocket enter the Back-Forward
+  // Cache by closing the socket ("Page entered Back-Forward Cache"), and Edge
+  // sleeping tabs / efficiency mode use that path. Pages holding a Web Lock are
+  // not eligible for BFCache nor put to sleep, so hold a per-connection lock
+  // (unique name: never contended with other tabs) while connected.
+  _acquireKeepAliveLock() {
+    if (this._wantLock) return;
+    const locks = typeof navigator !== 'undefined' ? navigator.locks : null;
+    if (!locks || typeof locks.request !== 'function') return;
+    this._wantLock = true;
+    const name = `ptt-term-conn-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    try {
+      locks
+        .request(name, () => new Promise((resolve) => {
+          // Granted asynchronously: the socket may be gone already.
+          if (!this._wantLock) {
+            resolve();
+            return;
+          }
+          this._releaseLock = resolve;
+        }))
+        .catch(() => {});
+    } catch {
+      this._wantLock = false;
+    }
+  }
+
+  _releaseKeepAliveLock() {
+    this._wantLock = false;
+    if (this._releaseLock) {
+      this._releaseLock();
+      this._releaseLock = null;
+    }
   }
 
   _onMessage(e) {
@@ -60,11 +96,12 @@ export class Websocket extends EventEmitter {
   _onClose(e) {
     // Diagnostics for disconnect reports: 1000 + "bbs disconnected" comes from
     // wsproxy when the BBS side closed; 1006 means the transport was cut
-    // (network / proxy / NAT idle timeout / frozen tab).
+    // (network / proxy / NAT idle timeout / frozen tab / BFCache).
     console.info(
       `websocket closed: code=${e?.code} reason=${JSON.stringify(e?.reason ?? '')} ` +
       `clean=${e?.wasClean} hidden=${typeof document !== 'undefined' ? document.hidden : 'n/a'}`
     );
+    this._releaseKeepAliveLock();
     this._sendQueue = [];
     this._isFlushing = false;
     this.emit('close');
@@ -132,6 +169,7 @@ export class Websocket extends EventEmitter {
   }
 
   close() {
+    this._releaseKeepAliveLock();
     this._sendQueue = [];
     this._isFlushing = false;
     if (this._conn) {

@@ -249,6 +249,79 @@ test('Websocket chunks outgoing data and pauses on bufferedAmount backpressure',
   }
 });
 
+test('Websocket holds a Web Lock while open to avoid BFCache / sleeping tabs', async () => {
+  class MockWs {
+    constructor() {
+      this.listeners = {};
+      this.readyState = 1;
+    }
+    addEventListener(type, fn) {
+      (this.listeners[type] = this.listeners[type] || []).push(fn);
+    }
+    fire(type, e = {}) {
+      (this.listeners[type] || []).forEach((fn) => fn(e));
+    }
+    close() {}
+  }
+
+  const held = new Set();
+  const pendingGrants = [];
+  const mockLocks = {
+    request(name, cb) {
+      // Grant asynchronously like the real API.
+      return new Promise((done) => {
+        pendingGrants.push(() => {
+          held.add(name);
+          Promise.resolve(cb()).then(() => {
+            held.delete(name);
+            done();
+          });
+        });
+      });
+    },
+  };
+  const grantAll = async () => {
+    while (pendingGrants.length) pendingGrants.shift()();
+    await new Promise((r) => setTimeout(r, 0));
+  };
+
+  const originalWs = globalThis.WebSocket;
+  const navDesc = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  try {
+    globalThis.WebSocket = MockWs;
+    Object.defineProperty(globalThis, 'navigator', {
+      value: { locks: mockLocks },
+      configurable: true,
+      writable: true,
+    });
+    const { Websocket } = await import('../src/js/websocket.js');
+
+    // Normal: open -> lock held; close -> released.
+    const ws = new Websocket('ws://localhost/bbs');
+    ws._conn.fire('open');
+    await grantAll();
+    assert.equal(held.size, 1);
+    ws._conn.fire('close', { code: 1006, reason: '', wasClean: false });
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(held.size, 0);
+
+    // Race: closed before the lock is granted -> must not leak the lock.
+    const ws2 = new Websocket('ws://localhost/bbs');
+    ws2._conn.fire('open');
+    ws2.close();
+    await grantAll();
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(held.size, 0);
+  } finally {
+    globalThis.WebSocket = originalWs;
+    if (navDesc) {
+      Object.defineProperty(globalThis, 'navigator', navDesc);
+    } else {
+      delete globalThis.navigator;
+    }
+  }
+});
+
 test('parseConnectUrl parses absolute, relative, and legacy protocol URLs', () => {
   assert.equal(parseConnectUrl(''), null);
   assert.equal(parseConnectUrl(null), null);
