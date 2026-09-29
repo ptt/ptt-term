@@ -613,6 +613,13 @@ export function parsePacket(inputBytes, options = {}) {
             const arg = oscBody.slice(semi + 1);
             if (code === "0" || code === "2") {
               tooltip = `ANSI OSC: Set Window Title "${arg}"`;
+            } else if (code === "8") {
+              const secondSemi = arg.indexOf(";");
+              const params = secondSemi !== -1 ? arg.slice(0, secondSemi) : arg;
+              const url = secondSemi !== -1 ? arg.slice(secondSemi + 1) : "";
+              tooltip = url
+                ? `ANSI OSC: Hyperlink Open (OSC 8) "${url}"${params ? ` [${params}]` : ""}`
+                : "ANSI OSC: Hyperlink Close (OSC 8)";
             }
           }
           tokens.push({

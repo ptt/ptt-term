@@ -229,3 +229,15 @@ test('PacketDump._positionTooltip centers tooltip above token for regular tokens
   assert.equal(pd.tooltipEl.style.left, '30px');
   assert.equal(pd.tooltipEl.style.top, '174px');
 });
+
+test('parsePacket: decodes OSC 8 hyperlinks (open and close)', () => {
+  const bytes = strToBytes('\x1b]8;id=link1;https://term.ptt.cc\x1b\\\x1b]8;;\x07');
+  const tokens = parsePacket(bytes);
+  assert.equal(tokens.length, 2);
+
+  assert.equal(tokens[0].type, 'ansi');
+  assert.match(tokens[0].tooltip, /ANSI OSC: Hyperlink Open \(OSC 8\) "https:\/\/term\.ptt\.cc" \[id=link1\]/);
+
+  assert.equal(tokens[1].type, 'ansi');
+  assert.match(tokens[1].tooltip, /ANSI OSC: Hyperlink Close \(OSC 8\)/);
+});

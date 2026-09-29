@@ -438,7 +438,8 @@ export class CanvasScreen extends React.Component {
         if (ch && ch.isStartOfURL()) {
           const startCol = c;
           const href = ch.getFullURL();
-          while (c < cols && line[c] && line[c].isPartOfURL()) {
+          c++;
+          while (c < cols && line[c] && line[c].isPartOfURL() && !line[c].isStartOfURL()) {
             c++;
           }
           const endCol = c;

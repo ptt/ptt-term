@@ -37,6 +37,10 @@ export class TermChar {
     this.keyWordColor = '#ff0000';
     /** @type {string} */
     this.fullurl = '';
+    /** @type {string | null} */
+    this.linkUrl = null;
+    /** @type {string | null} */
+    this.linkId = null;
   }
 
   /**
@@ -90,6 +94,12 @@ export class TermChar {
     this.ch = TermChar.newChar ? TermChar.newChar.ch : ' ';
     this.isDBCSLead = TermChar.newChar ? TermChar.newChar.isDBCSLead : false;
     this.isDBCSTrail = TermChar.newChar ? TermChar.newChar.isDBCSTrail : false;
+    this.linkUrl = null;
+    this.linkId = null;
+    this.startOfURL = false;
+    this.endOfURL = false;
+    this.partOfURL = false;
+    this.fullurl = '';
     this.resetAttr();
   }
 
@@ -179,6 +189,14 @@ export class TermChar {
   getFullURL() {
     return this.fullurl;
   }
+
+  getLinkUrl() {
+    return this.linkUrl;
+  }
+
+  getLinkId() {
+    return this.linkId;
+  }
 }
 
 TermChar.newChar = new TermChar(' ');
@@ -204,13 +222,17 @@ export class TermBuf extends EventEmitter {
     this.cur_y_sav = -1;
     this.scrollStart = 0;
     this.scrollEnd = validRows - 1;
+    /** @type {{ url: string, id: string } | null} */
+    this.currentHyperlink = null;
     this.locator = new Locator(this);
     this.on('term:connect', () => {
       this.resetScrollRegion();
+      this.currentHyperlink = null;
       this.locator?.reset?.();
     });
     this.on('term:disconnect', () => {
       this.resetScrollRegion();
+      this.currentHyperlink = null;
       this.locator?.reset?.();
     });
     //this.scrollingTop=0;
@@ -430,6 +452,8 @@ export class TermBuf extends EventEmitter {
               this.halfAttr = null;
               ch2.ch = ch;
               ch2.copyAttr(leadAttr);
+              ch2.linkUrl = this.currentHyperlink ? this.currentHyperlink.url : null;
+              ch2.linkId = this.currentHyperlink ? this.currentHyperlink.id : null;
               ch2.needUpdate = true;
               ch2.isDBCSLead = false;
               ch2.isDBCSTrail = false;
@@ -447,6 +471,8 @@ export class TermBuf extends EventEmitter {
           this.halfAttr = null;
           ch2.ch = ch;
           ch2.copyAttr(leadAttr);
+          ch2.linkUrl = this.currentHyperlink ? this.currentHyperlink.url : null;
+          ch2.linkId = this.currentHyperlink ? this.currentHyperlink.id : null;
           ch2.needUpdate = true;
           ch2.isDBCSLead = isWide;
           ch2.isDBCSTrail = false;
@@ -457,6 +483,8 @@ export class TermBuf extends EventEmitter {
             if (chTrail) {
               chTrail.ch = '';
               chTrail.copyAttr(attr || this.attr);
+              chTrail.linkUrl = this.currentHyperlink ? this.currentHyperlink.url : null;
+              chTrail.linkId = this.currentHyperlink ? this.currentHyperlink.id : null;
               chTrail.needUpdate = true;
               chTrail.isDBCSLead = false;
               chTrail.isDBCSTrail = true;
@@ -502,6 +530,8 @@ export class TermBuf extends EventEmitter {
         if (ch2) {
           ch2.ch = ch;
           ch2.copyAttr(leadAttr || this.attr);
+          ch2.linkUrl = this.currentHyperlink ? this.currentHyperlink.url : null;
+          ch2.linkId = this.currentHyperlink ? this.currentHyperlink.id : null;
           ch2.needUpdate = true;
           ch2.isDBCSLead = false;
           ch2.isDBCSTrail = false;
@@ -518,6 +548,8 @@ export class TermBuf extends EventEmitter {
     if (ch2) {
       ch2.ch = ch;
       ch2.copyAttr(leadAttr || this.attr);
+      ch2.linkUrl = this.currentHyperlink ? this.currentHyperlink.url : null;
+      ch2.linkId = this.currentHyperlink ? this.currentHyperlink.id : null;
       ch2.needUpdate = true;
       ch2.isDBCSLead = true;
       ch2.isDBCSTrail = false;
@@ -528,6 +560,8 @@ export class TermBuf extends EventEmitter {
         if (chTrail) {
           chTrail.ch = '';
           chTrail.copyAttr(trailAttr || this.attr);
+          chTrail.linkUrl = this.currentHyperlink ? this.currentHyperlink.url : null;
+          chTrail.linkId = this.currentHyperlink ? this.currentHyperlink.id : null;
           chTrail.needUpdate = true;
           chTrail.isDBCSLead = false;
           chTrail.isDBCSTrail = true;
@@ -590,19 +624,49 @@ export class TermBuf extends EventEmitter {
           // FIXME: this is inefficient
           for (let iuri = 0; iuri < nuris; ++iuri) {
             const uri = uris[iuri];
-            line[uri[0]].startOfURL = false;
-            line[uri[0]].endOfURL = false;
-            line[uri[0]].fullurl = '';
-            line[uri[1]-1].startOfURL = false;
-            line[uri[1]-1].endOfURL = false;
-            line[uri[1]-1].fullurl = '';
+            if (line[uri[0]]) {
+              line[uri[0]].startOfURL = false;
+              line[uri[0]].fullurl = '';
+            }
+            if (line[uri[1] - 1]) {
+              line[uri[1] - 1].endOfURL = false;
+            }
             for (let c = uri[0]; c < uri[1]; ++c) {
-              line[c].partOfURL = false;
-              line[c].needUpdate = true;
+              if (line[c]) {
+                line[c].partOfURL = false;
+                line[c].needUpdate = true;
+              }
             }
           }
-          line.uris=null;
+          line.uris = null;
         }
+
+        let uris = null;
+
+        // 1. Scan for explicit OSC 8 hyperlinks on this line
+        let colIdx = 0;
+        while (colIdx < cols) {
+          const ch = line[colIdx];
+          if (ch && ch.linkUrl) {
+            const startCol = colIdx;
+            const linkUrl = ch.linkUrl;
+            const linkId = ch.linkId;
+            while (
+              colIdx < cols &&
+              line[colIdx] &&
+              line[colIdx].linkUrl === linkUrl &&
+              line[colIdx].linkId === linkId
+            ) {
+              colIdx++;
+            }
+            const endCol = colIdx;
+            if (!uris) uris = [];
+            uris.push([startCol, endCol, linkUrl]);
+          } else {
+            colIdx++;
+          }
+        }
+
         let s = '';
         const colMap = [];
         const colEndMap = [];
@@ -618,18 +682,18 @@ export class TermBuf extends EventEmitter {
         }
 
         let res;
-        let uris = null;
         this.uriRegEx.lastIndex = 0;
         // pairs of URI start and end positions are stored in line.uris.
         while ( (res = this.uriRegEx.exec(s)) !== null ) {
-          if (!uris)   uris = [];
           const startCol = colMap[res.index] ?? res.index;
           const endCol = (res[0].length > 0 && colEndMap)
             ? (colEndMap[res.index + res[0].length - 1] ?? (res.index + res[0].length))
             : (startCol + res[0].length);
-          const uri = [startCol, endCol];
-          uris.push(uri);
-          // dump('found URI: ' + res[0] + '\n');
+          const overlap = uris && uris.some(u => !(endCol <= u[0] || startCol >= u[1]));
+          if (!overlap) {
+            if (!uris) uris = [];
+            uris.push([startCol, endCol]);
+          }
         }
 
         const customLinks = this.site.detectCustomLinks(s, line, this);
@@ -648,33 +712,34 @@ export class TermBuf extends EventEmitter {
               }
             }
           }
-          if (uris) {
-            uris.sort((a, b) => a[0] - b[0]);
-          }
         }
 
         if (uris) {
+          uris.sort((a, b) => a[0] - b[0]);
           line.uris = uris;
-          // dump(line.uris.length + "uris found\n");
-        }
-        //
-        if (line.uris) {
-          const uris = line.uris;
           const nuris = uris.length;
           for (let iuri = 0; iuri < nuris; ++iuri) {
             const uri = uris[iuri];
             let urlTemp = '';
 
             for (let col = uri[0]; col < uri[1]; ++col) {
-              urlTemp += line[col].ch;
-              line[col].partOfURL = true;
-              line[col].needUpdate = true; //fix link bug
+              if (line[col]) urlTemp += line[col].ch;
             }
             const targetUrl = uri[2] || urlTemp;
             const fullurl = this.site.resolveUrl(targetUrl);
-            line[uri[0]].startOfURL = true;
-            line[uri[0]].fullurl = fullurl;
-            line[uri[1]-1].endOfURL = true;
+            for (let col = uri[0]; col < uri[1]; ++col) {
+              if (line[col]) {
+                line[col].partOfURL = true;
+                line[col].fullurl = fullurl;
+                line[col].needUpdate = true; //fix link bug
+              }
+            }
+            if (line[uri[0]]) {
+              line[uri[0]].startOfURL = true;
+            }
+            if (line[uri[1] - 1]) {
+              line[uri[1] - 1].endOfURL = true;
+            }
           }
         }
         //
@@ -1084,6 +1149,33 @@ export class TermBuf extends EventEmitter {
   resetScrollRegion() {
     this.scrollStart = 0;
     this.scrollEnd = this.rows - 1;
+  }
+
+  /**
+   * Set explicit hyperlink (OSC 8).
+   * @param {string} [url] Target URL (empty string to close hyperlink)
+   * @param {string} [params] Optional parameters (e.g. id=xyz)
+   */
+  setHyperlink(url = '', params = '') {
+    if (!url || typeof url !== 'string') {
+      this.currentHyperlink = null;
+      return;
+    }
+    const trimmed = url.trim();
+    if (!trimmed || !/^https?:\/\/.+/i.test(trimmed)) {
+      this.currentHyperlink = null;
+      return;
+    }
+    let id = '';
+    if (typeof params === 'string' && params.length > 0) {
+      const match = params.match(/(?:^|:)id=([^:]*)/);
+      if (match) id = match[1];
+    }
+    this.currentHyperlink = { url: trimmed, id };
+  }
+
+  getHyperlink() {
+    return this.currentHyperlink;
   }
 
   /**

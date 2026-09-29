@@ -844,3 +844,138 @@ test('TermBuf resize, connect, and disconnect reset DECSTBM margins', async () =
   assert.equal(buf.scrollStart, 0);
   assert.equal(buf.scrollEnd, 29);
 });
+
+test('AnsiParser parses OSC 8 hyperlink sequences (open and close, ST and BEL terminated)', () => {
+  const calls = [];
+  const mockTerm = {
+    puts() {},
+    setHyperlink(url, params) { calls.push(['OSC8', url, params]); },
+    setTitle() {},
+  };
+
+  const parser = new AnsiParser(mockTerm);
+
+  // 1. Open hyperlink with ST (\x1b\) terminator
+  parser.feed('\x1b]8;;https://term.ptt.cc\x1b\\');
+  assert.deepEqual(calls[0], ['OSC8', 'https://term.ptt.cc', '']);
+
+  // 2. Open hyperlink with parameters (e.g. id=link1) and BEL (\x07) terminator
+  parser.feed('\x1b]8;id=link1;https://example.com/path?a=1;b=2\x07');
+  assert.deepEqual(calls[1], ['OSC8', 'https://example.com/path?a=1;b=2', 'id=link1']);
+
+  // 3. Close hyperlink with ST
+  parser.feed('\x1b]8;;\x1b\\');
+  assert.deepEqual(calls[2], ['OSC8', '', '']);
+
+  // 4. Close hyperlink with BEL and optional id
+  parser.feed('\x1b]8;id=link1;\x07');
+  assert.deepEqual(calls[3], ['OSC8', '', 'id=link1']);
+});
+
+test('TermBuf creates clickable hyperlinks for OSC 8 anchor text and DBCS characters', async () => {
+  const { TermBuf } = await import('../src/js/term_buf.js');
+  const buf = new TermBuf(80, 24);
+  const parser = new AnsiParser(buf);
+
+  // Write text with OSC 8: 'PTT Web' linked to https://term.ptt.cc
+  buf.gotoPos(0, 0);
+  parser.feed('\x1b]8;;https://term.ptt.cc\x1b\\PTT Web\x1b]8;;\x1b\\ Plain Text');
+  buf.updateCharAttr();
+
+  // Verify 'PTT Web' (cols 0..6) are recognized as a hyperlink
+  assert.equal(buf.lines[0][0].isStartOfURL(), true);
+  assert.equal(buf.lines[0][0].getFullURL(), 'https://term.ptt.cc');
+  for (let c = 0; c <= 6; ++c) {
+    assert.equal(buf.lines[0][c].isPartOfURL(), true, `Col ${c} must be partOfURL`);
+  }
+  assert.equal(buf.lines[0][6].isEndOfURL(), true);
+
+  // Verify ' Plain Text' (cols 7..) is NOT part of the URL
+  for (let c = 7; c < 18; ++c) {
+    assert.equal(buf.lines[0][c].isPartOfURL(), false, `Col ${c} must not be partOfURL`);
+  }
+
+  // Row 1: Write Chinese DBCS text with OSC 8: '批踢踢' (3 full-width chars = 6 cols)
+  buf.gotoPos(0, 1);
+  parser.feed('\x1b]8;;https://www.ptt.cc\x1b\\批踢踢\x1b]8;;\x1b\\');
+  buf.updateCharAttr();
+  assert.equal(buf.lines[1][0].isStartOfURL(), true);
+  assert.equal(buf.lines[1][0].getFullURL(), 'https://www.ptt.cc');
+  for (let c = 0; c < 6; ++c) {
+    assert.equal(buf.lines[1][c].isPartOfURL(), true);
+  }
+  assert.equal(buf.lines[1][5].isEndOfURL(), true);
+  assert.equal(buf.lines[1][6].isPartOfURL(), false);
+});
+
+test('TermBuf handles adjacent distinct OSC 8 hyperlinks without merging', async () => {
+  const { TermBuf } = await import('../src/js/term_buf.js');
+  const buf = new TermBuf(80, 24);
+  const parser = new AnsiParser(buf);
+
+  // Two adjacent links: 'First' (5 cols) and 'Second' (6 cols)
+  buf.gotoPos(0, 0);
+  parser.feed('\x1b]8;;https://first.com\x1b\\First\x1b]8;;\x1b\\\x1b]8;;https://second.com\x1b\\Second\x1b]8;;\x1b\\');
+  buf.updateCharAttr();
+
+  const line = buf.lines[0];
+  assert.equal(line.uris.length, 2, 'Must create 2 separate URI spans');
+
+  // Link 1: 0..4
+  assert.equal(line[0].isStartOfURL(), true);
+  assert.equal(line[0].getFullURL(), 'https://first.com');
+  assert.equal(line[4].isEndOfURL(), true);
+
+  // Link 2: 5..10
+  assert.equal(line[5].isStartOfURL(), true);
+  assert.equal(line[5].getFullURL(), 'https://second.com');
+  assert.equal(line[10].isEndOfURL(), true);
+});
+
+test('TermBuf only accepts http:// and https:// URI schemes in OSC 8', async () => {
+  const { TermBuf } = await import('../src/js/term_buf.js');
+  const buf = new TermBuf(80, 24);
+  const parser = new AnsiParser(buf);
+
+  // Attempt javascript: URI
+  buf.gotoPos(0, 0);
+  parser.feed('\x1b]8;;javascript:alert(1)\x1b\\Evil Link\x1b]8;;\x1b\\');
+  buf.updateCharAttr();
+  assert.equal(buf.lines[0][0].isStartOfURL(), false);
+  assert.equal(buf.lines[0][0].isPartOfURL(), false);
+
+  // Attempt data: URI
+  buf.gotoPos(0, 1);
+  parser.feed('\x1b]8;;data:text/html,<script>alert(1)</script>\x1b\\Evil Data\x1b]8;;\x1b\\');
+  buf.updateCharAttr();
+  assert.equal(buf.lines[1][0].isStartOfURL(), false);
+  assert.equal(buf.lines[1][0].isPartOfURL(), false);
+
+  // Attempt file: URI
+  buf.gotoPos(0, 2);
+  parser.feed('\x1b]8;;file:///etc/passwd\x1b\\Local File\x1b]8;;\x1b\\');
+  buf.updateCharAttr();
+  assert.equal(buf.lines[2][0].isStartOfURL(), false);
+  assert.equal(buf.lines[2][0].isPartOfURL(), false);
+
+  // Attempt telnet: URI
+  buf.gotoPos(0, 3);
+  parser.feed('\x1b]8;;telnet://ptt.cc\x1b\\Telnet\x1b]8;;\x1b\\');
+  buf.updateCharAttr();
+  assert.equal(buf.lines[3][0].isStartOfURL(), false);
+  assert.equal(buf.lines[3][0].isPartOfURL(), false);
+
+  // Valid http: URI
+  buf.gotoPos(0, 4);
+  parser.feed('\x1b]8;;http://ptt.cc\x1b\\HTTP Link\x1b]8;;\x1b\\');
+  buf.updateCharAttr();
+  assert.equal(buf.lines[4][0].isStartOfURL(), true);
+  assert.equal(buf.lines[4][0].getFullURL(), 'http://ptt.cc');
+
+  // Valid https: URI
+  buf.gotoPos(0, 5);
+  parser.feed('\x1b]8;;HTTPS://term.ptt.cc\x1b\\HTTPS Link\x1b]8;;\x1b\\');
+  buf.updateCharAttr();
+  assert.equal(buf.lines[5][0].isStartOfURL(), true);
+  assert.equal(buf.lines[5][0].getFullURL(), 'HTTPS://term.ptt.cc');
+});

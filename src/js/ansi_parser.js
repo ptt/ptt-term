@@ -429,33 +429,48 @@ export class AnsiParser {
           ch = '\x07';
         }
         if (ch == '\x07') {
-          const params = this.esc.split(';');
+          const firstSemi = this.esc.indexOf(';');
+          const cmdStr = firstSemi !== -1 ? this.esc.slice(0, firstSemi) : this.esc;
           let firstChar = '';
-          if (params[0] && (params[0].charAt(0)<'0' || params[0].charAt(0)>'9')) {
-            if (firstChar) { // unknown OSC
-              //dump('unknown OSC: ' + this.esc + ch + '\n');
-              this.state = AnsiParser.STATE_TEXT;
-              this.esc = '';
-              break;
-            }
+          if (cmdStr.length > 0 && (cmdStr.charAt(0) < '0' || cmdStr.charAt(0) > '9')) {
+            firstChar = cmdStr.charAt(0);
           }
-          for (let j = 0; j < params.length - 1; ++j) {
-            if (params[j]) {
-              const parsed = parseInt(params[j], 10);
-              params[j] = Number.isFinite(parsed) ? parsed : 0;
-            } else {
-              params[j] = 0;
-            }
+          if (firstChar) { // unknown OSC
+            this.state = AnsiParser.STATE_TEXT;
+            this.esc = '';
+            break;
           }
-          switch (params[0]) {
+          const cmd = parseInt(cmdStr, 10);
+          switch (cmd) {
+          case 0:
           case 2:
-            if (params[1] == '?')
-              ; // elicits a response; not implemented
-            else if (params[1] !== undefined) {
-              let title = String(params[1]);
-              if (!isUtf8)
-                title = b2u(title);
-              term.setTitle({site: title});
+            if (firstSemi !== -1) {
+              const arg = this.esc.slice(firstSemi + 1);
+              if (arg === '?') {
+                ; // elicits a response; not implemented
+              } else {
+                let title = arg;
+                if (!isUtf8)
+                  title = b2u(title);
+                term.setTitle?.({site: title});
+              }
+            }
+            break;
+          case 8:
+            if (firstSemi !== -1) {
+              const secondSemi = this.esc.indexOf(';', firstSemi + 1);
+              let oscParams = '';
+              let url = '';
+              if (secondSemi !== -1) {
+                oscParams = this.esc.slice(firstSemi + 1, secondSemi);
+                url = this.esc.slice(secondSemi + 1);
+              } else {
+                oscParams = this.esc.slice(firstSemi + 1);
+              }
+              if (!isUtf8 && url) {
+                url = b2u(url);
+              }
+              term.setHyperlink?.(url, oscParams);
             }
             break;
           default:
