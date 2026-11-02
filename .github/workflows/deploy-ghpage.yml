@@ -52,6 +52,10 @@ on:
         type: string
         required: false
         default: ''
+      EXCLUDE_PLUGINS:
+        type: string
+        required: false
+        default: ''
     secrets:
       deploy-token:
         required: true
@@ -81,6 +85,7 @@ jobs:
           SITE_TYPE: ${{ inputs.SITE_TYPE }}
           DEFAULT_PLUGINS: ${{ inputs.DEFAULT_PLUGINS }}
           DEFAULT_PREFS: ${{ inputs.DEFAULT_PREFS }}
+          EXCLUDE_PLUGINS: ${{ inputs.EXCLUDE_PLUGINS }}
           ALLOW_OVERRIDE_FROM_QUERY: "yes"
           DEV_PROXY_TARGET: ${{ inputs.DEV_PROXY_TARGET }}
           DEV_PROXY_HEADER: ${{ inputs.DEV_PROXY_HEADER }}

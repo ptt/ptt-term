@@ -1,91 +1,50 @@
 import { registerPluginPrefs } from '../js/pref.js';
-import {
-  EasyReading,
-  EasyReadingPlugin,
-  INFLIGHT_WATCHDOG_MS,
-  MAX_INFLIGHT_RETRIES,
-} from './easy_reading/index.js';
-import {
-  LiveUpdate,
-  LiveUpdatePlugin,
-} from './live_update/index.js';
-import {
-  MouseBrowsing,
-} from './mouse_browsing/index.js';
-import {
-  InputHelper,
-} from './input_helper/index.js';
-import {
-  AntiIdle,
-} from './anti_idle/index.js';
-import {
-  AutoWrap,
-  AutoWrapPlugin,
-} from './auto_wrap/index.js';
-import {
-  MediaPreviewer,
-  MediaPreviewerPlugin,
-} from './media_previewer/index.js';
-import {
-  PacketDump,
-  PacketDumpPlugin,
-} from './packet_dump/index.js';
-import {
-  FpsMeter,
-  FpsMeterPlugin,
-} from './fps_meter/index.js';
-import {
-  TouchDebugHUD,
-  TouchDebugHUDPlugin,
-} from './touch_debug_hud/index.js';
-import {
-  LoginAssist,
-  LoginAssistPlugin,
-  AutoLogin,
-  AutoLoginPlugin,
-} from './login_assist/index.js';
-import {
-  PwaPrompt,
-  PwaPromptPlugin,
-} from './pwa_prompt/index.js';
-import {
-  VirtualKeyboard,
-  VirtualKeyboardPlugin,
-  TouchKeyboardPlugin,
-  TouchUIPlugin,
-} from './virtual_keyboard/index.js';
+// Each plugin is imported as a namespace so that the build can replace an
+// excluded (EXCLUDE_PLUGINS) or removed plugin folder with an empty stub
+// module (see `plugin-excluder` in vite.config.js). Exports of a stubbed
+// plugin simply become `undefined` and are filtered out of BUILTIN_PLUGINS.
+import * as easyReadingModule from './easy_reading/index.js';
+import * as liveUpdateModule from './live_update/index.js';
+import * as mouseBrowsingModule from './mouse_browsing/index.js';
+import * as inputHelperModule from './input_helper/index.js';
+import * as antiIdleModule from './anti_idle/index.js';
+import * as autoWrapModule from './auto_wrap/index.js';
+import * as mediaPreviewerModule from './media_previewer/index.js';
+import * as packetDumpModule from './packet_dump/index.js';
+import * as fpsMeterModule from './fps_meter/index.js';
+import * as touchDebugHudModule from './touch_debug_hud/index.js';
+import * as loginAssistModule from './login_assist/index.js';
+import * as pwaPromptModule from './pwa_prompt/index.js';
+import * as virtualKeyboardModule from './virtual_keyboard/index.js';
 
-export {
+export const {
   EasyReading,
   EasyReadingPlugin,
   INFLIGHT_WATCHDOG_MS,
   MAX_INFLIGHT_RETRIES,
-  LiveUpdate,
-  LiveUpdatePlugin,
-  MouseBrowsing,
-  InputHelper,
-  AntiIdle,
-  AutoWrap,
-  AutoWrapPlugin,
-  MediaPreviewer,
-  MediaPreviewerPlugin,
-  PacketDump,
-  PacketDumpPlugin,
-  FpsMeter,
-  FpsMeterPlugin,
-  TouchDebugHUD,
-  TouchDebugHUDPlugin,
+} = easyReadingModule;
+export const { LiveUpdate, LiveUpdatePlugin } = liveUpdateModule;
+export const { MouseBrowsing } = mouseBrowsingModule;
+export const { InputHelper } = inputHelperModule;
+export const { AntiIdle } = antiIdleModule;
+export const { AutoWrap, AutoWrapPlugin } = autoWrapModule;
+export const { MediaPreviewer, MediaPreviewerPlugin } = mediaPreviewerModule;
+export const { PacketDump, PacketDumpPlugin } = packetDumpModule;
+export const { FpsMeter, FpsMeterPlugin } = fpsMeterModule;
+export const { TouchDebugHUD, TouchDebugHUDPlugin } = touchDebugHudModule;
+export const {
   LoginAssist,
   LoginAssistPlugin,
   AutoLogin,
   AutoLoginPlugin,
-  PwaPrompt,
-  PwaPromptPlugin,
+} = loginAssistModule;
+export const { PwaPrompt, PwaPromptPlugin } = pwaPromptModule;
+export const {
   VirtualKeyboard,
   VirtualKeyboardPlugin,
   TouchKeyboardPlugin,
   TouchUIPlugin,
-};
+} = virtualKeyboardModule;
 
 export { PluginBase } from './PluginBase.js';
 
@@ -198,7 +157,7 @@ export const BUILTIN_PLUGINS = [
   PacketDump,
   VirtualKeyboardPlugin,
   PwaPromptPlugin,
-];
+].filter(Boolean);
 
 registerPluginPrefs(BUILTIN_PLUGINS);
 

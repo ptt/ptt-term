@@ -61,5 +61,6 @@ jobs:
       BRANCH: ${{ matrix.site.BRANCH }}
       DEFAULT_PLUGINS: ${{ matrix.site.DEFAULT_PLUGINS }}
       DEFAULT_PREFS: ${{ matrix.site.DEFAULT_PREFS }}
+      EXCLUDE_PLUGINS: ${{ matrix.site.EXCLUDE_PLUGINS }}
     secrets:
       deploy-token: ${{ matrix.site.DEPLOY_TOKEN_SECRET != '' && secrets[matrix.site.DEPLOY_TOKEN_SECRET] || secrets.GH_PAT || secrets.GITHUB_TOKEN }}

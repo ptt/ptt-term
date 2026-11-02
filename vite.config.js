@@ -22,6 +22,43 @@ export default defineConfig(({ mode, command }) => {
   const dynamicTitle = process.env.DYNAMIC_TITLE ?? 'true';
   const siteUrl = process.env.SITE_URL;
 
+  // Build-time plugin exclusion: EXCLUDE_PLUGINS="live_update,packet_dump".
+  const pluginsDir = path.resolve(__dirname, 'src/plugins');
+  const pluginsIndexPath = path.join(pluginsDir, 'index.js');
+  const EXCLUDED_PLUGIN_PREFIX = '\0excluded-plugin:';
+  const knownPluginIds = new Set(
+    [...fs.readFileSync(pluginsIndexPath, 'utf-8').matchAll(/from\s+['"]\.\/([a-z0-9_]+)\/index\.js['"]/g)].map(
+      (m) => m[1]
+    )
+  );
+  const excludedPlugins = new Set(
+    (process.env.EXCLUDE_PLUGINS || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+  );
+  for (const id of excludedPlugins) {
+    if (!knownPluginIds.has(id)) {
+      throw new Error(
+        `EXCLUDE_PLUGINS has unknown plugin '${id}'. Known plugins: ${[...knownPluginIds].join(', ')}`
+      );
+    }
+  }
+  const parseDefaultPluginIds = (raw) => {
+    const trimmed = (raw || '').trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith('{')) return Object.keys(JSON.parse(trimmed));
+    return trimmed
+      .split(',')
+      .map((s) => s.trim().replace(/^[+\-!]/, '').trim())
+      .filter(Boolean);
+  };
+  for (const id of parseDefaultPluginIds(process.env.DEFAULT_PLUGINS)) {
+    if (excludedPlugins.has(id)) {
+      throw new Error(`DEFAULT_PLUGINS references excluded plugin '${id}' (see EXCLUDE_PLUGINS)`);
+    }
+  }
+
   const getCommitHash = () => {
     if (process.env.COMMIT_HASH) return process.env.COMMIT_HASH;
     if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA.slice(0, 8);
@@ -108,6 +145,32 @@ export default defineConfig(({ mode, command }) => {
         },
     }),
     plugins: [
+      {
+        // Replace excluded (EXCLUDE_PLUGINS) or missing plugin folders with an
+        // empty stub so their code is never bundled and they do not show up
+        // in Preferences.
+        name: 'plugin-excluder',
+        enforce: 'pre',
+        buildStart() {
+          if (excludedPlugins.size > 0) {
+            this.info?.(`Excluding plugins: ${[...excludedPlugins].join(', ')}`);
+          }
+        },
+        resolveId(id, importer) {
+          if (!importer || path.resolve(importer.split('?')[0]) !== pluginsIndexPath) return;
+          const m = /^\.\/([a-z0-9_]+)\/index\.js$/.exec(id);
+          if (!m) return;
+          const pluginId = m[1];
+          if (excludedPlugins.has(pluginId) || !fs.existsSync(path.join(pluginsDir, pluginId))) {
+            return `${EXCLUDED_PLUGIN_PREFIX}${pluginId}`;
+          }
+        },
+        load(id) {
+          if (id.startsWith(EXCLUDED_PLUGIN_PREFIX)) {
+            return 'export default undefined;\n';
+          }
+        },
+      },
       {
         name: 'icon-resolver',
         resolveId(id) {

@@ -232,3 +232,45 @@ test('load_sites.py normalizes and validates DEFAULT_PLUGINS', () => {
 });
 
 
+test('load_sites.py normalizes and validates EXCLUDE_PLUGINS', () => {
+  const dir = fs.mkdtempSync(path.join(PROJECT_ROOT, 'test', '.tmp-sites-'));
+  const base = {
+    CNAME: 'ex.example.com',
+    TARGET_REPO: 'example/ex',
+    SITE_URL: 'wss://ex.example.com/bbs',
+    DEV_PROXY_TARGET: 'https://ex.example.com',
+    DEV_PROXY_HEADER: 'https://ex.example.com',
+  };
+  const run = () =>
+    execFileSync('python3', [LOAD_SITES_SCRIPT, '--sites-dir', dir], {
+      encoding: 'utf-8',
+      cwd: PROJECT_ROOT,
+      stdio: 'pipe',
+    });
+  try {
+    fs.writeFileSync(
+      path.join(dir, 'site_ex.yml'),
+      yaml.stringify({ ...base, EXCLUDE_PLUGINS: ['live_update', 'packet_dump'] })
+    );
+    const matrix = JSON.parse(run().match(/^matrix=(.+)$/m)[1]);
+    assert.equal(matrix.site[0].EXCLUDE_PLUGINS, 'live_update,packet_dump');
+
+    fs.writeFileSync(
+      path.join(dir, 'site_ex.yml'),
+      yaml.stringify({ ...base, EXCLUDE_PLUGINS: 'no_such_plugin' })
+    );
+    assert.throws(run, /unknown plugin in EXCLUDE_PLUGINS: 'no_such_plugin'/);
+
+    fs.writeFileSync(
+      path.join(dir, 'site_ex.yml'),
+      yaml.stringify({
+        ...base,
+        EXCLUDE_PLUGINS: ['live_update'],
+        DEFAULT_PLUGINS: { enableLiveUpdate: true },
+      })
+    );
+    assert.throws(run, /DEFAULT_PLUGINS for excluded plugin\(s\): live_update/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

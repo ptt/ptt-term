@@ -103,6 +103,29 @@ def normalize_default_plugins(raw, fname):
     return json.dumps(normalized, separators=(',', ':')) if normalized else ''
 
 
+def normalize_exclude_plugins(raw, fname):
+    """Normalize EXCLUDE_PLUGINS (list or comma-separated string) to 'a,b'."""
+    if raw is None or raw == '' or raw == []:
+        return []
+    if isinstance(raw, str):
+        items = [x.strip() for x in raw.split(',') if x.strip()]
+    elif isinstance(raw, list):
+        items = [str(x).strip() for x in raw if str(x).strip()]
+    else:
+        raise ValueError(
+            f"Site config '{fname}' has invalid EXCLUDE_PLUGINS format: {type(raw).__name__}"
+        )
+    result = []
+    for item in items:
+        if item not in VALID_PLUGINS:
+            raise ValueError(
+                f"Site config '{fname}' has unknown plugin in EXCLUDE_PLUGINS: '{item}'"
+            )
+        if item not in result:
+            result.append(item)
+    return result
+
+
 def load_sites(sites_dir=None):
     if not sites_dir:
         sites_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sites')
@@ -169,6 +192,19 @@ def load_sites(sites_dir=None):
             else data.pop('PLUGINS', None)
         )
         data['DEFAULT_PLUGINS'] = normalize_default_plugins(raw_plugins, fname)
+
+        # Normalize EXCLUDE_PLUGINS (list or comma-separated string)
+        excluded = normalize_exclude_plugins(data.get('EXCLUDE_PLUGINS'), fname)
+        if data['DEFAULT_PLUGINS']:
+            conflicts = [
+                p for p in json.loads(data['DEFAULT_PLUGINS']) if p in excluded
+            ]
+            if conflicts:
+                raise ValueError(
+                    f"Site config '{fname}' sets DEFAULT_PLUGINS for excluded plugin(s): "
+                    f"{', '.join(conflicts)}"
+                )
+        data['EXCLUDE_PLUGINS'] = ','.join(excluded)
 
         # Normalize DEFAULT_PREFS (supports dict or JSON string)
         raw_prefs = data.get('DEFAULT_PREFS')

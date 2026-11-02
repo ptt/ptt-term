@@ -24,6 +24,8 @@ BRANCH: 'gh-pages'     # Target branch in TARGET_REPO (default: 'gh-pages')
 # DEFAULT_PLUGINS:     # Override default enabled/disabled state for plugins (optional)
 #   easy_reading: true
 #   mouse_browsing: false
+# EXCLUDE_PLUGINS:     # Plugins removed from the build entirely (optional)
+#   - live_update
 # DEFAULT_PREFS:       # Override default preferences for this site (optional)
 #   termSizeMode: 'fixed-font-size'
 # DEPLOY_BRANCH: 'prod' # Source branch in this repository triggering deployment (optional)
@@ -48,6 +50,7 @@ BRANCH: 'gh-pages'     # Target branch in TARGET_REPO (default: 'gh-pages')
 | `DYNAMIC_TITLE` | No | `false` | Whether to update window title with current BBS screen |
 | `BRANCH` | No | `gh-pages` | Target branch in `TARGET_REPO` |
 | `DEFAULT_PLUGINS` | No | Built-in defaults | Map (or comma-separated `+plugin, -plugin` string) overriding default plugin states |
+| `EXCLUDE_PLUGINS` | No | (none) | List (or comma-separated string) of plugin IDs to drop from the build. Excluded plugins are not bundled and do not appear in Preferences. Listing an excluded plugin in `DEFAULT_PLUGINS` is an error |
 | `DEFAULT_PREFS` | No | Built-in defaults | Map or JSON string overriding default preferences (e.g. `termSizeMode`, `colorScheme`) |
 | `DEPLOY_BRANCH` | No | `*` (any branch) | Source branch in this repository triggering deployment (`prod`, `beta`, etc.) |
 | `DEPLOY_TOKEN_SECRET`| No | `GH_PAT` / `GITHUB_TOKEN` | Repository secret name for deploy token |
