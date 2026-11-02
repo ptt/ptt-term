@@ -10,3 +10,5 @@ SITE_TYPE: 'ptt2'
 DEV_PROXY_TARGET: 'https://ws.ptt2.cc'
 DEV_PROXY_HEADER: 'https://term.ptt2.cc'
 DEPLOY_BRANCH: 'beta'
+EXCLUDE_PLUGINS:
+  - live_update
