@@ -4,6 +4,8 @@ import {
   DEFAULT_BELL_PITCH_HZ,
   DEFAULT_BELL_DURATION_MS,
   BELL_COOLDOWN_MS,
+  BELL_PEAK_GAIN,
+  BELL_RESUME_LEAD_S,
   canPlayBell,
   setTerminalBellEnabled,
   getTerminalBellMode,
@@ -21,8 +23,10 @@ import {
 
 test('bell constants follow standard terminal conventions', () => {
   assert.equal(DEFAULT_BELL_PITCH_HZ, 750); // Linux console vt.c default pitch
-  assert.equal(DEFAULT_BELL_DURATION_MS, 100); // VT100 standard 100ms
+  assert.equal(DEFAULT_BELL_DURATION_MS, 150);
   assert.equal(BELL_COOLDOWN_MS, 100);
+  assert.equal(BELL_PEAK_GAIN, 0.15);
+  assert.ok(BELL_RESUME_LEAD_S > 0);
 });
 
 test('bell cooldown gating and enablement logic', () => {
@@ -41,7 +45,7 @@ test('bell cooldown gating and enablement logic', () => {
   assert.equal(isTerminalBellEnabled(), true);
 });
 
-test('playTerminalBell synthesizes 750Hz acoustic chime via Web Audio and handles suspended/unsupported states', () => {
+test('playTerminalBell synthesizes 750Hz acoustic chime via Web Audio and handles suspended/unsupported states', async () => {
   let createdNodes = [];
   let resumed = false;
   let envelopeCalls = [];
@@ -109,6 +113,9 @@ test('playTerminalBell synthesizes 750Hz acoustic chime via Web Audio and handle
   const res1 = playTerminalBell(1000);
   assert.equal(res1, true);
   assert.equal(resumed, true);
+  // Tone is scheduled only after resume() settles.
+  assert.equal(createdNodes.length, 0);
+  await Promise.resolve();
   assert.equal(createdNodes.length, 2);
   assert.equal(freqValue, 750);
   // Verify acoustic envelope: rapid attack followed by exponential decay
@@ -243,6 +250,7 @@ test('audio context automatically suspends after bell playback to release audio 
 
   // Play a bell
   playTerminalBell(1000);
+  await Promise.resolve();
   assert.equal(resumed, true);
   assert.equal(suspended, false);
   const ctx = getAudioContext();
@@ -350,4 +358,78 @@ test('App triggers bell tab alert (🔔 and blinking) when unfocused and clears 
   }
 });
 
+function makeRecordingAudioContext({ state, resumeResult }) {
+  const log = { starts: [], peaks: [], resumed: 0 };
+  class Ctx {
+    constructor() {
+      this.currentTime = 2;
+      this.state = state;
+      this.destination = {};
+    }
+    createOscillator() {
+      return {
+        frequency: { setValueAtTime() {} },
+        connect() {},
+        disconnect() {},
+        start(t) { log.starts.push(t); },
+        stop() {},
+      };
+    }
+    createGain() {
+      return {
+        gain: {
+          setValueAtTime() {},
+          linearRampToValueAtTime(v) { log.peaks.push(v); },
+          exponentialRampToValueAtTime() {},
+        },
+        connect() {},
+        disconnect() {},
+      };
+    }
+    resume() {
+      log.resumed++;
+      if (resumeResult === 'reject') return Promise.reject(new Error('blocked'));
+      this.state = 'running';
+      return Promise.resolve();
+    }
+    suspend() {
+      this.state = 'suspended';
+      return Promise.resolve();
+    }
+  }
+  return { log, factory: () => new Ctx() };
+}
 
+test('running context schedules the bell immediately at currentTime', () => {
+  const { log, factory } = makeRecordingAudioContext({ state: 'running' });
+  resetBellAudioForTesting(factory);
+  assert.equal(playTerminalBell(1000), true);
+  assert.equal(log.resumed, 0);
+  assert.deepEqual(log.starts, [2]);
+  assert.deepEqual(log.peaks, [BELL_PEAK_GAIN]);
+  resetBellAudioForTesting();
+});
+
+test('suspended context waits for resume and schedules with a lead time', async () => {
+  const { log, factory } = makeRecordingAudioContext({ state: 'suspended' });
+  resetBellAudioForTesting(factory);
+  assert.equal(playTerminalBell(1000), true);
+  assert.equal(log.resumed, 1);
+  assert.deepEqual(log.starts, []);
+  await Promise.resolve();
+  assert.deepEqual(log.starts, [2 + BELL_RESUME_LEAD_S]);
+  resetBellAudioForTesting();
+});
+
+test('rejected resume (autoplay blocked) does not throw or schedule', async () => {
+  const { log, factory } = makeRecordingAudioContext({
+    state: 'suspended',
+    resumeResult: 'reject',
+  });
+  resetBellAudioForTesting(factory);
+  assert.equal(playTerminalBell(1000), true);
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(log.resumed, 1);
+  assert.deepEqual(log.starts, []);
+  resetBellAudioForTesting();
+});

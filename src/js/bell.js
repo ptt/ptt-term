@@ -2,20 +2,29 @@
 //
 // Follows standard terminal conventions:
 // - Pitch: 750 Hz (Linux virtual terminal default in drivers/tty/vt/vt.c, setterm --bfreq 750)
-// - Duration: 100 ms (DEC VT100 hardware bell duration, setterm --blength 100)
+// - Duration: 150 ms (slightly longer than the DEC VT100 100 ms bell; with the
+//   percussive decay a 100 ms tone is too short to be reliably heard)
 // - Rate-limiting: 100 ms cooldown to prevent audio flooding/overlap on burst inputs
 //
 // Envelope adheres to iOS/macOS audio design principles:
 // Uses a percussive bell profile (rapid 4ms attack to eliminate clicks, followed by
 // a natural acoustic exponential decay to silence) rather than a continuous test buzzer.
+//
+// The AudioContext is suspended between bells (to release the tab audio
+// indicator), so most bells start from a suspended context. Waking the output
+// device takes time and on some platforms (e.g. Windows with Bluetooth/HDMI
+// outputs) the first few ms of a newly (re)started stream are dropped. So when
+// the context is suspended we wait for resume() to settle and then schedule
+// the tone slightly in the future instead of at the frozen currentTime.
 
 export const DEFAULT_BELL_PITCH_HZ = 750;
-export const DEFAULT_BELL_DURATION_MS = 100;
+export const DEFAULT_BELL_DURATION_MS = 150;
 export const BELL_COOLDOWN_MS = 100;
+export const BELL_PEAK_GAIN = 0.15;
+export const BELL_RESUME_LEAD_S = 0.05;
 
 const BELL_DURATION_S = DEFAULT_BELL_DURATION_MS / 1000;
 const BELL_ATTACK_S = 0.004;
-const BELL_PEAK_GAIN = 0.06;
 const SILENCE_GAIN = 0.0001; // -80dB floor for exponential ramping
 
 let isBellEnabled = true;
@@ -170,16 +179,33 @@ export function playTerminalBell(now = Date.now()) {
 
     cancelAudioSuspend();
 
-    if (
-      audioContext.state === 'suspended' &&
-      typeof audioContext.resume === 'function'
-    ) {
-      audioContext.resume().catch(() => {});
+    const ctx = audioContext;
+    if (ctx.state === 'suspended' && typeof ctx.resume === 'function') {
+      // Wait for the output device to actually run, then schedule slightly
+      // ahead so the attack is not lost while the stream warms up.
+      ctx
+        .resume()
+        .then(() => {
+          cancelAudioSuspend();
+          scheduleBellTone(ctx, BELL_RESUME_LEAD_S);
+        })
+        .catch(() => {});
+      return true;
     }
 
-    const t0 = audioContext.currentTime;
-    const osc = audioContext.createOscillator();
-    const gain = audioContext.createGain();
+    scheduleBellTone(ctx, 0);
+    return true;
+  } catch {
+    // Non-throwing defense: terminal decode hot path must never fail.
+    return false;
+  }
+}
+
+function scheduleBellTone(ctx, leadS) {
+  try {
+    const t0 = ctx.currentTime + leadS;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
 
     osc.type = 'sine';
     if (osc.frequency && osc.frequency.setValueAtTime) {
@@ -201,7 +227,7 @@ export function playTerminalBell(now = Date.now()) {
     }
 
     osc.connect(gain);
-    gain.connect(audioContext.destination);
+    gain.connect(ctx.destination);
 
     osc.onended = () => {
       try {
@@ -217,7 +243,6 @@ export function playTerminalBell(now = Date.now()) {
     osc.stop(t0 + BELL_DURATION_S);
     return true;
   } catch {
-    // Non-throwing defense: terminal decode hot path must never fail.
     return false;
   }
 }
